@@ -14,6 +14,8 @@ Not a SPICE-accurate EDA tool. It's a teaching tool that generalizes
 Ohm's-law-level circuit math into something live and visual — see
 [DESIGN.md](DESIGN.md) for the architecture, simulation model, and roadmap.
 
+![Breadboard with a draggable resistor](docs/screenshot.png)
+
 ## Quick start
 
 ```sh
