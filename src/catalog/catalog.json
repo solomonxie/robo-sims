@@ -1,0 +1,130 @@
+[
+  {
+    "name": "resistor-220ohm",
+    "type": "resistor",
+    "description": "220Ω 1/4W axial resistor",
+    "tags": ["passive"],
+    "pins": [
+      { "id": "a", "x": -1.5, "z": 0 },
+      { "id": "b", "x": 1.5, "z": 0 }
+    ],
+    "specs": { "ohms": 220 }
+  },
+  {
+    "name": "resistor-1kohm",
+    "type": "resistor",
+    "description": "1kΩ 1/4W axial resistor",
+    "tags": ["passive"],
+    "pins": [
+      { "id": "a", "x": -1.5, "z": 0 },
+      { "id": "b", "x": 1.5, "z": 0 }
+    ],
+    "specs": { "ohms": 1000 }
+  },
+  {
+    "name": "led-red",
+    "type": "led",
+    "description": "5mm red LED",
+    "tags": ["passive", "output"],
+    "pins": [
+      { "id": "anode", "x": -0.5, "z": 0, "label": "anode (+)" },
+      { "id": "cathode", "x": 0.5, "z": 0, "label": "cathode (-)" }
+    ],
+    "specs": { "forwardVoltageV": 2.0, "maxCurrentMA": 20, "color": "red" }
+  },
+  {
+    "name": "led-green",
+    "type": "led",
+    "description": "5mm green LED",
+    "tags": ["passive", "output"],
+    "pins": [
+      { "id": "anode", "x": -0.5, "z": 0, "label": "anode (+)" },
+      { "id": "cathode", "x": 0.5, "z": 0, "label": "cathode (-)" }
+    ],
+    "specs": { "forwardVoltageV": 2.2, "maxCurrentMA": 20, "color": "green" }
+  },
+  {
+    "name": "capacitor-ceramic-100nf",
+    "type": "capacitor",
+    "description": "100nF ceramic capacitor",
+    "tags": ["passive"],
+    "pins": [
+      { "id": "a", "x": -0.5, "z": 0 },
+      { "id": "b", "x": 0.5, "z": 0 }
+    ],
+    "specs": { "farads": 1e-7 }
+  },
+  {
+    "name": "jumper-wire",
+    "type": "wire",
+    "description": "Male-male jumper wire",
+    "tags": ["wiring"],
+    "pins": [
+      { "id": "from", "x": 0, "z": 0 },
+      { "id": "to", "x": 1, "z": 0 }
+    ],
+    "specs": { "color": "yellow" }
+  },
+  {
+    "name": "battery-18650",
+    "type": "battery",
+    "description": "18650 Li-ion cell, 3.7V nominal",
+    "tags": ["power"],
+    "pins": [
+      { "id": "pos", "x": -0.9, "z": 0, "label": "+" },
+      { "id": "neg", "x": 0.9, "z": 0, "label": "-" }
+    ],
+    "specs": { "voltsV": 3.7, "capacityMah": 2600 }
+  },
+  {
+    "name": "esp32-devkit",
+    "type": "mcu",
+    "description": "ESP32 Dev Kit v1 (30-pin)",
+    "tags": ["board", "mcu"],
+    "pins": [
+      { "id": "3v3", "x": -4, "z": -1, "label": "3V3" },
+      { "id": "gnd-left", "x": -4, "z": 1, "label": "GND" },
+      { "id": "gpio2", "x": -2, "z": -1, "label": "GPIO2" },
+      { "id": "gpio4", "x": -2, "z": 1, "label": "GPIO4" },
+      { "id": "gpio5", "x": 0, "z": -1, "label": "GPIO5" },
+      { "id": "gpio18", "x": 0, "z": 1, "label": "GPIO18" },
+      { "id": "gpio19", "x": 2, "z": -1, "label": "GPIO19" },
+      { "id": "gpio21", "x": 2, "z": 1, "label": "GPIO21" },
+      { "id": "gpio22", "x": 4, "z": -1, "label": "GPIO22" },
+      { "id": "gpio23", "x": 4, "z": 1, "label": "GPIO23" },
+      { "id": "vin", "x": 6, "z": -1, "label": "VIN (5V)" },
+      { "id": "gnd-right", "x": 6, "z": 1, "label": "GND" }
+    ],
+    "specs": { "widthHoles": 12, "heightHoles": 3 }
+  },
+  {
+    "name": "l298n",
+    "type": "h-bridge",
+    "description": "L298N dual H-bridge motor driver module",
+    "tags": ["board", "motor-driver"],
+    "pins": [
+      { "id": "in1", "x": -3, "z": -1, "label": "IN1" },
+      { "id": "in2", "x": -2, "z": -1, "label": "IN2" },
+      { "id": "in3", "x": -1, "z": -1, "label": "IN3" },
+      { "id": "in4", "x": 0, "z": -1, "label": "IN4" },
+      { "id": "ena", "x": -3, "z": 1, "label": "ENA" },
+      { "id": "enb", "x": 0, "z": 1, "label": "ENB" },
+      { "id": "out1", "x": -4, "z": 0, "label": "OUT1" },
+      { "id": "out2", "x": -3.3, "z": 0, "label": "OUT2" },
+      { "id": "out3", "x": 3.3, "z": 0, "label": "OUT3" },
+      { "id": "out4", "x": 4, "z": 0, "label": "OUT4" },
+      { "id": "vcc", "x": 2, "z": -1, "label": "12V" },
+      { "id": "gnd", "x": 3, "z": -1, "label": "GND" },
+      { "id": "5v", "x": 4, "z": -1, "label": "5V" }
+    ],
+    "specs": { "maxCurrentA": 2, "logicVoltageV": 5 }
+  },
+  {
+    "name": "breadboard-half",
+    "type": "breadboard",
+    "description": "Half-size solderless breadboard, 30 rows",
+    "tags": ["board"],
+    "pins": [],
+    "specs": { "rows": 30 }
+  }
+]
