@@ -1,148 +1,52 @@
-# Design Doc
+# Design
 
-## 1. Problem
+## Problem
 
-Learning electronics/robotics hands-on requires owning parts — a breadboard,
-a drawer of resistors and sensors, a handful of microcontrollers, motors,
-drivers. That's a real barrier, and even with the parts in hand, it's easy
-to wire something wrong (reversed polarity, no current-limiting resistor,
-a short) and not understand *why* it didn't work.
+Learning electronics and robotics hands-on means owning parts, and it's easy to wire something wrong without understanding why. Goal: a pocket workbench with real parts in 3D and circuits that work, explained by the same Ohm's-law formulas as [`robotic-references/hello-electronics`](https://github.com/solomonxie/robotic-references/tree/master/hello-electronics). It's a teaching tool, not SPICE.
 
-**Goal:** a 3D, in-browser electronics workbench — drag real parts onto an
-infinite canvas, wire them together hole-by-hole on a breadboard exactly
-like the real thing, and see the circuit actually work: current flowing,
-voltages you can probe with a virtual multimeter, LEDs lighting up (or not,
-with a reason why). Not a SPICE-accurate EDA tool — a teaching tool that
-generalizes the Ohm's-law-level formulas from
-[`robotic-references/hello-electronics`](https://github.com/solomonxie/robotic-references/tree/master/hello-electronics)
-into something live and visual.
+## Platform
 
-## 2. Core concepts
+- iPhone only, portrait. React Native 0.87 (new architecture) + TypeScript.
+- No Expo and no dev server. Release builds embed `main.jsbundle`.
+- 3D: `react-native-webgpu` (Dawn → Metal) + `three/webgpu` (`WebGPURenderer`). Metro maps `three` to the WebGPU build so there's one Three instance.
+- The previous web version (Vite + R3F) is in `archive/web/`.
 
-| Concept | What it is |
+## Layout
+
+| Path | Role |
 |---|---|
-| **Catalog** | Fixed, data-driven (`src/catalog/catalog.json`) list of concrete parts. Each entry's `type` selects both its procedural 3D geometry generator and its simulation behavior module; `name` is the specific instance with its own specs. Growing the catalog is adding an entry, not writing code. |
-| **Breadboard** | A procedurally generated hole grid (`src/breadboard/layout.ts`) whose internal bus connectivity (power rails, 5-hole terminal strips) is modeled as data, resolved via union-find alongside placed parts and wires. |
-| **Circuit graph** | The electrical structure of a design: nets (electrically-joined groups of holes/pins/wire endpoints) and components sitting across them. |
-| **Simulation engine** | `src/sim/` — pure TypeScript, no rendering dependency. Nodal analysis with voltage-source stamping for the resistive network, plus small logic-level formula modules (H-bridge truth table, PWM average, thermistor Beta equation, ...) ported directly from `hello-electronics/*.py`. |
-| **Sim result** | Node voltages + branch currents from the last solve. Drives both the current-flow visualization (particles along wires) and the virtual multimeter tool. Nothing else writes to it. |
+| `app/src/core/` | Pure TS, no React/Three: breadboard holes + union-find nets, catalog, formulas, LED-loop solver. Unit-tested. |
+| `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
+| `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
+| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + a `build()` returning an animated 3D stage. Shared effects in `fx.ts` (charge flows, particle swarms, cells, arrows). |
+| `app/src/screens/` | Bench, Learn, lesson, Parts list, single-part viewer. |
 
-## 3. Architecture
+## 3D models
 
-Pure static client app — no backend. All logic (3D scene, catalog, circuit
-engine) runs in the browser; a design saves as a JSON file (export/import)
-or to `localStorage`, the same git-friendly-file philosophy as
-`distributed-debug`, just without needing a sync API since there's no
-multi-device/sharing requirement yet.
+- Units: 1 = one hole pitch (2.54 mm). Board top at y = 0, leads go into holes at y = −1.5.
+- Sizes follow real datasheets: 5 mm LED, ¼ W resistor, 18650 cell (18 × 65 mm), HC-SR04 (45 × 20 mm), ESP32 DevKit v1 30-pin, L298N (43 mm square), TT motor, 65 mm wheel, 60 mm mecanum wheel (9 rollers at 45°).
+- No imported assets. A new part is a catalog entry, plus a builder only if it's a new kind of shape.
+- No environment map, so metals stay at low metalness (otherwise they render black).
+- Breadboard holes are one `InstancedMesh`.
+- Only one renderer is alive at a time. Screens unmount theirs, and the dispose path works around react-native-webgpu#445.
 
-```mermaid
-flowchart LR
-    subgraph App [React + TypeScript + R3F — src/]
-        Scene[3D scene\nBreadboard + parts, R3F/Three.js]
-        Palette[Parts palette]
-        Inspector[Selected-part inspector]
-        Multimeter[Virtual multimeter panel]
-        Store[Zustand store\nplaced parts, wires, selection]
-        Breadboard[breadboard/layout.ts\nhole buses + union-find nets]
-        Sim[sim/\npure TS circuit engine]
-    end
+## Learn
 
-    Scene --> Store
-    Palette --> Store
-    Store --> Breadboard
-    Breadboard --> Sim
-    Sim --> Multimeter
-    Sim --> Scene
+- One lesson at a time, polished before the next. Shipped: **Current**. The rest are drafts in `archive/lesson-drafts/` (backlog order in its README).
+- Visuals are exaggerated; every number shown comes from `core/physics.ts` (tested).
+- `make preview LESSON=current` renders the lesson in headless Chrome (WebGPU on Metal, same scene code) with the screen's overlays mocked, to iterate on framing and look without a device. It's not a simulator; the iPhone is still the real check.
+- Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.
 
-    LocalStorage[(localStorage /\nJSON export-import)]
-    Store <--> LocalStorage
-```
+## Simulation
 
-`sim/` never imports React or Three — it's independently testable
-(`npm run test`) and traceable 1:1 to the `hello-electronics` formulas it
-generalizes.
+- Now: one LED loop (supply → R → LED). `I = (V − Vf) / R`, gives a status and reason, and drives the LED glow plus a point light.
+- Next: nodal analysis over union-find nets (conductance stamping, ideal sources by substitution, diode clamp by re-solve). H-bridge truth table, PWM averages, and sensor formulas as small modules.
+- Out of scope: firmware emulation and live links to real hardware.
 
-### Rendering — procedural geometry only
+## Roadmap
 
-No hand-modeled/imported 3D assets. A handful of reusable generator
-families cover the whole curated catalog:
-
-- **Axial passive** (cylinder + colored bands) → resistor, diode.
-- **Radial cap**, **dome+leads** (LED) — one generator each.
-- **PCB module** (box + instanced pin-header pegs from each entry's
-  `pins[]` array) → ESP32, L298N, HC-SR04, DHT11, etc. A new sensor board
-  is a new catalog entry + pinout array, not new geometry code.
-- **Breadboard**: `<Instances>` for the ~830 holes (never per-hole meshes,
-  never CSG-subtracted holes) — also gives cheap per-hole raycast picking
-  via `event.instanceId`, which hole-precision wiring depends on.
-- Known deferred weak spot: mecanum wheel rollers are genuinely hard
-  procedurally; approximate with a torus + stripe texture until a single
-  hand-authored GLTF exception is worth adding (post-M3, not before).
-
-### Simulation — nodal analysis with voltage-source stamping
-
-Right-sized subset of circuit theory, not full MNA/SPICE:
-
-1. Conductance-matrix stamping over unknown nets (`1/R` per resistor,
-   textbook pattern).
-2. Ideal voltage sources (battery, GPIO HIGH/LOW, PWM-as-average) fix a
-   net's voltage by substitution rather than adding branch-current
-   unknowns — valid since the catalog has no floating/differential
-   sources. Solved with plain Gauss elimination (net counts are small).
-3. LEDs/diodes: piecewise-linear clamp (solve open, clamp to `Vf` if
-   exceeded, re-solve 2-3 times).
-4. Capacitors: not folded into the steady-state solve — drive a
-   charge/discharge animation value from the RC time-constant formula
-   instead of a real transient solve.
-5. L298N/H-bridge: truth-table module computes the driven output voltage
-   before handing off to the resistive solver.
-6. Sensors: small formula modules taking a user-settable "simulated
-   stimulus" (temperature slider, distance slider, ...).
-
-### Breadboard connectivity — union-find over three sources
-
-`netKeyOf(hole)` maps a hole to its bus (rail vs. 5-hole strip half). Net
-resolution unions (a) every hole's bus key, (b) every placed part's
-pin-in-hole, (c) every wire's endpoints.
-
-**Documented simplification**: each power rail is modeled as one
-continuous net — real breadboards sometimes split rails at the midboard
-gap. Close enough for a teaching tool; revisit only if it actually
-confuses a lesson.
-
-## 4. Roadmap
-
-- **M0** (done) — Scaffold: R3F canvas, instanced-hole breadboard, one
-  draggable resistor with color bands computed from its `ohms` value,
-  10-entry seed catalog, `sim/` formula ports + tests, deployed to GitHub
-  Pages.
-- **M1** — HTML parts palette; drag-from-palette-to-canvas; expand catalog
-  to ~20-25 curated parts from `robotic-references` (ESP32, L298N,
-  HC-SR04, DHT11, thermistor, MQ-2, KY-038, PIR, IR obstacle, passives,
-  TT motor, mecanum wheel, 18650 cell, UBEC).
-- **M2** — Wire tool (hole/pin → hole/pin); union-find net resolution
-  wired up; undo/redo; JSON export/import + localStorage autosave;
-  inspector panel.
-- **M3** — `sim/solver.ts` + `sim/digital.ts` live; current-flow
-  visualization; virtual multimeter. Done bar: one small end-to-end
-  circuit (e.g. ESP32 GPIO → resistor → LED, or a thermistor
-  voltage-divider readout) — not the full robo-car assembly.
-- **M4+ (stretch)** — Atomic-level cutaway illustrations (one per part
-  category, stylized — not physically simulated atoms); soldering tool +
-  iron animation + permanent vs. breadboard-removable joints; hand-authored
-  mecanum-roller GLTF; a curated full robo-car demo once the pipeline is
-  proven on something small.
-
-**Explicitly, permanently out of scope**: an MCU/firmware emulator running
-actual Arduino/MicroPython code. "Digital behavior" means setting a GPIO's
-state/PWM duty in an inspector panel. Also out of scope: live USB/WebSerial
-connection to real hardware — "debugging your device" here means visual
-comparison (current-flow + multimeter readouts) against your physical
-build, not a live telemetry link.
-
-## 5. Deployment
-
-GitHub Pages via `actions/upload-pages-artifact` + `actions/deploy-pages`.
-No backend, no EC2/Terraform/Ansible (unlike `distributed-debug`, which
-needs a box for its sync API) — this is a pure static SPA.
-`vite.config.ts` sets `base: '/robo-sims/'` for project-pages routing.
+- **M0** (done): app shell, 16 procedural models, demo bench, resistor swap → live LED current, Learn tab with its first lesson (Current).
+- **M1**: place parts from the Parts list onto holes (snap pins), and remove them.
+- **M2**: wire tool hole-to-hole, net resolution, save/load designs.
+- **M3**: general solver, current-flow particles, virtual multimeter.
+- **M4**: assemble a robo-car (chassis, L298N + TT motors, ESP32 GPIO inspector).

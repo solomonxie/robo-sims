@@ -1,0 +1,6 @@
+// Placeholders only. Your values go in Local.xcconfig (gitignored), see Local.xcconfig.example.
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+PRODUCT_BUNDLE_IDENTIFIER = dev.robosims.app
+
+#include? "Local.xcconfig"
