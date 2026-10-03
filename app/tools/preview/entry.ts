@@ -4,6 +4,7 @@ import * as THREE from 'three/webgpu'
 import { UNITS } from '../../src/lessons'
 import { Lesson, Readout, initialParams } from '../../src/lessons/types'
 import { FOV, Orbit } from '../../src/scene/orbit'
+import { createBench } from '../../src/scene/bench'
 import { clearColor } from '../../src/scene/stage'
 
 declare global {
@@ -15,9 +16,14 @@ declare global {
 
 async function main() {
   const q = new URLSearchParams(location.search)
-  const lesson = UNITS.flatMap((u) => u.lessons).find((l) => l.id === q.get('lesson'))!
-  const params = { ...initialParams(lesson), ...JSON.parse(q.get('params') ?? '{}') }
-  const stage = lesson.build()
+  const isBench = q.get('lesson') === 'bench'
+  const lesson = isBench ? undefined! : UNITS.flatMap((u) => u.lessons).find((l) => l.id === q.get('lesson'))!
+  const params = lesson ? { ...initialParams(lesson), ...JSON.parse(q.get('params') ?? '{}') } : {}
+  const bench = isBench ? createBench() : null
+  if (bench && q.get('xray') === '1') bench.setXray(true)
+  const stage = bench
+    ? { scene: bench.scene, view: { center: [0, 0, 0], radius: 62 } as { center: [number, number, number]; radius: number; polar?: number; azimuth?: number }, frame: (dt: number) => bench.tick(dt), readouts: () => [] as Readout[] }
+    : lesson.build()
   const orbit = new Orbit()
   orbit.frame(new THREE.Vector3(...stage.view.center), Number(q.get('radius') ?? stage.view.radius))
   orbit.polar = Number(q.get('polar') ?? stage.view.polar ?? orbit.polar)
@@ -38,7 +44,7 @@ async function main() {
   orbit.apply(camera)
   renderer.render(stage.scene, camera)
   document.title = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'webgpu' : 'webgl2'
-  if (q.get('chrome') !== '0') drawChrome(lesson, stage.readouts(params))
+  if (!isBench && q.get('chrome') !== '0') drawChrome(lesson, stage.readouts(params))
   window.ready = true
 }
 

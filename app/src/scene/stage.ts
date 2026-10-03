@@ -35,6 +35,7 @@ export function createStage({ deskY, span }: { deskY?: number; span: number }): 
 
   if (deskY !== undefined) {
     const desk = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), new THREE.MeshStandardMaterial({ color: '#2b2e36', roughness: 0.9 }))
+    desk.name = 'desk'
     desk.rotation.x = -Math.PI / 2
     desk.position.y = deskY
     desk.receiveShadow = true

@@ -6,6 +6,7 @@ import { entry } from '../core/catalog'
 import { LedReading } from '../core/circuit'
 import { createBench, PlacedPart } from '../scene/bench'
 import { Orbit } from '../scene/orbit'
+import { XRAY_LEGEND } from '../scene/xray'
 import { Viewport } from '../scene/Viewport'
 import { SpecTable } from '../ui/SpecTable'
 import { C, S } from '../ui/theme'
@@ -24,6 +25,14 @@ export function BenchScreen() {
   const [selected, setSelected] = useState<PlacedPart | null>(null)
   const [reading, setReading] = useState<LedReading>(bench.reading)
   const [version, setVersion] = useState(0)
+  const [xray, setXray] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  const toggleXray = () => {
+    bench.setXray(!xray)
+    setXray(!xray)
+    setVersion((v) => v + 1)
+  }
 
   const select = (part: PlacedPart | null) => {
     if (outline.current) bench.scene.remove(outline.current)
@@ -33,10 +42,15 @@ export function BenchScreen() {
       bench.scene.add(outline.current)
     }
     setSelected(part)
+    setExpanded(false)
     setVersion((v) => v + 1)
   }
 
   const onTap = (obj: THREE.Object3D | null) => {
+    if (!obj) select(null)
+  }
+
+  const onLongPress = (obj: THREE.Object3D | null) => {
     select(obj ? bench.parts.find((p) => p.id === obj.userData.partId) ?? null : null)
   }
 
@@ -49,11 +63,11 @@ export function BenchScreen() {
 
   return (
     <View style={styles.fill}>
-      <Viewport scene={bench.scene} orbit={orbit} version={version} onTap={onTap} />
+      <Viewport scene={bench.scene} orbit={orbit} version={version} onTap={onTap} onLongPress={onLongPress} onFrame={xray ? bench.tick : undefined} />
 
       <View style={[styles.header, { paddingTop: insets.top + 8 }]} pointerEvents="none">
         <Text style={styles.title}>Bench</Text>
-        <Text style={styles.hint}>One finger to pan · two fingers to rotate · pinch to zoom · tap a part</Text>
+        <Text style={styles.hint}>One finger to pan · two fingers to rotate · pinch to zoom · hold a part for info</Text>
       </View>
 
       <View style={[styles.status, { top: insets.top + 64 }]} pointerEvents="none">
@@ -63,7 +77,38 @@ export function BenchScreen() {
         </Text>
       </View>
 
-      {selected && (
+      <View style={[styles.tools, { top: insets.top + 8 }]}>
+        <Pressable onPress={toggleXray} style={[styles.chip, xray && styles.chipOn]}>
+          <Text style={[styles.chipText, xray && styles.chipTextOn]}>X-ray</Text>
+        </Pressable>
+      </View>
+
+      {xray && (
+        <View style={[styles.legend, { top: insets.top + 108 }]} pointerEvents="none">
+          {XRAY_LEGEND.map((item) => (
+            <View key={item.label} style={styles.legendRow}>
+              <View style={[styles.dot, { backgroundColor: item.color }]} />
+              <Text style={styles.statusText}>{item.label}</Text>
+            </View>
+          ))}
+          <Text style={styles.hint}>Dots: current, + to −</Text>
+        </View>
+      )}
+
+      {selected && !expanded && (
+        <Pressable style={styles.tip} onPress={() => setExpanded(true)}>
+          <Text style={styles.tipText} numberOfLines={1}>
+            <Text style={styles.ref}>{selected.id} </Text>
+            {selected.entry.title}
+          </Text>
+          <Text style={styles.tipMore}>More ▴</Text>
+          <Pressable onPress={() => select(null)} hitSlop={12}>
+            <Text style={styles.close}>✕</Text>
+          </Pressable>
+        </Pressable>
+      )}
+
+      {selected && expanded && (
         <View style={styles.card}>
           <View style={styles.cardHead}>
             <View style={styles.flex}>
@@ -133,6 +178,32 @@ const styles = StyleSheet.create({
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { color: C.text, fontSize: 13, fontVariant: ['tabular-nums'] },
+  tools: { position: 'absolute', right: S.pad },
+  legend: {
+    position: 'absolute',
+    left: S.pad,
+    backgroundColor: 'rgba(31,34,41,0.85)',
+    padding: 10,
+    borderRadius: 12,
+    gap: 4,
+  },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tip: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: C.card,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  tipText: { color: C.text, fontSize: 14, maxWidth: 220 },
+  tipMore: { color: C.accent, fontSize: 13 },
   card: {
     position: 'absolute',
     left: 10,
