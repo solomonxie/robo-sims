@@ -7,6 +7,7 @@ import { LedReading, solveLedLoop } from '../core/circuit'
 import { buildModel } from '../models'
 import { buildJumper, buildLead } from '../models/wire'
 import { bottomOf, createStage } from './stage'
+import { createXray } from './xray'
 
 export const DESK_Y = -BOARD.height
 
@@ -57,6 +58,9 @@ export interface Bench {
   /** Swap R1 for another resistor and re-solve the LED loop. */
   setResistor: (name: string) => LedReading
   reading: () => LedReading
+  setXray: (on: boolean) => void
+  /** Advance the X-ray current animation (seconds). */
+  tick: (dt: number) => void
 }
 
 export function createBench(): Bench {
@@ -115,9 +119,25 @@ export function createBench(): Bench {
     scene.remove(old.object)
     parts.splice(parts.indexOf(old), 1)
     place({ ...LED_LOOP[0], name })
+    if (xrayOn) xray.setOn(true)
     return glow()
   }
 
+  const xray = createXray({
+    scene,
+    targets: () => scene.children,
+    batteryLeads: {
+      pos: battery.localToWorld(pos.clone()),
+      neg: battery.localToWorld(neg.clone()),
+    },
+  })
+  let xrayOn = false
+  const setXray = (on: boolean) => {
+    xrayOn = on
+    xray.setOn(on)
+  }
+  const tick = (dt: number) => xray.update(dt, reading())
+
   glow()
-  return { scene, parts, supplyV, setResistor, reading }
+  return { scene, parts, supplyV, setResistor, reading, setXray, tick }
 }
