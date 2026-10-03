@@ -1,30 +1,23 @@
-# 3D Electronics Workbench Simulator
+# Robo Sims
 
-> 🚧 Work in progress — M0 scaffold only: a breadboard and one draggable
-> resistor. Wiring and circuit simulation are not built yet — see the
-> roadmap in [DESIGN.md](DESIGN.md).
+iPhone app for learning electronics and robotics hands-on, without owning the parts. You get a 3D workbench with real components you can orbit and inspect, and circuits that actually work. For example, an 18650 lights an LED through a resistor, and swapping the resistor dims or brightens it. A Learn tab explains the physics underneath as interactive 3D illustrations, starting with current.
 
-Drag real electronic parts onto an infinite 3D canvas, wire them together
-hole-by-hole on a breadboard, and simulate the circuit — current flow,
-voltages you can probe with a virtual multimeter, LEDs lighting up (or not,
-with a reason why). Built to learn electronics/robotics hands-on without
-needing to own every part first.
-
-Not a SPICE-accurate EDA tool. It's a teaching tool that generalizes
-Ohm's-law-level circuit math into something live and visual — see
-[DESIGN.md](DESIGN.md) for the architecture, simulation model, and roadmap.
-
-![Breadboard with a draggable resistor](docs/screenshot.png)
+React Native + TypeScript, no Expo. 3D is Three.js on WebGPU (Metal) via `react-native-webgpu`. Every part is a procedural model built from its catalog specs.
 
 ## Quick start
 
 ```sh
-npm install
-npm run dev       # http://localhost:5173
-npm run test      # simulation engine unit tests
-npm run build      # production build
+make install                  # npm + pods
+cp app/ios/Local.xcconfig.example app/ios/Local.xcconfig   # your Team ID
+echo 'DEVICE = <udid>' > Local.mk                          # xcrun devicectl list devices
+make ios-build ios-run        # Release build, JS embedded, onto the iPhone
+make test typecheck lint
 ```
+
+There's no dev server. The app always loads the `main.jsbundle` embedded at build time, so reinstall to see a change.
+
+See [DESIGN.md](DESIGN.md) for the architecture and roadmap.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
