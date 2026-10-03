@@ -13,14 +13,17 @@ interface Props {
   version?: number
   /** Nearest ancestor with `userData.partId`, or null for empty space. */
   onTap?: (part: THREE.Object3D | null) => void
+  /** Finger held still for LONG_PRESS_MS on a part (or empty space → null). */
+  onLongPress?: (part: THREE.Object3D | null) => void
   /** Animation hook, called every frame (seconds); keeps the view redrawing. */
   onFrame?: (dt: number) => void
 }
 
 const TAP_SLOP = 8
 const TAP_MS = 300
+const LONG_PRESS_MS = 1000
 
-export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap, onFrame }: Props) {
+export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap, onLongPress, onFrame }: Props) {
   const canvas = useRef<CanvasRef>(null)
   const camera = useMemo(() => new THREE.PerspectiveCamera(FOV, 1, 0.5, 2000), [])
   const size = useRef({ w: 1, h: 1 })
@@ -29,6 +32,7 @@ export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap,
   const frameRef = useRef(onFrame)
   frameRef.current = onFrame
   const tapAt = useRef<(x: number, y: number) => void>(() => {})
+  const holdAt = useRef<(x: number, y: number) => void>(() => {})
 
   useEffect(() => {
     dirty.current = true
@@ -75,6 +79,8 @@ export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap,
   const responder = useMemo(() => {
     let prev: { x: number; y: number; dist: number; count: number } | null = null
     let start = { t: 0, x: 0, y: 0, moved: false }
+    let hold: ReturnType<typeof setTimeout> | undefined
+    const cancelHold = () => clearTimeout(hold)
 
     const read = (e: GestureResponderEvent) => {
       const t = e.touchHistory.touchBank.filter((b) => b && b.touchActive)
@@ -98,10 +104,19 @@ export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap,
         prev = read(e)
         start = { t: Date.now(), x: e.nativeEvent.locationX, y: e.nativeEvent.locationY, moved: false }
         spin.current = false
+        cancelHold()
+        hold = setTimeout(() => {
+          if (start.moved) return
+          start.moved = true
+          holdAt.current(start.x, start.y)
+        }, LONG_PRESS_MS)
       },
       onPanResponderMove: (e, g) => {
         const cur = read(e)
-        if (Math.hypot(g.dx, g.dy) > TAP_SLOP || cur.count > 1) start.moved = true
+        if (Math.hypot(g.dx, g.dy) > TAP_SLOP || cur.count > 1) {
+          start.moved = true
+          cancelHold()
+        }
         if (prev && prev.count === cur.count) {
           if (cur.count === 1) orbit.pan(cur.x - prev.x, cur.y - prev.y)
           else {
@@ -113,6 +128,7 @@ export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap,
         prev = cur
       },
       onPanResponderRelease: () => {
+        cancelHold()
         prev = null
         if (!start.moved && Date.now() - start.t < TAP_MS) tapAt.current(start.x, start.y)
       },
@@ -131,6 +147,7 @@ export function Viewport({ scene, orbit, autoRotate = false, version = 0, onTap,
     return null
   }
   tapAt.current = (x, y) => onTap?.(pick(x, y))
+  holdAt.current = (x, y) => onLongPress?.(pick(x, y))
 
   return (
     <View
