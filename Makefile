@@ -1,9 +1,9 @@
-.PHONY: install test typecheck lint check-expo preview ios-build ios-install ios-run
+.PHONY: install test typecheck lint check-expo preview ios-build ios-install ios-run release
 
 -include Local.mk
 DEVICE ?= $(error set DEVICE=<udid> or put it in Local.mk)
 APP = app/ios/build/Build/Products/Release-iphoneos/RoboSims.app
-BUNDLE_ID := $(or $(shell sed -n "s/^PRODUCT_BUNDLE_IDENTIFIER *= *//p" app/ios/Local.xcconfig 2>/dev/null),dev.robosims.app)
+BUNDLE_ID := $(or $(shell sed -n "s/^PRODUCT_BUNDLE_IDENTIFIER *= *//p" app/ios/Local.xcconfig 2>/dev/null),com.example.robosims)
 
 install:
 	cd app && npm install && cd ios && pod install
@@ -35,3 +35,7 @@ ios-install:
 
 ios-run: ios-install
 	xcrun devicectl device process launch --device $(DEVICE) --terminate-existing $(BUNDLE_ID)
+
+# Archive Release and upload to App Store Connect (BUILD=<n> to override the timestamp).
+release: test typecheck
+	scripts/release-ios.sh $(BUILD)

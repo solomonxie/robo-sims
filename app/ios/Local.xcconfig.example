@@ -1,5 +1,5 @@
 // cp Local.xcconfig.example Local.xcconfig — gitignored, never commit it.
 // Team ID: developer.apple.com → Account → Membership.
 DEVELOPMENT_TEAM = ABCDE12345
-// Optional; defaults to dev.robosims.app (Signing.xcconfig).
+// Optional; defaults to com.example.robosims (Signing.xcconfig).
 // PRODUCT_BUNDLE_IDENTIFIER = com.yourname.robosims
