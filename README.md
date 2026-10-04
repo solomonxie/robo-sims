@@ -18,6 +18,16 @@ There's no dev server. The app always loads the `main.jsbundle` embedded at buil
 
 See [DESIGN.md](DESIGN.md) for the architecture and roadmap.
 
+## Screenshots
+
+| Bench | X-ray current view | Lesson: Current |
+| --- | --- | --- |
+| <img src="docs/release/screenshots/6.9/01-bench.jpg" width="240"> | <img src="docs/release/screenshots/6.9/02-xray.jpg" width="240"> | <img src="docs/release/screenshots/6.9/03-lesson-current.jpg" width="240"> |
+
+| Learn | Parts | Part viewer |
+| --- | --- | --- |
+| <img src="docs/release/screenshots/6.9/04-learn.jpg" width="240"> | <img src="docs/release/screenshots/6.9/05-parts.jpg" width="240"> | <img src="docs/release/screenshots/6.9/06-part-viewer.jpg" width="240"> |
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
