@@ -47,10 +47,6 @@ export function BenchScreen() {
   }
 
   const onTap = (obj: THREE.Object3D | null) => {
-    if (!obj) select(null)
-  }
-
-  const onLongPress = (obj: THREE.Object3D | null) => {
     select(obj ? bench.parts.find((p) => p.id === obj.userData.partId) ?? null : null)
   }
 
@@ -63,11 +59,11 @@ export function BenchScreen() {
 
   return (
     <View style={styles.fill}>
-      <Viewport scene={bench.scene} orbit={orbit} version={version} onTap={onTap} onLongPress={onLongPress} onFrame={xray ? bench.tick : undefined} />
+      <Viewport scene={bench.scene} orbit={orbit} version={version} onTap={onTap} onFrame={xray ? bench.tick : undefined} />
 
       <View style={[styles.header, { paddingTop: insets.top + 8 }]} pointerEvents="none">
         <Text style={styles.title}>Bench</Text>
-        <Text style={styles.hint}>One finger to pan · two fingers to rotate · pinch to zoom · hold a part for info</Text>
+        <Text style={styles.hint}>One finger to pan · two fingers to rotate · pinch to zoom · tap a part for info</Text>
       </View>
 
       <View style={[styles.status, { top: insets.top + 64 }]} pointerEvents="none">
