@@ -29,7 +29,7 @@ export function PartViewer({ part, onBack }: { part: CatalogEntry; onBack: () =>
       <View style={styles.stage}>
         <Viewport scene={scene} orbit={orbit} autoRotate />
         <Pressable onPress={onBack} hitSlop={12} style={[styles.back, { top: insets.top + 8 }]}>
-          <Text style={styles.backText}>‹ Parts</Text>
+          <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
       </View>
       <ScrollView style={styles.sheet} contentContainerStyle={{ padding: S.pad, paddingBottom: insets.bottom + 16 }}>

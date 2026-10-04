@@ -13,7 +13,7 @@ import { C, S } from '../ui/theme'
 
 const RESISTORS = ['resistor-220', 'resistor-1k', 'resistor-10k']
 
-export function BenchScreen() {
+export function BenchScreen({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets()
   const bench = useMemo(createBench, [])
   const orbit = useMemo(() => {
@@ -65,6 +65,10 @@ export function BenchScreen() {
         <Text style={styles.title}>Bench</Text>
         <Text style={styles.hint}>One finger to pan · two fingers to rotate · pinch to zoom · tap a part for info</Text>
       </View>
+
+      <Pressable onPress={onBack} hitSlop={12} style={[styles.back, { top: insets.top + 8 }]}>
+        <Text style={styles.backText}>‹</Text>
+      </Pressable>
 
       <View style={[styles.status, { top: insets.top + 64 }]} pointerEvents="none">
         <View style={[styles.dot, { backgroundColor: statusColor(reading) }]} />
@@ -158,7 +162,9 @@ function statusColor(r: LedReading) {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: C.bg },
   flex: { flex: 1 },
-  header: { position: 'absolute', left: S.pad, right: S.pad },
+  header: { position: 'absolute', left: S.pad + 40, right: S.pad },
+  back: { position: 'absolute', left: 10, width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
+  backText: { color: C.accent, fontSize: 34, lineHeight: 36 },
   title: { color: C.text, fontSize: 28, fontWeight: '700' },
   hint: { color: C.dim, fontSize: 12, marginTop: 2 },
   status: {
