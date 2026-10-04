@@ -47,7 +47,7 @@ export function LessonScreen({ lesson, onBack }: { lesson: Lesson; onBack: () =>
         <Viewport scene={stage.scene} orbit={orbit} onFrame={(dt) => stage.frame(dt, live.current)} />
         <View style={[styles.top, { top: insets.top + 8 }]} pointerEvents="box-none">
           <Pressable onPress={onBack} hitSlop={12} style={styles.pill}>
-            <Text style={styles.back}>‹ Learn</Text>
+            <Text style={styles.back}>‹ Back</Text>
           </Pressable>
         </View>
         {lesson.legend && (

@@ -13,13 +13,12 @@ export function PartsScreen({ onOpen }: { onOpen: (e: CatalogEntry) => void }) {
   return (
     <SectionList
       style={styles.list}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
       sections={SECTIONS}
       keyExtractor={(e) => e.name}
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={styles.title}>Parts</Text>
           <Text style={styles.hint}>{CATALOG.length} parts, each a 3D model built from its specs</Text>
         </View>
       }
