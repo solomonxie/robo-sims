@@ -1,4 +1,4 @@
-import { CATEGORIES, search } from '.'
+import { CATEGORIES, LEARN, SECTIONS, search } from '.'
 
 const entries = CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))
 
@@ -15,5 +15,12 @@ describe('curriculum', () => {
   it('searches topics and lessons', () => {
     expect(search('pid').length).toBeGreaterThan(0)
     expect(search('')).toEqual([])
+  })
+})
+
+describe('home sections', () => {
+  it('place every learn category exactly once', () => {
+    const ids = SECTIONS.flatMap((s) => s.categories.map((c) => c.id))
+    expect(ids.sort()).toEqual(LEARN.map((c) => c.id).sort())
   })
 })

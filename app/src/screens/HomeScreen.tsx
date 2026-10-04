@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { LEARN, PRACTICE, lessonCount, search, topicCount } from '../curriculum'
+import { LEARN, PRACTICE, SECTIONS, lessonCount, search, topicCount } from '../curriculum'
 import { Category, Topic } from '../curriculum/types'
 import { NodeArt } from '../ui/NodeArt'
 import { C, S } from '../ui/theme'
@@ -54,18 +54,24 @@ export function HomeScreen({ onCategory, onTopic, onBench, onParts }: Props) {
             </View>
           </Pressable>
 
-          <Text style={styles.section}>Learn</Text>
-          <View style={styles.grid}>
-            {LEARN.map((c) => (
-              <Pressable key={c.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onCategory(c)}>
-                <Text style={styles.icon}>{c.icon}</Text>
-                <Text style={styles.tileTitle} numberOfLines={2}>
-                  {c.title}
-                </Text>
-                <Text style={styles.dim}>{topicCount(c)} topics</Text>
-              </Pressable>
-            ))}
-          </View>
+          {SECTIONS.map((sec) => (
+            <View key={sec.title}>
+              <Text style={styles.section}>{sec.title}</Text>
+              <View style={styles.grid}>
+                {sec.categories.map((c) => (
+                  <Pressable key={c.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onCategory(c)}>
+                    <View style={styles.tileCard}>
+                      <Text style={styles.icon}>{c.icon}</Text>
+                      <Text style={styles.tileTitle} numberOfLines={2}>
+                        {c.title}
+                      </Text>
+                      <Text style={styles.dim}>{topicCount(c)} topics</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ))}
 
           <Text style={styles.section}>Practice</Text>
           {PRACTICE.map((c) => (
@@ -134,6 +140,7 @@ const styles = StyleSheet.create({
   section: { color: C.text, fontSize: 26, fontWeight: '700', marginHorizontal: S.pad, marginTop: 30, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: S.pad - 6 },
   tile: { width: '50%', padding: 6 },
+  tileCard: { flex: 1, minHeight: 124, padding: 16, borderRadius: S.radius, backgroundColor: C.card, borderWidth: 1, borderColor: C.cardBorder },
   pressed: { opacity: 0.6 },
   icon: { color: C.accent, fontSize: 26 },
   tileTitle: { color: C.text, fontSize: 18, fontWeight: '600', marginTop: 12 },

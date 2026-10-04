@@ -8,6 +8,15 @@ import { Category, Entry, Topic } from './types'
 export const CATEGORIES: Category[] = [...electronics, ...robotics, ...physics, ...practice]
 
 export const LEARN = CATEGORIES.filter((c) => c.group === 'learn')
+
+const SECTION_IDS: [title: string, ids: string[]][] = [
+  ['Electronics', ['electricity', 'components', 'semiconductors', 'digital', 'power', 'signals']],
+  ['Embedded', ['microcontrollers', 'sensors', 'software']],
+  ['Robotics', ['actuators', 'mobility', 'control', 'kinematics', 'perception', 'navigation', 'ai']],
+  ['Physics & maths', ['mechanics', 'waves', 'math']],
+  ['Making', ['materials', 'printing']],
+]
+export const SECTIONS = SECTION_IDS.map(([title, ids]) => ({ title, categories: ids.map((id) => LEARN.find((c) => c.id === id)!) }))
 export const PRACTICE = CATEGORIES.filter((c) => c.group === 'practice')
 
 const READY: Record<string, typeof current> = { 'electricity/current/what-flows-in-a-wire': current }
