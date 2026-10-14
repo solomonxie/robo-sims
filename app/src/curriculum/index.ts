@@ -13,6 +13,7 @@ import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '.
 import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electricity/voltage-divider'
 import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
+import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -84,6 +85,9 @@ const READY: Record<string, Lesson> = {
   'components/led/current-limiting-resistor': currentLimitingResistor,
   'components/led/rgb-led': rgbLed,
   'components/led/led-matrix': ledMatrix,
+  'semiconductors/silicon-doping/band-gap': bandGap,
+  'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
+  'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -6,11 +6,56 @@ export const SI_BANDGAP_EV = 1.12
 export const SI_NI_300K = 1e10 // intrinsic carriers per cm³ at 300 K
 export const thermalVoltage = (kelvin = 300) => BOLTZMANN_EV * kelvin
 
-/** Intrinsic carrier density n_i(T) ∝ T^1.5 · e^(−Eg / 2kT), per cm³. */
-export function intrinsicCarriers(kelvin: number): number {
-  const k = BOLTZMANN_EV
-  return SI_NI_300K * (kelvin / 300) ** 1.5 * Math.exp((-SI_BANDGAP_EV / (2 * k)) * (1 / kelvin - 1 / 300))
+export const SI_ATOMS = 5e22 // per cm³
+
+export interface Semiconductor {
+  gapEv: number
+  /** Intrinsic carriers per cm³ at 300 K. */
+  ni300: number
+  /** Electron and hole mobility, cm²/V·s. */
+  mobilityN: number
+  mobilityP: number
 }
+
+export const SEMICONDUCTORS = {
+  germanium: { gapEv: 0.66, ni300: 2e13, mobilityN: 3900, mobilityP: 1900 },
+  silicon: { gapEv: SI_BANDGAP_EV, ni300: SI_NI_300K, mobilityN: 1350, mobilityP: 480 },
+  diamond: { gapEv: 5.47, ni300: 1.6e-27, mobilityN: 2200, mobilityP: 1800 },
+} satisfies Record<string, Semiconductor>
+
+/** Intrinsic carrier density n_i(T) ∝ T^1.5 · e^(−Eg / 2kT), per cm³. */
+export function intrinsicDensity(kelvin: number, m: Semiconductor): number {
+  return m.ni300 * (kelvin / 300) ** 1.5 * Math.exp((-m.gapEv / (2 * BOLTZMANN_EV)) * (1 / kelvin - 1 / 300))
+}
+
+export const intrinsicCarriers = (kelvin: number) => intrinsicDensity(kelvin, SEMICONDUCTORS.silicon)
+
+/** Free electrons n and holes p per cm³ with fully ionized dopants: n − p = Nd − Na and n · p = n_i². */
+export function carrierDensities(kelvin: number, { donors = 0, acceptors = 0 } = {}, m: Semiconductor = SEMICONDUCTORS.silicon) {
+  const ni = intrinsicDensity(kelvin, m)
+  const half = (donors - acceptors) / 2
+  const root = Math.hypot(half, ni)
+  if (half >= 0) {
+    const n = half + root
+    return { n, p: (ni * ni) / n, ni }
+  }
+  const p = root - half
+  return { n: (ni * ni) / p, p, ni }
+}
+
+/** σ = q(nμn + pμp) in S/cm, densities per cm³. */
+export const conductivity = (n: number, p: number, m: Semiconductor = SEMICONDUCTORS.silicon) =>
+  E_CHARGE * (n * m.mobilityN + p * m.mobilityP)
+
+/** Drift speeds in m/s across `metres` of material at `volts`: v = μE. */
+export const driftSpeeds = (volts: number, metres: number, m: Semiconductor = SEMICONDUCTORS.silicon) => ({
+  electron: (m.mobilityN * 1e-4 * volts) / metres,
+  hole: (m.mobilityP * 1e-4 * volts) / metres,
+})
+
+/** Fraction of the current carried by electrons. */
+export const electronShare = (n: number, p: number, m: Semiconductor = SEMICONDUCTORS.silicon) =>
+  (n * m.mobilityN) / (n * m.mobilityN + p * m.mobilityP)
 
 /** Built-in potential of a PN junction, doping per cm³. */
 export const builtInVoltage = (na: number, nd: number, kelvin = 300) =>

@@ -1,5 +1,11 @@
 import {
   builtInVoltage,
+  carrierDensities,
+  conductivity,
+  driftSpeeds,
+  electronShare,
+  intrinsicDensity,
+  SEMICONDUCTORS,
   depletionWidth,
   diodeCurrent,
   diodeAmps,
@@ -24,6 +30,32 @@ describe('semiconductors', () => {
   it('silicon has ~1e10 intrinsic carriers per cm³ at room temperature, rising steeply with heat', () => {
     expect(intrinsicCarriers(300)).toBeCloseTo(1e10, -8)
     expect(intrinsicCarriers(400) / intrinsicCarriers(300)).toBeGreaterThan(100)
+  })
+  it('a wider band gap means far fewer carriers: germanium > silicon > diamond', () => {
+    const { germanium, silicon, diamond } = SEMICONDUCTORS
+    expect(intrinsicDensity(300, silicon)).toBeCloseTo(1e10, -8)
+    expect(intrinsicDensity(300, germanium) / intrinsicDensity(300, silicon)).toBeGreaterThan(1000)
+    expect(intrinsicDensity(600, diamond)).toBeLessThan(1)
+  })
+  it('1e16 phosphorus makes n ≈ 1e16 and p ≈ 1e4, conducting ~a million times better than pure silicon', () => {
+    const doped = carrierDensities(300, { donors: 1e16 })
+    expect(doped.n).toBeCloseTo(1e16, -12)
+    expect(doped.p).toBeCloseTo(1e4, -2)
+    const boron = carrierDensities(300, { acceptors: 1e16 })
+    expect(boron.p).toBeCloseTo(1e16, -12)
+    expect(boron.n * boron.p).toBeCloseTo(boron.ni ** 2, -12)
+    const pure = carrierDensities(300)
+    expect(pure.n).toBeCloseTo(pure.p, 0)
+    const gain = conductivity(doped.n, doped.p) / conductivity(pure.n, pure.p)
+    expect(gain).toBeGreaterThan(5e5)
+    expect(gain).toBeLessThan(2e6)
+    expect(1 / conductivity(doped.n, doped.p)).toBeCloseTo(0.46, 1)
+  })
+  it('electrons drift ~2.8x faster than holes, so they carry ~74 % of pure silicon’s current', () => {
+    const v = driftSpeeds(1, 1e-3)
+    expect(v.electron).toBeCloseTo(135, 6)
+    expect(v.electron / v.hole).toBeCloseTo(2.81, 2)
+    expect(electronShare(1e10, 1e10)).toBeCloseTo(0.738, 2)
   })
   it('a 1e16/1e16 junction has ~0.7 V built in and a ~0.4 µm depletion region', () => {
     expect(builtInVoltage(1e16, 1e16)).toBeCloseTo(0.71, 1)

@@ -3,6 +3,7 @@ import { mat } from '../../models/kit'
 import { clamp01 } from './util'
 
 export const ELECTRON = '#4da6ff'
+export const HOLE = '#ff6a5a'
 export const CONVENTIONAL = '#ff9a2e'
 export const RING = '#ffd84d'
 export const HIGH_V = '#ff4d4d'
