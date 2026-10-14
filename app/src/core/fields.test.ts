@@ -1,4 +1,4 @@
-import { Vec3, chargeLines, inverseSquare, norm, ringSeeds, traceLine } from './fields'
+import { Vec3, chargeLines, coilField, cross, ellipticKE, inverseSquare, loopField, loopLines, norm, ringSeeds, traceLine, wireField } from './fields'
 
 const dist = (a: Vec3, b: Vec3) => norm([a[0] - b[0], a[1] - b[1], a[2] - b[2]])
 
@@ -74,5 +74,55 @@ describe('chargeLines', () => {
       expect(norm(l[0])).toBeGreaterThan(5)
       expect(l[l.length - 1]).toEqual([0, 0, 0])
     }
+  })
+})
+
+describe('magnetic fields', () => {
+  it('cross product follows the right hand', () => {
+    expect(cross([1, 0, 0], [0, 1, 0])).toEqual([0, 0, 1])
+    expect(cross([0, 1, 0], [1, 0, 0])).toEqual([0, 0, -1])
+  })
+
+  it('a wire’s field circles it and falls as 1 / r', () => {
+    const b = wireField([0.1, 0, 5])
+    expect(b[0]).toBeCloseTo(0, 12)
+    expect(b[1]).toBeCloseTo(1 / (2 * Math.PI * 0.1), 9)
+    expect(norm(wireField([0, -0.2, 0])) * 2).toBeCloseTo(norm(wireField([0.1, 0, 0])), 9)
+    const loop = traceLine(wireField, [2, 0, 0], { step: 0.05, maxSteps: 2000, closeWithin: 0.05 })
+    expect(loop[loop.length - 1]).toEqual([2, 0, 0])
+    for (const p of loop) expect(norm(p)).toBeCloseTo(2, 2)
+  })
+
+  it('elliptic integrals', () => {
+    expect(ellipticKE(0)[0]).toBeCloseTo(Math.PI / 2, 12)
+    expect(ellipticKE(0)[1]).toBeCloseTo(Math.PI / 2, 12)
+    expect(ellipticKE(0.5)[0]).toBeCloseTo(1.8540746773, 9)
+    expect(ellipticKE(0.5)[1]).toBeCloseTo(1.3506438810, 9)
+  })
+
+  it('a loop: μ₀I / 2a at its centre, μ₀Ia² / 2(a² + z²)^1.5 on its axis', () => {
+    expect(loopField(0.05, 0, [0, 0, 0])[0]).toBeCloseTo(1 / 0.1, 9)
+    expect(loopField(2, 1, [4, 0, 0])[0]).toBeCloseTo(4 / (2 * 13 ** 1.5), 9)
+    const off = loopField(1, 0, [0.5, 0.7, 0])
+    const mirror = loopField(1, 0, [-0.5, 0.7, 0])
+    expect(off[0]).toBeCloseTo(mirror[0], 12)
+    expect(off[1]).toBeCloseTo(-mirror[1], 12)
+    const round = loopField(1, 0, [0.5, 0, 0.7])
+    expect(round[2]).toBeCloseTo(off[1], 12)
+  })
+
+  it('a long solenoid holds n = N / L inside and little outside', () => {
+    expect(coilField(0.01, 1, 1000, [0, 0, 0])[0]).toBeCloseTo(1000, -1)
+    expect(coilField(0.01, 1, 1000, [0.5, 0, 0])[0] / 1000).toBeCloseTo(0.5, 2)
+    expect(Math.abs(coilField(0.01, 1, 1000, [0, 0.05, 0])[0])).toBeLessThan(1)
+  })
+
+  it('loop lines close round a coil or run edge to edge', () => {
+    const field = (p: Vec3) => coilField(2, 8, 20, p)
+    const [axis, inner] = loopLines(field, [[0, 0, 0], [0, 1.7, 0]], { step: 0.1, box: [14, 9] })
+    expect(Math.abs(axis[0][0])).toBeGreaterThan(14)
+    expect(axis[axis.length - 1][0]).toBeGreaterThan(14)
+    expect(inner[inner.length - 1]).toEqual([0, 1.7, 0])
+    expect(inner.some((p) => p[1] > 2.5)).toBe(true)
   })
 })

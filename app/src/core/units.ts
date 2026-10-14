@@ -39,3 +39,10 @@ export function fitDigits(value: number, cells: number): string {
   }
   return (sign ? '-' : '') + Math.round(Math.abs(value))
 }
+
+/** Smallest 1-2-5 step ≥ x, like a scope's volts/div: 0.03 → 0.05, 7 → 10. */
+export function niceCeil(x: number): number {
+  if (x <= 0) return 0
+  const p = 10 ** Math.floor(Math.log10(x))
+  return [1, 2, 5, 10].map((k) => k * p).find((v) => v >= x * (1 - 1e-12))!
+}

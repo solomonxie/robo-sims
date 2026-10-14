@@ -10,6 +10,9 @@ export const RING = '#ffd84d'
 export const HIGH_V = '#ff4d4d'
 export const LOW_V = '#3d6bff'
 export const POWER = '#5ce1a0'
+export const B_FIELD = '#5ad8e6'
+export const NORTH = '#ff5a4d'
+export const SOUTH = '#4d7dff'
 export const COPPER = () => mat('#c8803f', { metal: 0.35, rough: 0.4 })
 
 export function glowMat(color: string, intensity = 0.7) {
@@ -1110,4 +1113,79 @@ export function chargeBall(parent: THREE.Object3D, at: V3, { r0 = 0.5, r1 = 1.3 
       return r
     },
   }
+}
+
+/** Compass facing +z, centred on the origin: a dial with a needle, red end north. `set(angle)` points the north end
+ *  (0 = +x, counter-clockwise); `swing(target, dt)` turns it there like a real needle, overshooting and settling. */
+export function compass(parent: THREE.Object3D, at: V3, r = 1) {
+  const group = add(parent, new THREE.Group(), at)
+  cylinder(group, r, 0.25, mat('#e9e6dc', { rough: 0.5 }), [0, 0, -0.1], 'z', 32)
+  add(group, mesh(new THREE.TorusGeometry(r, 0.1 * r, 8, 32), STEEL()), [0, 0, 0])
+  const ticks = mat('#55585f')
+  for (let k = 0; k < 4; k++) {
+    const a = (k * Math.PI) / 2
+    box(group, [0.22 * r, 0.06 * r, 0.04], ticks, [Math.cos(a) * 0.82 * r, Math.sin(a) * 0.82 * r, 0.05]).rotation.z = a
+  }
+  const needle = add(group, new THREE.Group(), [0, 0, 0.18])
+  const half = (color: string, dir: 1 | -1, glow: number) => {
+    const m = mesh(new THREE.ConeGeometry(0.17 * r, 0.82 * r, 4), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: glow, roughness: 0.4 }))
+    m.scale.z = 0.35
+    m.rotation.z = -dir * (Math.PI / 2)
+    m.position.x = dir * 0.41 * r
+    needle.add(m)
+  }
+  half(NORTH, 1, 0.5)
+  half('#e8e8ee', -1, 0.15)
+  cylinder(group, 0.07 * r, 0.3, STEEL(), [0, 0, 0.25], 'z', 12)
+  let angle = 0
+  let spin = 0
+  return {
+    group,
+    set(a: number) {
+      angle = a
+      spin = 0
+      needle.rotation.z = a
+    },
+    swing(target: number, dt: number) {
+      for (let left = Math.min(dt, 0.25); left > 0; left -= 1 / 120) {
+        const h = Math.min(left, 1 / 120)
+        spin += (70 * Math.sin(target - angle) - 5.5 * spin) * h
+        angle += spin * h
+      }
+      needle.rotation.z = angle
+    },
+  }
+}
+
+/** Helix along x centred on the origin, starting and (for whole turns) ending at (±length/2, r, 0); running along it
+ *  turns right-handed about +x. */
+export class CoilPath extends THREE.Curve<THREE.Vector3> {
+  constructor(private r: number, private length: number, private turns: number) {
+    super()
+    this.arcLengthDivisions = Math.max(200, Math.ceil(turns * 32))
+  }
+  getPoint(t: number, target = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2
+    return target.set((t - 0.5) * this.length, this.r * Math.cos(a), this.r * Math.sin(a))
+  }
+}
+
+/** Copper coil of whole `turns` along x, centred on the origin, its ends at (±length/2, radius, 0). `lane(offset)` is the
+ *  helix `offset` outside the wire, for a `Flow` of charges: + charges running −x → +x make B point +x inside. */
+export function coil(parent: THREE.Object3D, { radius = 2, length = 8, turns = 10, thickness = 0.18 } = {}) {
+  const group = add(parent, new THREE.Group())
+  const body = add(group, mesh(new THREE.TubeGeometry(new CoilPath(radius, length, turns), Math.ceil(turns * 28), thickness, 8), COPPER()))
+  body.castShadow = false
+  return { group, lane: (offset = thickness * 2) => new CoilPath(radius + offset, length, turns) }
+}
+
+/** Bar magnet along x centred on the origin, `size` = [length, height, depth]: north half (+x) red, south half blue. */
+export function barMagnet(parent: THREE.Object3D, size: V3) {
+  const group = add(parent, new THREE.Group())
+  const [l, h, d] = size
+  const north = mat(NORTH, { rough: 0.45, emissive: '#3a0d0a' })
+  const south = mat(SOUTH, { rough: 0.45, emissive: '#0c1a40' })
+  box(group, [l / 2, h, d], north, [l / 4, 0, 0])
+  box(group, [l / 2, h, d], south, [-l / 4, 0, 0])
+  return group
 }

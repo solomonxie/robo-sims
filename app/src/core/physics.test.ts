@@ -1,4 +1,18 @@
 import {
+  EARTH_B_H,
+  IRON_CORE,
+  MAGNET_BR,
+  MU_0,
+  compassDeflection,
+  dipoleEmf,
+  dipoleFlux,
+  faradayEmf,
+  magnetMoment,
+  magnetStroke,
+  solenoidB,
+  strokePeakEmf,
+  wireB,
+  wireForce,
   COULOMB_K,
   DIELECTRIC,
   EPSILON_0,
@@ -429,5 +443,54 @@ describe('electric fields', () => {
     expect(plateField(9, 0.002)).toBe(4500)
     expect(capacitorEnergy(c, 9)).toBeCloseTo(1.793e-9, 12)
     expect(capacitorEnergy(c, 9)).toBeCloseTo((capacitorCharge(c, 9) * 9) / 2, 18)
+  })
+
+  it('wire and compass: B = μ₀I / 2πr against Earth’s field', () => {
+    expect(wireB(10, 0.01)).toBeCloseTo(200e-6, 10)
+    expect(wireB(-5, 0.02)).toBeCloseTo(-50e-6, 10)
+    expect(compassDeflection(EARTH_B_H)).toBeCloseTo(Math.PI / 4, 12)
+    expect(compassDeflection(0)).toBe(0)
+    expect(compassDeflection(-1)).toBeCloseTo(-Math.PI / 2, 4)
+  })
+
+  it('solenoid: B = μ₀μr·nI, a core saturates', () => {
+    expect(solenoidB(100, 0.1, 1)).toBeCloseTo(1.2566e-3, 7)
+    expect(solenoidB(100, 0.1, -2)).toBeCloseTo(-2.5133e-3, 7)
+    expect(solenoidB(10, 0.1, 1, IRON_CORE)).toBeCloseTo(200 * MU_0 * 100, 9)
+    expect(solenoidB(1000, 0.1, -3, IRON_CORE)).toBe(-1.6)
+  })
+
+  it('force on a wire: F = IL × B, |F| = BIL sin θ', () => {
+    expect(wireForce(2, [0.05, 0, 0], [0, -0.5, 0])).toEqual([0, 0, -0.05])
+    expect(wireForce(-2, [0.05, 0, 0], [0, -0.5, 0])[2]).toBeCloseTo(0.05, 12)
+    expect(wireForce(3, [0, -0.05, 0], [0, -0.5, 0])).toEqual([0, 0, 0])
+    const tilted = wireForce(1, [0.05 * Math.sin(Math.PI / 6), -0.05 * Math.cos(Math.PI / 6), 0], [0, -1, 0])
+    expect(tilted[2]).toBeCloseTo(-0.025, 12)
+  })
+
+  it('induction: dipole flux through a loop and ε = −N dΦ/dt', () => {
+    const m = magnetMoment(MAGNET_BR.neodymium, 1e-6)
+    expect(m).toBeCloseTo(1.0345, 3)
+    expect(dipoleFlux(m, 0.015, 0)).toBeCloseTo((MU_0 * m) / 0.03, 12)
+    expect(dipoleFlux(m, 0.015, 0.02)).toBeLessThan(dipoleFlux(m, 0.015, 0.01))
+    const dz = 1e-7
+    const z = 0.012
+    const v = 0.3
+    const numeric = faradayEmf(200, dipoleFlux(m, 0.015, z + v * dz) - dipoleFlux(m, 0.015, z), dz)
+    expect(dipoleEmf(200, m, 0.015, z, v)).toBeCloseTo(numeric, 6)
+    expect(dipoleEmf(200, m, 0.015, 0, v)).toBe(0)
+    expect(dipoleEmf(200, m, 0.015, -z, v)).toBeCloseTo(-dipoleEmf(200, m, 0.015, z, v), 12)
+  })
+
+  it('magnet stroke: EMF grows with speed and turns, none when still', () => {
+    const s = magnetStroke(100, 1, 0.015, 0.05, 1, 0.25)
+    expect(s.z).toBeCloseTo(0.05, 12)
+    expect(s.v).toBeCloseTo(0, 12)
+    expect(s.emf).toBeCloseTo(0, 12)
+    const peak = strokePeakEmf(100, 1, 0.015, 0.05, 1)
+    expect(strokePeakEmf(200, 1, 0.015, 0.05, 1)).toBeCloseTo(2 * peak, 9)
+    expect(strokePeakEmf(100, 1, 0.015, 0.05, 2) / peak).toBeCloseTo(2, 2)
+    expect(strokePeakEmf(100, 1, 0.015, 0.05, 0)).toBe(0)
+    expect(peak).toBeGreaterThan(0.01)
   })
 })

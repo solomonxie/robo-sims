@@ -88,3 +88,74 @@ export function chargeLines(
   }
   return lines
 }
+
+export const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+/** Straight wire along +z through the origin, per unit μ₀I: B = ẑ × r̂ / 2πr, circling it counter-clockwise. */
+export function wireField(p: Vec3): Vec3 {
+  const r2 = p[0] * p[0] + p[1] * p[1]
+  if (r2 === 0) return [0, 0, 0]
+  return [-p[1] / (2 * Math.PI * r2), p[0] / (2 * Math.PI * r2), 0]
+}
+
+/** Complete elliptic integrals [K(m), E(m)], parameter m = k², by the arithmetic-geometric mean. */
+export function ellipticKE(m: number): [number, number] {
+  let a = 1
+  let g = Math.sqrt(1 - m)
+  let sum = m / 2
+  let pow = 0.5
+  for (let i = 0; i < 40 && Math.abs(a - g) > 1e-15 * a; i++) {
+    const c = (a - g) / 2
+    const next = (a + g) / 2
+    g = Math.sqrt(a * g)
+    a = next
+    pow *= 2
+    sum += pow * c * c
+  }
+  const k = Math.PI / (2 * a)
+  return [k, k * (1 - sum)]
+}
+
+/** Circular current loop of radius `a` in the plane x = `x0`, centred on the x axis, current turning right-handed about +x;
+ *  field per unit μ₀I (exact, from elliptic integrals). */
+export function loopField(a: number, x0: number, p: Vec3): Vec3 {
+  const z = p[0] - x0
+  const rho = Math.hypot(p[1], p[2])
+  const s = a * a + rho * rho + z * z
+  const alpha2 = s - 2 * a * rho
+  if (alpha2 < 1e-12) return [0, 0, 0]
+  const beta2 = s + 2 * a * rho
+  const [K, E] = ellipticKE(1 - alpha2 / beta2)
+  const c = 1 / (2 * Math.PI * alpha2 * Math.sqrt(beta2))
+  const bx = c * ((a * a - rho * rho - z * z) * E + alpha2 * K)
+  if (rho < 1e-12) return [bx, 0, 0]
+  const br = (c * z * (s * E - alpha2 * K)) / rho
+  return [bx, (br * p[1]) / rho, (br * p[2]) / rho]
+}
+
+/** Solenoid along x centred on the origin: `loops` evenly spaced loops of radius `a` over `length`, per unit μ₀I. */
+export function coilField(a: number, length: number, loops: number, p: Vec3): Vec3 {
+  const b: Vec3 = [0, 0, 0]
+  for (let i = 0; i < loops; i++) {
+    const f = loopField(a, -length / 2 + ((i + 0.5) / loops) * length, p)
+    for (let k = 0; k < 3; k++) b[k] += f[k]
+  }
+  return b
+}
+
+/** Lines of a field whose lines close on themselves (magnetic), one per seed in the xy plane. Each runs along the field
+ *  until it comes back round to its seed or leaves the `box` (half-sizes in x and y); open ones are traced back from the
+ *  seed too, so they run edge to edge. */
+export function loopLines(
+  field: VectorField,
+  seeds: Vec3[],
+  { step = 0.15, maxSteps = 1200, box = [16, 10] as [number, number] } = {},
+): Vec3[][] {
+  const out = (p: Vec3) => Math.abs(p[0]) > box[0] || Math.abs(p[1]) > box[1]
+  return seeds.map((s) => {
+    const ahead = traceLine(field, s, { step, maxSteps, stop: out, closeWithin: step })
+    if (ahead.length > 1 && ahead[ahead.length - 1] === s) return ahead
+    const behind = traceLine(field, s, { step, maxSteps, dir: -1, stop: out })
+    return [...behind.reverse(), ...ahead.slice(1)]
+  })
+}

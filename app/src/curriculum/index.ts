@@ -1,6 +1,7 @@
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
+import { induction, rightHandRule, solenoid, wireAndCompass } from '../lessons/electricity/magnetism'
 import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-law'
 import { kclAtANode, kvlAroundALoop, nodalAnalysis } from '../lessons/electricity/kirchhoffs-laws'
 import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/power-energy'
@@ -64,6 +65,10 @@ const READY: Record<string, Lesson> = {
   'electricity/electric-fields/coulomb-force': coulombLaw,
   'electricity/electric-fields/field-lines': fieldLineMap,
   'electricity/electric-fields/capacitance-from-plates': capacitanceFromPlates,
+  'electricity/magnetism/wire-and-compass': wireAndCompass,
+  'electricity/magnetism/solenoid': solenoid,
+  'electricity/magnetism/right-hand-rule': rightHandRule,
+  'electricity/magnetism/induction': induction,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

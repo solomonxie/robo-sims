@@ -1,4 +1,4 @@
-import { fitDigits, sci, si, superscript } from './units'
+import { fitDigits, niceCeil, sci, si, superscript } from './units'
 
 describe('units', () => {
   it('formats with SI prefixes and scientific notation', () => {
@@ -15,5 +15,13 @@ describe('units', () => {
     expect(fitDigits(9.996, 3)).toBe('10.0')
     expect(fitDigits(-3, 4)).toBe('-3.00')
     expect(fitDigits(0, 2)).toBe('0.0')
+  })
+
+  it('rounds up to a 1-2-5 step', () => {
+    expect(niceCeil(0.03)).toBeCloseTo(0.05, 12)
+    expect(niceCeil(7)).toBe(10)
+    expect(niceCeil(2)).toBe(2)
+    expect(niceCeil(0.0011)).toBeCloseTo(0.002, 12)
+    expect(niceCeil(0)).toBe(0)
   })
 })

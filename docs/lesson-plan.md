@@ -24,6 +24,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Equivalents: `theveninAt` (nodal.ts) gives Vth/IN/Rth of any `Element[]` by open + shorted solves. Swapping views of one circuit: ease view weights toward one-hot, `presence`-scale parts, blend node potentials and flow speeds by the weights. Current source: `currentSource`.
 - Signals over time: `scope` (fx.ts) screen + `trace.scroll(signal, now, window)` (scrolls; or `draw(y(u))` for a frozen view) + `level` dashed markers; `phasor` for the rotating-arm view, `acSource` symbol. Slow real frequencies by a fixed factor and say so in the points.
 - Vector fields (electric now, magnetic next): geometry in `core/fields.ts` (`inverseSquare`, `traceLine` with `closeWithin` for closed loops, `chargeLines` for point charges); draw with `fieldLines` (instanced polylines + gliding heads; `heads: false` for dim depth copies) or `arrowGrid` (log-scale the vector before passing it). Charges: `chargeBall`. Retrace only when inputs change.
+- Magnetism (`core/fields.ts`: `wireField`, `loopField`/`coilField` exact loops, `loopLines` for closed lines; `cross` for F = IL × B): `compass` (`swing` overshoots and settles), `coil` (`lane()` for a `Flow`, + current −x → +x makes B +x), `barMagnet`; colours `B_FIELD`, `NORTH`/`SOUTH`. Keep forces in the screen plane (orient wire/field so F is sideways), and log-scale line counts when B spans decades.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -50,7 +51,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Thevenin & Norton
 - [x] AC vs DC
 - [x] Electric fields
-- [ ] Magnetism
+- [x] Magnetism
 
 ### Wave 2 — Components & semiconductors (drafted first)
 - [ ] Capacitor
