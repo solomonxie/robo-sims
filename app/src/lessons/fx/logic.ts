@@ -1,8 +1,10 @@
-// Logic-gate symbols and glowing signal paths.
+// Logic-gate symbols, glowing signal paths, LED bit rows.
 import * as THREE from 'three/webgpu'
 import { GateName } from '../../core/logic'
 import { V3, add, lead, mat, mesh, rod } from '../../models/kit'
-import { potentialColor } from './colors'
+import { groundSymbol, junction, ledLamp, wire } from './circuit'
+import { GREY, LED_RED, RING, potentialColor } from './colors'
+import { pulseLabel, segmentDisplay } from './displays'
 
 const INVERTED: GateName[] = ['NOT', 'NAND', 'NOR', 'XNOR']
 
@@ -79,6 +81,45 @@ export function litWire(parent: THREE.Object3D, points: V3[], r = 0.45) {
       m.emissive.copy(color)
       m.opacity = 0.55 * f
       group.visible = f > 0.01
+    },
+  }
+}
+
+/** LEDs at (xs[i], y), index 0 = least significant bit. Each anode is fed from a bit ball below, cathodes share a ground
+ *  rail; `places` label the columns under the rail, bright while that bit is 1, and the bit digit sits above each LED.
+ *  `frame(dt, levels)` takes eased bit levels 0..1. */
+export function bitRow(parent: THREE.Object3D, xs: number[], y: number, places: string[], { scale = 1.2, color = LED_RED } = {}) {
+  const h = scale / 2
+  const rail = y - 3.4
+  const right = Math.max(...xs) + h + 1.6
+  wire(parent, [[Math.min(...xs) + h, rail, 0], [right, rail, 0], [right, rail - 0.8, 0]])
+  add(parent, groundSymbol(), [right, rail - 0.8, 0]).scale.setScalar(0.7)
+  const cols = xs.map((x, i) => {
+    const lamp = ledLamp(parent, color, [x, y, 0], { scale, anodeRight: false })
+    wire(parent, [[x - h, y - 2.2, 0], [x - h, y, 0]])
+    wire(parent, [[x + h, y, 0], [x + h, rail, 0]])
+    const ball = junction(parent, [x - h, y - 2.2, 0], 0.45)
+    const label = (c: string) => {
+      const d = segmentDisplay(places[i].length, 0.8, c, true)
+      d.set(places[i])
+      return add(parent, d.group, [x, rail - 1.7, 0])
+    }
+    const place = [label('#3a3f48'), label(RING)]
+    const digit = pulseLabel(parent, 1, GREY, [x, y + 9 * scale, 0], 0.9)
+    return { lamp, ball, place, digit }
+  })
+  return {
+    frame(dt: number, levels: number[]) {
+      cols.forEach((c, i) => {
+        const v = levels[i]
+        c.lamp.set(v)
+        c.lamp.step(dt)
+        c.ball.set(v)
+        c.place[0].visible = v < 0.5
+        c.place[1].visible = v >= 0.5
+        c.digit.show(v >= 0.5 ? '1' : '0')
+        c.digit.frame(dt)
+      })
     },
   }
 }

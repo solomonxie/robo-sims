@@ -26,7 +26,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, coils (`coil`, `inductorCoil`, `coilLines`), `barMagnet`.
 - `story` — `storySlider`, `storyClock` for stepped lessons.
-- `logic` — `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path [`core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`].
+- `logic` — `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path, `bitRow` LED bits with place values [`core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`; `core/numbers.ts`: binary/hex, two's complement, `addWrap`].
 
 ## Pacing
 
@@ -79,7 +79,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 3 — Digital, Power, Signals
 - Digital:
-  - [ ] Binary & hex
+  - [x] Binary & hex
   - [ ] Combinational logic
   - [ ] Flip-flops & latches
   - [ ] Counters & shift registers
