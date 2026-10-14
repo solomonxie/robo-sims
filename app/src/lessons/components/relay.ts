@@ -30,7 +30,7 @@ import {
   relayPull,
   releaseTime,
 } from '../../core/physics'
-import { fitDigits, si, volts } from '../../core/units'
+import { fitDigits, si, tiny, volts } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -55,6 +55,7 @@ import {
   icPackage,
   ivScreen,
   junction,
+  lane,
   ledLamp,
   lerp,
   plusFlow,
@@ -74,9 +75,7 @@ import { Lesson, Params, Stage, n } from '../types'
 const RELAY = SRD_05
 const PULL_IN = pullInAmps(RELAY)
 const DROP_OUT = dropOutAmps(RELAY)
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 const newtons = (f: number) => si(tiny(f, 1e-4), 'N', 3)
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 
 // --- Coil and contacts: the coil's pull beats the spring and throws COM from NC to NO; once down, it holds on far less. ---
 

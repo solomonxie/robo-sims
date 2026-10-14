@@ -54,3 +54,7 @@ export const ohms = (r: number) => si(r, 'Ω', 3)
 export const watts = (w: number) => si(w, 'W', 3)
 export const joules = (j: number) => si(j, 'J', 3)
 export const mA = (a: number) => a * 1000
+export const secs = (s: number) => si(s, 's', 3)
+export const pct = (f: number) => `${Math.round(f * 100)} %`
+/** 0 when |x| < eps, so readouts don't show −0 or float dust. */
+export const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)

@@ -12,7 +12,7 @@ import {
   surge,
   tvsNode,
 } from '../../core/physics'
-import { fitDigits, si, volts } from '../../core/units'
+import { fitDigits, si, tiny, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -20,7 +20,6 @@ import {
   CONVENTIONAL,
   GREY,
   HIGH_V,
-  LANE,
   RING,
   arcSpark,
   bulb,
@@ -37,6 +36,7 @@ import {
   heatWaves,
   icPackage,
   ivScreen,
+  lane,
   lerp,
   plusFlow,
   presence,
@@ -48,10 +48,8 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 const VIEW = { center: [-0.8, 2.2, 0] as V3, radius: 54, polar: 1.42, azimuth: 0.1 }
 const secs = (t: number) => (Number.isFinite(t) ? si(t, 's', 3) : 'Never')
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 
 // --- Fuse ratings: the wire heats as I²R and melts; the time to melt falls steeply with current. ---
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { BJTS, Bjt, LEDS, LED_RATED_A, TT_MOTOR, baseResistorFor, bjtCollector, bjtSwitch, diodeNode, ledStringAmps, motorAmps, motorRpm } from '../../core/physics'
 import { e12Below, nearestE12 } from '../../core/resistorColors'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, si, tiny, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -16,6 +16,7 @@ import {
   RS,
   bjtDie,
   cell,
+  cellFraction,
   clamp01,
   currentSource,
   diodeAlong,
@@ -44,7 +45,6 @@ const S = 1.6
 const LEG = 0.5 * S
 const RED = LEDS.red
 const R_LED = 150
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 const ledLoad = (r: number) => (v: number) => ledStringAmps(v, r, RED)
 const SWITCH = { cutoff: 'off', active: 'half on', saturation: 'on' } as const
 const REGION = { cutoff: 'cut-off', active: 'active', saturation: 'saturated' } as const
@@ -69,13 +69,12 @@ interface Live {
   loadB: number
 }
 
-const cellAt = (y: number, cy: number) => clamp01((y - cy + CELL_H / 2) / CELL_H)
 
 /** Potential fraction on the collector loop: supply cell on the right, load on the top rail, transistor C → E down x = bx. */
 function collectorPaint(at: THREE.Vector3, g: Rig, s: Live, rx: number | null) {
   const yc = g.yb + S
   const ye = g.yb - S
-  if (at.x >= g.vx - 0.01) return cellAt(at.y, (g.yt + g.yg) / 2)
+  if (at.x >= g.vx - 0.01) return cellFraction(at.y, (g.yt + g.yg) / 2)
   if (at.y >= g.yt - 0.01) {
     if (at.x > s.loadA) return rx === null ? 1 : dropAlong(at, [g.vx, g.yt, 0], [s.loadA, g.yt, 0], 1, s.top / FULL, RS)
     if (at.x >= s.loadB) return lerp(s.vce, s.top, (at.x - s.loadB) / (s.loadA - s.loadB)) / FULL
@@ -91,7 +90,7 @@ function collectorPaint(at: THREE.Vector3, g: Rig, s: Live, rx: number | null) {
 function basePaint(at: THREE.Vector3, g: Rig, s: Live, withRb: boolean, srcCell: boolean) {
   const ye = g.yb - S
   if (at.y <= g.yg + 0.01) return 0
-  if (at.x <= g.sx + 0.01) return srcCell ? (s.vin / FULL) * cellAt(at.y, (g.yb + g.yg) / 2) : s.vbe / FULL
+  if (at.x <= g.sx + 0.01) return srcCell ? (s.vin / FULL) * cellFraction(at.y, (g.yb + g.yg) / 2) : s.vbe / FULL
   if (at.y >= g.yb - 0.01) return withRb ? dropAlong(at, [g.sx, g.yb, 0], [g.bx, g.yb, 0], s.vin / FULL, s.vbe / FULL, RS) : s.vbe / FULL
   if (at.y <= ye + 0.01) return 0
   return ((s.vbe / FULL) * (at.y - ye)) / (g.yb - ye)

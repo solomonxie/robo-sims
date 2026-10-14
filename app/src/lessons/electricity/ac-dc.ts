@@ -14,7 +14,7 @@ import {
   rmsFromPeak,
   sloshAmplitude,
 } from '../../core/physics'
-import { fitDigits, si, volts, watts } from '../../core/units'
+import { fitDigits, secs, si, volts, watts } from '../../core/units'
 import { V3, add, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -39,7 +39,6 @@ import {
 import { Lesson, Params, Stage, n } from '../types'
 
 const hz = (f: number) => `${+f.toPrecision(3)} Hz`
-const secs = (s: number) => si(s, 's', 3)
 
 /** Loop with its source on the left side and a lamp lying on the top wire; + charges ride in front, coloured by
  *  potential: `f.top` on the wire into the lamp, `f.bottom` on the way back, graded across the source and lamp. */

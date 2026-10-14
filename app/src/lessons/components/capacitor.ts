@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { capacitorCharge, capacitorEnergy, decoupleStep, electrolyticLeakage, rcFraction, rcStep, rcTau } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, secs, si, volts } from '../../core/units'
 import { BLACK_PLASTIC, V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
 import { buildCeramicCap, buildElectrolyticCap } from '../../models/passives'
 import { createStage } from '../../scene/stage'
@@ -26,6 +26,7 @@ import {
   heatWaves,
   icPackage,
   knifeSwitch,
+  lane,
   lerp,
   plusFlow,
   plusGeometry,
@@ -41,8 +42,6 @@ import {
 import { ChoiceControl, Lesson, Params, SliderControl, Stage, e12, n } from '../types'
 
 const VS = 9
-const secs = (s: number) => si(s, 's', 3)
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 
 const modeControl: ChoiceControl = {
   kind: 'choice',

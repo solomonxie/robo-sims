@@ -1,13 +1,13 @@
 import * as THREE from 'three/webgpu'
 import { DIODES, Diode, Flyback, diodeAmps, diodeNode, diodeVolts, flybackSpike, flybackStep } from '../../core/physics'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, si, tiny, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
-  GREY,
   CELL_H,
   CONVENTIONAL,
+  GREY,
   HIGH_V,
   LANE,
   RING,
@@ -28,6 +28,7 @@ import {
   ivScreen,
   junction,
   knifeSwitch,
+  lane,
   lerp,
   plusFlow,
   presence,
@@ -39,10 +40,8 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 const GHOST = '#6a5a3a'
 const D_SCALE = 2.2
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 
 // --- Forward drop: below ~0.5 V nothing flows; above it the current climbs ×10 per 0.1 V, so the drop barely moves. ---
 

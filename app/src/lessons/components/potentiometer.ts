@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { POT_SWEEP_DEG, Taper, adcCounts, attenuationDb, perceivedLevel, potDivider, taperFraction } from '../../core/physics'
-import { amps, fitDigits, mA, ohms, volts } from '../../core/units'
+import { amps, fitDigits, mA, ohms, pct, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -144,7 +144,6 @@ const solveTaper = (p: Params, turn = turnOf(p)) => {
   return { taper, turn, fraction, db: attenuationDb(fraction), heard: perceivedLevel(fraction) }
 }
 
-const pct = (f: number) => `${Math.round(f * 100)} %`
 
 export const linearVsLogTaper: Lesson = {
   id: 'potentiometer-linear-vs-log-taper',

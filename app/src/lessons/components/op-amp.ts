@@ -21,7 +21,6 @@ import { createStage } from '../../scene/stage'
 import {
   GREY,
   HIGH_V,
-  LANE,
   LOW_V,
   POWER,
   RING,
@@ -31,7 +30,8 @@ import {
   dropAlong,
   ease,
   glowMat,
-  groundSymbol,
+  groundAt,
+  lane,
   junction,
   ledLamp,
   opAmpSymbol,
@@ -52,9 +52,7 @@ const OP = TL072
 const RSH = 1.9
 const VIS_HZ = 0.5
 const SLOW = 1000 / VIS_HZ
-const lane = (p: V3): V3 => [p[0], p[1], LANE]
 const fraction = (r: Rails) => (v: number) => (v - r.vee) / (r.vcc - r.vee)
-const ground = (parent: THREE.Object3D, at: V3) => add(parent, groundSymbol(), at).scale.setScalar(0.7)
 const sine = (amp: number, t: number) => amp * Math.sin(2 * Math.PI * VIS_HZ * t)
 const signed = (v: number, cells: number) => (v < -0.005 ? '-' : '') + fitDigits(Math.abs(v), cells - (v < -0.005 ? 1 : 0))
 const microvolts = (v: number) => (Math.abs(v) < 1e-3 ? `${+(v * 1e6).toPrecision(3)} µV` : volts(v))
@@ -131,7 +129,7 @@ export const idealRules: Lesson = {
     add(scene, cell(3.2, 0.9), [-14, cellTop - 1.8, 0])
     wire(scene, [[-14, cellTop, 0], [-14, pPin[1], 0], pPin], 0.18)
     wire(scene, [[-14, cellTop - 3.4, 0], [-14, -3.6, 0]], 0.18)
-    ground(scene, [-14, -3.6, 0])
+    groundAt(scene, [-14, -3.6, 0])
     wire(scene, [out, [O_X, 0, 0], [3, 0, 0]], 0.18)
     const vout = terminal(scene, [3, 0, 0], 0.45)
     const outNode = junction(scene, [O_X, 0, 0], 0.35)
@@ -142,15 +140,15 @@ export const idealRules: Lesson = {
     wire(fb, [local(O_X, 0), local(O_X, F_Y), local(N_X, F_Y), local(N_X, F_Y - 4.4)], 0.18)
     resistorAlong(fb, RF, local(-8.4, F_Y), local(-3.1, F_Y))
     resistorAlong(fb, RG, local(N_X, F_Y - 0.6), local(N_X, F_Y - 3.8))
-    ground(fb, local(N_X, F_Y - 4.4))
+    groundAt(fb, local(N_X, F_Y - 4.4))
     const nNode = junction(fb, local(N_X, F_Y), 0.35)
     const grounded = add(scene, new THREE.Group())
     wire(grounded, [[N_X, F_Y, 0], [N_X, F_Y - 1, 0]], 0.18)
-    ground(grounded, [N_X, F_Y - 1, 0])
+    groundAt(grounded, [N_X, F_Y - 1, 0])
 
     const fbPts: V3[] = [out, [O_X, 0, 0], [O_X, F_Y, 0], [N_X, F_Y, 0], [N_X, F_Y - 4.4, 0]]
     const live = { vout: 0, vn: 0 }
-    const flow = plusFlow(scene, fbPts.map(lane), (at) => {
+    const flow = plusFlow(scene, lane(fbPts), (at) => {
       if (at.y > F_Y + 0.2) return f12(live.vout)
       if (at.x > N_X + 0.2) return dropAlong(at, [O_X, F_Y, 0], [N_X, F_Y, 0], f12(live.vout), f12(live.vn), RSH)
       return dropAlong(at, [N_X, F_Y, 0], [N_X, F_Y - 4.4, 0], f12(live.vn), f12(0), RSH * 0.9)
@@ -289,16 +287,16 @@ export const invertingAmplifier: Lesson = {
     const rfHolder = add(scene, new THREE.Group())
     wire(scene, [out, [2.4, 0, 0]], 0.18)
     wire(scene, [pPin, [-9.5, pPin[1], 0], [-9.5, -2.4, 0]], 0.18)
-    ground(scene, [-9.5, -2.4, 0])
+    groundAt(scene, [-9.5, -2.4, 0])
     wire(scene, [[SRC_X, -2.3, 0], [SRC_X, -3, 0]], 0.18)
-    ground(scene, [SRC_X, -3, 0])
+    groundAt(scene, [SRC_X, -3, 0])
     const vn = junction(scene, [NI_X, IN_Y, 0], 0.35)
     const vo = junction(scene, [OI_X, 0, 0], 0.35)
     const term = terminal(scene, [2.4, 0, 0], 0.45)
 
     const live = { vin: 0, vn: 0, vout: 0 }
     const pts: V3[] = [[SRC_X, 0.3, 0], [SRC_X, IN_Y, 0], [NI_X, IN_Y, 0], [NI_X, TOP_Y, 0], [OI_X, TOP_Y, 0], [OI_X, 0, 0], out]
-    const flow = plusFlow(scene, pts.map(lane), (at) => {
+    const flow = plusFlow(scene, lane(pts), (at) => {
       if (at.y > TOP_Y - 0.2) return dropAlong(at, [NI_X, TOP_Y, 0], [OI_X, TOP_Y, 0], f12(live.vn), f12(live.vout), RSH)
       if (at.x < SRC_X + 0.2) return f12(live.vin)
       if (at.y < IN_Y + 0.2 && at.x < NI_X - 0.2) return dropAlong(at, [SRC_X, IN_Y, 0], [NI_X, IN_Y, 0], f12(live.vin), f12(live.vn), RSH)
@@ -436,7 +434,7 @@ export const voltageFollower: Lesson = {
     wire(scene, [[VS_X, 0.8, 0], [VS_X, S_Y, 0], [A_X, S_Y, 0]], 0.18)
     resistorAlong(scene, RS, [-14.7, S_Y, 0], [-11.3, S_Y, 0])
     wire(scene, [[VS_X, -1.8, 0], [VS_X, GND_Y, 0]], 0.18)
-    ground(scene, [VS_X, GND_Y, 0])
+    groundAt(scene, [VS_X, GND_Y, 0])
     const aNode = junction(scene, [A_X, S_Y, 0], 0.35)
 
     const ampGroup = add(scene, new THREE.Group(), AMP_AT)
@@ -452,7 +450,7 @@ export const voltageFollower: Lesson = {
     wire(byGroup, [bl(A_X, S_Y), bl(A_X, BY_Y), bl(L_X, BY_Y), bl(L_X, AMP_AT[1])], 0.18)
 
     wire(scene, [[L_X, AMP_AT[1], 0], [L_X, GND_Y, 0]], 0.18)
-    ground(scene, [L_X, GND_Y, 0])
+    groundAt(scene, [L_X, GND_Y, 0])
     const rlHolder = add(scene, new THREE.Group())
     const lNode = junction(scene, [L_X, AMP_AT[1], 0], 0.35)
 
@@ -460,11 +458,11 @@ export const voltageFollower: Lesson = {
     const outX = AMP_AT[0] + out[0]
     const loadPaint = (at: THREE.Vector3) =>
       at.x > L_X - 0.2 && at.y < AMP_AT[1] - 0.2 ? dropAlong(at, [L_X, AMP_AT[1], 0], [L_X, GND_Y, 0], f5(live.vl), f5(0), RSH) : f5(live.vl)
-    const inFlow = plusFlow(scene, ([[VS_X, 0.8, 0], [VS_X, S_Y, 0], [A_X, S_Y, 0]] as V3[]).map(lane), (at) =>
+    const inFlow = plusFlow(scene, lane([[VS_X, 0.8, 0], [VS_X, S_Y, 0], [A_X, S_Y, 0]]), (at) =>
       at.x < VS_X + 0.2 ? f5(live.vs) : dropAlong(at, [VS_X, S_Y, 0], [A_X, S_Y, 0], f5(live.vs), f5(live.vl), RSH),
     )
-    const byFlow = plusFlow(scene, ([[A_X, S_Y, 0], [A_X, BY_Y, 0], [L_X, BY_Y, 0], [L_X, GND_Y, 0]] as V3[]).map(lane), loadPaint)
-    const outFlow = plusFlow(scene, ([[outX, AMP_AT[1], 0], [L_X, AMP_AT[1], 0], [L_X, GND_Y, 0]] as V3[]).map(lane), loadPaint)
+    const byFlow = plusFlow(scene, lane([[A_X, S_Y, 0], [A_X, BY_Y, 0], [L_X, BY_Y, 0], [L_X, GND_Y, 0]]), loadPaint)
+    const outFlow = plusFlow(scene, lane([[outX, AMP_AT[1], 0], [L_X, AMP_AT[1], 0], [L_X, GND_Y, 0]]), loadPaint)
 
     const vsLabel = pulseLabel(scene, 4, POWER, [VS_X, 4, 0], 1.1)
     const vlLabel = pulseLabel(scene, 4, HIGH_V, [0.5, 3.4, 0], 1.2)
@@ -612,18 +610,18 @@ export const comparator: Lesson = {
     wire(scene, [[SN_X, 0.7, 0], [SN_X, pPin[1], 0], pPin], 0.18)
     resistorAlong(scene, C_RIN, [-13.7, pPin[1], 0], [-10.3, pPin[1], 0])
     wire(scene, [[SN_X, -1.9, 0], [SN_X, -3.6, 0]], 0.18)
-    ground(scene, [SN_X, -3.6, 0])
+    groundAt(scene, [SN_X, -3.6, 0])
     const pNode = junction(scene, [P_X, pPin[1], 0], 0.35)
     const refTop = -1.8
     wire(scene, [nPin, [REF_X, nPin[1], 0], [REF_X, refTop, 0]], 0.18)
     add(scene, cell(2.6, 0.8), [REF_X, refTop - 1.5, 0])
     wire(scene, [[REF_X, refTop - 2.9, 0], [REF_X, -5.4, 0]], 0.18)
-    ground(scene, [REF_X, -5.4, 0])
+    groundAt(scene, [REF_X, -5.4, 0])
     wire(scene, [out, [LED_X - 0.5, CP_AT[1], 0]], 0.18)
     const oNode = junction(scene, [CO_X, CP_AT[1], 0], 0.35)
     const led = ledLamp(scene, RING, [LED_X, CP_AT[1], 0], { scale: 1, anodeRight: false })
     wire(scene, [[LED_X + 0.5, CP_AT[1], 0], [4.2, CP_AT[1], 0], [4.2, -1.2, 0]], 0.18)
-    ground(scene, [4.2, -1.2, 0])
+    groundAt(scene, [4.2, -1.2, 0])
 
     const hGroup = add(scene, new THREE.Group(), [(P_X + CO_X) / 2, H_Y, 0])
     const hl = (x: number, y: number): V3 => [x - (P_X + CO_X) / 2, y - H_Y, 0]

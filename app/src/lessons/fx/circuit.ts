@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
 import { buildLed, resistorBody } from '../../models/passives'
 import { Helix } from '../../models/power'
-import { COPPER, CONVENTIONAL, HIGH_V, POWER, glowMat, potentialColor } from './colors'
+import { COPPER, CONVENTIONAL, HIGH_V, LOW_V, POWER, RING, glowMat, potentialColor } from './colors'
 import { plusFlow } from './flows'
 import { arrow, plusGeometry } from './shapes'
 import { UP, clamp01, emptyGroup, rand } from './util'
@@ -76,8 +76,10 @@ export const R_SCALE = 1.8
 export const RS = 1.2 * R_SCALE
 export const CELL_H = 4.4
 
-/** Potential fraction up a `CELL_H` cell centred at y = 0. */
-export const cellFraction = (y: number) => clamp01((y + CELL_H / 2) / CELL_H)
+/** Potential fraction up a `CELL_H` cell centred at y = `cy`. */
+export const cellFraction = (y: number, cy = 0) => clamp01((y - cy + CELL_H / 2) / CELL_H)
+/** Points moved onto the charge lane. */
+export const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 
 /** Empties `holder` and lays a fresh resistor a → b in it. */
 export function swapResistor(holder: THREE.Group, ohms: number, a: V3, b: V3, scale = R_SCALE) {
@@ -101,8 +103,7 @@ export function resistorLoop(parent: THREE.Object3D, { w = 11, h = 6, cellH = 5,
     if (x <= -w + 0.01) return clamp01((y + cellH / 2) / cellH)
     return clamp01((y + rs) / (2 * rs))
   }
-  const lane: V3[] = [[-w, -h, LANE], [-w, h, LANE], [w, h, LANE], [w, -h, LANE]]
-  const flow = plusFlow(parent, lane, (at) => fraction(at.x, at.y) * level, true)
+  const flow = plusFlow(parent, lane([[-w, -h, 0], [-w, h, 0], [w, h, 0], [w, -h, 0]]), (at) => fraction(at.x, at.y) * level, true)
   let shownOhms = NaN
   return {
     flow,
@@ -124,6 +125,8 @@ export function groundSymbol(color = '#e8e8e8'): THREE.Group {
   ;[1.6, 1.05, 0.5].forEach((w, i) => box(g, [w, 0.16, 0.16], m, [0, -1 - i * 0.38, 0]))
   return g
 }
+
+export const groundAt = (parent: THREE.Object3D, at: V3) => add(parent, groundSymbol(), at).scale.setScalar(0.7)
 
 /** See-through battery, + on top, standing on its centre: a cylinder (or a box when `square`) with a glowing charge fill;
  *  `set(level 0..1)`. */
@@ -513,6 +516,67 @@ export function motorCan(parent: THREE.Object3D, at: V3, { r = 1.8, legs = 0.8 }
     pins,
     spin(dt: number, rpm: number) {
       flag.rotation.z -= (dt * rpm * 2 * Math.PI) / 60
+    },
+  }
+}
+
+const INK = () => mat('#d8dbe0', { emissive: '#3a3c40' })
+const GREY_RIM = new THREE.Color('#9aa0aa')
+const WARN = new THREE.Color(RING)
+
+/** Op-amp symbol facing +z: a triangle `size` tall pointing +x, inputs on the left (− on top unless `minusTop` is false),
+ *  supply stubs up (V+) and down (V−). `set(out, clip)` tints the output dot by potential (0..1) and the rim by clipping;
+ *  `inputs(p, n)` tints the input dots. `pins` are in the parent's frame. */
+export function opAmpSymbol(parent: THREE.Object3D, at: V3, { size = 4.4, lead: stub = 1, minusTop = true } = {}) {
+  const g = add(parent, new THREE.Group(), at)
+  const h = size / 2
+  const tri = new THREE.Shape([new THREE.Vector2(-h, h), new THREE.Vector2(h, 0), new THREE.Vector2(-h, -h)])
+  const geo = new THREE.ExtrudeGeometry(tri, { depth: 0.5, bevelEnabled: false })
+  geo.translate(0, 0, -0.25)
+  add(g, mesh(geo, mat('#23262d', { rough: 0.55 })))
+  const rim = glowMat('#9aa0aa', 0.35)
+  const corners: V3[] = [[-h, h, 0.3], [h, 0, 0.3], [-h, -h, 0.3]]
+  corners.forEach((c, i) => rod(g, c, corners[(i + 1) % 3], 0.11, rim))
+  for (const c of corners) add(g, mesh(new THREE.SphereGeometry(0.11, 10, 8), rim), c)
+
+  const ink = INK()
+  const yN = minusTop ? h / 2 : -h / 2
+  add(g, mesh(plusGeometry(0.75), ink), [-h + 0.75, -yN, 0.25])
+  box(g, [0.75, 0.2, 0.1], ink, [-h + 0.75, yN, 0.32])
+  for (const y of [h / 2, -h / 2]) rod(g, [-h - stub, y, 0], [-h, y, 0], 0.09, ink)
+  rod(g, [h, 0, 0], [h + stub, 0, 0], 0.09, ink)
+  for (const [s, color] of [[1, HIGH_V], [-1, LOW_V]] as const) {
+    rod(g, [0, s * h / 2, 0], [0, s * (h / 2 + stub), 0], 0.09, ink)
+    cylinder(g, 0.28, 0.12, glowMat(color, 0.6), [0, s * (h / 2 + stub), 0], 'y', 16)
+  }
+  const dot = (p: V3) => add(g, mesh(new THREE.SphereGeometry(0.26, 14, 10), glowMat('#ffffff', 0.9)), p)
+  const outDot = dot([h + 0.05, 0, 0.3])
+  const pDot = dot([-h - 0.1, -yN, 0])
+  const nDot = dot([-h - 0.1, yN, 0])
+  const tint = (o: THREE.Mesh, f: number) => {
+    const m = o.material as THREE.MeshStandardMaterial
+    potentialColor(f, m.color)
+    m.emissive.copy(m.color)
+  }
+  const local = (x: number, y: number): V3 => [at[0] + x, at[1] + y, at[2]]
+  return {
+    group: g,
+    pins: {
+      n: local(-h - stub, yN),
+      p: local(-h - stub, -yN),
+      out: local(h + stub, 0),
+      vcc: local(0, h / 2 + stub),
+      vee: local(0, -h / 2 - stub),
+    },
+    set(out: number, clip = 0) {
+      tint(outDot, out)
+      rim.color.copy(GREY_RIM).lerp(WARN, clip)
+      rim.emissive.copy(rim.color)
+      rim.emissiveIntensity = 0.35 + 0.6 * clip
+    },
+    inputs(p: number, n: number) {
+      tint(pDot, p)
+      tint(nDot, n)
     },
   }
 }

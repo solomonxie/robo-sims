@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu'
 import { minLedResistor } from '../../core/circuit'
 import { LED_MAX_A, LED_RATED_A, LEDS, Led, diodeAmps, diodeNode, matrixScan, photonEv, rowOnFractions } from '../../core/physics'
 import { e12Above } from '../../core/resistorColors'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, si, tiny, volts } from '../../core/units'
 import { V3, add, mesh, rod } from '../../models/kit'
 import { LED_DOME, buildRgbLed } from '../../models/passives'
 import { createStage } from '../../scene/stage'
@@ -38,7 +38,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, e12, n, resistorSlider } from '../types'
 
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 const VIEW = { center: [-0.4, 2.4, 0] as V3, radius: 56, polar: 1.42, azimuth: 0.1 }
 
 // --- Shared loop: cell (left), resistor (top), LED standing on the bottom wire, anode to the right. ---

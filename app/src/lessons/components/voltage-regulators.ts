@@ -15,7 +15,7 @@ import {
   linearReg,
   rejectedRipple,
 } from '../../core/physics'
-import { amps, fitDigits, niceCeil, ohms, volts, watts } from '../../core/units'
+import { amps, fitDigits, niceCeil, ohms, pct, volts, watts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -32,7 +32,8 @@ import {
   diodeAlong,
   dropAlong,
   ease,
-  groundSymbol,
+  groundAt,
+  lane,
   heatWaves,
   inductorCoil,
   ivScreen,
@@ -51,11 +52,9 @@ import { Lesson, Params, Stage, e12, n } from '../types'
 
 const REG = AMS1117_33
 const VIS_HZ = 0.5
-const lane = (p: V3): V3 => [p[0], p[1], LANE]
-const ground = (parent: THREE.Object3D, at: V3) => add(parent, groundSymbol(), at).scale.setScalar(0.7)
+const onLane = (p: V3): V3 => [p[0], p[1], LANE]
 const frac = (x: number) => x - Math.floor(x)
 const mA = (a: number) => `${Math.round(a * 1000)} mA`
-const pct = (x: number) => `${Math.round(x * 100)} %`
 const view = (cx: number, radius: number) => ({ center: [cx, -1, 0] as V3, radius, polar: 1.42, azimuth: 0.12 })
 
 // --- Shared LDO bench: source → AMS1117 (SOT-223) → ESP32 DevKit on its 3V3 pin, 22 µF on the output. ---
@@ -88,7 +87,7 @@ function ldoBench(scene: THREE.Object3D) {
   ceramicAlong(scene, [CAP_X, -1.6, 0], [CAP_X, -4.6, 0], 1.3)
   wire(scene, [[CAP_X, -4.6, 0], [CAP_X, RAIL, 0]], 0.18)
   junction(scene, [CAP_X, tab[1], 0], 0.32)
-  ground(scene, [0, RAIL - 0.2, 0])
+  groundAt(scene, [0, RAIL - 0.2, 0])
 
   const holder = add(scene, new THREE.Group(), BOARD)
   const board = add(holder, buildEsp32())
@@ -97,18 +96,18 @@ function ldoBench(scene: THREE.Object3D) {
 
   const live = { vin: 5, vout: 3.3 }
   const pts: V3[] = [
-    lane([SRC_X, cellTop, 0]),
-    lane(pin),
-    lane([0, pin[1], 0]),
-    lane([0, tab[1], 0]),
-    lane(tab),
-    lane([OUT_X, tab[1], 0]),
+    onLane([SRC_X, cellTop, 0]),
+    onLane(pin),
+    onLane([0, pin[1], 0]),
+    onLane([0, tab[1], 0]),
+    onLane(tab),
+    onLane([OUT_X, tab[1], 0]),
     [V33[0], V33[1], BOARD_Z],
     [BOARD[0] - 1.8 * BS, BOARD[1], BOARD_Z],
     [GND_PIN[0], GND_PIN[1], BOARD_Z],
-    lane([GND_PIN[0], RAIL, 0]),
-    lane([SRC_X, RAIL, 0]),
-    lane([SRC_X, cellBot, 0]),
+    onLane([GND_PIN[0], RAIL, 0]),
+    onLane([SRC_X, RAIL, 0]),
+    onLane([SRC_X, cellBot, 0]),
   ]
   const flow = plusFlow(scene, pts, (at) => {
     if (at.y < RAIL + 0.2 || (at.x > SRC_X - 0.2 && at.y < cellBot + 0.1)) return 0
@@ -350,7 +349,7 @@ const slowNote = `The switch runs at 100 kHz; everything here is shown ${SW_SLOW
 function switchCell(scene: THREE.Object3D) {
   add(scene, cell(4, 1.1), [CELL_X, TOP - 2.4, 0])
   wire(scene, [[CELL_X, CELL_BOT, 0], [CELL_X, BOT, 0]], 0.18)
-  ground(scene, [0, BOT - 0.2, 0])
+  groundAt(scene, [0, BOT - 0.2, 0])
 }
 
 /** Output cap at `capX` and the load resistor at `loadX`, both from TOP down to BOT, centred on y = −1. */
@@ -372,7 +371,7 @@ function outputStage(scene: THREE.Object3D, capX: number, loadX: number) {
   }
 }
 
-const flowOn = (scene: THREE.Object3D, pts: V3[], paint: (at: THREE.Vector3) => number) => plusFlow(scene, pts.map(lane), paint)
+const flowOn = (scene: THREE.Object3D, pts: V3[], paint: (at: THREE.Vector3) => number) => plusFlow(scene, lane(pts), paint)
 
 /** Scope: switch state in a thin band at the top, inductor current below (auto full scale, ticked at the right). */
 function switchScope(scene: THREE.Object3D, at: V3) {

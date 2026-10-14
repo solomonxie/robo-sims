@@ -14,7 +14,7 @@ import {
   thresholdAt,
 } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, si, tiny, volts } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -27,6 +27,7 @@ import {
   RS,
   bulb,
   cell,
+  cellFraction,
   clamp01,
   dropAlong,
   ease,
@@ -53,7 +54,6 @@ import { Lesson, Params, Stage, n } from '../types'
 const S = 1.6
 const LEG = 0.5 * S
 const DEEP = LANE + 0.7
-const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 const STATE = { cutoff: 'off', saturation: 'half on', triode: 'on' } as const
 const HEAT = '#ff8a1e'
 const LABEL: Record<FetName, string> = { '2N7000': '2N7000 (TO-92)', IRLZ44N: 'IRLZ44N (logic)', IRFZ44N: 'IRFZ44N (standard)' }
@@ -87,11 +87,10 @@ interface Live {
 }
 type Pins = ReturnType<typeof fetPart>['pins']
 
-const cellAt = (y: number, cy: number) => clamp01((y - cy + CELL_H / 2) / CELL_H)
 
 /** Potential fraction on the drain loop: supply on the right, load on the top rail, then down through the MOSFET. */
 function drainPaint(at: THREE.Vector3, g: Rig, s: Live, pins: Pins, full: number, rx: number | null) {
-  if (at.x >= g.vx - 0.01) return (s.vdd / full) * cellAt(at.y, (g.yt + g.yb) / 2)
+  if (at.x >= g.vx - 0.01) return (s.vdd / full) * cellFraction(at.y, (g.yt + g.yb) / 2)
   if (at.y >= g.yt - 0.01) {
     if (at.x > s.loadA) return rx === null ? s.vdd / full : dropAlong(at, [g.vx, g.yt, 0], [s.loadA, g.yt, 0], s.vdd / full, s.top / full, RS)
     if (at.x >= s.loadB) return lerp(s.vds, s.top, (at.x - s.loadB) / (s.loadA - s.loadB)) / full
@@ -184,7 +183,7 @@ export const gateThreshold: Lesson = {
     const die = g.yt + 3.8 * S
     const ledPath: V3[] = [[LX1 + LEG, g.yt, LANE], [LX1 + LEG, die, DEEP], [LX1 - LEG, die, DEEP], [LX1 - LEG, g.yt, LANE]]
     const gate = plusFlow(scene, [[g.sx, g.yb, LANE], [g.sx, g.gy, LANE], [g.gx, g.gy, LANE]], (at) =>
-      at.x <= g.sx + 0.01 ? (live.vgs / VDD1) * cellAt(at.y, (g.gy + g.yb) / 2) : live.vgs / VDD1,
+      at.x <= g.sx + 0.01 ? (live.vgs / VDD1) * cellFraction(at.y, (g.gy + g.yb) / 2) : live.vgs / VDD1,
     )
     const vgsLabel = pulseLabel(scene, 4, RING, [(g.sx + g.gx) / 2, g.gy + 1.6, 0], 1.1)
     const idLabel = pulseLabel(scene, 3, CONVENTIONAL, [RX1, g.yt + 1.8, 0], 1.1)

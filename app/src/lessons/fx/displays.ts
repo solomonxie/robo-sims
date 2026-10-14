@@ -251,3 +251,44 @@ export function phasor(parent: THREE.Object3D, radius: number, color = HIGH_V) {
     },
   }
 }
+
+/** Clock face facing +z at `at`: 12 ticks, bright hands in `color` and grey ghost hands for the true time.
+ *  `set(shown, truth)` takes seconds after 12:00:00 for each. */
+export function clockFace(parent: THREE.Object3D, at: V3, r: number, color: string) {
+  const group = add(parent, new THREE.Group(), at)
+  cylinder(group, r + 0.35, 0.5, mat('#2a2c32', { rough: 0.5 }), [0, 0, -0.3], 'z', 64)
+  cylinder(group, r, 0.1, mat('#e9e6dc', { rough: 0.7 }), [0, 0, 0], 'z', 64)
+  const ink = mat('#2b2d33')
+  for (let k = 0; k < 60; k++) {
+    const a = (k / 60) * 2 * Math.PI
+    const big = k % 5 === 0
+    const tick = box(group, [big ? 0.16 : 0.06, big ? 0.7 : 0.3, 0.05], ink, [Math.sin(a) * (r - (big ? 0.5 : 0.3)), Math.cos(a) * (r - (big ? 0.5 : 0.3)), 0.08])
+    tick.rotation.z = -a
+  }
+  const hand = (len: number, width: number, material: THREE.Material, z: number) => {
+    const g = add(group, new THREE.Group(), [0, 0, z])
+    box(g, [width, len + 0.4, 0.06], material, [0, len / 2 - 0.2, 0]).castShadow = false
+    return g
+  }
+  const ghost = new THREE.MeshStandardMaterial({ color: GREY, transparent: true, opacity: 0.55, depthWrite: false })
+  const bright = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.4 })
+  const dark = mat('#1d1f24')
+  const sets = [
+    [hand(0.5 * r, 0.32, ghost, 0.14), hand(0.78 * r, 0.22, ghost, 0.18), hand(0.9 * r, 0.1, ghost, 0.22)],
+    [hand(0.5 * r, 0.3, dark, 0.26), hand(0.78 * r, 0.2, dark, 0.3), hand(0.9 * r, 0.09, bright, 0.34)],
+  ]
+  cylinder(group, 0.22, 0.5, bright, [0, 0, 0.3], 'z', 20)
+  const turn = (hands: THREE.Group[], s: number) => {
+    const [h, m, sec] = hands
+    h.rotation.z = (-2 * Math.PI * s) / 43200
+    m.rotation.z = (-2 * Math.PI * s) / 3600
+    sec.rotation.z = (-2 * Math.PI * s) / 60
+  }
+  return {
+    group,
+    set(shown: number, truth: number) {
+      turn(sets[1], shown)
+      turn(sets[0], truth)
+    },
+  }
+}

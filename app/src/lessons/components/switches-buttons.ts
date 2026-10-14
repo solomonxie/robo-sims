@@ -6,7 +6,6 @@ import { createStage } from '../../scene/stage'
 import {
   GREY,
   HIGH_V,
-  LANE,
   LOW_V,
   POWER,
   RING,
@@ -16,6 +15,7 @@ import {
   emptyGroup,
   icPackage,
   junction,
+  lane,
   ledLamp,
   lerp,
   plusFlow,
@@ -33,7 +33,6 @@ import { Lesson, Params, Stage, n } from '../types'
 const VDD = 3.3
 const R_PULL = 10e3
 const ms = (s: number) => si(s, 's', 2)
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 type PartKey = keyof typeof SWITCHES
 const partOf = (p: Params): PartKey => (p.part === 'toggle' || p.part === 'worn' ? p.part : 'tact')
 

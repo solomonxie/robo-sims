@@ -11,7 +11,7 @@ import {
   switchOffSpike,
 } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, ohms, si, volts } from '../../core/units'
+import { fitDigits, ohms, secs, si, volts } from '../../core/units'
 import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -21,7 +21,6 @@ import {
   Flow,
   GREY,
   HIGH_V,
-  LANE,
   LOW_V,
   POWER,
   RING,
@@ -39,6 +38,7 @@ import {
   inductorCoil,
   ivScreen,
   knifeSwitch,
+  lane,
   lerp,
   path,
   plusFlow,
@@ -53,8 +53,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
-const secs = (s: number) => si(s, 's', 3)
 const henries = (h: number) => si(h, 'H', 3)
 const grouped = (x: number) => String(Math.round(x)).replace(/\B(?=(\d{3})+$)/g, ',')
 

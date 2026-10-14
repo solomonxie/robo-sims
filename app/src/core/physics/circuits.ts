@@ -1,6 +1,5 @@
 // Networks: series/parallel, dividers, Kirchhoff, Thevenin & Norton.
 import { Element, branchCurrents, loopSteps, solveNodal, theveninAt } from '../nodal'
-import { halton } from '../halton'
 import { wattHours } from './dc'
 
 export interface PairResult {
@@ -230,87 +229,3 @@ export function powerTransfer(vth: number, rth: number, load: number) {
   const { amps, volts } = theveninLoad(vth, rth, load)
   return { amps, volts, loadW: volts * amps, lostW: amps * amps * rth, efficiency: load / (rth + load), maxW: (vth * vth) / (4 * rth) }
 }
-
-// --- Switches: contact bounce and debouncing ---
-
-export interface SwitchPart {
-  name: string
-  /** Make (press) and break (release) bounce, s, and how many times the contact reopens on make. */
-  makeS: number
-  breakS: number
-  bounces: number
-}
-
-/** Typical bounce, after Ganssle's switch survey (mean ~1.6 ms, worst seen 6.2 ms on make). */
-export const SWITCHES: Record<'tact' | 'toggle' | 'worn', SwitchPart> = {
-  tact: { name: '6 mm tactile', makeS: 1.5e-3, breakS: 0.4e-3, bounces: 5 },
-  toggle: { name: 'Toggle switch', makeS: 3e-3, breakS: 1.2e-3, bounces: 8 },
-  worn: { name: 'Worn tactile', makeS: 6e-3, breakS: 2e-3, bounces: 12 },
-}
-
-/** Times (s) the contact changes state: the first touch at 0, then `bounces` open/close pairs, gaps shrinking, the last
- *  at `durationS`. Deterministic for a `seed`. */
-export function bounceEdges(durationS: number, bounces: number, seed = 1): number[] {
-  const w = Array.from({ length: 2 * bounces }, (_, k) => 0.8 ** Math.floor(k / 2) * (k % 2 ? 1 : 0.6) * (0.5 + halton(seed * 13 + k + 1, 3)))
-  const total = w.reduce((a, b) => a + b, 0)
-  let t = 0
-  return [0, ...w.map((x) => (t += (x / total) * durationS))]
-}
-
-/** State at `t` of a contact that was `before` and toggles at every edge (t < 0: still `before`). */
-export const bouncedState = (t: number, edges: number[], before: boolean) => (edges.filter((e) => e <= t).length % 2 === 1 ? !before : before)
-
-/** RC debounce node: pull-up `pullOhms` to `vdd` charges `farads`; the closed switch discharges it through `dischargeOhms`. */
-export function rcDebounceStep(vc: number, closed: boolean, vdd: number, pullOhms: number, dischargeOhms: number, farads: number, dt: number) {
-  if (!closed) return rcStep(vc, vdd, pullOhms * farads, dt)
-  const r = (pullOhms * dischargeOhms) / (pullOhms + dischargeOhms)
-  return rcStep(vc, (vdd * dischargeOhms) / (pullOhms + dischargeOhms), r * farads, dt)
-}
-
-/** 74HC14 Schmitt input at 3.3 V as fractions of VDD: rises past ~1.8 V, falls past ~1.0 V. */
-export const SCHMITT_HI = 0.55
-export const SCHMITT_LO = 0.3
-
-/** Does a Schmitt input read high? Between the thresholds it keeps what it read before. */
-export const schmittHigh = (wasHigh: boolean, volts: number, vdd: number) => (volts >= SCHMITT_HI * vdd ? true : volts <= SCHMITT_LO * vdd ? false : wasHigh)
-
-export interface Debounce {
-  stable: boolean
-  last: boolean
-  sinceS: number
-}
-
-/** Software debounce: accept a new input level only once it has held for `holdS`. */
-export function debounceStep(s: Debounce, raw: boolean, dt: number, holdS: number): Debounce {
-  const sinceS = raw === s.last ? s.sinceS + dt : 0
-  return { last: raw, sinceS, stable: sinceS >= holdS ? raw : s.stable }
-}
-
-/** Code toggle on a (debounced) button: flip `on` at each press edge. */
-export const latchToggle = (on: boolean, wasPressed: boolean, pressed: boolean) => (pressed && !wasPressed ? !on : on)
-
-// --- Potentiometer ---
-
-/** Mechanical sweep of a typical rotary pot (RV16, RV09). */
-export const POT_SWEEP_DEG = 270
-
-export type Taper = 'linear' | 'log'
-
-/** Fraction of the track between pin 1 and the wiper at `turn` (0..1 of the sweep). Log (A) taper: 10 % at half turn. */
-export function taperFraction(turn: number, taper: Taper) {
-  const u = Math.min(1, Math.max(0, turn))
-  return taper === 'linear' ? u : (81 ** u - 1) / 80
-}
-
-/** Pot as a divider: pin 3 at `vin`, pin 1 at 0 V, nothing drawn from the wiper. */
-export function potDivider(vin: number, totalOhms: number, turn: number, taper: Taper = 'linear') {
-  const f = taperFraction(turn, taper)
-  const lower = f * totalOhms
-  return { fraction: f, lower, upper: totalOhms - lower, vout: vin * f, amps: vin / totalOhms }
-}
-
-/** Attenuation in dB of an output fraction (−∞ at 0). */
-export const attenuationDb = (fraction: number) => 20 * Math.log10(fraction)
-
-/** How loud (or bright) a fraction feels, 0..1: decibels mapped linearly over the usable `rangeDb`. */
-export const perceivedLevel = (fraction: number, rangeDb = 40) => Math.min(1, Math.max(0, 1 + attenuationDb(fraction) / rangeDb))

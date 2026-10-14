@@ -1,15 +1,117 @@
-// MOSFETs: the real part (TO-92 or TO-220) in a circuit, and one cut open: substrate, wells, gate on its oxide, carriers.
+// Cut-open transistor dies: an NPN slab (emitter → thin base → collector) and a MOSFET cross-section.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, cylinder, mat, STEEL } from '../../models/kit'
-import { TO220, buildTo220 } from '../../models/passives'
-import { litEpoxy, partLetter, transistorPart } from './bjt'
-import { glowHalo } from './circuit'
-import { CONVENTIONAL, ELECTRON, HIGH_V, HOLE, LOW_V, glowMat, potentialColor } from './colors'
+import { V3, add, box, mat } from '../../models/kit'
+import { ELECTRON, HIGH_V, HOLE, LOW_V, glowMat, potentialColor } from './colors'
 import { ACCEPTOR, DONOR } from './crystal'
 import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
+import { partLetter } from './parts'
 import { plusGeometry } from './shapes'
 import { clamp01, rand } from './util'
+
+const tint = (color: string, k: number) => `#${new THREE.Color(color).lerp(new THREE.Color('#1c1e24'), k).getHexString()}`
+const MAX_E = 140
+const MAX_H = 24
+const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0)
+
+export interface BjtDieStep {
+  /** Electrons injected per second through the emitter (shown, not real), and the fraction that recombine in the base. */
+  rate: number
+  recombine: number
+  /** 0..1: the collector junction forward-biased too; electrons crowd the base. */
+  saturation: number
+}
+
+/** NPN cut open facing +z, centred on `at`: n+ emitter (left), a thin p base, n collector (right); contacts E, B (top of the
+ *  base) and C. Electrons cross from E to C; a few recombine in the base with holes fed in from B (the base current). */
+export function bjtDie(parent: THREE.Object3D, at: V3, { width = 12, height = 3.6, depth = 2.4 } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const eW = width * 0.32
+  const bW = width * 0.12
+  const cW = width - eW - bW
+  const x0 = -width / 2
+  const xb = x0 + eW
+  const xc = xb + bW
+  box(group, [eW, height, depth], mat(tint(DONOR, 0.25), { rough: 0.6 }), [x0 + eW / 2, 0, 0])
+  const baseMat = mat(tint(ACCEPTOR, 0.5), { rough: 0.6 }, true)
+  box(group, [bW, height, depth], baseMat, [xb + bW / 2, 0, 0])
+  box(group, [cW, height, depth], mat(tint(DONOR, 0.55), { rough: 0.6 }), [xc + cW / 2, 0, 0])
+  const metal = mat('#b9bec6', { metal: 0.4, rough: 0.35 })
+  box(group, [0.6, height + 0.4, depth * 0.8], metal, [x0 - 0.3, 0, 0])
+  box(group, [0.6, height + 0.4, depth * 0.8], metal, [width / 2 + 0.3, 0, 0])
+  box(group, [bW * 0.9, 0.5, depth * 0.8], metal, [xb + bW / 2, height / 2 + 0.25, 0])
+  const front = depth / 2 + 0.06
+  const lh = height * 0.22
+  partLetter(group, 'n', [x0 + eW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'P', [xb + bW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'n', [xc + cW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'E', [x0 - 1.2, 0, 0], 0.9)
+  partLetter(group, 'C', [width / 2 + 1.2, 0, 0], 0.9)
+  partLetter(group, 'B', [xb + bW / 2 + 1, height / 2 + 0.9, 0], 0.9)
+
+  const electrons = new THREE.InstancedMesh(new THREE.SphereGeometry(0.2, 10, 8), glowMat(ELECTRON, 1.3), MAX_E)
+  const holes = new THREE.InstancedMesh(new THREE.TorusGeometry(0.2, 0.07, 8, 16), glowMat(HOLE, 1.1), MAX_H)
+  for (const o of [electrons, holes]) {
+    o.frustumCulled = false
+    o.castShadow = false
+    group.add(o)
+  }
+  const es = Array.from({ length: MAX_E }, () => ({ live: false, x: 0, y: 0, stop: Infinity, fade: 0 }))
+  const hs = Array.from({ length: MAX_H }, () => ({ live: false, x: 0, y: 0, stopY: 0 }))
+  const m = new THREE.Matrix4()
+  const q = new THREE.Quaternion()
+  const p = new THREE.Vector3()
+  const s = new THREE.Vector3()
+  const pinkBase = new THREE.Color(tint(ACCEPTOR, 0.5))
+  const flooded = new THREE.Color(ELECTRON)
+  let spawn = 0
+  const y0 = -height / 2 + 0.35
+  const y1 = height / 2 - 0.35
+
+  return {
+    group,
+    pins: {
+      e: [at[0] + x0 - 0.6, at[1], at[2]] as V3,
+      b: [at[0] + xb + bW / 2, at[1] + height / 2 + 0.5, at[2]] as V3,
+      c: [at[0] + width / 2 + 0.6, at[1], at[2]] as V3,
+    },
+    step(dt: number, { rate, recombine, saturation }: BjtDieStep) {
+      spawn += dt * rate
+      const speed = 7 * (1 - 0.3 * clamp01(saturation))
+      for (const e of es) {
+        if (spawn < 1) break
+        if (e.live) continue
+        spawn -= 1
+        const dies = Math.random() < recombine
+        Object.assign(e, { live: true, x: x0 + rand(0, 0.6), y: rand(y0, y1), stop: dies ? xb + rand(0.2, 0.85) * bW : Infinity, fade: 1 })
+        if (dies) {
+          const free = hs.find((h) => !h.live)
+          if (free) Object.assign(free, { live: true, x: e.stop, y: height / 2, stopY: e.y })
+        }
+      }
+      spawn = Math.min(spawn, 2)
+      es.forEach((e, i) => {
+        if (!e.live) return electrons.setMatrixAt(i, HIDDEN)
+        const inBase = e.x > xb && e.x < xc
+        const v = speed * (inBase ? 0.6 + 0.4 * (1 - clamp01(saturation)) : 1)
+        if (e.x < e.stop) e.x = Math.min(e.stop, e.x + v * dt)
+        else e.fade -= dt * 2.5
+        e.y += rand(-1, 1) * dt * 0.8
+        e.y = Math.min(y1, Math.max(y0, e.y))
+        if (e.x > width / 2 || e.fade <= 0) e.live = false
+        electrons.setMatrixAt(i, e.live ? m.compose(p.set(e.x, e.y, front + 0.1), q, s.setScalar(Math.max(0.01, e.fade))) : HIDDEN)
+      })
+      hs.forEach((h, i) => {
+        if (!h.live) return holes.setMatrixAt(i, HIDDEN)
+        h.y -= dt * 4
+        if (h.y <= h.stopY) h.live = false
+        holes.setMatrixAt(i, h.live ? m.makeTranslation(h.x, h.y, front + 0.12) : HIDDEN)
+      })
+      electrons.instanceMatrix.needsUpdate = holes.instanceMatrix.needsUpdate = true
+      baseMat.color.copy(pinkBase).lerp(flooded, 0.45 * clamp01(saturation))
+    },
+  }
+}
 
 const THICK = 4
 const FRONT = THICK / 2 + 0.3
@@ -21,7 +123,6 @@ const DEPLETE_MAX = 3
 const SLICES = 32
 const RIDERS = 36
 const WALK = 2.6
-const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0)
 
 export interface DieStep {
   /** Gate drive 0..1: charge on the gate. */
@@ -35,7 +136,6 @@ export interface DieStep {
   heat?: number
 }
 
-const tint = (color: string, k: number) => `#${new THREE.Color(color).lerp(new THREE.Color('#1c1e24'), k).getHexString()}`
 
 /** Carriers wandering inside a region of the cut face; `walk(dt, keep)` moves them and pushes strays back. */
 function swarm(parent: THREE.Object3D, count: number, hole: boolean, spawn: () => [number, number]) {
@@ -175,44 +275,6 @@ export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 
       })
       for (const w of wells) w.crowd.walk(dt, (q, v) => inside(q, v, w.x - wellW / 2 + 0.4, w.x + wellW / 2 - 0.4, -WELL_D + 0.35, -0.3, dt))
       heatGlow(substrate, heat)
-    },
-  }
-}
-
-const TO220_LEGS = 1
-
-/** A discrete n-MOSFET with its gate lead ending at `at`, gate wire coming from −x. 'TO-92' (2N7000) lies on its side like
- *  `transistorPart`: D at `at` + (0, scale), S at `at` − (0, scale). 'TO-220' stands upright at 0.75 × `scale`: legs G D S
- *  pointing down, S two pitches right of G; the drain is taken off the tab's bolt hole, straight above the middle leg.
- *  `set(f, heat)`: f = drain current / full scale glows the die, heat 0..1 reddens the epoxy. */
-export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220', { scale = 1.6 } = {}) {
-  if (pkg === 'TO-92') {
-    const t = transistorPart(parent, at, { scale, letters: ['d', 'G', 'S'] })
-    return { group: t.group, pins: { d: t.pins.c, g: t.pins.b, s: t.pins.e }, die: t.die, set: t.set }
-  }
-  const k = 0.75 * scale
-  const { h, t, tabUp, holeDown } = TO220
-  const group = add(parent, new THREE.Group(), [at[0] + k, at[1] + (TO220_LEGS - TO220.base) * k, at[2]])
-  const part = add(group, buildTo220({ legs: TO220_LEGS }))
-  part.scale.setScalar(k)
-  const body = part.userData.body as THREE.MeshStandardMaterial
-  litEpoxy(body)
-  const y0 = at[1] + TO220_LEGS * k
-  const d: V3 = [at[0] + k, y0 + (h + tabUp - holeDown) * k, at[2]]
-  cylinder(parent, 0.5 * k, 0.4 * k, STEEL(), [d[0], d[1], at[2] + (TO220.tab - t / 2 + 0.2) * k], 'z', 16)
-  const die: V3 = [at[0] + k, y0 + 0.5 * h * k, at[2]]
-  const halo = glowHalo(parent, [die[0], die[1], at[2] + t * k], 1.1 * k)
-  const tag = 0.4 * scale
-  partLetter(parent, 'G', [at[0] - 0.6 * k, at[1] - 0.9 * k, at[2]], tag)
-  partLetter(parent, 'S', [at[0] + 2.8 * k, at[1] + 0.6 * k, at[2]], tag)
-  partLetter(parent, 'd', [d[0] + 1.6 * k, d[1], at[2]], tag)
-  return {
-    group,
-    pins: { d, g: at, s: [at[0] + 2 * k, at[1], at[2]] as V3 },
-    die,
-    set(f: number, heat = 0) {
-      halo.set(0.45 * Math.sqrt(clamp01(f)), CONVENTIONAL)
-      heatGlow(body, heat)
     },
   }
 }
