@@ -62,6 +62,7 @@ export class Flow {
   /** Colors each dot by where it is (e.g. by potential); unlit so the color reads exactly. */
   colorBy(paint: (at: THREE.Vector3, out: THREE.Color) => void) {
     this.paint = paint
+    ;(this.mesh.material as THREE.Material).dispose()
     this.mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff' })
     this.place()
     return this
@@ -205,9 +206,13 @@ export function potentialColor(f: number, out = new THREE.Color()): THREE.Color 
   return out.set(LOW_V).lerp(new THREE.Color(HIGH_V), clamp01(f))
 }
 
-/** Removes and disposes everything in `g` (shared materials are left alone). */
+/** Removes and disposes everything in `g`; cached `mat()` materials are shared, so they stay. */
 export function emptyGroup(g: THREE.Group) {
-  g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
+  g.traverse((o) => {
+    const { geometry, material } = o as THREE.Mesh
+    geometry?.dispose()
+    for (const m of [material ?? []].flat()) if (!m.userData.shared) m.dispose()
+  })
   g.clear()
 }
 
@@ -237,27 +242,29 @@ const SEGMENTS: Record<string, string> = {
   A: 'abcefg', B: 'cdefg', C: 'adef',
 }
 
-/** Seven-segment readout of `cells` digits facing +z, centred on the origin; `set("-3.00")`. LCD-dark unless `glow`. */
+/** Seven-segment readout of `cells` digits facing +z, centred on the origin; `set("-3.00")`. LCD-dark unless `glow`.
+ *  Right-aligned, with "1" drawn narrow so numbers read without gaps. */
 export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', glow = false) {
   const group = new THREE.Group()
   const w = height * 0.5
   const t = height * 0.11
-  const pitch = w + height * 0.32
+  const gap = height * 0.32
+  const right = ((cells - 1) / 2) * (w + gap) + w / 2
   const on = glow ? glowMat(color, 0.9) : mat(color)
   const h = height / 2
   const spots: Record<string, [number, number, boolean]> = {
     a: [0, h, true], g: [0, 0, true], d: [0, -h, true],
     f: [-w / 2, h / 2, false], b: [w / 2, h / 2, false], e: [-w / 2, -h / 2, false], c: [w / 2, -h / 2, false],
   }
-  const digits = Array.from({ length: cells }, (_, i) => {
-    const x = (i - (cells - 1) / 2) * pitch
+  const digits = Array.from({ length: cells }, () => {
+    const slot = add(group, new THREE.Group())
     const seg = Object.fromEntries(
-      Object.entries(spots).map(([k, [sx, sy, flat]]) => [k, box(group, flat ? [w, t, t] : [t, h, t], on, [x + sx, sy, 0])]),
+      Object.entries(spots).map(([k, [sx, sy, flat]]) => [k, box(slot, flat ? [w, t, t] : [t, h, t], on, [sx, sy, 0])]),
     )
-    const dot = box(group, [t * 1.2, t * 1.2, t], on, [x + pitch / 2, -h, 0])
-    return { seg, dot }
+    const dot = box(group, [t * 1.2, t * 1.2, t], on, [0, -h, 0])
+    return { slot, seg, dot }
   })
-  return {
+  const display = {
     group,
     set(text: string) {
       const chars: { ch: string; dot: boolean }[] = []
@@ -266,13 +273,22 @@ export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', g
         else chars.push({ ch, dot: false })
       }
       while (chars.length < cells) chars.unshift({ ch: ' ', dot: false })
-      digits.forEach(({ seg, dot }, i) => {
-        const lit = SEGMENTS[chars[i].ch] ?? ''
+      const width = (ch: string) => (ch === '1' ? t : w)
+      let edge = cells === 1 ? width(chars[0].ch) / 2 : right
+      for (let i = cells - 1; i >= 0; i--) {
+        const { slot, seg, dot } = digits[i]
+        const { ch } = chars[i]
+        const lit = SEGMENTS[ch] ?? ''
         for (const k in seg) seg[k].visible = lit.includes(k)
+        slot.position.x = edge - width(ch) / 2 - (ch === '1' ? w / 2 : 0)
         dot.visible = chars[i].dot
-      })
+        dot.position.x = edge + gap / 2
+        edge -= width(ch) + gap
+      }
     },
   }
+  display.set('8'.repeat(cells))
+  return display
 }
 
 /** Handheld multimeter facing +z, on the V⎓ range; jacks at the bottom (red V, black COM). */

@@ -24,7 +24,10 @@ export function mat(color: string, o: MatOpts = {}, unique = false): THREE.MeshS
     opacity: o.opacity ?? 1,
     emissive: o.emissive ?? '#000000',
   })
-  if (!unique) cache.set(key, m)
+  if (!unique) {
+    m.userData.shared = true
+    cache.set(key, m)
+  }
   return m
 }
 
