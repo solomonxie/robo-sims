@@ -26,6 +26,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, coils (`coil`, `inductorCoil`, `coilLines`), `barMagnet`.
 - `story` — `storySlider`, `storyClock` for stepped lessons.
+- `logic` — `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path [`core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`].
 
 ## Pacing
 
@@ -73,7 +74,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Crystal oscillator
 - [x] Op-amp
 - [x] Voltage regulators
-- [ ] Logic gates
+- [x] Logic gates
 - [ ] Memory cell
 
 ### Later waves (file order within each)

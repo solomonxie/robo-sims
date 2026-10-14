@@ -26,6 +26,7 @@ import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { lithographyMachine, waferToChip, what3nmMeans } from '../lessons/semiconductors/chip-making'
 import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from '../lessons/semiconductors/mosfet-physics'
+import { adders, nandFromTransistors, truthTables } from '../lessons/semiconductors/logic-gates'
 import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { Lesson } from '../lessons/types'
@@ -143,6 +144,9 @@ const READY: Record<string, Lesson> = {
   'semiconductors/mosfet-physics/channel-formation': channelFormation,
   'semiconductors/mosfet-physics/cmos-inverter': cmosInverterLesson,
   'semiconductors/mosfet-physics/switching-energy': switchingEnergyLesson,
+  'semiconductors/logic-gates/nand-from-transistors': nandFromTransistors,
+  'semiconductors/logic-gates/truth-tables': truthTables,
+  'semiconductors/logic-gates/adders': adders,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,

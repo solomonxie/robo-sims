@@ -18,7 +18,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 | `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units. `physics/`: lesson formulas by domain (dc, ac, circuits, electromagnetism, electromechanical, semiconductors, protection, oscillators, opamps, regulators, fabrication). |
 | `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
 | `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
-| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (util, colors, shapes, heat, flows, circuit, parts, electromech, dies, crystal, displays, plots, fields, story). |
+| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (util, colors, shapes, heat, flows, circuit, parts, electromech, dies, crystal, displays, plots, fields, story, logic). |
 | `app/src/screens/` | Bench, Learn, lesson, Parts list, single-part viewer. |
 
 ## 3D models
@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (4 topics, 12 lessons: Silicon & doping → Chip making). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
+- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (5 topics, 15 lessons: Silicon & doping → Logic gates). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics/` (tested).
 - `make preview LESSON=<id>`: headless-Chrome render (WebGPU on Metal, same scene code, overlays mocked) for framing without a device. Not a simulator; the iPhone is the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.
