@@ -10,6 +10,7 @@ import { linearVsLogTaper, wiperAsDivider } from '../lessons/components/potentio
 import { fuseRatings, reversePolarity, tvsDiode } from '../lessons/components/fuses-protection'
 import { clockAccuracy, loadCapacitors, resonance } from '../lessons/components/crystal-oscillator'
 import { comparator, idealRules, invertingAmplifier, voltageFollower } from '../lessons/components/op-amp'
+import { boostConverter, buckConverter, dropoutAndHeat, linearLdo } from '../lessons/components/voltage-regulators'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -129,6 +130,10 @@ const READY: Record<string, Lesson> = {
   'components/op-amp/inverting-amplifier': invertingAmplifier,
   'components/op-amp/voltage-follower': voltageFollower,
   'components/op-amp/comparator': comparator,
+  'components/voltage-regulators/linear-ldo': linearLdo,
+  'components/voltage-regulators/dropout-and-heat': dropoutAndHeat,
+  'components/voltage-regulators/buck-converter': buckConverter,
+  'components/voltage-regulators/boost-converter': boostConverter,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,

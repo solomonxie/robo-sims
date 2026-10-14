@@ -15,10 +15,10 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 | Path | Role |
 |---|---|
-| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units. `physics/`: lesson formulas by domain (dc, circuits, ac, electromagnetism, semiconductors, protection, oscillators, opamps, fabrication). |
+| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units. `physics/`: lesson formulas by domain (dc, circuits, ac, electromagnetism, semiconductors, protection, oscillators, opamps, regulators, fabrication). |
 | `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
 | `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
-| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (util, colors, shapes, flows, crystal, mosfet, bjt, relay, switches, pot, protection, oscillator, opamp, circuit, displays, plots, heat, fields, story). |
+| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (util, colors, shapes, flows, crystal, mosfet, bjt, relay, switches, pot, protection, oscillator, opamp, regulator, circuit, displays, plots, heat, fields, story). |
 | `app/src/screens/` | Bench, Learn, lesson, Parts list, single-part viewer. |
 
 ## 3D models
@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons: Current → Magnetism); Components: Resistor (3), Capacitor (4), Inductor (3), Diode (4), LED (4), Transistor (BJT) (3), MOSFET (4), Relay (3), Switches & buttons (3), Potentiometer (2), Fuses & protection (3), Crystal oscillator (3), Op-amp (4); Semiconductors: Silicon & doping (3), PN junction (3), MOSFET physics (3), Chip making (3). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
+- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons: Current → Magnetism); Components: Resistor (3), Capacitor (4), Inductor (3), Diode (4), LED (4), Transistor (BJT) (3), MOSFET (4), Relay (3), Switches & buttons (3), Potentiometer (2), Fuses & protection (3), Crystal oscillator (3), Op-amp (4), Voltage regulators (4); Semiconductors: Silicon & doping (3), PN junction (3), MOSFET physics (3), Chip making (3). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics/` (tested).
 - `make preview LESSON=<id>`: headless-Chrome render (WebGPU on Metal, same scene code, overlays mocked) for framing without a device. Not a simulator; the iPhone is the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.

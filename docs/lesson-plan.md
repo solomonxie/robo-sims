@@ -34,6 +34,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `protection` — `glassFuse` (5×20 mm, straight or coiled slow-blow element, `set(heat, melt)`: glows, parts into beads, soots the glass); model `FUSES`/`fuseStep`/`fuseMeltTime`/`fuseI2t`, `reverseGuard` (none/diode/P-FET), `seriesDiode`, `P6KE15A`/`surge`/`tvsNode` in `core/physics/protection`.
 - `opamp` — `opAmpSymbol` (triangle, − on top unless `minusTop: false`, supply stubs, `pins` n/p/out/vcc/vee, `set(out, clip)` tints output + rim, `inputs(p, n)`), `dip8OpAmp` (TL072 pinout, `pins[k]`, `light(k, color)`); model `TL072`/`MCP6002`, `saturate`, `openLoopOut`, `nonInverting`/`nonInvertingGain`, `inverting`, `loadedVolts`, `comparatorStep`/`comparatorThresholds`/`comparatorRun` in `core/physics/opamps`.
 - `oscillator` — `hc49Crystal` (cut-open HC-49/U: quartz blank on spring clips, `set(strain, volts)` shears/flexes it, electrodes tinted by potential), `clockFace` (bright vs ghost true-time hands); BVD model `HC49_16M`/`motionalResponse`/`responseDb`, `loadCapacitance`/`pullPpm`, `driftPerDay` in `core/physics/oscillators`.
+- `regulator` — `sot223Regulator` (AMS1117 SOT-223 from above: legs IN/OUT/GND to +x, OUT tab to −x, `set(f, heat)`); model `AMS1117_33`/`linearReg`/`ldoThermalStep`, `buck`/`boost` (ideal or loss model, `BUCK_DEMO`/`BOOST_DEMO`), `inductorAmps` in `core/physics/regulators`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
@@ -82,7 +83,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Fuses & protection
 - [x] Crystal oscillator
 - [x] Op-amp
-- [ ] Voltage regulators
+- [x] Voltage regulators
 - [ ] Logic gates
 - [ ] Memory cell
 
