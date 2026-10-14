@@ -149,7 +149,7 @@ export function sot223Regulator(parent: THREE.Object3D, at: V3, scale = 2.4) {
     box(group, [0.26 * k, 0.7 * k, 0.6 * k], tin, [legX + 0.9 * k, y, -0.55 * k])
     box(group, [0.9 * k, 0.7 * k, 0.26 * k], tin, [legX + 1.35 * k, y, -0.8 * k])
   }
-  ;['IN', 'OUT', 'GND'].forEach((t, i) => partLetter(group, t, [legX - 0.3 * k, ys[i], 0.85 * k], 0.6 * k, LABEL, 'right'))
+  ;['IN', 'OUT', 'GND'].forEach((t, i) => partLetter(group, t, [legX - 0.3 * k, ys[i] - (i ? 0 : 0.95 * k), 0.85 * k], 0.6 * k, LABEL, 'right'))
   const halo = glowHalo(group, [0, 0, 1.2 * k], 1.4 * k)
   const tip = legX + 1.8 * k
   const p = (x: number, y: number): V3 => [at[0] + x, at[1] + y, at[2]]
