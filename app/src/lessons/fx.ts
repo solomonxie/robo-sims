@@ -746,8 +746,13 @@ export function thermistorAlong(parent: THREE.Object3D, a: V3, b: V3, scale = 1.
 export function terminal(parent: THREE.Object3D, at: V3, r = 0.7) {
   const group = add(parent, new THREE.Group(), at)
   cylinder(group, r * 0.45, r * 1.6, STEEL(), [0, -r * 0.8, 0], 'y', 16)
+  return { ...junction(group, [0, 0, 0], r), group }
+}
+
+/** Glowing node ball at `at`; `set(f)` paints it by `potentialColor`. */
+export function junction(parent: THREE.Object3D, at: V3, r = 0.7) {
   const ball = glowMat(HIGH_V, 0.8)
-  add(group, mesh(new THREE.SphereGeometry(r, 24, 16), ball))
+  const group = add(parent, mesh(new THREE.SphereGeometry(r, 24, 16), ball), at)
   const c = new THREE.Color()
   return {
     group,
@@ -755,6 +760,44 @@ export function terminal(parent: THREE.Object3D, at: V3, r = 0.7) {
       potentialColor(f, c)
       ball.color.copy(c)
       ball.emissive.copy(c)
+    },
+  }
+}
+
+const along = new THREE.Vector3()
+const seg = new THREE.Vector3()
+
+/** Potential fraction at `at` on a straight wire a → b with a resistor of half-length `rs` at its middle:
+ *  `fa` before it, `fb` after, a linear drop across it. */
+export function dropAlong(at: THREE.Vector3, a: V3, b: V3, fa: number, fb: number, rs: number) {
+  seg.set(b[0] - a[0], b[1] - a[1], 0)
+  const len = seg.length()
+  const s = along.set(at.x - a[0], at.y - a[1], 0).dot(seg) / len
+  return fa + (fb - fa) * clamp01((s - len / 2 + rs) / (2 * rs))
+}
+
+/** Two columns up from the origin: positive values stack on the left (in), negatives on the right (out), block k tinted
+ *  `colors[k]`. When the values sum to 0, as currents at a node do, the columns stand equal. `set(values)`. */
+export function inOutBars(parent: THREE.Object3D, colors: string[], perUnit: number, width = 1.2, gap = 0.5) {
+  const group = add(parent, new THREE.Group())
+  const unit = new THREE.BoxGeometry(1, 1, 1)
+  const seam = mat('#e8e8e8', { emissive: '#666666' })
+  const blocks = colors.map((c) => ({ block: add(group, mesh(unit, glowMat(c, 0.45))), cap: box(group, [width + 0.3, 0.12, width * 0.6 + 0.3], seam) }))
+  const xs = [-(width + gap) / 2, (width + gap) / 2]
+  return {
+    group,
+    set(values: number[]) {
+      const tops = [0, 0]
+      blocks.forEach(({ block, cap }, k) => {
+        const v = values[k] ?? 0
+        const side = v >= 0 ? 0 : 1
+        const h = Math.abs(v) * perUnit
+        block.visible = cap.visible = h > 0.02
+        block.scale.set(width, Math.max(0.001, h), width * 0.6)
+        block.position.set(xs[side], tops[side] + h / 2, 0)
+        tops[side] += h
+        cap.position.set(xs[side], tops[side], 0)
+      })
     },
   }
 }

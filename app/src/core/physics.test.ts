@@ -43,7 +43,14 @@ import {
   relativeChange,
   wireArea,
   wireResistance,
+  twoSourceNode,
+  twoSourceLoop,
+  bridgeNodes,
+  bridgeCircuit,
+  bridgeCurrents,
+  bridgeMatrix,
 } from './physics'
+import { gaussSolve, relaxSweep } from './nodal'
 import { sci, si } from './units'
 
 describe('electricity', () => {
@@ -238,5 +245,53 @@ describe('units', () => {
   it('formats scientific notation', () => {
     expect(sci(6.24e18)).toBe('6.24 × 10¹⁸')
     expect(sci(2.5e-5)).toBe('2.5 × 10⁻⁵')
+  })
+})
+
+describe('kirchhoff', () => {
+  it('two sources into one node: Millman’s formula, and the currents in add to the current out', () => {
+    const s = twoSourceNode(9, 100, 5, 150, 220)
+    const g = 1 / 100 + 1 / 150 + 1 / 220
+    expect(s.node).toBeCloseTo((9 / 100 + 5 / 150) / g, 10)
+    expect(s.i1 + s.i2).toBeCloseTo(s.i3, 12)
+    expect(s.i3).toBeCloseTo(s.node / 220, 12)
+    expect(s.i2).toBeLessThan(0) // the 5 V cell is being charged
+    expect(twoSourceNode(9, 100, 12, 150, 220).i2).toBeGreaterThan(0)
+  })
+  it('every loop of the two-source circuit sums to 0 and each step is ±I × R or a cell', () => {
+    const s = twoSourceNode(9, 100, 5, 150, 220)
+    for (const loop of ['left', 'right', 'outer'] as const) expect(twoSourceLoop(s.volts, loop).reduce((a, b) => a + b, 0)).toBeCloseTo(0, 12)
+    const [cell, r1, r3] = twoSourceLoop(s.volts, 'left')
+    expect(cell).toBe(9)
+    expect(r1).toBeCloseTo(-s.i1 * 100, 12)
+    expect(r3).toBeCloseTo(-s.i3 * 220, 12)
+    expect(twoSourceLoop(s.volts, 'outer')[3]).toBe(-5)
+  })
+  it('a bridge with R₁/R₂ = R₃/R₄ is balanced; unbalanced, the bridge current flows from the higher tap', () => {
+    const balanced = bridgeNodes(9, [100, 200, 1000, 2000, 330])
+    expect(balanced.amps[4]).toBeCloseTo(0, 12)
+    expect(balanced.va).toBeCloseTo(6, 10)
+    const s = bridgeNodes(9, [100, 220, 220, 100, 330])
+    expect(s.va).toBeGreaterThan(s.vb)
+    expect(s.amps[4]).toBeGreaterThan(0)
+    expect(s.amps[0]).toBeCloseTo(s.amps[1] + s.amps[4], 12)
+    expect(s.supply).toBeCloseTo(s.amps[1] + s.amps[3], 12)
+  })
+  it('the substituted 2 × 2 system gives the same taps as the full solve', () => {
+    const r: [number, number, number, number, number] = [100, 220, 220, 470, 47]
+    const { g, i } = bridgeMatrix(9, r)
+    const [va, vb] = gaussSolve(g, i)!
+    const exact = bridgeNodes(9, r)
+    expect(va).toBeCloseTo(exact.va, 10)
+    expect(vb).toBeCloseTo(exact.vb, 10)
+  })
+  it('relaxing the bridge from 0 V reaches the exact taps', () => {
+    const r: [number, number, number, number, number] = [100, 220, 220, 100, 330]
+    const els = bridgeCircuit(9, r)
+    let v = [0, 0, 0, 0]
+    for (let k = 0; k < 40; k++) v = relaxSweep(3, els, v)
+    const exact = bridgeNodes(9, r)
+    expect(v[2]).toBeCloseTo(exact.va, 6)
+    expect(bridgeCurrents(els, v).amps[4]).toBeCloseTo(exact.amps[4], 6)
   })
 })

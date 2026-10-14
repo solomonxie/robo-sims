@@ -1,4 +1,5 @@
 // Textbook formulas behind the Learn lessons. SI units unless the name says otherwise.
+import { Element, branchCurrents, loopSteps, solveNodal } from './nodal'
 
 export const E_CHARGE = 1.602176634e-19 // C
 export const BOLTZMANN_EV = 8.617333e-5 // eV/K
@@ -180,6 +181,70 @@ export const adcCounts = (volts: number, vref: number, bits: number) => {
 /** Exact RC step: capacitor voltage after `dt` heading toward `target`. */
 export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
   target + (vc - target) * Math.exp(-dt / tauS)
+
+// --- Kirchhoff ---
+
+/** Node numbers of the two-source circuit: V₁ and V₂ each feed node N through R₁ and R₂; R₃ runs from N to ground. */
+export const TWO_SOURCE = { v1: 1, v2: 2, n: 3 }
+/** Clockwise loops from the ground rail, as node lists: left V₁·R₁·R₃, right R₃·R₂·V₂, outer V₁·R₁·R₂·V₂. */
+export const TWO_SOURCE_LOOPS = { left: [0, 1, 3], right: [0, 3, 2], outer: [0, 1, 3, 2] }
+
+/** i₁ and i₂ flow into N (negative = out, charging that source), i₃ flows out of N down R₃. */
+export function twoSourceNode(v1: number, r1: number, v2: number, r2: number, r3: number) {
+  const { v1: a, v2: b, n } = TWO_SOURCE
+  const elements: Element[] = [
+    { kind: 'V', a, b: 0, volts: v1 },
+    { kind: 'V', a: b, b: 0, volts: v2 },
+    { kind: 'R', a, b: n, ohms: r1 },
+    { kind: 'R', a: b, b: n, ohms: r2 },
+    { kind: 'R', a: n, b: 0, ohms: r3 },
+  ]
+  const { volts, amps } = solveNodal(3, elements)!
+  return { volts, node: volts[n], i1: amps[2], i2: amps[3], i3: amps[4] }
+}
+
+/** Potential changes walking one of `TWO_SOURCE_LOOPS`, one per part, summing to 0. */
+export const twoSourceLoop = (volts: number[], loop: keyof typeof TWO_SOURCE_LOOPS) => loopSteps(volts, TWO_SOURCE_LOOPS[loop])
+
+/** Bridge nodes: the supply's + (1), the two taps A (2) and B (3). */
+export const BRIDGE = { top: 1, a: 2, b: 3 }
+
+/** Two dividers on one supply (R₁ over R₂ to tap A, R₃ over R₄ to tap B) joined by R₅ from A to B. */
+export function bridgeCircuit(volts: number, r: [number, number, number, number, number]): Element[] {
+  const { top, a, b } = BRIDGE
+  return [
+    { kind: 'V', a: top, b: 0, volts },
+    { kind: 'R', a: top, b: a, ohms: r[0] },
+    { kind: 'R', a, b: 0, ohms: r[1] },
+    { kind: 'R', a: top, b, ohms: r[2] },
+    { kind: 'R', a: b, b: 0, ohms: r[3] },
+    { kind: 'R', a, b, ohms: r[4] },
+  ]
+}
+
+/** Currents through R₁..R₅ (a → b as wired) and the supply current, for given node potentials. */
+export function bridgeCurrents(elements: Element[], volts: number[]) {
+  const i = branchCurrents(elements, volts).slice(1)
+  return { amps: i, supply: i[0] + i[2] }
+}
+
+/** The taps' two KCL equations with the supply substituted in: G·[VA, VB] = I (siemens, amps). */
+export function bridgeMatrix(volts: number, [r1, r2, r3, r4, r5]: [number, number, number, number, number]) {
+  return {
+    g: [
+      [1 / r1 + 1 / r2 + 1 / r5, -1 / r5],
+      [-1 / r5, 1 / r3 + 1 / r4 + 1 / r5],
+    ],
+    i: [volts / r1, volts / r3],
+  }
+}
+
+/** Exact bridge solution: tap potentials and currents. */
+export function bridgeNodes(volts: number, r: [number, number, number, number, number]) {
+  const elements = bridgeCircuit(volts, r)
+  const s = solveNodal(3, elements)!
+  return { elements, volts: s.volts, va: s.volts[BRIDGE.a], vb: s.volts[BRIDGE.b], ...bridgeCurrents(elements, s.volts) }
+}
 
 // --- Semiconductors (silicon) ---
 

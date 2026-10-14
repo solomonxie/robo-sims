@@ -1,5 +1,6 @@
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-law'
+import { kclAtANode, kvlAroundALoop, nodalAnalysis } from '../lessons/electricity/kirchhoffs-laws'
 import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/power-energy'
 import { cellsSeriesParallel, mixedNetworks, parallelResistors, seriesResistors } from '../lessons/electricity/series-parallel'
 import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
@@ -49,6 +50,9 @@ const READY: Record<string, Lesson> = {
   'electricity/voltage-divider/the-divider-formula': dividerFormula,
   'electricity/voltage-divider/loading-a-divider': loadingDivider,
   'electricity/voltage-divider/divider-as-a-sensor-input': dividerSensor,
+  'electricity/kirchhoff-s-laws/kcl-at-a-node': kclAtANode,
+  'electricity/kirchhoff-s-laws/kvl-around-a-loop': kvlAroundALoop,
+  'electricity/kirchhoff-s-laws/nodal-analysis': nodalAnalysis,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
