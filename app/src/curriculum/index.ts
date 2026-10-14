@@ -3,6 +3,7 @@ import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-la
 import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/power-energy'
 import { cellsSeriesParallel, mixedNetworks, parallelResistors, seriesResistors } from '../lessons/electricity/series-parallel'
 import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
+import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electricity/voltage-divider'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
@@ -45,6 +46,9 @@ const READY: Record<string, Lesson> = {
   'electricity/series-parallel/parallel-resistors': parallelResistors,
   'electricity/series-parallel/cells-in-series-and-parallel': cellsSeriesParallel,
   'electricity/series-parallel/mixed-networks': mixedNetworks,
+  'electricity/voltage-divider/the-divider-formula': dividerFormula,
+  'electricity/voltage-divider/loading-a-divider': loadingDivider,
+  'electricity/voltage-divider/divider-as-a-sensor-input': dividerSensor,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

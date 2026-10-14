@@ -150,6 +150,33 @@ export function seriesWithPair(r1: number, r2: number, r3: number, volts: number
   return { pairOhms, totalOhms, amps, v1: amps * r1, pairV, amps2: pairV / r2, amps3: pairV / r3 }
 }
 
+// --- Voltage divider ---
+
+/** Unloaded divider: Vout = Vin·R₂ / (R₁ + R₂), R₂ the bottom resistor. */
+export const dividerOut = (vin: number, r1: number, r2: number) => (vin * r2) / (r1 + r2)
+
+/** Divider with `load` across R₂: the load sits in parallel with R₂ and pulls Vout down. */
+export function loadedDivider(vin: number, r1: number, r2: number, load: number) {
+  const bottomOhms = 1 / (1 / r2 + 1 / load)
+  const vout = dividerOut(vin, r1, bottomOhms)
+  const unloaded = dividerOut(vin, r1, r2)
+  return {
+    vout,
+    unloaded,
+    sag: 1 - vout / unloaded,
+    amps: (vin - vout) / r1,
+    amps2: vout / r2,
+    loadAmps: vout / load,
+    sourceOhms: 1 / (1 / r1 + 1 / r2),
+  }
+}
+
+/** Ideal ADC reading: 0 V → 0, `vref` → 2ᴺ − 1, clamped. */
+export const adcCounts = (volts: number, vref: number, bits: number) => {
+  const top = 2 ** bits - 1
+  return Math.min(top, Math.max(0, Math.round((volts / vref) * top)))
+}
+
 /** Exact RC step: capacitor voltage after `dt` heading toward `target`. */
 export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
   target + (vc - target) * Math.exp(-dt / tauS)

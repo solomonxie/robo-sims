@@ -32,6 +32,9 @@ import {
   parallelBranches,
   cellPack,
   seriesWithPair,
+  dividerOut,
+  loadedDivider,
+  adcCounts,
   RESISTIVITY,
   ROOM_C,
   TEMP_COEFF,
@@ -138,6 +141,30 @@ describe('electricity', () => {
     expect(m.totalOhms).toBeCloseTo(210)
     expect(m.v1 + m.pairV).toBeCloseTo(9)
     expect(m.amps2 + m.amps3).toBeCloseTo(m.amps)
+  })
+  it('a divider gives Vin × R₂ / (R₁ + R₂); only the ratio matters', () => {
+    expect(dividerOut(9, 10e3, 10e3)).toBeCloseTo(4.5)
+    expect(dividerOut(9, 1e3, 1e3)).toBeCloseTo(4.5)
+    expect(dividerOut(5, 1e3, 2e3)).toBeCloseTo(3.333, 3)
+    expect(dividerOut(9, 2.2e3, 1e3)).toBeCloseTo(2.8125)
+  })
+  it('a load across R₂ drags Vout down; ten times R₂ costs about 5 %', () => {
+    const d = loadedDivider(9, 10e3, 10e3, 100e3)
+    expect(d.unloaded).toBeCloseTo(4.5)
+    expect(d.vout).toBeCloseTo(4.286, 3)
+    expect(d.sag).toBeCloseTo(0.0476, 3)
+    expect(d.amps2 + d.loadAmps).toBeCloseTo(d.amps)
+    expect(d.sourceOhms).toBeCloseTo(5000)
+    expect(loadedDivider(9, 10e3, 10e3, 1e3).vout).toBeCloseTo(0.75)
+    expect(loadedDivider(9, 1e3, 1e3, 1e3).vout).toBeCloseTo(3)
+    expect(loadedDivider(9, 1e3, 1e3, 1e9).sag).toBeLessThan(1e-5)
+  })
+  it('a 12-bit ADC maps 0..Vref onto 0..4095', () => {
+    expect(adcCounts(0, 3.3, 12)).toBe(0)
+    expect(adcCounts(1.65, 3.3, 12)).toBe(2048)
+    expect(adcCounts(3.3, 3.3, 12)).toBe(4095)
+    expect(adcCounts(5, 3.3, 12)).toBe(4095)
+    expect(adcCounts(-1, 3.3, 10)).toBe(0)
   })
   it('one time constant charges to 63%', () => {
     expect(rcStep(0, 1, 2, 2)).toBeCloseTo(0.632, 3)

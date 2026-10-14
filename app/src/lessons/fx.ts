@@ -720,3 +720,41 @@ export function voltStack(parent: THREE.Object3D, count: number, perVolt: number
     },
   }
 }
+
+/** NTC thermistor laid along a → b: an epoxy bead on two leads, `scale` like `resistorAlong`.
+ *  `set(warmth 0..1)` tints it cold blue → hot orange. */
+export function thermistorAlong(parent: THREE.Object3D, a: V3, b: V3, scale = 1.6) {
+  const group = add(parent, new THREE.Group(), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
+  group.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
+  group.scale.setScalar(scale)
+  const epoxy = new THREE.MeshStandardMaterial({ color: '#2a2d35', roughness: 0.25, emissive: '#000000' })
+  add(group, mesh(new THREE.SphereGeometry(0.72, 28, 18), epoxy)).scale.set(1, 0.85, 0.85)
+  for (const s of [-1, 1]) rod(group, [s * 0.55, 0, 0], [s * 1.2, 0, 0], 0.09, STEEL())
+  const cold = new THREE.Color('#2f6bff')
+  const hot = new THREE.Color('#ff7a1e')
+  return {
+    group,
+    set(warmth: number) {
+      const f = clamp01(warmth)
+      epoxy.emissive.copy(f < 0.5 ? cold : hot)
+      epoxy.emissiveIntensity = Math.abs(f - 0.5)
+    },
+  }
+}
+
+/** Output terminal: a short post with a ball on top at the origin; `set(f)` paints the ball by `potentialColor`. */
+export function terminal(parent: THREE.Object3D, at: V3, r = 0.7) {
+  const group = add(parent, new THREE.Group(), at)
+  cylinder(group, r * 0.45, r * 1.6, STEEL(), [0, -r * 0.8, 0], 'y', 16)
+  const ball = glowMat(HIGH_V, 0.8)
+  add(group, mesh(new THREE.SphereGeometry(r, 24, 16), ball))
+  const c = new THREE.Color()
+  return {
+    group,
+    set(f: number) {
+      potentialColor(f, c)
+      ball.color.copy(c)
+      ball.emissive.copy(c)
+    },
+  }
+}
