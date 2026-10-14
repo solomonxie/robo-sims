@@ -1,12 +1,17 @@
 import {
   ALARM,
+  Bit,
   DECODER2,
+  D_FLIP_FLOP,
+  D_LATCH,
   FULL_ADDER,
   GATES,
   HALF_ADDER,
   MAJORITY,
   MUX2,
   PARITY,
+  REGISTER_BIT,
+  SR_LATCH,
   cmosNand,
   evalNet,
   fromBits,
@@ -14,6 +19,8 @@ import {
   halfAdder,
   mux,
   netDepth,
+  netRun,
+  netSettle,
   netSteps,
   netTable,
   oneHot,
@@ -81,5 +88,33 @@ describe('logic', () => {
     expect(steps.map((s) => s[3])).toEqual([1, 1, 0, 1])
     expect(steps.at(-1)).toEqual(evalNet(MUX2, { S: 0, D0: 1, D1: 1 }))
     expect(netSteps(PARITY, { A: 1, B: 0, C: 0 }, evalNet(PARITY, { A: 1, B: 0, C: 0 }))).toHaveLength(1)
+  })
+
+  it('feedback holds a bit: SR latch sets, holds, resets; S = R = 1 then release races', () => {
+    const sr = (S: Bit, R: Bit) => ({ S, R })
+    const q = netRun(SR_LATCH, [sr(1, 0), sr(0, 0), sr(0, 1), sr(0, 0)], [0, 1]).map((s) => s[0])
+    expect(q).toEqual([1, 1, 0, 0])
+    expect(evalNet(SR_LATCH, sr(0, 0), [1, 0])).toEqual([1, 0])
+    expect(evalNet(SR_LATCH, sr(0, 0), [0, 1])).toEqual([0, 1])
+    const both = netSettle(SR_LATCH, sr(1, 1), [1, 0])
+    expect(both).toEqual({ state: [0, 0], stable: true })
+    expect(netSettle(SR_LATCH, sr(0, 0), both.state).stable).toBe(false)
+  })
+
+  it('a D latch is transparent while enabled; a flip-flop samples D only on the rising clock edge', () => {
+    const lat = netRun(D_LATCH, [{ D: 1, E: 1 }, { D: 0, E: 1 }, { D: 1, E: 0 }], [0, 1, 1, 0, 1])
+    expect(lat.map((s) => s[3])).toEqual([1, 0, 0])
+    const ff = (D: Bit, CLK: Bit) => ({ D, CLK })
+    const start = netRun(D_FLIP_FLOP, [ff(0, 1), ff(0, 0)], evalNet(D_FLIP_FLOP, ff(0, 0)))[1]
+    const seq = [ff(1, 0), ff(1, 1), ff(0, 1), ff(0, 0), ff(1, 0), ff(0, 0), ff(0, 1)]
+    expect(netRun(D_FLIP_FLOP, seq, start).map((s) => s[8])).toEqual([0, 1, 1, 1, 1, 1, 0])
+    expect(netRun(D_FLIP_FLOP, seq, start).every((s) => s[8] !== s[9])).toBe(true)
+  })
+
+  it('a register bit loads on the edge only while LOAD = 1', () => {
+    const r = (D: Bit, LOAD: Bit, CLK: Bit) => ({ D, LOAD, CLK })
+    const start = netRun(REGISTER_BIT, [r(0, 1, 1), r(0, 1, 0)], evalNet(REGISTER_BIT, r(0, 1, 0)))[1]
+    const seq = [r(1, 1, 0), r(1, 1, 1), r(0, 0, 0), r(0, 0, 1), r(0, 1, 0), r(0, 1, 1)]
+    expect(netRun(REGISTER_BIT, seq, start).map((s) => s[12])).toEqual([0, 1, 1, 1, 1, 0])
   })
 })

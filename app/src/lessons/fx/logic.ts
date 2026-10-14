@@ -1,10 +1,10 @@
 // Logic-gate symbols, glowing signal paths, LED bit rows.
 import * as THREE from 'three/webgpu'
 import { GateName, Net, Src } from '../../core/logic'
-import { V3, add, lead, mat, mesh, rod } from '../../models/kit'
+import { V3, add, box, lead, mat, mesh, rod } from '../../models/kit'
 import { groundSymbol, junction, ledLamp, wire } from './circuit'
 import { GREY, LED_RED, RING, potentialColor } from './colors'
-import { pulseLabel, segmentDisplay } from './displays'
+import { pulseLabel, scope, segmentDisplay } from './displays'
 import { partLetter } from './parts'
 
 const INVERTED: GateName[] = ['NOT', 'NAND', 'NOR', 'XNOR']
@@ -132,6 +132,8 @@ export interface NetLayout {
   gates: V3[]
   /** x of the vertical bus each source fans out on (inputs by name, gates by index); default: just before the pin. */
   bus?: Record<string, number>
+  /** Corner points for gate input `"<gate>.<pin>"`, e.g. a feedback loop around the gates; a last leg drops to the pin. */
+  via?: Record<string, V3[]>
   /** LEDs fed by gate `src`, legs at `at`; cathodes share a ground rail on the right. */
   outputs: { src: number; at: V3; label: string }[]
   size?: number
@@ -154,7 +156,9 @@ export function gateNet(parent: THREE.Object3D, net: Net, layout: NetLayout) {
       const a = from(s)
       const b = j ? syms[i].pins.b : syms[i].pins.a
       const x = bus[String(s)] ?? b[0] - 0.8
-      return { gate: i, pin: j, ...glowing(route([a, [x, a[1], 0], [x, b[1], 0], b]), s) }
+      const via = layout.via?.[`${i}.${j}`]
+      const pts: V3[] = via ? [a, ...via, [via.at(-1)![0], b[1], 0], b] : [a, [x, a[1], 0], [x, b[1], 0], b]
+      return { gate: i, pin: j, ...glowing(route(pts), s) }
     }),
   )
   const forks = Object.entries(bus).flatMap(([k, x]) => {
@@ -202,6 +206,74 @@ export function gateNet(parent: THREE.Object3D, net: Net, layout: NetLayout) {
       }
       for (const b of balls) b.ball.set(ins[b.k])
       for (const f of forks) f.dot.set(level(f.src))
+    },
+  }
+}
+
+/** Logic-analyser screen: one row per signal (label left), `window` s of history scrolling in from the right.
+ *  `frame(dt, levels)` records the current levels 0..1, row order. */
+export function timingDiagram(
+  parent: THREE.Object3D,
+  at: V3,
+  rows: { label: string; color: string }[],
+  { width = 30, rowH = 2.2, window = 12, samples = 160 } = {},
+) {
+  const sc = scope(parent, width, rows.length * rowH, { divs: [12, rows.length] })
+  sc.group.position.set(...at)
+  const top = (rows.length * rowH) / 2
+  const slot = window / (samples - 1)
+  const lines = rows.map((r, k) => {
+    const mid = top - (k + 0.5) * rowH
+    partLetter(sc.group, r.label, [-width / 2 - 1.2 - 0.45 * r.label.length, mid, 0], 0.9, r.color)
+    return { trace: sc.trace(r.color, { samples, radius: 0.11 }), y: (v: number) => mid + (v - 0.5) * rowH * 0.5, hist: Array<number>(samples).fill(0) }
+  })
+  const s = { t: 0, primed: false }
+  return {
+    group: sc.group,
+    frame(dt: number, levels: number[]) {
+      if (!s.primed) lines.forEach((l, k) => l.hist.fill(levels[k]))
+      s.primed = true
+      for (s.t += dt; s.t >= slot; s.t -= slot) {
+        lines.forEach((l, k) => {
+          l.hist.shift()
+          l.hist.push(levels[k])
+        })
+      }
+      lines.forEach((l, k) => {
+        l.hist[samples - 1] = levels[k]
+        l.trace.draw((u) => l.y(l.hist[Math.round(u * (samples - 1))]), 1)
+      })
+    },
+  }
+}
+
+/** D flip-flop block facing +z: D in at top left, clock (triangle) at bottom left, optional EN under it, Q out at top
+ *  right. `set(q, clk)` lights the Q stub and the clock mark by level 0..1. */
+export function flipFlopBlock(parent: THREE.Object3D, at: V3, { w = 4.4, h = 5.6, enable = false } = {}) {
+  const g = add(parent, new THREE.Group(), at)
+  box(g, [w, h, 0.8], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.5 }), [0, 0, -0.1])
+  const pinY = { d: h / 2 - 1.2, clk: enable ? -0.4 : -h / 2 + 1.2, en: -h / 2 + 1.1 }
+  const label = (t: string, x: number, y: number) => partLetter(g, t, [x, y, 0.35], 0.8, '#d8dbe0')
+  label('d', -w / 2 + 0.8, pinY.d)
+  label('q', w / 2 - 0.8, pinY.d)
+  if (enable) label('En', -w / 2 + 1.3, pinY.en)
+  const tri = new THREE.Shape([new THREE.Vector2(0, 0.55), new THREE.Vector2(0.8, 0), new THREE.Vector2(0, -0.55)])
+  const clkMat = new THREE.MeshStandardMaterial({ color: '#d8dbe0', emissive: '#000000', roughness: 0.4 })
+  add(g, mesh(new THREE.ShapeGeometry(tri), clkMat), [-w / 2 + 0.1, pinY.clk, 0.32])
+  const stub = (x0: number, x1: number, y: number) => {
+    const m = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.7, roughness: 0.4 })
+    rod(g, [x0, y, 0], [x1, y, 0], 0.16, m)
+    return m
+  }
+  const qMat = stub(w / 2, w / 2 + 0.9, pinY.d)
+  ;[pinY.d, pinY.clk, ...(enable ? [pinY.en] : [])].forEach((y) => stub(-w / 2 - 0.9, -w / 2, y))
+  const local = (x: number, y: number): V3 => [at[0] + x, at[1] + y, at[2]]
+  return {
+    group: g,
+    pins: { d: local(-w / 2 - 0.9, pinY.d), clk: local(-w / 2 - 0.9, pinY.clk), en: local(-w / 2 - 0.9, pinY.en), q: local(w / 2 + 0.9, pinY.d) },
+    set(q: number, clk: number) {
+      qMat.emissive.copy(potentialColor(q, qMat.color))
+      potentialColor(clk, clkMat.emissive).multiplyScalar(0.6)
     },
   }
 }

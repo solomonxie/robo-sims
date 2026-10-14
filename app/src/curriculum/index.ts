@@ -32,6 +32,7 @@ import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/se
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { binaryCounting, hexShorthand, twosComplement } from '../lessons/digital/binary-hex'
 import { decoder, halfAndFullAdder, multiplexer, tableToCircuit } from '../lessons/digital/combinational-logic'
+import { dFlipFlop, registers, srLatch } from '../lessons/digital/flip-flops-latches'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -160,6 +161,9 @@ const READY: Record<string, Lesson> = {
   'digital/combinational-logic/multiplexer': multiplexer,
   'digital/combinational-logic/decoder': decoder,
   'digital/combinational-logic/half-and-full-adder': halfAndFullAdder,
+  'digital/flip-flops-latches/sr-latch': srLatch,
+  'digital/flip-flops-latches/d-flip-flop': dFlipFlop,
+  'digital/flip-flops-latches/registers': registers,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,

@@ -79,10 +79,19 @@ const fire = (g: Net[number], ins: Inputs, vals: Bit[]) => {
   return GATES[g.gate].fn(at(g.in[0]), at(g.in.at(-1)!))
 }
 
-/** Settled output of every gate; gates are listed so each reads only inputs and earlier gates. */
-export function evalNet(net: Net, ins: Inputs): Bit[] {
-  const vals: Bit[] = []
-  net.forEach((g, i) => (vals[i] = fire(g, ins, vals)))
+/** Settled output of every gate, swept in list order. Without feedback one sweep is exact; a gate reading a later one
+ *  sees its value in `from` (the held state, default all 0) and sweeps repeat until nothing changes. */
+export function evalNet(net: Net, ins: Inputs, from: Bit[] = []): Bit[] {
+  const vals = net.map((_, i) => from[i] ?? 0)
+  for (let k = 0; k <= net.length; k++) {
+    let changed = false
+    net.forEach((g, i) => {
+      const v = fire(g, ins, vals)
+      changed ||= v !== vals[i]
+      vals[i] = v
+    })
+    if (!changed) break
+  }
   return vals
 }
 
@@ -92,12 +101,24 @@ export function netSteps(net: Net, ins: Inputs, start: Bit[]): Bit[][] {
   const states = [start]
   for (let k = 0; k <= net.length; k++) {
     const prev = states[k]
-    const next = net.map((g) => fire(g, ins, prev))
+    const next = netStep(net, ins, prev)
     if (next.every((v, i) => v === prev[i])) break
     states.push(next)
   }
   return states
 }
+
+/** One gate delay: every gate reads the previous outputs, so a gate may read a later one (feedback, i.e. memory). */
+export const netStep = (net: Net, ins: Inputs, prev: Bit[]): Bit[] => net.map((g) => fire(g, ins, prev))
+
+/** Where a net with feedback comes to rest from state `from`; `stable` is false if it keeps oscillating. */
+export function netSettle(net: Net, ins: Inputs, from: Bit[]) {
+  const state = netSteps(net, ins, from).at(-1)!
+  return { state, stable: netStep(net, ins, state).every((v, i) => v === state[i]) }
+}
+
+/** Settles after each input vector in turn, carrying the state: how a sequential circuit runs. */
+export const netRun = (net: Net, seq: Inputs[], from: Bit[]) => seq.map((ins) => (from = netSettle(net, ins, from).state))
 
 /** Gates on the longest input-to-output path: the worst-case delay in gate delays. */
 export function netDepth(net: Net) {
@@ -165,4 +186,39 @@ export const FULL_ADDER: Net = [
   { gate: 'AND', in: ['A', 'B'] },
   { gate: 'AND', in: [0, 'C'] },
   { gate: 'OR', in: [2, 3] },
+]
+
+/** SR latch from two cross-coupled NORs: gate 0 = Q, 1 = Q̄. S = 1 sets, R = 1 resets, both 0 hold. */
+export const SR_LATCH: Net = [
+  { gate: 'NOR', in: ['R', 1] },
+  { gate: 'NOR', in: [0, 'S'] },
+]
+/** Gated D latch: Q (gate 3) follows D while E = 1 and holds when E = 0; gate 4 = Q̄. */
+export const D_LATCH: Net = [
+  { gate: 'NOT', in: ['D'] },
+  { gate: 'NAND', in: ['D', 'E'] },
+  { gate: 'NAND', in: [0, 'E'] },
+  { gate: 'NAND', in: [1, 4] },
+  { gate: 'NAND', in: [3, 2] },
+]
+/** Rising-edge D flip-flop: a master D latch open while CLK = 0 feeds a slave open while CLK = 1. Q = gate 8, Q̄ = 9. */
+export const D_FLIP_FLOP: Net = [
+  { gate: 'NOT', in: ['CLK'] },
+  { gate: 'NOT', in: ['D'] },
+  { gate: 'NAND', in: ['D', 0] },
+  { gate: 'NAND', in: [1, 0] },
+  { gate: 'NAND', in: [2, 5] },
+  { gate: 'NAND', in: [4, 3] },
+  { gate: 'NAND', in: [4, 'CLK'] },
+  { gate: 'NAND', in: [5, 'CLK'] },
+  { gate: 'NAND', in: [6, 9] },
+  { gate: 'NAND', in: [8, 7] },
+]
+/** One register bit: a mux feeds D (LOAD = 1) or Q back (LOAD = 0) into a D flip-flop. Q = gate 12. */
+export const REGISTER_BIT: Net = [
+  { gate: 'NOT', in: ['LOAD'] },
+  { gate: 'AND', in: ['D', 'LOAD'] },
+  { gate: 'AND', in: [12, 0] },
+  { gate: 'OR', in: [1, 2] },
+  ...D_FLIP_FLOP.map((g) => ({ ...g, in: g.in.map((s) => (typeof s === 'number' ? s + 4 : s === 'D' ? 3 : s)) })),
 ]
