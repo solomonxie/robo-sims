@@ -22,6 +22,7 @@ import {
   potentialColor,
   probe,
   resistorAlong,
+  partLetter,
   segmentDisplay,
   voltScale,
   wire,
@@ -166,12 +167,10 @@ export const groundAndReference: Lesson = {
     ]
     const labels = nodes.map(({ at, label }, i) => {
       add(circuit, mesh(new THREE.SphereGeometry(0.5, 20, 14), mat(potentialColor(potentials[i] / SUPPLY).getStyle(), { rough: 0.3 })), at)
-      const name = segmentDisplay(1, 1.3, '#e8e8e8', true)
-      name.set(NODE_NAMES[i])
-      name.group.position.set(label[0] - 1.8, label[1], label[2])
+      partLetter(circuit, NODE_NAMES[i], [label[0] - 1.8, label[1], label[2]], 1.3, '#e8e8e8')
       const value = segmentDisplay(2, 1.3, RING, true)
       value.group.position.set(...label)
-      circuit.add(name.group, value.group)
+      circuit.add(value.group)
       return value
     })
     const earth = groundSymbol()

@@ -76,9 +76,9 @@ function readLed(parent: THREE.Object3D, from: V3, at: V3) {
 // --- Logic thresholds: the ESP32's HIGH against a 5 V receiver's VIH / VIL bands. ---
 
 const RECEIVERS = {
-  atmega328: { tag: 'Uno', vcc: 5 },
-  ws2812: { tag: 'LEd', vcc: 5 },
-  hct: { tag: 'HCt', vcc: 5 },
+  atmega328: { tag: 'ATmega328', vcc: 5 },
+  ws2812: { tag: 'WS2812B', vcc: 5 },
+  hct: { tag: '74HCT', vcc: 5 },
 } as const
 type Receiver = keyof typeof RECEIVERS
 const LT = { ladderX: -1, base: -5, perV: 1.8, wireY: 7, rx: 12, rxY: 2, half: 1.2, w: 6, h: 8 }
@@ -118,7 +118,7 @@ export const logicThresholds: Lesson = {
   legend: [
     { color: RING, label: 'ESP32 pin toggles into a 5 V chip', shape: 'dot' },
     { color: GREY, label: 'Bands: LOW · ? (undefined) · HIGH', shape: 'dot' },
-    { color: LED_RED, label: 'LED / scope rd = what the chip reads', shape: 'dot' },
+    { color: LED_RED, label: 'LED / scope READ = what the chip reads', shape: 'dot' },
   ],
   points: [
     'A digital input does not see 0 and 1, it sees a voltage. Below VIL it is a guaranteed LOW, above VIH a guaranteed HIGH. In between the datasheet promises nothing: it may read either way, flicker, or burn extra current.',
@@ -156,8 +156,8 @@ export const logicThresholds: Lesson = {
     const tag = segmentDisplay(4, 1.3, RING, true)
     add(scene, tag.group, [LT.ladderX + 6, LT.base, 0.4])
     const scope = timingDiagram(scene, [0, -12.8, 0], [
-      { label: 'P', color: PIN_COLOR },
-      { label: 'rd', color: READ_COLOR },
+      { label: 'PIN', color: PIN_COLOR },
+      { label: 'READ', color: READ_COLOR },
     ], { width: 44, rowH: 2.6 })
     const s = { key: '', t: 0, v: 0, read: 0, flick: 0, r: 0 as number }
     return {
@@ -226,7 +226,7 @@ export const dividerShifter: Lesson = {
   legend: [
     { color: RING, label: 'HC-SR04 echo (5 V) → ESP32 pin', shape: 'dot' },
     WIRES,
-    { color: PIN_COLOR, label: 'Scope: E echo, P pin, rd = ESP32 reads', shape: 'arrow-right' },
+    { color: PIN_COLOR, label: 'Scope: ECHO, PIN, READ = what the ESP32 reads', shape: 'arrow-right' },
   ],
   points: [
     'An HC-SR04 runs on 5 V, so its echo pulse is 5 V high. Wired straight to an ESP32 (absolute max 3.6 V) it pushes current through the pin’s protection diode every ping, and the pin slowly dies.',
@@ -253,9 +253,9 @@ export const dividerShifter: Lesson = {
     const holder = add(scene, new THREE.Group())
     const sensor = add(scene, buildHcSr04(), [DV.sx, 0.5, 0])
     sensor.scale.setScalar(DV.ss)
-    partLetter(scene, 'HC-Sr04', [DV.sx, 8.4, 0], 1, LABEL)
+    partLetter(scene, 'HC-SR04', [DV.sx, 8.4, 0], 1, LABEL)
     const echo: V3 = [DV.sx + 0.5 * DV.ss, 0.5 - 1.5 * DV.ss, 0]
-    partLetter(scene, 'E', [echo[0] + 1.4, echo[1] - 0.6, 0.6], 0.7, RING)
+    partLetter(scene, 'ECHO', [echo[0] + 0.6, echo[1] - 0.6, 0.6], 0.7, RING, 'left')
     const pin = esp32Board(scene, [DV.board, DV.y - 5 * DV.bs, 0], DV.bs)
     partLetter(scene, 'ESP32', [DV.board + 2.4, DV.y + 1.8, 0], 1, LABEL)
     const io = pin(-6)
@@ -272,9 +272,9 @@ export const dividerShifter: Lesson = {
     const tag = segmentDisplay(4, 1.4, RING, true)
     add(scene, tag.group, [DV.node + 4.2, DV.y + 2.2, 0.4])
     const scope = timingDiagram(scene, [-1, -15.4, 0], [
-      { label: 'E', color: RING },
-      { label: 'P', color: PIN_COLOR },
-      { label: 'rd', color: READ_COLOR },
+      { label: 'ECHO', color: RING },
+      { label: 'PIN', color: PIN_COLOR },
+      { label: 'READ', color: READ_COLOR },
     ], { width: 44, rowH: 2.2, samples: 240 })
     const s = { key: '', t: 0, vin: 0, vpin: 0, r: 0, ratio: 0, tau: 0 }
     return {
@@ -288,8 +288,8 @@ export const dividerShifter: Lesson = {
           emptyGroup(holder)
           resistorAlong(holder, r1, [DV.r1[0], DV.y, 0], [DV.r1[1], DV.y, 0], 1.6)
           resistorAlong(holder, r2, [DV.node, DV.r2[0], 0], [DV.node, DV.r2[1], 0], 1.6)
-          partLetter(holder, 'r1', [r1Mid, DV.y + 1.8, 0], 0.9, LABEL)
-          partLetter(holder, 'r2', [DV.node - 2.2, r2Mid, 0], 0.9, LABEL)
+          partLetter(holder, 'R1', [r1Mid, DV.y + 1.8, 0], 0.9, LABEL)
+          partLetter(holder, 'R2', [DV.node - 2.2, r2Mid, 0], 0.9, LABEL)
           const d = dividerShift(5, r1, r2, C_PIN)
           Object.assign(s, { key, t: 0, ratio: d.vout / 5, tau: p.sig === 'uart' ? d.tau * UART_SCALE : 1e-3 })
         }
@@ -404,7 +404,7 @@ export const bidirectionalShifter: Lesson = {
     partLetter(scene, 'ESP32', [-19, BD.sdaL - 1.4, 0], 0.9, LABEL)
     const sensor = add(scene, icPackage(4.4, 6, 3), [BD.sx, BD.sdaH - 2, 0])
     sensor.castShadow = true
-    partLetter(scene, 'SEnSor', [BD.sx, BD.sdaH - 6.2, 0], 0.9, LABEL)
+    partLetter(scene, 'Sensor', [BD.sx, BD.sdaH - 6.2, 0], 0.9, LABEL)
     const fet = fetPart(scene, [BD.fx, 0, 0], 'TO-92', { scale: 2 })
     const { d, g, s: src } = fet.pins
     const sdaPin = pin(6, false)
@@ -422,8 +422,8 @@ export const bidirectionalShifter: Lesson = {
     const rl = pull(BD.rlX, BD.lvY, BD.sdaL)
     const rh = pull(BD.rhX, BD.hvY, BD.sdaH)
     rh[0](1)
-    partLetter(scene, '10', [BD.rlX + 1.8, (BD.lvY + BD.sdaL) / 2, 0], 0.7, GREY)
-    partLetter(scene, '10', [BD.rhX + 1.8, (BD.hvY + BD.sdaH) / 2, 0], 0.7, GREY)
+    partLetter(scene, '10k', [BD.rlX + 1.8, (BD.lvY + BD.sdaL) / 2, 0], 0.7, GREY)
+    partLetter(scene, '10k', [BD.rhX + 1.8, (BD.hvY + BD.sdaH) / 2, 0], 0.7, GREY)
     const dots = [junction(scene, [BD.rlX, BD.lvY, 0], 0.4), junction(scene, [BD.rlX, BD.sdaL, 0], 0.4), junction(scene, [BD.rhX, BD.sdaH, 0], 0.4)]
     junction(scene, [BD.rhX, BD.hvY, 0], 0.4).set(1)
     const button = (x: number, y: number) => {
@@ -439,9 +439,9 @@ export const bidirectionalShifter: Lesson = {
     signalWire(scene, [[BD.dX, src[1], 0], [BD.dX, src[1], diodeZ]])
     signalWire(scene, [[BD.dX, d[1], 0], [BD.dX, d[1], diodeZ]])
     const body = diodeAlong(scene, [BD.dX, src[1], diodeZ], [BD.dX, d[1], diodeZ], { scale: 1.5, glass: true })
-    partLetter(scene, 'SdA', [BD.btnL - 3.4, BD.sdaL + 1, 0], 0.75, RING)
-    partLetter(scene, 'SdA', [BD.btnH + 3, BD.sdaH + 1, 0], 0.75, RING)
-    partLetter(scene, '5.0', [BD.sx - 3, BD.hvY + 1.1, 0], 0.8, HIGH_V)
+    partLetter(scene, 'SDA', [BD.btnL + 1.7, BD.sdaL + 1, 0], 0.75, RING)
+    partLetter(scene, 'SDA', [BD.btnH + 2.5, BD.sdaH + 1, 0], 0.75, RING)
+    partLetter(scene, '5 V', [BD.sx - 3, BD.hvY + 1.1, 0], 0.8, HIGH_V)
     const tags = [segmentDisplay(4, 1.2, PIN_COLOR, true), segmentDisplay(4, 1.2, RING, true)]
     add(scene, tags[0].group, [BD.rlX + 3.4, BD.sdaL - 1.6, 0.4])
     add(scene, tags[1].group, [BD.rhX - 3.6, BD.sdaH + 1.4, 0.4])
@@ -458,7 +458,7 @@ export const bidirectionalShifter: Lesson = {
         const key = `${p.lv}|${p.fet}`
         if (key !== s.key) {
           emptyGroup(holder)
-          partLetter(holder, `${p.lv}`, [-14, BD.lvY + 1.1, 0], 0.8, HIGH_V)
+          partLetter(holder, `${p.lv} V`, [-14, BD.lvY + 1.1, 0], 0.8, HIGH_V)
           s.sol = PHASES.map((ph) => solve(p, ph.lo, ph.hi))
           Object.assign(s, { key, t: 0, vl: lv, vh: 5 })
         }

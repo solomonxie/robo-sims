@@ -48,7 +48,7 @@ const D_COLOR = '#b48cff'
 const glide = (dt: number, from: number, to: number) => from + (to - from) * ease(dt, 14)
 
 const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1.1 - 0.5 * label.length, at[1], 0], 0.9, RING)
+  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
   return junction(parent, at, 0.55)
 }
 
@@ -129,12 +129,12 @@ function pdCircuit(parent: THREE.Object3D, stages: number) {
   const ends: V3[] = [[loop.qx, PD_Y, 0], ...gates.map((g) => g.pins.out)]
   const sinks: V3[] = [...gates.map((g) => g.pins.a), capture.pins.d]
   const nodes = ends.map((e, k) => signalWire(parent, [e, sinks[k]]))
-  const clkBall = inBall(parent, 'C', [-27.5, PD_BUS, 0])
+  const clkBall = inBall(parent, 'CLK', [-27.5, PD_BUS, 0])
   const bus = signalWire(parent, [[-27.5, PD_BUS, 0], [CX - 4, PD_BUS, 0]])
   const drops = [LX, CX].map((x, i) => signalWire(parent, [[x - 4, PD_BUS, 0], [x - 4, -1.6, 0], (i ? capture : launch).pins.clk]))
   const tap = junction(parent, [LX - 4, PD_BUS, 0], 0.4)
-  const led = ledOut(parent, capture.pins.q, [CX + 5.2, PD_Y, 0], 'q2')
-  partLetter(parent, 'q1', [loop.qx + 0.6, 7.6, 0], 0.9, RING)
+  const led = ledOut(parent, capture.pins.q, [CX + 5.2, PD_Y, 0], 'Q2')
+  partLetter(parent, 'Q1', [loop.qx + 0.6, 7.6, 0], 0.9, RING)
   const verdict = verdictLamp(parent, [CX, 5.2, 0])
   return {
     verdict,
@@ -166,7 +166,7 @@ export const propagationDelay: Lesson = {
     return `f_max = 1 / (t_clk→Q + N · t_pd + t_su) = 1 / (14 + ${path.stages} × 8 + 10 ns) = ${si(maxClock(HC.tcq, path.stages * HC.tpd, HC.tsu), 'Hz')}`
   },
   legend: [
-    { color: RING, label: `C = clock; inverters ${ns(HC.tpd)} each`, shape: 'dot' },
+    { color: RING, label: `CLK = clock; inverters ${ns(HC.tpd)} each`, shape: 'dot' },
     WIRES,
     { color: POWER, label: 'Ball: green = caught, red = missed', shape: 'dot' },
   ],
@@ -185,10 +185,10 @@ export const propagationDelay: Lesson = {
     const scene = createStage({ span: 40 })
     const holder = add(scene, new THREE.Group())
     const scope = timingDiagram(scene, [0, -15, 0], [
-      { label: 'C', color: CLK_COLOR },
-      { label: 'q1', color: D_COLOR },
+      { label: 'CLK', color: CLK_COLOR },
+      { label: 'Q1', color: D_COLOR },
       { label: 'd2', color: RING },
-      { label: 'q2', color: LED_RED },
+      { label: 'Q2', color: LED_RED },
     ], { width: 44, rowH: 3 })
     const s = { key: '', t: 0, m: -1, lv: [] as number[], clk: 0, cap: 0, ui: null as ReturnType<typeof pdCircuit> | null }
     return {
@@ -258,7 +258,7 @@ function hill(parent: THREE.Object3D) {
   const ball = add(parent, new THREE.Mesh(new THREE.SphereGeometry(HILL.r, 28, 18), ballMat), [HILL.x, HILL.y, 0])
   partLetter(parent, '0', [HILL.x - HILL.a, HILL.y - 1.6, 0], 1.1, LABEL)
   partLetter(parent, '1', [HILL.x + HILL.a, HILL.y - 1.6, 0], 1.1, LABEL)
-  partLetter(parent, 'q1', [HILL.x, HILL.y + HILL.h + 2.4, 0], 0.9, RING)
+  partLetter(parent, 'Q1', [HILL.x, HILL.y + HILL.h + 2.4, 0], 0.9, RING)
   return (level: number) => {
     const u = 2 * level - 1
     const slope = (-4 * HILL.h * u * (1 - u * u)) / HILL.a
@@ -273,7 +273,7 @@ function syncCircuit(parent: THREE.Object3D, two: boolean) {
   const ffs = (two ? [-14, -2] : [-14]).map((x) => flipFlopBlock(parent, [x, 3, 0]))
   const dBall = inBall(parent, 'D', [-26, 4.6, 0])
   const dWire = signalWire(parent, [[-26, 4.6, 0], ffs[0].pins.d])
-  const cBall = inBall(parent, 'C', [-26, -1, 0])
+  const cBall = inBall(parent, 'CLK', [-26, -1, 0])
   const last = ffs.at(-1)!
   const bus = signalWire(parent, [[-26, -1, 0], [last.pins.clk[0] - 1.4, -1, 0]])
   const drops = ffs.map((b) => signalWire(parent, [[b.pins.clk[0] - 1.4, -1, 0], [b.pins.clk[0] - 1.4, b.pins.clk[1], 0], b.pins.clk]))
@@ -282,7 +282,7 @@ function syncCircuit(parent: THREE.Object3D, two: boolean) {
   const lampAt: V3 = [7, 4.6, 0]
   const out = signalWire(parent, [last.pins.q, [lampAt[0] - 0.9, 4.6, 0]])
   const verdict = verdictLamp(parent, lampAt)
-  ffs.forEach((_, i) => partLetter(parent, `q${i + 1}`, [ffs[i].pins.q[0] + 0.4, 6.6, 0], 0.9, RING))
+  ffs.forEach((_, i) => partLetter(parent, `Q${i + 1}`, [ffs[i].pins.q[0] + 0.4, 6.6, 0], 0.9, RING))
   return {
     verdict,
     set(dt: number, d: number, c: number, qs: number[]) {
@@ -305,10 +305,10 @@ export const metastability: Lesson = {
   title: 'Metastability',
   tagline: 'A ball balanced on a hill',
   formula: (p) =>
-    `q1 = ½ + Δv₀ · e^(t/τ) · τ = ${TAU_PS} ps · resolve time = τ · ln(½ / Δv₀) · MTBF = e^(t_r/τ) / (T₀ · f_clk · f_data)` +
+    `Q1 = ½ + Δv₀ · e^(t/τ) · τ = ${TAU_PS} ps · resolve time = τ · ln(½ / Δv₀) · MTBF = e^(t_r/τ) / (T₀ · f_clk · f_data)` +
     (p.sync === '2' ? ' · second flip-flop adds a whole clock period' : ''),
   legend: [
-    { color: RING, label: 'D = async input, C = 1 GHz clock', shape: 'dot' },
+    { color: RING, label: 'D = async input, CLK = 1 GHz clock', shape: 'dot' },
     WIRES,
     { color: POWER, label: `Lamp: read ${READ_PS} ps after the edge; red = undecided`, shape: 'dot' },
   ],
@@ -316,7 +316,7 @@ export const metastability: Lesson = {
     'Inside a flip-flop is a latch: two inverters in a loop. It has two stable states, like a ball resting in one of two valleys, and one unstable balance point between them, the hilltop.',
     'If D changes well before the clock edge, the latch is pushed hard into the new valley; well after, it stays in the old one. Change D inside the tiny setup/hold window and the latch is left almost on the hilltop.',
     `From there the loop’s gain pulls it off as e^(t/τ), τ ≈ ${TAU_PS} ps here. The closer to balance, the longer it hovers: each 10× smaller push adds τ · ln 10 ≈ ${Math.round(TAU_PS * Math.log(10))} ps. Exactly on the edge only noise decides, and which way it falls is random.`,
-    'Buttons, sensors and other chips’ signals are asynchronous: sooner or later one lands on the edge. If logic reads q1 while it is still in between, different gates can see different values.',
+    'Buttons, sensors and other chips’ signals are asynchronous: sooner or later one lands on the edge. If logic reads Q1 while it is still in between, different gates can see different values.',
     `The cure is a synchroniser: a second flip-flop that waits one more clock before anyone reads it. That extra ${T_PS} ps of resolve time multiplies the mean time between failures by e^(${T_PS}/${TAU_PS}). 1 ps is shown as ${PS_S} s.`,
   ],
   controls: [
@@ -358,10 +358,10 @@ export const metastability: Lesson = {
           emptyGroup(holder)
           s.ui = syncCircuit(holder, two)
           s.scope = timingDiagram(holder, [-2, -12.4, 0], [
-            { label: 'C', color: CLK_COLOR },
+            { label: 'CLK', color: CLK_COLOR },
             { label: 'D', color: D_COLOR },
-            { label: 'q1', color: LED_RED },
-            ...(two ? [{ label: 'q2', color: LED_RED }] : []),
+            { label: 'Q1', color: LED_RED },
+            ...(two ? [{ label: 'Q2', color: LED_RED }] : []),
           ], { width: 44, rowH: 2.2 })
           Object.assign(s, { key, t: 0, k: -1, read: Infinity, q: [{ ...latch }, { ...latch }], lv: [0, 0, 0, 0] })
         }
@@ -426,16 +426,16 @@ export const clockDividers: Lesson = {
     return `f_out = f_in / N = ${si(src.hz, 'Hz')} / ${N} = ${si(src.hz / N, 'Hz')} · counter 0…${N / 2 - 1}, output toggles as it wraps`
   },
   legend: [
-    { color: RING, label: 'C = crystal clock; tc = 1 at count N/2 − 1', shape: 'dot' },
+    { color: RING, label: 'CLK = crystal clock; TC = 1 at count N/2 − 1', shape: 'dot' },
     WIRES,
-    { color: GREY, label: 'Scope: C, tc and the divided output', shape: 'arrow-right' },
+    { color: GREY, label: 'Scope: CLK, TC and the divided output', shape: 'arrow-right' },
   ],
   points: [
     'A crystal gives one very accurate, very fast frequency. Everything slower, from a UART baud rate to a 1 Hz seconds tick or a servo’s 50 Hz, is made by counting its edges.',
     'A toggle flip-flop alone divides by 2: it flips on every rising edge, so two input periods make one output period. Chain n of them and you divide by 2ⁿ.',
-    'For any even N, a counter runs 0, 1 … N/2 − 1 and wraps. On the edge where it wraps (tc = 1 enables it) the output flip-flop toggles. Half the output period is N/2 input periods, so the output is f / N at a clean 50 % duty.',
+    'For any even N, a counter runs 0, 1 … N/2 − 1 and wraps. On the edge where it wraps (TC = 1 enables it) the output flip-flop toggles. Half the output period is N/2 input periods, so the output is f / N at a clean 50 % duty.',
     'That is why watch crystals run at 32 768 Hz: it is 2¹⁵, so fifteen toggle stages make exactly 1 Hz. A 16 MHz Arduino needs a 24-bit counter to reach 1 Hz; its timers use a prescaler plus a compare value instead.',
-    `Everything changes on the same clock edge, so the divided clocks stay lined up with C. The crystal clock is shown as one period per ${CLK_P} s.`,
+    `Everything changes on the same clock edge, so the divided clocks stay lined up with CLK. The crystal clock is shown as one period per ${CLK_P} s.`,
   ],
   controls: [
     {
@@ -455,7 +455,7 @@ export const clockDividers: Lesson = {
     const [l0, l1] = xt.legs
     add(scene, groundSymbol(), l0).scale.setScalar(0.5)
     const clkBall = junction(scene, [l1[0] + 4, DV_BUS, 0], 0.55)
-    partLetter(scene, 'C', [l1[0] + 4, DV_BUS + 1.6, 0], 0.9, RING)
+    partLetter(scene, 'CLK', [l1[0] + 4, DV_BUS + 1.6, 0], 0.9, RING)
     const xtWire = signalWire(scene, [l1, [l1[0], DV_BUS, 0], [l1[0] + 4, DV_BUS, 0]])
     const cnt = add(scene, new THREE.Mesh(new THREE.BoxGeometry(8, 6, 0.8), new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.5 })), [CNT_X, 1, -0.1])
     cnt.castShadow = true
@@ -471,11 +471,11 @@ export const clockDividers: Lesson = {
     ]
     const tap = junction(scene, [CNT_X - 5.4, DV_BUS, 0], 0.4)
     const tcWire = signalWire(scene, [[CNT_X + 4, ff.pins.en[1], 0], ff.pins.en])
-    partLetter(scene, 'tc', [CNT_X + 5.4, ff.pins.en[1] + 0.8, 0], 0.8, RING)
+    partLetter(scene, 'TC', [CNT_X + 5.4, ff.pins.en[1] + 0.8, 0], 0.8, RING)
     const led = ledOut(scene, [loop.qx, ff.pins.q[1], 0], [FF_X + 7.6, ff.pins.q[1], 0], 'out')
     const scope = timingDiagram(scene, [-6, -14.4, 0], [
-      { label: 'C', color: CLK_COLOR },
-      { label: 'tc', color: RING },
+      { label: 'CLK', color: CLK_COLOR },
+      { label: 'TC', color: RING },
       { label: 'out', color: LED_RED },
     ], { width: 44, rowH: 2.4, window: 24, samples: 320 })
     const s = { key: '', t: 0, c: 0, tc: 0, out: 0 }

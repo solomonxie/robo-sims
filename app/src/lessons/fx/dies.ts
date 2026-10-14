@@ -41,9 +41,9 @@ export function bjtDie(parent: THREE.Object3D, at: V3, { width = 12, height = 3.
   box(group, [bW * 0.9, 0.5, depth * 0.8], metal, [xb + bW / 2, height / 2 + 0.25, 0])
   const front = depth / 2 + 0.06
   const lh = height * 0.22
-  partLetter(group, 'n', [x0 + eW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'N', [x0 + eW / 2, -height / 2 + lh * 0.9, front], lh)
   partLetter(group, 'P', [xb + bW / 2, -height / 2 + lh * 0.9, front], lh)
-  partLetter(group, 'n', [xc + cW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'N', [xc + cW / 2, -height / 2 + lh * 0.9, front], lh)
   partLetter(group, 'E', [x0 - 1.2, 0, 0], 0.9)
   partLetter(group, 'C', [width / 2 + 1.2, 0, 0], 0.9)
   partLetter(group, 'B', [xb + bW / 2 + 1, height / 2 + 0.9, 0], 0.9)
@@ -195,7 +195,7 @@ export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 
   for (const x of [xs, xd]) box(group, [wellW * 0.6, 0.6, THICK * 0.7], metal, [x, 0.3, 0])
   const letter = (text: string, x: number, y: number) => partLetter(group, text, [x, y, THICK / 2 + 0.05], 0.9)
   letter('S', xs, -depth - 1)
-  letter('d', xd, -depth - 1)
+  letter('D', xd, -depth - 1)
   if (gateLetter) letter(gateLetter, 1.1, OXIDE + GATE_H + 0.9)
 
   const zone = box(group, [length, 1, 0.05], new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, depthWrite: false }), [0, 0, THICK / 2 + 0.05])

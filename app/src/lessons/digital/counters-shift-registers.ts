@@ -15,7 +15,7 @@ const rowXs = (k: number, sp = SP) => Array.from({ length: k }, (_, i) => (i - (
 const ease1 = (dt: number, from: number[], to: number[]) => from.map((l, i) => l + (to[i] - l) * ease(dt, 14))
 
 const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1.1 - 0.5 * label.length, at[1], 0], 0.9, RING)
+  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
   return junction(parent, at, 0.55)
 }
 
@@ -83,16 +83,16 @@ export const rippleCounter: Lesson = {
   tagline: 'Flip-flops that count in binary',
   formula: (p) =>
     p.speed === 'slow'
-      ? `D = Q̄, so each edge flips Q · q0 flips on C, each q flips when the one before falls 1 → 0, one ${TPD_NS} ns delay later`
-      : `count ← count + 1 on each rising edge of C · 4 bits: 0 … 15, then back to 0`,
+      ? `D = Q̄, so each edge flips Q · Q0 flips on CLK, each Q flips when the one before falls 1 → 0, one ${TPD_NS} ns delay later`
+      : `count ← count + 1 on each rising edge of CLK · 4 bits: 0 … 15, then back to 0`,
   legend: [
-    { color: RING, label: 'C = clock; q0 (1s) on the left … q3 (8s)', shape: 'dot' },
+    { color: RING, label: 'CLK = clock; Q0 (1s) on the left … Q3 (8s)', shape: 'dot' },
     WIRES,
-    { color: GREY, label: 'Scope: C and the four Q bits', shape: 'arrow-right' },
+    { color: GREY, label: 'Scope: CLK and the four Q bits', shape: 'arrow-right' },
   ],
   points: [
     'Wire a D flip-flop’s Q̄ back to its own D and every rising clock edge flips Q: 0, 1, 0, 1. Q runs at half the clock frequency, so one flip-flop divides by two.',
-    'Clock the next flip-flop from that Q̄. It flips each time Q falls 1 → 0, which is every second edge. Chain four and q0…q3 read the number of edges in binary, 0 to 15, then wrap to 0.',
+    'Clock the next flip-flop from that Q̄. It flips each time Q falls 1 → 0, which is every second edge. Chain four and Q0…Q3 read the number of edges in binary, 0 to 15, then wrap to 0.',
     'Each stage waits for the one before, so after an edge the change ripples down the chain one flip-flop delay at a time. Pick Slow motion: going 7 → 8 the outputs briefly read 6, 4 and 0.',
     'Fine for an LED or a frequency divider; wrong for logic that reads the count at once. A synchronous counter clocks every flip-flop together and uses an adder to work out the next value (Registers).',
     `A 74HC74 flip-flop takes about ${TPD_NS} ns; Slow motion shows it as ${RC_DELAY.slow} s, Real speed as ${RC_DELAY.real} s. The ${RC_CLK} s clock stands in for a few MHz.`,
@@ -133,17 +133,17 @@ export const rippleCounter: Lesson = {
       const lamp = ledLamp(scene, LED_RED, ledAt, { scale: 0.7, anodeRight: false })
       signalWire(scene, [[ledAt[0] + 0.35, ledAt[1], 0], [ledAt[0] + 0.35, -2.6, 0]])(0)
       add(scene, groundSymbol(), [ledAt[0] + 0.35, -2.6, 0]).scale.setScalar(0.5)
-      partLetter(scene, `q${i}`, [ledAt[0] + 0.2, NOT_Y + 0.4, 0], 0.9, RING)
+      partLetter(scene, `Q${i}`, [ledAt[0] + 0.2, NOT_Y + 0.4, 0], 0.9, RING)
       return { b, g, qWire, nqWire, carry, ledWire, lamp }
     })
     const inX = xs[0] - 7.5
-    const clkBall = inBall(scene, 'C', [inX, -1.6, 0])
+    const clkBall = inBall(scene, 'CLK', [inX, -1.6, 0])
     const clkWire = signalWire(scene, [[inX, -1.6, 0], stages[0].b.pins.clk])
     const count = segmentDisplay(2, 3, LED_RED, true)
     add(scene, count.group, [24.5, -14, 0])
     const scope = timingDiagram(scene, [0, -14, 0], [
-      { label: 'C', color: CLK_COLOR },
-      ...stages.map((_, i) => ({ label: `q${i}`, color: LED_RED })),
+      { label: 'CLK', color: CLK_COLOR },
+      ...stages.map((_, i) => ({ label: `Q${i}`, color: LED_RED })),
     ], { width: 40, rowH: 2.4, window: 24 })
     const s = { key: '', t: 0, lv: Array<number>(RC_BITS).fill(0), c: 0 }
     return {
@@ -198,16 +198,16 @@ export const shiftRegister: Lesson = {
   id: 'counters-shift-registers-shift-register',
   title: 'Shift register',
   tagline: 'Bits marching down a chain',
-  formula: (p) => `q0 ← D, q1 ← q0, …, q7 ← q6 on each rising edge of C · ${SR_DATA[String(p.data)].text}`,
+  formula: (p) => `Q0 ← D, Q1 ← Q0, …, Q7 ← Q6 on each rising edge of CLK · ${SR_DATA[String(p.data)].text}`,
   legend: [
-    { color: RING, label: 'D = serial data in, C = clock; q0 … q7 out', shape: 'dot' },
+    { color: RING, label: 'D = serial data in, CLK = clock; Q0 … Q7 out', shape: 'dot' },
     WIRES,
-    { color: GREY, label: 'Scope: C, D and q0–q3, each one edge later', shape: 'arrow-right' },
+    { color: GREY, label: 'Scope: CLK, D and Q0–Q3, each one edge later', shape: 'arrow-right' },
   ],
   points: [
     'Chain D flip-flops Q to D and clock them all together. On each rising edge every flip-flop copies the one before it, so the whole pattern moves one place along.',
     'Each flip-flop catches the old Q of its neighbour, not the new one: Q only changes after the edge, a few ns too late to be seen by the flip-flop next door. That is why the chain never runs through in one go.',
-    'Serial in, parallel out: one data wire and one clock fill eight outputs, one bit per edge. Read the scope: q0 is D one edge later, q1 two edges later, and so on.',
+    'Serial in, parallel out: one data wire and one clock fill eight outputs, one bit per edge. Read the scope: Q0 is D one edge later, Q1 two edges later, and so on.',
     'Run it the other way, load eight bits at once and clock them out one by one, and you have parallel in, serial out: how UART, SPI and I²C send a byte down one wire.',
     `Real chips clock at tens of MHz; here one edge every ${SR_CLK} s.`,
   ],
@@ -224,17 +224,17 @@ export const shiftRegister: Lesson = {
     const xs = rowXs(SR_BITS)
     const y = 2
     const inX = xs[0] - 7
-    const row = ffRow(scene, xs, y, inX, 'C', true)
+    const row = ffRow(scene, xs, y, inX, 'CLK', true)
     const dBall = inBall(scene, 'D', [inX, y + 1.6, 0])
     const dWire = signalWire(scene, [[inX, y + 1.6, 0], row.blocks[0].pins.d])
     const leds = row.blocks.map((b, i) => {
       if (i < SR_BITS - 1) junction(scene, [xs[i] + 3.6, b.pins.q[1], 0], 0.4)
-      return ledDrop(scene, i < SR_BITS - 1 ? [xs[i] + 3.6, b.pins.q[1], 0] : b.pins.q, xs[i] + 3.6, y - 10, `q${i}`)
+      return ledDrop(scene, i < SR_BITS - 1 ? [xs[i] + 3.6, b.pins.q[1], 0] : b.pins.q, xs[i] + 3.6, y - 10, `Q${i}`)
     })
     const scope = timingDiagram(scene, [0, -20.6, 0], [
-      { label: 'C', color: CLK_COLOR },
+      { label: 'CLK', color: CLK_COLOR },
       { label: 'D', color: D_COLOR },
-      ...[0, 1, 2, 3].map((k) => ({ label: `q${k}`, color: LED_RED })),
+      ...[0, 1, 2, 3].map((k) => ({ label: `Q${k}`, color: LED_RED })),
     ], { width: 52, rowH: 2.2 })
     const s = { key: '', t: 0, edges: 0, reg: 0, lv: Array<number>(SR_BITS).fill(0), c: 0, d: 0 }
     return {
@@ -345,8 +345,8 @@ export const hc595: Lesson = {
     add(scene, new THREE.Mesh(new THREE.BoxGeometry(xs.at(-1)! - xs[0] + 10.6, 20.8, 0.4), pkg), [0.5, 5.4, -2]).castShadow = false
     partLetter(scene, '74HC595', [xs.at(-1)! - 2.4, 14.6, 0], 1.1, '#d8dbe0')
     const shift = ffRow(scene, xs, SY, inX, 'SHCP', true)
-    const store = ffRow(scene, xs, LY, inX, 'StCP', false)
-    const dsBall = inBall(scene, 'dS', [inX, SY + 1.6, 0])
+    const store = ffRow(scene, xs, LY, inX, 'STCP', false)
+    const dsBall = inBall(scene, 'DS', [inX, SY + 1.6, 0])
     const dsWire = signalWire(scene, [[inX, SY + 1.6, 0], shift.blocks[0].pins.d])
     const ROUTE_Y = SY + BUS_DY - 0.9
     const loads = xs.map((x, i) => {
@@ -356,14 +356,14 @@ export const hc595: Lesson = {
     const outX = xs.at(-1)! + 7
     const q7s = signalWire(scene, [shift.blocks[7].pins.q, [outX, SY + 1.6, 0]])
     const q7sBall = junction(scene, [outX, SY + 1.6, 0], 0.55)
-    partLetter(scene, 'q7S', [outX + 2.2, SY + 1.6, 0], 0.9, RING)
-    const leds = store.blocks.map((b, i) => ledDrop(scene, b.pins.q, xs[i] + 3.7, -8, `q${i}`))
+    partLetter(scene, 'Q7S', [outX + 2.2, SY + 1.6, 0], 0.9, RING)
+    const leds = store.blocks.map((b, i) => ledDrop(scene, b.pins.q, xs[i] + 3.7, -8, `Q${i}`))
     const shown = segmentDisplay(2, 3, LED_RED, true)
     add(scene, shown.group, [outX + 2.6, -6.4, 0])
     const scope = timingDiagram(scene, [0, -17.6, 0], [
-      { label: 'dS', color: D_COLOR },
+      { label: 'DS', color: D_COLOR },
       { label: 'SHCP', color: CLK_COLOR },
-      { label: 'StCP', color: '#ffb84d' },
+      { label: 'STCP', color: '#ffb84d' },
     ], { width: 56, rowH: 2.6 })
     const s = { key: '', t: 0, sh: Array<number>(8).fill(0), st: Array<number>(8).fill(0), pins: [0, 0, 0] }
     return {

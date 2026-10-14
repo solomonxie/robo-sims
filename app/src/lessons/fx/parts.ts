@@ -4,16 +4,13 @@ import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../model
 import { buildTo92, TO92, TO220, buildTo220 } from '../../models/passives'
 import { glowHalo, icPackage } from './circuit'
 import { CONVENTIONAL, LABEL, glowMat, potentialColor } from './colors'
-import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
+import { LabelOpts, label } from './text'
 import { clamp01 } from './util'
 
-export const partLetter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = LABEL) => {
-  const d = segmentDisplay(text.length, height, color, true)
-  d.set(text)
-  add(parent, d.group, at)
-  return d
-}
+/** Static glowing text at `at` (centred unless `align`); `height` = cap height. */
+export const partLetter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = LABEL, align: LabelOpts['align'] = 'center') =>
+  add(parent, label(text, { size: height, color, align }), at)
 
 /** Lesson parts face the key light edge-on, so near-black epoxy reads as a hole; lift it to a glossy dark grey. */
 export function litEpoxy(body: THREE.MeshStandardMaterial) {
@@ -57,7 +54,7 @@ const TO220_LEGS = 1
  *  `set(f, heat)`: f = drain current / full scale glows the die, heat 0..1 reddens the epoxy. */
 export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220', { scale = 1.6 } = {}) {
   if (pkg === 'TO-92') {
-    const t = transistorPart(parent, at, { scale, letters: ['d', 'G', 'S'] })
+    const t = transistorPart(parent, at, { scale, letters: ['D', 'G', 'S'] })
     return { group: t.group, pins: { d: t.pins.c, g: t.pins.b, s: t.pins.e }, die: t.die, set: t.set }
   }
   const k = 0.75 * scale
@@ -75,7 +72,7 @@ export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220',
   const tag = 0.4 * scale
   partLetter(parent, 'G', [at[0] - 0.6 * k, at[1] - 0.9 * k, at[2]], tag)
   partLetter(parent, 'S', [at[0] + 2.8 * k, at[1] + 0.6 * k, at[2]], tag)
-  partLetter(parent, 'd', [d[0] + 1.6 * k, d[1], at[2]], tag)
+  partLetter(parent, 'D', [d[0] + 1.6 * k, d[1], at[2]], tag)
   return {
     group,
     pins: { d, g: at, s: [at[0] + 2 * k, at[1], at[2]] as V3 },
@@ -134,7 +131,7 @@ export function dip8OpAmp(parent: THREE.Object3D, at: V3, scale = 1) {
 const MM = 1 / 2.54
 
 /** AMS1117 in SOT-223 (6.5 × 3.5 mm body) facing +z at `at`, `scale` × real: the three gull-wing legs point +x
- *  (IN on top, OUT, GND at the bottom), the big OUT tab sticks out −x. `pins` are the leg and tab tips at z = 0.
+ *  (IN on top, OUT, GND at the bottom; labelled on the body), the big OUT tab sticks out −x. `pins` are the leg and tab tips at z = 0.
  *  `set(f, heat)`: f = current / rated glows the die, heat 0..1 reddens the body. */
 export function sot223Regulator(parent: THREE.Object3D, at: V3, scale = 2.4) {
   const k = MM * scale
@@ -152,6 +149,7 @@ export function sot223Regulator(parent: THREE.Object3D, at: V3, scale = 2.4) {
     box(group, [0.26 * k, 0.7 * k, 0.6 * k], tin, [legX + 0.9 * k, y, -0.55 * k])
     box(group, [0.9 * k, 0.7 * k, 0.26 * k], tin, [legX + 1.35 * k, y, -0.8 * k])
   }
+  ;['IN', 'OUT', 'GND'].forEach((t, i) => partLetter(group, t, [legX - 0.3 * k, ys[i], 0.85 * k], 0.6 * k, LABEL, 'right'))
   const halo = glowHalo(group, [0, 0, 1.2 * k], 1.4 * k)
   const tip = legX + 1.8 * k
   const p = (x: number, y: number): V3 => [at[0] + x, at[1] + y, at[2]]

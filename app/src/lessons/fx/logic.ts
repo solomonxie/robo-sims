@@ -195,7 +195,7 @@ export function gateNet(parent: THREE.Object3D, net: Net, layout: NetLayout) {
     return { lamp, gate: o.src, ...glowing(route([a, [x - h, a[1], 0], [x - h, y, 0]]), o.src) }
   })
   const balls = Object.entries(layout.inputs).map(([k, at]) => {
-    partLetter(parent, k, [at[0] - 1.1 - 0.5 * k.length, at[1], 0], 0.9, RING)
+    partLetter(parent, k, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
     return { k, ball: junction(parent, at, 0.55) }
   })
   return {
@@ -233,7 +233,7 @@ export function timingDiagram(
   const slot = window / (samples - 1)
   const lines = rows.map((r, k) => {
     const mid = top - (k + 0.5) * rowH
-    partLetter(sc.group, r.label, [-width / 2 - 1.2 - 0.45 * r.label.length, mid, 0], 0.9, r.color)
+    partLetter(sc.group, r.label, [-width / 2 - 0.9, mid, 0], 0.9, r.color, 'right')
     return { trace: sc.trace(r.color, { samples, radius: 0.11 }), y: (v: number) => mid + (v - 0.5) * rowH * 0.5, hist: Array<number>(samples).fill(0) }
   })
   const s = { t: 0, primed: false }
@@ -263,9 +263,9 @@ export function flipFlopBlock(parent: THREE.Object3D, at: V3, { w = 4.4, h = 5.6
   box(g, [w, h, 0.8], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.5 }), [0, 0, -0.1])
   const pinY = { d: h / 2 - 1.2, clk: enable ? -0.4 : -h / 2 + 1.2, en: -h / 2 + 1.1 }
   const label = (t: string, x: number, y: number) => partLetter(g, t, [x, y, 0.35], 0.8, '#d8dbe0')
-  label('d', -w / 2 + 0.8, pinY.d)
-  label('q', w / 2 - 0.8, pinY.d)
-  if (enable) label('En', -w / 2 + 1.3, pinY.en)
+  label('D', -w / 2 + 0.8, pinY.d)
+  label('Q', w / 2 - 0.8, pinY.d)
+  if (enable) label('EN', -w / 2 + 1.3, pinY.en)
   const tri = new THREE.Shape([new THREE.Vector2(0, 0.55), new THREE.Vector2(0.8, 0), new THREE.Vector2(0, -0.55)])
   const clkMat = new THREE.MeshStandardMaterial({ color: '#d8dbe0', emissive: '#000000', roughness: 0.4 })
   add(g, mesh(new THREE.ShapeGeometry(tri), clkMat), [-w / 2 + 0.1, pinY.clk, 0.32])
@@ -352,7 +352,7 @@ export function stateDiagram(parent: THREE.Object3D, at: V3, nodes: DiagramNode[
     const dir = end.clone().sub(line.at(-2)!).normalize()
     const cone = add(g, mesh(new THREE.ConeGeometry(0.55, head, 16), m), [end.x + (dir.x * head) / 2, end.y + (dir.y * head) / 2, 0])
     cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-    const lbl = (c: string) => partLetter(g, e.label, [labelAt.x, labelAt.y, 0], 0.75, c).group
+    const lbl = (c: string) => partLetter(g, e.label, [labelAt.x, labelAt.y, 0], 0.75, c)
     const tags = [lbl(GREY), lbl(RING)]
     const token = add(g, mesh(new THREE.SphereGeometry(0.45, 16, 12), glowMat(RING, 1.4)))
     token.visible = false

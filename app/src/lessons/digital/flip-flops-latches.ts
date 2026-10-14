@@ -77,13 +77,13 @@ const AUTO: SrIn[] = ['set', 'hold', 'reset', 'hold']
 const PHASE_S = 2.5
 const RACE_S = 1.6
 const SR_LAYOUT: NetLayout = {
-  inputs: { r: [-12, 4.9, 0], S: [-12, -4.9, 0] },
+  inputs: { R: [-12, 4.9, 0], S: [-12, -4.9, 0] },
   gates: [[0, 4, 0], [0, -4, 0]],
   via: crossVia(0, 1, 0),
-  outputs: [{ src: 0, at: [11, 4, 0], label: 'q' }, { src: 1, at: [11, -4, 0], label: 'nq' }],
+  outputs: [{ src: 0, at: [11, 4, 0], label: 'Q' }, { src: 1, at: [11, -4, 0], label: 'Q̄' }],
   ledScale: 0.75,
 }
-const SR_NET: Net = SR_LATCH.map((g) => ({ ...g, in: g.in.map((s) => (s === 'R' ? 'r' : s)) }))
+const SR_NET: Net = SR_LATCH
 const srPhase = (p: Record<string, unknown>, t: number): SrIn => (p.in === 'auto' ? AUTO[Math.floor(t / PHASE_S) % AUTO.length] : (p.in as SrIn))
 
 export const srLatch: Lesson = {
@@ -101,7 +101,7 @@ export const srLatch: Lesson = {
     return `Q = NOR(R, Q̄), Q̄ = NOR(S, Q) · ${tail[String(p.in)]}`
   },
   legend: [
-    { color: RING, label: 'S sets Q = 1, R (r) resets; nq = Q̄', shape: 'dot' },
+    { color: RING, label: 'S sets Q = 1, R resets; Q̄ = not Q', shape: 'dot' },
     WIRES,
     { color: GREY, label: 'Scope: S, R, Q over the last 12 s', shape: 'arrow-right' },
   ],
@@ -126,8 +126,8 @@ export const srLatch: Lesson = {
     const sim = live(SR_NET, [0, 1])
     const scope = timingDiagram(scene, [0, -15, 0], [
       { label: 'S', color: RING },
-      { label: 'r', color: D_COLOR },
-      { label: 'q', color: LED_RED },
+      { label: 'R', color: D_COLOR },
+      { label: 'Q', color: LED_RED },
     ], { width: 26, rowH: 2.4 })
     const s = { key: '', t: 0, race: 0 }
     return {
@@ -137,7 +137,7 @@ export const srLatch: Lesson = {
         if (p.in !== s.key) Object.assign(s, { key: p.in, t: 0 })
         s.t += dt
         const { S, R } = SR_IN[srPhase(p, s.t)]
-        const v = sim.frame(dt, { S, r: R })
+        const v = sim.frame(dt, { S, R })
         const [q, nq] = v.state
         s.race = !S && !R && q === nq ? s.race + dt : 0
         if (s.race > RACE_S) {
@@ -163,23 +163,23 @@ export const srLatch: Lesson = {
 
 // --- D latch vs D flip-flop: transparent while the clock is high, or sampled only on its rising edge. ---
 
-const rename = (net: Net): Net => net.map((g) => ({ ...g, in: g.in.map((s) => (s === 'CLK' || s === 'E' ? 'C' : s)) }))
+const rename = (net: Net): Net => net.map((g) => ({ ...g, in: g.in.map((s) => (s === 'E' ? 'CLK' : s)) }))
 const FF_NET = rename(D_FLIP_FLOP)
 const LATCH_NET = rename(D_LATCH)
-const D_IN: Record<string, V3> = { D: [-30, 4.9, 0], C: [-30, -11, 0] }
+const D_IN: Record<string, V3> = { D: [-30, 4.9, 0], CLK: [-30, -11, 0] }
 const FF_LAYOUT: NetLayout = {
   inputs: D_IN,
   gates: [[-21, -8, 0], [-21, -3.1, 0], [-12, 4, 0], [-12, -4, 0], [-2, 4, 0], [-2, -4, 0], [9, 4, 0], [9, -4, 0], [19, 4, 0], [19, -4, 0]],
   bus: { D: -26.5, 0: -16.6 },
   via: { ...crossVia(4, 5, -2), ...crossVia(8, 9, 19), '6.1': [[4, -11, 0]], '7.1': [[4, -11, 0]] },
-  outputs: [{ src: 8, at: [29, 4, 0], label: 'q' }, { src: 9, at: [29, -4, 0], label: 'nq' }],
+  outputs: [{ src: 8, at: [29, 4, 0], label: 'Q' }, { src: 9, at: [29, -4, 0], label: 'Q̄' }],
 }
 const LATCH_LAYOUT: NetLayout = {
   inputs: D_IN,
   gates: [[-21, -3.1, 0], [-12, 4, 0], [-12, -4, 0], [-2, 4, 0], [-2, -4, 0]],
-  bus: { D: -26.5, C: -16.6 },
+  bus: { D: -26.5, CLK: -16.6 },
   via: crossVia(3, 4, -2),
-  outputs: [{ src: 3, at: [9, 4, 0], label: 'q' }, { src: 4, at: [9, -4, 0], label: 'nq' }],
+  outputs: [{ src: 3, at: [9, 4, 0], label: 'Q' }, { src: 4, at: [9, -4, 0], label: 'Q̄' }],
 }
 const KINDS = {
   ff: { net: FF_NET, layout: FF_LAYOUT, q: 8, shift: 0 },
@@ -197,16 +197,16 @@ export const dFlipFlop: Lesson = {
   tagline: 'Catch D on the clock edge',
   formula: (p) =>
     p.kind === 'ff'
-      ? 'Q ← D on each rising clock edge (C: 0 → 1) · master latch open while C = 0, slave while C = 1'
-      : 'Q = D while C = 1 (transparent) · Q holds while C = 0',
+      ? 'Q ← D on each rising clock edge (CLK: 0 → 1) · master latch open while CLK = 0, slave while CLK = 1'
+      : 'Q = D while CLK = 1 (transparent) · Q holds while CLK = 0',
   legend: [
-    { color: RING, label: 'D = data, C = clock; nq = Q̄', shape: 'dot' },
+    { color: RING, label: 'D = data, CLK = clock; Q̄ = not Q', shape: 'dot' },
     WIRES,
     { color: '#6f8cff', label: 'Shaded latch glows while it is open', shape: 'dot' },
   ],
   points: [
-    'Add two gates in front of a latch and only one input is needed: D. While the enable C is 1, S̄ and R̄ copy D, so Q follows D. When C drops to 0 both stay 1 and the loop holds the last D.',
-    'That D latch is transparent: while C = 1 any wiggle on D goes straight to Q. In a processor, where outputs feed back into inputs, that would let data race round the loop many times in one clock.',
+    'Add two gates in front of a latch and only one input is needed: D. While the enable CLK is 1, S̄ and R̄ copy D, so Q follows D. When CLK drops to 0 both stay 1 and the loop holds the last D.',
+    'That D latch is transparent: while CLK = 1 any wiggle on D goes straight to Q. In a processor, where outputs feed back into inputs, that would let data race round the loop many times in one clock.',
     'A flip-flop is two latches in series. The master is open while the clock is low and follows D; the slave is open while it is high and copies the master. At the rising edge the master shuts and the slave shows what it held.',
     'So Q changes only at the edge, to whatever D was just before it. D must be steady a little before (setup time) and after (hold time) the edge, or the master can go metastable.',
     `A CPU clock of ${REAL_GHZ.toFixed(0)} GHz is shown at ${(1 / CLK_S).toFixed(2)} Hz: ${slowText}. The flip-flop settles in a few gate delays, well inside one clock period.`,
@@ -236,9 +236,9 @@ export const dFlipFlop: Lesson = {
     const scene = createStage({ span: 40 })
     const holder = add(scene, new THREE.Group())
     const scope = timingDiagram(scene, [0, -19, 0], [
-      { label: 'C', color: CLK_COLOR },
+      { label: 'CLK', color: CLK_COLOR },
       { label: 'D', color: D_COLOR },
-      { label: 'q', color: LED_RED },
+      { label: 'Q', color: LED_RED },
     ], { width: 40, rowH: 3 })
     const live0 = { kind: '', d: '', t: 0, net: null as ReturnType<typeof gateNet> | null, sim: live(FF_NET, []), boxes: [] as THREE.MeshStandardMaterial[], dots: [] as ReturnType<typeof junction>[] }
     const rebuild = (kind: Kind, d: string) => {
@@ -246,7 +246,7 @@ export const dFlipFlop: Lesson = {
       const k = KINDS[kind]
       holder.position.x = k.shift
       live0.net = gateNet(holder, k.net, k.layout)
-      live0.sim = live(k.net, cleared(k.net, { D: 0 }, 'C'))
+      live0.sim = live(k.net, cleared(k.net, { D: 0 }, 'CLK'))
       live0.boxes = kind === 'ff' ? [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff'), glowBox(holder, [19.6, 13.6, 0.2], [16.1, 0, -1.2], '#ffb84d')] : [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff')]
       live0.dots = kind === 'ff' ? [junction(holder, [-25.2, -11, 0], 0.5), junction(holder, [4, -4.9, 0], 0.5)] : []
       Object.assign(live0, { kind, d, t: 0 })
@@ -259,15 +259,15 @@ export const dFlipFlop: Lesson = {
         live0.t += dt
         const C = clockAt(live0.t)
         const D = dAt(p, live0.t)
-        const v = live0.sim.frame(dt, { D, C })
+        const v = live0.sim.frame(dt, { D, CLK: C })
         live0.net!.frame(dt, v.ins, v.lv)
-        const open = p.kind === 'ff' ? [1 - v.ins.C, v.ins.C] : [v.ins.C]
+        const open = p.kind === 'ff' ? [1 - v.ins.CLK, v.ins.CLK] : [v.ins.CLK]
         live0.boxes.forEach((m, i) => (m.opacity = 0.05 + 0.16 * open[i]))
-        for (const j of live0.dots) j.set(v.ins.C)
+        for (const j of live0.dots) j.set(v.ins.CLK)
         scope.frame(dt, [C, D, v.state[KINDS[p.kind as Kind].q]])
       },
       readouts: (p) => [
-        { label: 'Q changes', value: p.kind === 'ff' ? 'only on C rising' : 'whenever C = 1', tone: 'ok' },
+        { label: 'Q changes', value: p.kind === 'ff' ? 'only on CLK rising' : 'whenever CLK = 1', tone: 'ok' },
         { label: 'Clock', value: `${REAL_GHZ.toFixed(0)} GHz → ${CLK_S} s period` },
         { label: 'Gates', value: `${KINDS[p.kind as Kind].net.length}` },
       ],
@@ -292,14 +292,14 @@ export const registers: Lesson = {
     return p.load === 'on' ? `Q ← D = ${binary(d, 4)} on the next rising edge (LOAD = 1)` : `LOAD = 0: each flip-flop reloads its own Q, the word holds`
   },
   legend: [
-    { color: RING, label: 'D3–D0 in, q3–q0 out; C = clock, Ld = load', shape: 'dot' },
+    { color: RING, label: 'D3–D0 in, Q3–Q0 out; CLK = clock', shape: 'dot' },
     WIRES,
-    { color: GREY, label: 'Scope: C, Ld and the four Q bits', shape: 'arrow-right' },
+    { color: GREY, label: 'Scope: CLK, LOAD and the four Q bits', shape: 'arrow-right' },
   ],
   points: [
     'A register is a row of D flip-flops sharing one clock: one per bit. On each rising edge all of them copy their D at once, so the stored word changes in one step and never shows half old, half new.',
-    'Move the D slider: the LEDs do not follow. The new value only appears at the next rising edge of C.',
-    'The load enable Ld picks what each flip-flop sees on D through a small mux: the new data when Ld = 1, its own Q when Ld = 0. With Ld = 0 every edge reloads the same bit, so the word holds.',
+    'Move the D slider: the LEDs do not follow. The new value only appears at the next rising edge of CLK.',
+    'The load enable LOAD picks what each flip-flop sees on D through a small mux: the new data when LOAD = 1, its own Q when LOAD = 0. With LOAD = 0 every edge reloads the same bit, so the word holds.',
     'A CPU’s registers, the program counter and every pipeline stage are made like this, 32 or 64 bits wide. Feeding the output of an adder back into a register gives a counter; see Counters & shift registers.',
     `Each flip-flop here is the 14-gate circuit from D flip-flop plus the load mux, run gate by gate: ${slowText}.`,
   ],
@@ -309,8 +309,8 @@ export const registers: Lesson = {
       kind: 'choice',
       key: 'load',
       options: [
-        { value: 'on', label: 'Ld = 1, load' },
-        { value: 'off', label: 'Ld = 0, hold' },
+        { value: 'on', label: 'LOAD = 1' },
+        { value: 'off', label: 'LOAD = 0, hold' },
       ],
       initial: 'on',
     },
@@ -319,11 +319,11 @@ export const registers: Lesson = {
     const scene = createStage({ span: 40 })
     const blocks = BIT_X.map((x) => flipFlopBlock(scene, [x, 0, 0], { enable: true }))
     const inBall = (label: string, y: number) => {
-      partLetter(scene, label, [IN_X - 1.1 - 0.5 * label.length, y, 0], 0.9, RING)
+      partLetter(scene, label, [IN_X - 1, y, 0], 0.9, RING, 'right')
       return junction(scene, [IN_X, y, 0], 0.55)
     }
-    const clkBall = inBall('C', CLK_Y)
-    const loadBall = inBall('Ld', LOAD_Y)
+    const clkBall = inBall('CLK', CLK_Y)
+    const loadBall = inBall('LOAD', LOAD_Y)
     const last = BIT_X.at(-1)!
     const clkBus = signalWire(scene, [[IN_X, CLK_Y, 0], [last - 4, CLK_Y, 0]])
     const loadBus = signalWire(scene, [[IN_X, LOAD_Y, 0], [last - 4.8, LOAD_Y, 0]])
@@ -341,16 +341,16 @@ export const registers: Lesson = {
       const lamp = ledLamp(scene, LED_RED, ledAt, { scale: 0.7, anodeRight: false })
       wire(scene, [[ledAt[0] + 0.35, ledAt[1], 0], [ledAt[0] + 0.35, -2.6, 0]])
       add(scene, groundSymbol(), [ledAt[0] + 0.35, -2.6, 0]).scale.setScalar(0.5)
-      partLetter(scene, `q${k}`, [ledAt[0], 7, 0], 0.9, RING)
+      partLetter(scene, `Q${k}`, [ledAt[0], 7, 0], 0.9, RING)
       const sim = live(REGISTER_BIT, cleared(REGISTER_BIT, { D: 0, LOAD: 1 }, 'CLK'))
       return { b, k, dBall, dWire, cWire, lWire, taps, qWire, lamp, sim }
     })
     const value = segmentDisplay(1, 3, LED_RED, true)
     add(scene, value.group, [27.5, 3.6, 0])
     const scope = timingDiagram(scene, [0, -17.6, 0], [
-      { label: 'C', color: CLK_COLOR },
-      { label: 'Ld', color: D_COLOR },
-      ...[3, 2, 1, 0].map((k) => ({ label: `q${k}`, color: LED_RED })),
+      { label: 'CLK', color: CLK_COLOR },
+      { label: 'LOAD', color: D_COLOR },
+      ...[3, 2, 1, 0].map((k) => ({ label: `Q${k}`, color: LED_RED })),
     ], { width: 36, rowH: 2.4 })
     const s = { t: 0 }
     return {
@@ -389,7 +389,7 @@ export const registers: Lesson = {
         const d = n(p, 'd')
         return [
           { label: 'D', value: `${binary(d, 4)} = ${hex(d, 1)}` },
-          { label: 'Ld', value: p.load === 'on' ? '1, load' : '0, hold', tone: p.load === 'on' ? 'ok' : 'warn' },
+          { label: 'LOAD', value: p.load === 'on' ? '1, load' : '0, hold', tone: p.load === 'on' ? 'ok' : 'warn' },
           { label: 'Clock', value: `${REAL_GHZ.toFixed(0)} GHz` },
         ]
       },

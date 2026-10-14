@@ -24,7 +24,7 @@ import {
   pulseLabel,
   resistorAlong,
   scope,
-  segmentDisplay,
+  partLetter,
   siliconCrystal,
   ticks,
   wire,
@@ -64,12 +64,10 @@ function junctionBacking(parent: THREE.Object3D, width: number, height: number) 
   const slab = box(parent, [1, height + 0.6, 0.2], glass('#ffffff', 0.22), [0, 0, -1.2])
   slab.castShadow = false
   const letter = (text: string, x: number, color: string) => {
-    const d = segmentDisplay(1, 1.4, color, true)
-    d.set(text)
-    add(parent, d.group, [x, -height / 2 - 1.4, 0])
+    partLetter(parent, text, [x, -height / 2 - 1.4, 0], 1.4, color)
   }
   letter('P', -width / 2 + 1, ACCEPTOR)
-  letter('n', width / 2 - 1, DONOR)
+  letter('N', width / 2 - 1, DONOR)
   return (from: number, to: number) => {
     slab.visible = to - from > 0.05
     slab.scale.x = Math.max(0.01, to - from)
@@ -135,7 +133,7 @@ export const depletionRegion: Lesson = {
     plot.group.position.set(0, PLOT_Y, 0)
     ticks(plot, [], [[0, '0'], [1, '1']])
     const trace = plot.trace(RING, { radius: 0.12 })
-    const vLabel = pulseLabel(scene, 4, RING, [width / 2 - 2.2, PLOT_Y + PLOT_H / 2 + 1.1, 0], 0.9)
+    const vLabel = pulseLabel(scene, 4, RING, [width / 2 - 3.6, PLOT_Y + PLOT_H / 2 + 1.1, 0], 0.9)
 
     let crystal: Crystal | null = null
     const state = { key: '', from: 0, to: 0, barrier: 0 }

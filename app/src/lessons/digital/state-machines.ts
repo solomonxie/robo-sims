@@ -52,7 +52,7 @@ function panel(parent: THREE.Object3D, at: V3, w: number, h: number) {
 }
 
 const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1.1 - 0.5 * label.length, at[1], 0], 0.9, RING)
+  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
   return junction(parent, at, 0.55)
 }
 
@@ -69,13 +69,13 @@ const btnAt = (t: number): Bit => bit(PRESSES.some(([a, b]) => t % LOOP >= a && 
 
 const MOORE_NODES = [
   { id: 'UP', label: 'UP', at: [-8, -2] as [number, number], color: NODE },
-  { id: 'EDGE', label: 'EdGE', at: [0, 5] as [number, number], color: LED_RED },
-  { id: 'HELD', label: 'HELd', at: [8, -2] as [number, number], color: NODE },
+  { id: 'EDGE', label: 'EDGE', at: [0, 5] as [number, number], color: LED_RED },
+  { id: 'HELD', label: 'HELD', at: [8, -2] as [number, number], color: NODE },
 ]
 const MOORE_LOOPS: Record<string, number> = { UP: Math.PI + 0.7, HELD: -0.7 }
 const MEALY_NODES = [
   { id: 'UP', label: 'UP', at: [-6.5, 0] as [number, number], color: NODE },
-  { id: 'HELD', label: 'HELd', at: [6.5, 0] as [number, number], color: NODE },
+  { id: 'HELD', label: 'HELD', at: [6.5, 0] as [number, number], color: NODE },
 ]
 const MEALY_LOOPS: Record<string, number> = { UP: Math.PI, HELD: 0 }
 
@@ -88,7 +88,7 @@ export const mooreVsMealy: Lesson = {
       ? 'Moore: out = 1 in state EDGE only · on each clock edge, state ← next(state, b)'
       : 'Mealy: out = 1 while state = UP and b = 1 · on each clock edge, state ← next(state, b)',
   legend: [
-    { color: RING, label: 'b = button, C = clock; out lights the LED', shape: 'dot' },
+    { color: RING, label: 'b = button, CLK = clock; out lights the LED', shape: 'dot' },
     TRANSITIONS,
     { color: GREY, label: 'Arrow labels: b (Mealy: b / out)', shape: 'dot' },
   ],
@@ -123,7 +123,7 @@ export const mooreVsMealy: Lesson = {
     signalWire(scene, [sw.pins.a, [sw.pins.a[0], -4, 0], [sw.pins.a[0] - 1.6, -4, 0]])(0)
     add(scene, groundSymbol(), [sw.pins.a[0] - 1.6, -4, 0]).scale.setScalar(0.5)
     const bFeed = signalWire(scene, [sw.pins.b, [sw.pins.b[0], 1.5, 0], bIn])
-    const cBall = inBall(scene, 'C', [-12, -10.5, 0])
+    const cBall = inBall(scene, 'CLK', [-12, -10.5, 0])
     const cWire = signalWire(scene, [[-12, -10.5, 0], [0, -10.5, 0], [0, -8, 0]])
     const outWire = signalWire(scene, [[15, 1.5, 0], [19.4, 1.5, 0]])
     partLetter(scene, 'out', [17, 3, 0], 0.8, RING)
@@ -132,9 +132,9 @@ export const mooreVsMealy: Lesson = {
     add(scene, groundSymbol(), [20.6, -0.6, 0]).scale.setScalar(0.5)
     const count = segmentDisplay(2, 3, LED_RED, true)
     add(scene, count.group, [21, -6, 0])
-    partLetter(scene, 'PrESSES', [21, -9, 0], 0.7, GREY)
+    partLetter(scene, 'presses', [21, -9, 0], 0.7, GREY)
     const scope = timingDiagram(scene, [0, -18.6, 0], [
-      { label: 'C', color: CLK_COLOR },
+      { label: 'CLK', color: CLK_COLOR },
       { label: 'B', color: B_COLOR },
       { label: 'out', color: LED_RED },
     ], { width: 44, rowH: 3 })
@@ -201,9 +201,9 @@ const DEMAND: Record<string, { label: string; press: (t: number) => boolean; tex
 }
 const LAMP: Record<'red' | 'yellow' | 'green' | 'walk', string> = { red: '#ff3b30', yellow: '#ffb020', green: '#3ddc84', walk: '#3ddc84' }
 const LIGHT_NODES = [
-  { id: 'GREEN', label: 'GrEEn', at: [-24, 4] as [number, number], color: LAMP.green },
-  { id: 'YELLOW', label: 'YELLo', at: [-10, 4] as [number, number], color: LAMP.yellow },
-  { id: 'RED', label: 'rEd', at: [-17, -6] as [number, number], color: LAMP.red },
+  { id: 'GREEN', label: 'GREEN', at: [-24, 4] as [number, number], color: LAMP.green },
+  { id: 'YELLOW', label: 'YELLOW', at: [-10, 4] as [number, number], color: LAMP.yellow },
+  { id: 'RED', label: 'RED', at: [-17, -6] as [number, number], color: LAMP.red },
 ]
 const STOP_X = 4
 const CAR_V = 9
@@ -251,7 +251,7 @@ export const trafficLight: Lesson = {
     `GREEN → YELLOW once pressed and ≥ ${LIGHT_S.green} s · YELLOW → RED after ${LIGHT_S.yellow} s · RED → GREEN after ${LIGHT_S.red} s · ${DEMAND[String(p.demand)].text}`,
   legend: [
     TRANSITIONS,
-    { color: GREY, label: `P = button pressed, ${LIGHT_S.yellow}S = ${LIGHT_S.yellow} seconds in the state`, shape: 'dot' },
+    { color: GREY, label: `P = button pressed, ${LIGHT_S.yellow} s = ${LIGHT_S.yellow} seconds in the state`, shape: 'dot' },
     { color: LAMP.green, label: 'Walk lamp: green while cars have red', shape: 'dot' },
   ],
   points: [
@@ -361,9 +361,9 @@ const NOSE = 7
 const CONE = 0.26
 const BEAM: Record<Avoid, string> = { GO: '#3ddc84', STOP: '#ff3b30', TURN: '#ffb020' }
 const AVOID_NODES = [
-  { id: 'GO', label: 'Go', at: [-13, 9] as [number, number], color: BEAM.GO },
-  { id: 'STOP', label: 'StoP', at: [0, 9] as [number, number], color: BEAM.STOP },
-  { id: 'TURN', label: 'turn', at: [13, 9] as [number, number], color: BEAM.TURN },
+  { id: 'GO', label: 'GO', at: [-13, 9] as [number, number], color: BEAM.GO },
+  { id: 'STOP', label: 'STOP', at: [0, 9] as [number, number], color: BEAM.STOP },
+  { id: 'TURN', label: 'TURN', at: [13, 9] as [number, number], color: BEAM.TURN },
 ]
 const TRAIL = 90
 const ROOMS: Record<string, { label: string; blocks: Box[] }> = {

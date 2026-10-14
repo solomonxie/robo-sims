@@ -20,7 +20,7 @@ import {
 import { binary } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, LABEL, LED_RED, RING, NetLayout, ease, emptyGroup, gateNet, litWire, segmentDisplay, storyClock, storySlider } from '../fx'
+import { GREY, LABEL, LED_RED, RING, NetLayout, ease, emptyGroup, gateNet, litWire, partLetter, segmentDisplay, storyClock, storySlider } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
 const DELAY_S = 0.4
@@ -145,9 +145,7 @@ export const tableToCircuit: Lesson = {
     add(table, new THREE.Mesh(new THREE.BoxGeometry(9 * COL_W + 0.6, 4 * ROW_H + 1.6, 0.4), new THREE.MeshStandardMaterial({ color: '#1b1d22', roughness: 0.6 })), [colX(3), -1.5 * ROW_H, -0.6])
     const highlight = glowBox(table, [1.8, 4 * ROW_H + 1, 0.2], [colX(0), -1.5 * ROW_H, 0], RING, 0.22)
     ;['A', 'B', 'C', 'Y'].forEach((t, i) => {
-      const d = segmentDisplay(1, 1, i === 3 ? LED_RED : RING, true)
-      d.set(t)
-      add(table, d.group, [colX(-1), -i * ROW_H - (i === 3 ? 0.5 : 0), 0])
+      partLetter(table, t, [colX(-1), -i * ROW_H - (i === 3 ? 0.5 : 0), 0], 1, i === 3 ? LED_RED : RING)
     })
     add(table, new THREE.Mesh(new THREE.BoxGeometry(0.1, 4 * ROW_H + 1, 0.1), new THREE.MeshStandardMaterial({ color: GREY })), [colX(-0.5), -1.5 * ROW_H, 0])
     add(table, new THREE.Mesh(new THREE.BoxGeometry(9 * COL_W, 0.1, 0.1), new THREE.MeshStandardMaterial({ color: GREY })), [colX(3), -2.75 * ROW_H, 0])

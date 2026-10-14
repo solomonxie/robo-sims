@@ -8,7 +8,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Numbers come from tested pure fns: `core/physics/<domain>.ts` + test; circuits as `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes/LEDs via `diodeNode`/`ledStringAmps`; fields via `core/fields.ts`. Formatters (`volts`, `si`, `secs`, `pct`, `tiny`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (import `'../fx'`); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %; scene in the middle band, wide over tall.
-- Visuals: potential = `potentialColor`; 3D numbers = `segmentDisplay`/`pulseLabel`; charges on `lane()` (`LANE`), speed ∝ that wire's current; `ease(dt)` toward targets, `presence` to morph. `emptyGroup` keeps cached `mat()`s, so per-rebuild materials use `glowMat`/`new`.
+- Visuals: potential = `potentialColor`; 3D text = `label()`/`partLetter` (stroke font: any letter, digits, `+−×÷=.,/:%Ωµ°`, Q̄ = `'Q\u0304'`; one mesh each), 7-seg readouts = `segmentDisplay`/`pulseLabel`; charges on `lane()` (`LANE`), speed ∝ that wire's current; `ease(dt)` toward targets, `presence` to morph. `emptyGroup` keeps cached `mat()`s, so per-rebuild materials use `glowMat`/`new`.
 - Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts; slow real frequencies by a stated factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
 - Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; params/frames: `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}' frames=N`.
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
@@ -18,7 +18,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `colors` — palette (`LABEL`, `LED_RED`…), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`. `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
 - `flows` — `Flow`, `plusFlow`, glass wire, `ionLattice`, `electronGas`.
 - `circuit` — cells, sources, `wire`, `lane`, resistors, diodes, `ledLamp`, `bulb`, switches, `motorCan`, `icPackage`, `chargeTank`, `groundSymbol`/`groundAt`, `opAmpSymbol`; layout `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
-- `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter` (static text).
+- `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter` (static text). `text` — `label`, `textGeometry` [`core/strokeFont.ts`: `layoutText`].
 - `electromech` — cut-open `relayPart`/`ssrPart`, `tactSwitch`, `toggleSwitch`, `rotaryPot` [`electromechanical`].
 - `dies` — `bjtDie`, `mosfetDie` cross-sections, `oxideGlass`/`gateMetal` for extra gate stacks [`semiconductors`, `memory`].
 - `crystal` — `siliconCrystal` lattice, `DONOR`/`ACCEPTOR`; `junction` mode for PN.

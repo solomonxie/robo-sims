@@ -75,8 +75,8 @@ export const TRAFFIC: Machine<Light, LightIn> = {
   start: 'GREEN',
   edges: [
     { from: 'GREEN', to: 'YELLOW', when: (i) => i.ped && i.t >= LIGHT_S.green, label: 'P' },
-    { from: 'YELLOW', to: 'RED', when: (i) => i.t >= LIGHT_S.yellow, label: `${LIGHT_S.yellow}S` },
-    { from: 'RED', to: 'GREEN', when: (i) => i.t >= LIGHT_S.red, label: `${LIGHT_S.red}S` },
+    { from: 'YELLOW', to: 'RED', when: (i) => i.t >= LIGHT_S.yellow, label: `${LIGHT_S.yellow} s` },
+    { from: 'RED', to: 'GREEN', when: (i) => i.t >= LIGHT_S.red, label: `${LIGHT_S.red} s` },
   ],
 }
 export const trafficLamps = (s: Light) => ({ red: bit(s === 'RED'), yellow: bit(s === 'YELLOW'), green: bit(s === 'GREEN'), walk: bit(s === 'RED') })
@@ -99,9 +99,9 @@ export const AVOID: Machine<Avoid, AvoidIn> = {
   states: ['GO', 'STOP', 'TURN'],
   start: 'GO',
   edges: [
-    { from: 'GO', to: 'STOP', when: (i) => i.cm < i.near, label: 'nEAr' },
-    { from: 'STOP', to: 'TURN', when: (i) => i.t >= BRAKE_S, label: `${BRAKE_S}S` },
-    { from: 'TURN', to: 'GO', when: (i) => i.cm > i.near + CLEAR_CM, label: 'CLEAr' },
+    { from: 'GO', to: 'STOP', when: (i) => i.cm < i.near, label: 'NEAR' },
+    { from: 'STOP', to: 'TURN', when: (i) => i.t >= BRAKE_S, label: `${BRAKE_S} s` },
+    { from: 'TURN', to: 'GO', when: (i) => i.cm > i.near + CLEAR_CM, label: 'CLEAR' },
   ],
 }
 
