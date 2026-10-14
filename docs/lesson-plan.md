@@ -31,6 +31,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `relay` — `relayPart` (cut-open relay: coil on a glowing core, hinged armature + spring, COM/NO/NC pins down, `contactLane`, optional case), `ssrPart` (IR LED → photo die → triac); model `SRD_05` pull-in/drop-out/`operateTime`/`releaseTime`, `SSR_25DA`, `zeroCrossConducts` in `core/physics`; `flybackStep` takes `onVolts`/`breakdownV`/`floorV`.
 - `switches` — `tactSwitch` (cut-open 6 mm tact: snap dome over a centre pad, `set(press, closed)`), `toggleSwitch` (MTS-102 SPDT: bat lever, rocker, lugs a/com/b, `tip(u)`); model `SWITCHES`, `bounceEdges`/`bouncedState`, `rcDebounceStep`, `schmittHigh`, `debounceStep`, `latchToggle` in `core/physics`.
 - `pot` — `rotaryPot` (cut-open 16 mm pot: carbon track tinted by potential, wiper + knob, pins a/w/b, `track(s)`/`trackAt`, `tops`); model `potDivider`, `taperFraction` (A taper 10 % at half turn), `attenuationDb`, `perceivedLevel` in `core/physics`.
+- `protection` — `glassFuse` (5×20 mm, straight or coiled slow-blow element, `set(heat, melt)`: glows, parts into beads, soots the glass); model `FUSES`/`fuseStep`/`fuseMeltTime`/`fuseI2t`, `reverseGuard` (none/diode/P-FET), `seriesDiode`, `P6KE15A`/`surge`/`tvsNode` in `core/physics/protection`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
@@ -76,7 +77,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Relay
 - [x] Switches & buttons
 - [x] Potentiometer
-- [ ] Fuses & protection
+- [x] Fuses & protection
 - [ ] Crystal oscillator
 - [ ] Op-amp
 - [ ] Voltage regulators
