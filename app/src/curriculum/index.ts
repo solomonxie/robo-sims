@@ -1,4 +1,5 @@
-import { current } from '../lessons/current'
+import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
+import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -19,7 +20,11 @@ const SECTION_IDS: [title: string, ids: string[]][] = [
 export const SECTIONS = SECTION_IDS.map(([title, ids]) => ({ title, categories: ids.map((id) => LEARN.find((c) => c.id === id)!) }))
 export const PRACTICE = CATEGORIES.filter((c) => c.group === 'practice')
 
-const READY: Record<string, typeof current> = { 'electricity/current/what-flows-in-a-wire': current }
+const READY: Record<string, Lesson> = {
+  'electricity/current/what-flows-in-a-wire': whatFlows,
+  'electricity/current/conventional-vs-electron-flow': conventionalVsElectron,
+  'electricity/current/amps-and-the-coulomb': ampsAndCoulomb,
+}
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
 export const readyCount = (t: Topic) => t.entries.filter((e) => e.lesson).length

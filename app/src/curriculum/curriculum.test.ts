@@ -1,4 +1,5 @@
 import { CATEGORIES, LEARN, SECTIONS, search } from '.'
+import { UNITS } from '../lessons'
 
 const entries = CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))
 
@@ -8,8 +9,15 @@ describe('curriculum', () => {
     expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(CATEGORIES.length)
   })
 
-  it('has the shipped lesson attached', () => {
-    expect(entries.filter((e) => e.lesson).map((e) => e.lesson!.id)).toEqual(['current'])
+  it('attaches each ready lesson to its entry, with id = entry id minus category, "/" → "-"', () => {
+    const ready = entries.filter((e) => e.lesson)
+    expect(ready.length).toBeGreaterThanOrEqual(3)
+    for (const e of ready) expect(e.lesson!.id).toBe(e.id.split('/').slice(1).join('-'))
+  })
+
+  it('attaches every lesson in UNITS', () => {
+    const attached = new Set(entries.map((e) => e.lesson?.id))
+    for (const l of UNITS.flatMap((u) => u.lessons)) expect(attached).toContain(l.id)
   })
 
   it('searches topics and lessons', () => {

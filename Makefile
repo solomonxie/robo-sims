@@ -19,7 +19,7 @@ lint:
 
 # Render a lesson's 3D view to /tmp/<lesson>.png (headless Chrome, same scene code).
 preview:
-	cd app && node tools/preview/shoot.mjs $(or $(LESSON),current) /tmp/$(or $(LESSON),current).png
+	cd app && node tools/preview/shoot.mjs $(or $(LESSON),current-what-flows-in-a-wire) /tmp/$(or $(LESSON),current-what-flows-in-a-wire).png
 
 check-expo:
 	@! grep -Eq '"node_modules/(@expo/|expo["/])' app/package-lock.json || (echo "expo package found" && exit 1)

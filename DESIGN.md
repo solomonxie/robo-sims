@@ -32,9 +32,9 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One lesson at a time, polished before the next. Shipped: **Current**. The rest are drafts in `archive/lesson-drafts/` (backlog order in its README).
+- One lesson at a time, polished before the next. Shipped: **Current** (3 lessons). Lessons live in `lessons/<category>/<topic>.ts`. The rest are drafts in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics.ts` (tested).
-- `make preview LESSON=current` renders the lesson in headless Chrome (WebGPU on Metal, same scene code) with the screen's overlays mocked, to iterate on framing and look without a device. It's not a simulator; the iPhone is still the real check.
+- `make preview LESSON=<lesson id>` renders the lesson in headless Chrome (WebGPU on Metal, same scene code) with the screen's overlays mocked, to iterate on framing and look without a device. It's not a simulator; the iPhone is still the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.
 
 ## Simulation

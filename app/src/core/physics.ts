@@ -9,6 +9,16 @@ export type Metal = keyof typeof RESISTIVITY
 
 export const electronsPerSecond = (amps: number) => amps / E_CHARGE
 
+/** Q = I·t. */
+export const chargeFlowed = (amps: number, seconds: number) => amps * seconds
+
+/** Electrons that make up a charge (sign ignored). */
+export const electronsIn = (coulombs: number) => Math.abs(coulombs) / E_CHARGE
+
+/** Current carried by one kind of carrier: I = n·q·v·A. Flipping both q and v leaves I unchanged. */
+export const carrierCurrent = (chargeC: number, velocity: number, areaM2: number, n = COPPER_FREE_ELECTRONS) =>
+  n * chargeC * velocity * areaM2
+
 /** Drift speed v = I / (n·A·q). */
 export const driftVelocity = (amps: number, areaM2: number, n = COPPER_FREE_ELECTRONS) =>
   amps / (n * areaM2 * E_CHARGE)

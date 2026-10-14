@@ -1,5 +1,9 @@
 import {
   builtInVoltage,
+  carrierCurrent,
+  chargeFlowed,
+  E_CHARGE,
+  electronsIn,
   depletionWidth,
   diodeCurrent,
   drainCurrent,
@@ -17,6 +21,18 @@ import { sci, si } from './units'
 describe('electricity', () => {
   it('1 A is about 6.24e18 electrons per second', () => {
     expect(electronsPerSecond(1)).toBeCloseTo(6.2415e18, -15)
+  })
+  it('1 A for 1 s moves 1 C; 20 mA for an hour moves 72 C; 1 mAh is 3.6 C', () => {
+    expect(chargeFlowed(1, 1)).toBe(1)
+    expect(chargeFlowed(0.02, 3600)).toBeCloseTo(72)
+    expect(chargeFlowed(1e-3, 3600)).toBeCloseTo(3.6)
+    expect(electronsIn(1)).toBeCloseTo(6.2415e18, -15)
+    expect(electronsIn(-1)).toBe(electronsIn(1))
+  })
+  it('electrons drifting backwards carry the same current as + charges drifting forwards', () => {
+    const v = driftVelocity(1, 1e-6)
+    expect(carrierCurrent(-E_CHARGE, -v, 1e-6)).toBeCloseTo(1)
+    expect(carrierCurrent(E_CHARGE, v, 1e-6)).toBeCloseTo(1)
   })
   it('drift speed in 1 mm² copper at 1 A is well under a mm/s', () => {
     const v = driftVelocity(1, 1e-6)
