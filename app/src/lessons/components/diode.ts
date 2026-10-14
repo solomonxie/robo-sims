@@ -5,6 +5,7 @@ import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
+  GREY,
   CELL_H,
   CONVENTIONAL,
   HIGH_V,
@@ -24,6 +25,7 @@ import {
   emptyGroup,
   glowMat,
   groundSymbol,
+  ivScreen,
   junction,
   knifeSwitch,
   lerp,
@@ -32,38 +34,16 @@ import {
   pulseLabel,
   rand,
   scope,
-  segmentDisplay,
   swapResistor,
+  ticks,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
 const lane = (pts: V3[], z = LANE): V3[] => pts.map(([x, y]): V3 => [x, y, z])
 const GHOST = '#6a5a3a'
-const GREY = '#8a8f99'
 const D_SCALE = 2.2
 const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
-
-type Plot = ReturnType<typeof scope>
-
-/** Grey tick numbers: under the screen at x fractions, right of it at y fractions. */
-function ticks(plot: Plot, x: [number, string][], y: [number, string][]) {
-  const label = (text: string, at: V3) => {
-    const d = segmentDisplay(text.replace('.', '').length, 0.8, GREY, true)
-    d.set(text)
-    add(plot.group, d.group, at)
-  }
-  for (const [u, s] of x) label(s, [plot.xAt(u), -plot.height / 2 - 1.1, 0])
-  for (const [v, s] of y) label(s, [plot.width / 2 + 1.5, v * plot.height - plot.height / 2, 0])
-}
-
-/** A plot screen with a glowing operating-point dot. */
-function ivScreen(scene: THREE.Object3D, at: V3, w: number, h: number, divs: [number, number]) {
-  const plot = scope(scene, w, h, { divs, zeroAt: 0 })
-  plot.group.position.set(...at)
-  const dot = add(plot.group, mesh(new THREE.SphereGeometry(0.42, 18, 12), glowMat('#ffffff', 1.4)))
-  return { plot, dot, y: (f: number) => f * h - h / 2 }
-}
 
 // --- Forward drop: below ~0.5 V nothing flows; above it the current climbs ×10 per 0.1 V, so the drop barely moves. ---
 

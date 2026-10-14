@@ -18,6 +18,7 @@ export function PartViewer({ part, onBack }: { part: CatalogEntry; onBack: () =>
     const s = createStage({ span: fit.radius })
     s.add(model)
     if (part.type === 'led') model.userData.setGlow(0.35)
+    if (part.type === 'rgb-led') model.userData.setMix(0.35, 0, 0.3)
     const o = new Orbit({ minRadius: fit.radius * 0.3, maxRadius: fit.radius * 8, minPolar: 0.05, maxPolar: Math.PI - 0.05 })
     o.polar = 1.05
     o.frame(fit.center, fit.radius * 0.8)

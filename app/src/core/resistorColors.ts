@@ -50,5 +50,11 @@ export function nearestE12(ohms: number): number {
   return options.reduce((best, v) => (Math.abs(Math.log(v / ohms)) < Math.abs(Math.log(best / ohms)) ? v : best))
 }
 
+/** Smallest E12 value at or above `ohms` (a safe current limit). */
+export function e12Above(ohms: number): number {
+  const decade = 10 ** Math.floor(Math.log10(ohms) - 1)
+  return [...E12, 100].map((v) => v * decade).find((v) => v >= ohms * (1 - 1e-9))!
+}
+
 /** Range a part can really measure within ±`percent`. */
 export const toleranceRange = (ohms: number, percent: number): [number, number] => [ohms * (1 - percent / 100), ohms * (1 + percent / 100)]

@@ -48,6 +48,53 @@ export const DIODES = {
   zener5V1: { saturationA: 1e-12, ideality: 1.2, breakdownV: 5.1, kneeA: 5e-3, breakdownIdeality: 2 },
 } satisfies Record<string, Diode>
 
+/** Shockley fit through `vf` at `amps`; LEDs sit near n ≈ 2. */
+export const fitDiode = (vf: number, ideality = 2, amps = 0.02): Diode => ({
+  saturationA: amps / Math.expm1(vf / (ideality * thermalVoltage())),
+  ideality,
+})
+
+/** Photon energy in eV at a wavelength in nm: E = hc/λ. */
+export const photonEv = (nm: number) => 1239.84 / nm
+
+export interface Led extends Diode {
+  /** Forward voltage at 20 mA. */
+  vf: number
+  nm: number
+  color: string
+}
+
+const led = (vf: number, nm: number, color: string): Led => ({ ...fitDiode(vf), vf, nm, color })
+
+/** 5 mm LEDs; white is a blue die under a yellow phosphor. */
+export const LEDS = {
+  red: led(2.0, 625, '#ff2a1a'),
+  yellow: led(2.2, 590, '#ffb81a'),
+  green: led(3.0, 525, '#2bff5a'),
+  blue: led(3.1, 470, '#2a6bff'),
+  white: led(3.2, 450, '#eef2ff'),
+} satisfies Record<string, Led>
+
+export const LED_RATED_A = 0.02
+export const LED_MAX_A = 0.03
+
+/** A row-scanned matrix: one row lit at a time, `rowHz` rows per second. */
+export const matrixScan = (rows: number, cols: number, rowHz: number) => ({
+  frameHz: rowHz / rows,
+  duty: 1 / rows,
+  pins: rows + cols,
+  leds: rows * cols,
+})
+
+/** Fraction of [t, t + dt] each row of a scanned matrix spends lit. */
+export function rowOnFractions(t: number, dt: number, rowHz: number, rows: number): number[] {
+  const out = new Array<number>(rows).fill(0)
+  const a = t * rowHz
+  const b = (t + dt) * rowHz
+  for (let k = Math.floor(a); k < b; k++) out[((k % rows) + rows) % rows] += Math.min(b, k + 1) - Math.max(a, k)
+  return out.map((x) => x / (b - a || 1))
+}
+
 /** Current from anode to cathode at `volts` across the diode. */
 export function diodeAmps(volts: number, d: Diode): number {
   const forward = diodeCurrent(volts, d.saturationA, d.ideality)

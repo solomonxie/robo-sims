@@ -1,12 +1,12 @@
 // Circuit parts: cells, wires, resistors, nodes, sources.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
-import { resistorBody } from '../../models/passives'
+import { buildLed, resistorBody } from '../../models/passives'
 import { Helix } from '../../models/power'
 import { COPPER, CONVENTIONAL, HIGH_V, POWER, glowMat, potentialColor } from './colors'
 import { plusFlow } from './flows'
 import { arrow, plusGeometry } from './shapes'
-import { clamp01, emptyGroup } from './util'
+import { clamp01, emptyGroup, rand } from './util'
 
 /** A cell standing on y, + on top; flip with `rotation.z = π`. */
 export function cell(height = 5, r = 1.6): THREE.Group {
@@ -333,4 +333,99 @@ export function diodeSymbol(size = 1.6, color = '#e8e8e8'): THREE.Group {
   box(g, [0.18, size * 1.1, 0.2], m, [h + 0.09, 0, 0])
   for (const s of [-1, 1]) rod(g, [s * (h + 0.6), 0, 0], [s * h, 0, 0], 0.08, m)
   return g
+}
+
+let glowTexture: THREE.DataTexture | null = null
+
+/** Radial falloff, white in the middle to clear at the rim. */
+function glowMap() {
+  if (glowTexture) return glowTexture
+  const size = 64
+  const data = new Uint8Array(size * size * 4)
+  for (let j = 0; j < size; j++)
+    for (let i = 0; i < size; i++) {
+      const r = Math.hypot(i - size / 2 + 0.5, j - size / 2 + 0.5) / (size / 2)
+      const a = Math.max(0, Math.exp(-5 * r * r) - Math.exp(-5)) * 255
+      data.set([a, a, a, 255], 4 * (j * size + i))
+    }
+  glowTexture = new THREE.DataTexture(data, size, size)
+  glowTexture.magFilter = glowTexture.minFilter = THREE.LinearFilter
+  glowTexture.needsUpdate = true
+  return glowTexture
+}
+
+/** Soft additive glow facing the camera at `at`, `radius` across at f = 1; `set(f, color)` brightens and grows it. */
+export function glowHalo(parent: THREE.Object3D, at: V3, radius: number) {
+  const material = new THREE.SpriteMaterial({ map: glowMap(), color: '#000000', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })
+  const sprite = add(parent, new THREE.Sprite(material), at)
+  return {
+    group: sprite,
+    set(f: number, color: THREE.ColorRepresentation) {
+      sprite.visible = f > 0.003
+      sprite.scale.setScalar(radius * 5 * (0.6 + 0.5 * Math.min(f, 2)))
+      material.color.set(color).multiplyScalar(0.9 * Math.min(f, 2))
+    },
+  }
+}
+
+const PHOTONS = 40
+
+/** The real 5 mm LED (`buildLed`) at `scale`, leads ending at `at` ± scale/2 on x, anode at +x (−x if `!anodeRight`),
+ *  with a halo and photons flying off. `set(f)`: f = current / rated; light ∝ √f so dim currents still read, past 1
+ *  it flares white. `step(dt)` moves photons; `burn(on)` chars the die. */
+export function ledLamp(parent: THREE.Object3D, color: string, at: V3, { scale = 1.6, anodeRight = true } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const led = add(group, buildLed(color), [0, 1.5 * scale, 0])
+  led.scale.setScalar(scale)
+  if (anodeRight) led.rotation.y = Math.PI
+  const dieY = 3.8 * scale
+  const halo = glowHalo(group, [0, dieY + 0.4 * scale, 0], 1.1 * scale)
+  const char = add(group, mesh(new THREE.SphereGeometry(0.5 * scale, 16, 12), mat('#0e0a08', { rough: 0.9 })), [0, dieY, 0])
+  char.visible = false
+  const photonMat = glowMat(color, 2)
+  const photons = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16 * scale, 8, 6), photonMat, PHOTONS)
+  photons.frustumCulled = false
+  photons.castShadow = false
+  group.add(photons)
+  const fly = Array.from({ length: PHOTONS }, () => ({ life: 1, dir: new THREE.Vector3() }))
+  const white = new THREE.Color('#ffffff')
+  const tint = new THREE.Color()
+  const m = new THREE.Matrix4()
+  const p = new THREE.Vector3()
+  const q = new THREE.Quaternion()
+  const sc = new THREE.Vector3()
+  const origin = new THREE.Vector3(0, dieY + 0.4 * scale, 0)
+  let level = 0
+  let burnt = false
+  return {
+    group,
+    dieY: at[1] + dieY,
+    set(f: number) {
+      level = burnt ? 0 : Math.max(0, f)
+      const g = Math.sqrt(Math.min(level, 1))
+      const flare = clamp01((level - 1) / 1.5)
+      led.userData.setGlow(g + 1.5 * flare)
+      halo.set(g + flare, tint.set(color).lerp(white, 0.6 * flare))
+    },
+    burn(on: boolean) {
+      burnt = on
+      char.visible = on
+      ;(led.userData.epoxy as THREE.MeshStandardMaterial).color.set(on ? '#3a2420' : color)
+      if (on) this.set(0)
+    },
+    step(dt: number) {
+      fly.forEach((ph, i) => {
+        if (ph.life >= 1 && Math.random() < dt * 30 * Math.min(level, 2)) {
+          ph.life = 0
+          const a = rand(-0.15, 1.15) * Math.PI
+          ph.dir.set(Math.cos(a), Math.sin(a), rand(-0.4, 0.6)).normalize()
+        }
+        if (ph.life < 1) ph.life = Math.min(1, ph.life + dt / 0.9)
+        const s = ph.life >= 1 ? 0.001 : Math.sin(Math.PI * Math.min(1, ph.life * 1.2 + 0.1))
+        p.copy(ph.dir).multiplyScalar((1.2 + 7 * ph.life) * scale * 0.6).add(origin)
+        photons.setMatrixAt(i, m.compose(p, q, sc.setScalar(Math.max(0.001, s))))
+      })
+      photons.instanceMatrix.needsUpdate = true
+    },
+  }
 }

@@ -1,5 +1,6 @@
 import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConstant } from '../lessons/components/capacitor'
 import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lessons/components/diode'
+import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
@@ -79,6 +80,10 @@ const READY: Record<string, Lesson> = {
   'components/diode/reverse-blocking': reverseBlocking,
   'components/diode/flyback-diode': flybackDiode,
   'components/diode/zener-clamp': zenerClamp,
+  'components/led/forward-voltage-and-colour': forwardVoltageAndColour,
+  'components/led/current-limiting-resistor': currentLimitingResistor,
+  'components/led/rgb-led': rgbLed,
+  'components/led/led-matrix': ledMatrix,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

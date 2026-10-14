@@ -1,4 +1,4 @@
-import { bandValue, nearestE12, resistorColorBands, resistorDigits, toleranceRange } from './resistorColors'
+import { bandValue, e12Above, nearestE12, resistorColorBands, resistorDigits, toleranceRange } from './resistorColors'
 
 describe('resistorColorBands', () => {
   it('220 ohms -> red, red, brown, gold', () => {
@@ -36,5 +36,14 @@ describe('toleranceRange', () => {
     const [lo, hi] = toleranceRange(4700, 5)
     expect(lo).toBeCloseTo(4465)
     expect(hi).toBeCloseTo(4935)
+  })
+})
+
+describe('e12Above', () => {
+  it('rounds up to the next standard value', () => {
+    expect(e12Above(150)).toBe(150)
+    expect(e12Above(350)).toBeCloseTo(390, 9)
+    expect(e12Above(65)).toBe(68)
+    expect(e12Above(95)).toBe(100)
   })
 })

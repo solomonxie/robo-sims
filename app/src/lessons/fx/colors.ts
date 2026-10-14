@@ -13,6 +13,7 @@ export const NORTH = '#ff5a4d'
 export const SOUTH = '#4d7dff'
 export const FORCE = '#ff7ad9'
 export const OHMS_LABEL = '#e8e8e8'
+export const GREY = '#8a8f99'
 export const COPPER = () => mat('#c8803f', { metal: 0.35, rough: 0.4 })
 
 export function glowMat(color: string, intensity = 0.7) {

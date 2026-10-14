@@ -1,7 +1,7 @@
 // Readouts: seven-segment digits, multimeter, oscilloscope, phasor.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
-import { HIGH_V, RING, glowMat } from './colors'
+import { GREY, HIGH_V, RING, glowMat } from './colors'
 import { UP } from './util'
 
 const SEGMENTS: Record<string, string> = {
@@ -208,6 +208,27 @@ export function scope(
   }
 
   return { group, width, height, xAt, trace, level }
+}
+
+type Plot = ReturnType<typeof scope>
+
+/** Grey tick numbers: under the screen at x fractions, right of it at y fractions. */
+export function ticks(plot: Plot, x: [number, string][], y: [number, string][]) {
+  const label = (text: string, at: V3) => {
+    const d = segmentDisplay(text.replace('.', '').length, 0.8, GREY, true)
+    d.set(text)
+    add(plot.group, d.group, at)
+  }
+  for (const [u, s] of x) label(s, [plot.xAt(u), -plot.height / 2 - 1.1, 0])
+  for (const [v, s] of y) label(s, [plot.width / 2 + 1.5, v * plot.height - plot.height / 2, 0])
+}
+
+/** A plot screen at `at` with zero at the bottom and a glowing operating-point dot; `y(f)` maps 0..1 of full scale. */
+export function ivScreen(scene: THREE.Object3D, at: V3, w: number, h: number, divs: [number, number]) {
+  const plot = scope(scene, w, h, { divs, zeroAt: 0 })
+  plot.group.position.set(...at)
+  const dot = add(plot.group, mesh(new THREE.SphereGeometry(0.42, 18, 12), glowMat('#ffffff', 1.4)))
+  return { plot, dot, y: (f: number) => f * h - h / 2 }
 }
 
 /** Rotating phasor facing +z: a faint ring of `radius` with cross-hairs and an arm to a glowing tip; `set(angle)` turns it

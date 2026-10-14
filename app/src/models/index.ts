@@ -3,7 +3,7 @@ import { CatalogEntry, num, str } from '../core/catalog'
 import { buildBreadboard } from './breadboard'
 import { buildDht11, buildEsp32, buildHcSr04, buildL298n } from './modules'
 import { buildMecanum, buildTtMotor, buildWheel } from './motion'
-import { buildCeramicCap, buildElectrolyticCap, buildLed, buildResistor } from './passives'
+import { buildCeramicCap, buildElectrolyticCap, buildLed, buildResistor, buildRgbLed } from './passives'
 import { buildBattery18650 } from './power'
 import { buildJumper } from './wire'
 
@@ -21,6 +21,8 @@ function build(e: CatalogEntry): THREE.Group {
       return buildResistor(num(e, 'ohms'))
     case 'led':
       return buildLed(str(e, 'color'))
+    case 'rgb-led':
+      return buildRgbLed()
     case 'ceramic-cap':
       return buildCeramicCap()
     case 'electrolytic-cap':

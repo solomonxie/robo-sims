@@ -5,6 +5,7 @@ export type PartType =
   | 'breadboard'
   | 'resistor'
   | 'led'
+  | 'rgb-led'
   | 'ceramic-cap'
   | 'electrolytic-cap'
   | 'jumper'
@@ -102,6 +103,20 @@ export const CATALOG: CatalogEntry[] = [
     category: 'Passives',
     pins: twoLeads(1, 'anode', 'cathode'),
     specs: { color: '#2bff5a', forwardVoltageV: 2.2, maxCurrentMA: 20 },
+  },
+  {
+    name: 'led-rgb',
+    type: 'rgb-led',
+    title: 'RGB LED',
+    description: '5 mm, common cathode (longest leg). Red, green and blue dies mix any colour',
+    category: 'Passives',
+    pins: [
+      { id: 'red', x: -1.5, z: 0 },
+      { id: 'cathode', x: -0.5, z: 0 },
+      { id: 'green', x: 0.5, z: 0 },
+      { id: 'blue', x: 1.5, z: 0 },
+    ],
+    specs: { forwardVoltageV: 2.0, maxCurrentMA: 20 },
   },
   {
     name: 'cap-100nf',

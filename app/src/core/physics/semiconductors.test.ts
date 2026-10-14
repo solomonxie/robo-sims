@@ -12,6 +12,11 @@ import {
   flybackStep,
   drainCurrent,
   intrinsicCarriers,
+  LED_RATED_A,
+  LEDS,
+  matrixScan,
+  photonEv,
+  rowOnFractions,
   MODERN_NMOS,
 } from '.'
 
@@ -91,5 +96,32 @@ describe('diode model', () => {
     expect(clamped.peak).toBeGreaterThan(12.5)
     expect(clamped.peak).toBeLessThan(12.8)
     expect(clamped.s).toEqual({ amps: 0, volts: 12 })
+  })
+})
+
+describe('LEDs', () => {
+  const leds = Object.values(LEDS)
+  it('drop their rated Vf at 20 mA and climb ×10 per ~0.12 V', () => {
+    for (const l of leds) expect(diodeVolts(LED_RATED_A, l)).toBeCloseTo(l.vf, 6)
+    expect(diodeVolts(2e-3, LEDS.red)).toBeCloseTo(1.88, 2)
+  })
+  it('need at least the photon energy: shorter wavelength, higher Vf', () => {
+    expect(photonEv(625)).toBeCloseTo(1.98, 2)
+    for (const l of leds) expect(l.vf).toBeGreaterThanOrEqual(photonEv(l.nm))
+    const byNm = [...leds].sort((a, b) => b.nm - a.nm)
+    byNm.slice(1).forEach((l, i) => expect(l.vf).toBeGreaterThan(byNm[i].vf))
+  })
+  it('a red LED through 150 Ω from 5 V runs near 20 mA; a blue one gets less', () => {
+    expect(diodeNode(5, 150, LEDS.red).sourceA).toBeCloseTo(0.0199, 3)
+    expect(diodeNode(5, 150, LEDS.blue).sourceA).toBeCloseTo(0.0127, 3)
+    expect(diodeNode(2.5, 150, LEDS.blue).sourceA).toBeLessThan(1e-5)
+  })
+  it('an 8×8 matrix lights 64 LEDs from 16 pins, each on 1/8 of the time', () => {
+    expect(matrixScan(8, 8, 800)).toEqual({ frameHz: 100, duty: 0.125, pins: 16, leds: 64 })
+    expect(rowOnFractions(0, 1 / 8, 8, 8)).toEqual([1, 0, 0, 0, 0, 0, 0, 0])
+    const f = rowOnFractions(0.3, 1 / 60, 2000, 8)
+    expect(f.reduce((a, b) => a + b)).toBeCloseTo(1, 9)
+    for (const x of f) expect(x).toBeCloseTo(0.125, 1)
+    expect(rowOnFractions(0.0625, 0.125, 8, 8).slice(0, 2)).toEqual([0.5, 0.5])
   })
 })

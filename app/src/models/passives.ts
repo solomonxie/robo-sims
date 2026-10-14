@@ -46,27 +46,26 @@ export function buildResistor(ohms: number): THREE.Group {
   return g
 }
 
+/** 5 mm LED epoxy outline, [radius, height] from the flange up. */
+export const LED_DOME: [number, number][] = [
+  [0, 0],
+  [1.14, 0],
+  [1.14, 0.4],
+  [0.98, 0.4],
+  [0.98, 2.4],
+  ...Array.from({ length: 9 }, (_, i): [number, number] => {
+    const a = ((i + 1) / 9) * (Math.PI / 2)
+    return [0.98 * Math.cos(a), 2.4 + 0.98 * Math.sin(a)]
+  }),
+]
+const LED_BASE = 1.2
+
 /** 5 mm LED; `setGlow(0..1)` lights it. Anode at −x. */
 export function buildLed(color: string): THREE.Group {
   const g = new THREE.Group()
-  const base = 1.2
+  const base = LED_BASE
   const epoxy = mat(color, { opacity: 0.82, rough: 0.15, emissive: '#000000' }, true)
-  lathe(
-    g,
-    [
-      [0, 0],
-      [1.14, 0],
-      [1.14, 0.4],
-      [0.98, 0.4],
-      [0.98, 2.4],
-      ...Array.from({ length: 9 }, (_, i): [number, number] => {
-        const a = ((i + 1) / 9) * (Math.PI / 2)
-        return [0.98 * Math.cos(a), 2.4 + 0.98 * Math.sin(a)]
-      }),
-    ],
-    epoxy,
-    [0, base, 0],
-  )
+  lathe(g, LED_DOME, epoxy, [0, base, 0])
   // Anvil and post seen through the epoxy.
   box(g, [0.5, 1.2, 0.12], mat('#7c7f86', { metal: 0.3 }), [0.22, base + 1, 0])
   box(g, [0.14, 1.4, 0.12], mat('#7c7f86', { metal: 0.3 }), [-0.25, base + 1.1, 0])
@@ -76,10 +75,51 @@ export function buildLed(color: string): THREE.Group {
 
   const light = new THREE.PointLight(color, 0, 20, 2)
   add(g, light, [0, base + 2, 0])
+  g.userData.epoxy = epoxy
   g.userData.setGlow = (level: number) => {
     epoxy.emissive.set(color)
     epoxy.emissiveIntensity = level * 2.5
     light.intensity = level * 60
+  }
+  return g
+}
+
+const RGB_DIES = ['#ff2a1a', '#2bff5a', '#2a6bff']
+
+/** 5 mm common-cathode RGB LED, diffused. Legs at x = −1.5, −0.5, 0.5, 1.5: red, cathode (longest), green, blue.
+ *  `setMix(r, g, b)` lights each die 0..1. */
+export function buildRgbLed(): THREE.Group {
+  const g = new THREE.Group()
+  const base = LED_BASE
+  const epoxy = mat('#eef0f4', { opacity: 0.72, rough: 0.6, emissive: '#000000' }, true)
+  lathe(g, LED_DOME, epoxy, [0, base, 0])
+  const dies = RGB_DIES.map((c, i) => {
+    const m = mat(c, { emissive: '#000000' }, true)
+    box(g, [0.24, 0.24, 0.24], m, [(i - 1) * 0.3, base + 1.6, 0])
+    return m
+  })
+  const legs = [-1.5, -0.5, 0.5, 1.5]
+  legs.forEach((x, i) => {
+    const top = (i - 1.5) * 0.4
+    const kink: [number, number, number][] = i === 1 ? [[x, base - 0.6, 0], [x - 0.25, base - 0.9, 0], [x, base - 1.2, 0]] : []
+    lead(g, [[top, base, 0], [top, base - 0.2, 0], [x, base - 0.5, 0], ...kink, [x, INSERT, 0]], LEAD_R)
+  })
+  const light = new THREE.PointLight('#ffffff', 0, 20, 2)
+  add(g, light, [0, base + 2, 0])
+  const mix = new THREE.Color()
+  const tmp = new THREE.Color()
+  g.userData.setMix = (...levels: number[]) => {
+    mix.setRGB(0, 0, 0)
+    levels.forEach((f, i) => {
+      dies[i].emissive.set(RGB_DIES[i])
+      dies[i].emissiveIntensity = 3 * f
+      mix.add(tmp.set(RGB_DIES[i]).multiplyScalar(f))
+    })
+    const peak = Math.max(mix.r, mix.g, mix.b)
+    epoxy.emissive.copy(mix).multiplyScalar(peak > 0 ? 1 / peak : 0)
+    epoxy.emissiveIntensity = 1.6 * peak
+    light.color.copy(epoxy.emissive)
+    light.intensity = 60 * peak
   }
   return g
 }
