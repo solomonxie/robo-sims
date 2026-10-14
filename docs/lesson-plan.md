@@ -27,6 +27,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
 - `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep` in `core/physics`.
+- `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `barMagnet`.
 
 ## Pacing
@@ -63,7 +64,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Silicon & doping
 - [x] PN junction
 - [x] MOSFET physics
-- [ ] Chip making
+- [x] Chip making
 - [ ] then remaining Components, Semiconductors topics in file order
 
 ### Later waves (file order within each)

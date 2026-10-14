@@ -17,16 +17,7 @@ export function randomDir(len: number): THREE.Vector3 {
 
 export const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-/** Low-discrepancy sequence in 0..1 (base `b`): pair bases 2 and 3 to scatter points evenly. */
-export const halton = (i: number, b: number) => {
-  let f = 1
-  let r = 0
-  for (let k = i + 1; k > 0; k = Math.floor(k / b)) {
-    f /= b
-    r += f * (k % b)
-  }
-  return r
-}
+export { halton } from '../../core/halton'
 
 export const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 

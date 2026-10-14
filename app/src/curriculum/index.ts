@@ -13,6 +13,7 @@ import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '.
 import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electricity/voltage-divider'
 import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
+import { lithographyMachine, waferToChip, what3nmMeans } from '../lessons/semiconductors/chip-making'
 import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from '../lessons/semiconductors/mosfet-physics'
 import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
@@ -96,6 +97,9 @@ const READY: Record<string, Lesson> = {
   'semiconductors/mosfet-physics/channel-formation': channelFormation,
   'semiconductors/mosfet-physics/cmos-inverter': cmosInverterLesson,
   'semiconductors/mosfet-physics/switching-energy': switchingEnergyLesson,
+  'semiconductors/chip-making/lithography-machine': lithographyMachine,
+  'semiconductors/chip-making/wafer-to-chip': waferToChip,
+  'semiconductors/chip-making/what-3-nm-means': what3nmMeans,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
