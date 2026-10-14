@@ -39,6 +39,7 @@ import { clockDividers, metastability, propagationDelay } from '../lessons/digit
 import { bidirectionalShifter, dividerShifter, logicThresholds } from '../lessons/digital/level-shifting'
 import { blinkyInHardware, luts } from '../lessons/digital/fpga-basics'
 import { capacityAndCRate, cellVoltageCurve, internalResistance } from '../lessons/power/battery-chemistry'
+import { balancing, bmsProtection, oneSToFourS } from '../lessons/power/18650-packs'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -190,6 +191,9 @@ const READY: Record<string, Lesson> = {
   'power/battery-chemistry/cell-voltage-curve': cellVoltageCurve,
   'power/battery-chemistry/capacity-and-c-rate': capacityAndCRate,
   'power/battery-chemistry/internal-resistance': internalResistance,
+  'power/18650-packs/1s-to-4s': oneSToFourS,
+  'power/18650-packs/bms-protection': bmsProtection,
+  'power/18650-packs/balancing': balancing,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

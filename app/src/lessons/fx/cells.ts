@@ -1,7 +1,7 @@
 // Inside a battery cell: electrodes, separator, electrolyte, and the ions that shuttle between them.
 import * as THREE from 'three/webgpu'
 import { Chemistry } from '../../core/physics'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { STEEL, V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { LABEL, glowMat } from './colors'
 import { label } from './text'
 import { emptyGroup, lerp } from './util'
@@ -102,6 +102,98 @@ export function cellCutaway(parent: THREE.Object3D, at: V3, w = 13, h = 7) {
       }
       place(time)
       return moving
+    },
+  }
+}
+
+/** Height of a bare 18650 of radius `r` (18 × 65 mm). */
+export const cell18650Height = (r: number) => (r * 65) / 9
+
+/** Bare 18650 standing on the origin's centre, axis y: blue wrap, + cap up (or down when `flipped`). */
+export function cell18650(parent: THREE.Object3D, at: V3, r = 1, flipped = false) {
+  const h = cell18650Height(r)
+  const g = add(parent, new THREE.Group(), at)
+  if (flipped) g.rotation.z = Math.PI
+  cylinder(g, r, h - 0.1, mat('#2856c8', { rough: 0.35 }), [0, 0, 0], 'y', 32)
+  cylinder(g, r * 1.004, h * 0.12, mat('#e9eef8', { rough: 0.4 }), [0, h * 0.3, 0], 'y', 32)
+  cylinder(g, r * 0.4, 0.12, STEEL(), [0, h / 2, 0], 'y', 20)
+  cylinder(g, r * 0.85, 0.04, STEEL(), [0, -h / 2 + 0.03, 0], 'y', 24)
+  return g
+}
+
+const NICKEL = '#c4c8ce'
+const WELD = '#4a4e55'
+const WELD_FLASH = '#bfe0ff'
+
+/** Nickel strip `w` × `d` lying flat at `at` (y = its underside), with `dots` weld points to animate via `weld(i, f)`:
+ *  0 = not welded, (0, 1) = spark, 1 = cold weld. */
+export function nickelStrip(parent: THREE.Object3D, at: V3, w: number, d: number, dots: [number, number][]) {
+  const g = add(parent, new THREE.Group(), at)
+  box(g, [w, 0.08, d], mat(NICKEL, { metal: 0.35, rough: 0.35 }), [0, 0.04, 0])
+  const welds = dots.map(([x, z]) => {
+    const m = glowMat(WELD_FLASH, 0)
+    const dot = add(g, mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.04, 10), m), [x, 0.1, z])
+    dot.castShadow = false
+    return { dot, m }
+  })
+  const cold = new THREE.Color(WELD)
+  const hot = new THREE.Color(WELD_FLASH)
+  return {
+    group: g,
+    count: welds.length,
+    weld(i: number, f: number) {
+      const it = welds[i]
+      it.dot.visible = f > 0
+      it.m.color.lerpColors(hot, cold, f)
+      it.m.emissive.lerpColors(hot, cold, f)
+      it.m.emissiveIntensity = 2 * (1 - f)
+    },
+  }
+}
+
+/** `series` groups of `parallel` 18650s centred on the origin, alternating + up / + down so nickel strips zig-zag the string.
+ *  `chain` runs − terminal → each cell → + terminal (y at the cell ends); `potentialAt(x, y)` is the 0…1 level along it.
+ *  `weld(progress)` sparks the dots in build order, one per unit of progress. */
+export function cellPackModel(parent: THREE.Object3D, series: number, parallel: number, { r = 1, dx = 2.3, dz = 2.3 } = {}) {
+  const group = add(parent, new THREE.Group())
+  const h = cell18650Height(r)
+  const e = h / 2
+  const xs = Array.from({ length: series }, (_, i) => (i - (series - 1) / 2) * dx)
+  const zs = Array.from({ length: parallel }, (_, j) => (j - (parallel - 1) / 2) * dz)
+  const plusUp = (i: number) => i % 2 === 0
+  xs.forEach((x, i) => zs.forEach((z) => cell18650(group, [x, 0, z], r, !plusUp(i))))
+  const depth = (parallel - 1) * dz + 1.3 * r
+  const strip = (from: number, to: number, top: boolean) => {
+    const cx = (xs[from] + xs[to]) / 2
+    const dots: [number, number][] = []
+    for (let i = from; i <= to; i++) for (const z of zs) for (const s of [-1, 1]) dots.push([xs[i] - cx + s * 0.38 * r, z])
+    const s = nickelStrip(group, [cx, top ? e : -e, 0], xs[to] - xs[from] + 1.8 * r, depth, dots)
+    if (!top) s.group.rotation.x = Math.PI
+    return s
+  }
+  const strips = [strip(0, 0, false)]
+  for (let i = 0; i < series - 1; i++) strips.push(strip(i, i + 1, plusUp(i)))
+  strips.push(strip(series - 1, series - 1, plusUp(series - 1)))
+  const plusY = (i: number) => (plusUp(i) ? e : -e)
+  const chain = xs.flatMap((x, i): V3[] => [[x, -plusY(i), 0], [x, plusY(i), 0]])
+  const dotCount = strips.reduce((s, st) => s + st.count, 0)
+  return {
+    group,
+    h,
+    xs,
+    chain,
+    minus: [xs[0], -e - 0.1, 0] as V3,
+    plus: [xs[series - 1], plusY(series - 1) + Math.sign(plusY(series - 1)) * 0.1, 0] as V3,
+    front: zs[zs.length - 1] + r,
+    dotCount,
+    potentialAt(x: number, y: number) {
+      const i = Math.min(series - 1, Math.max(0, Math.round((x - xs[0]) / dx)))
+      const up = (y * Math.sign(plusY(i)) + e) / h
+      return Math.abs(y) < e - 0.05 ? (i + up) / series : (i + (up > 0.5 ? 1 : 0)) / series
+    },
+    weld(progress: number) {
+      let k = 0
+      for (const st of strips) for (let d = 0; d < st.count; d++) st.weld(d, lerp(0, 1, progress - k++))
     },
   }
 }
