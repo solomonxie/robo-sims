@@ -4,29 +4,25 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 ## Unit of work
 
-- One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-` (`curriculum.test.ts`).
-- Numbers come from tested pure fns: `core/physics/<domain>.ts` + test; circuits as `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes/LEDs via `diodeNode`/`ledStringAmps`; fields via `core/fields.ts`. Formatters (`volts`, `si`, `secs`, `pct`, `tiny`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
+- One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
+- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts`; control helpers (`e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (import `'../fx'`); grep before writing a helper.
-- Framing: legend top ~30 % (right), chips bottom ~25 %; scene in the middle band, wide over tall.
-- Visuals: potential = `potentialColor`; 3D text = `label()`/`partLetter` (stroke font: any letter, digits, `+−×÷=.,/:%Ωµ°`, Q̄ = `'Q\u0304'`; one mesh each), 7-seg readouts = `segmentDisplay`/`pulseLabel`; charges on `lane()` (`LANE`), speed ∝ that wire's current; `ease(dt)` toward targets, `presence` to morph. `emptyGroup` keeps cached `mat()`s, so per-rebuild materials use `glowMat`/`new`.
-- Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts; slow real frequencies by a stated factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
+- Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
+- Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s).
+- Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts, state the slow-down factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
 - Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; params/frames: `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}' frames=N`.
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
-`lessons/fx/` (models in `core/physics/` in brackets):
-- `util` — `clamp01`, `lerp`, `ease`, `path`, `emptyGroup`, `presence`, `halton`.
-- `colors` — palette (`LABEL`, `LED_RED`…), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`. `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
-- `flows` — `Flow`, `plusFlow`, glass wire, `ionLattice`, `electronGas`.
-- `circuit` — cells, sources, `wire`, `lane`, resistors, diodes, `ledLamp`, `bulb`, switches, `motorCan`, `icPackage`, `chargeTank`, `groundSymbol`/`groundAt`, `opAmpSymbol`; layout `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
-- `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter` (static text). `text` — `label`, `textGeometry` [`core/strokeFont.ts`: `layoutText`].
-- `electromech` — cut-open `relayPart`/`ssrPart`, `tactSwitch`, `toggleSwitch`, `rotaryPot` [`electromechanical`].
-- `dies` — `bjtDie`, `mosfetDie` cross-sections, `oxideGlass`/`gateMetal` for extra gate stacks [`semiconductors`, `memory`].
-- `crystal` — `siliconCrystal` lattice, `DONOR`/`ACCEPTOR`; `junction` mode for PN.
-- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope`, `ivScreen`/`ticks`, `phasor`, `clockFace`.
-- `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
-- `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, coils (`coil`, `inductorCoil`, `coilLines`), `barMagnet`.
-- `story` — `storySlider`, `storyClock` for stepped lessons.
-- `logic` — `inBall` labelled input, `ledOut` LED to ground, `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path, `signalWire` copper + level glow, `bitRow` LED bits with place values, `gateNet` schematic from a `Net` (`via` routes feedback), `timingDiagram` scrolling logic-analyser, `flipFlopBlock`, `stateDiagram` (states + arrows, `fire(edge)`) [`core/fsm.ts`: `Machine`, `fsmStep`/`fsmRun`, press detector, traffic light, obstacle avoider; `core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`, `Net` + `evalNet` (held state)/`netStep`/`netSteps` (unit delay)/`netSettle`/`netRun` (sequential)/`netDepth`/`netTable`, `SR_LATCH`/`D_LATCH`/`D_FLIP_FLOP`/`REGISTER_BIT`, `shiftIn`, `counterRipple`, `shiftOutSteps` (74HC595); `core/numbers.ts`: binary/hex, two's complement, `addWrap`; `physics/timing`: `pathAt`/`pathSlack`/`maxClock`, `metastableLevel`/`resolveTime`/`syncMtbf`, `divideBy`; `physics/levels`: `LOGIC_INPUTS`/`readInput`/`noiseMargins`, `dividerShift`/`riseTime`, `shifterSolve` (BSS138); `core/fpga.ts`: `lutEval`/`lutTable`, `muxTree`/`muxPath`, `configLoad`, `Design` + `fabricStep`/`fabricRun`, `counterDesign`/`ringDesign`, `bitstream`/`loadBitstream`, `ledPeriod`].
+`lessons/fx/` (model in brackets):
+- `util` — easing (`ease`, `glide`), `lerp`, `path`, `emptyGroup`, `presence`, `halton`.
+- `colors` — palette, `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
+- `heat`, `flows`, `crystal`, `dies` [`semiconductors`, `memory`], `fields` [`core/fields`], `plots`, `story` (stepped lessons).
+- `circuit` — cells, sources, `wire`/`lane`, R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
+- `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`. `electromech` — relay/SSR, switches, pot.
+- `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `ivScreen`, `phasor`, `clockFace`.
+- `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet` (`Net` schematic), `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`, `core/numbers`].
+- `diagrams` — `timingDiagram` (logic analyser), `stateDiagram` [`core/fsm`].
+- Digital models: `core/logic` (gates, adders, `Net` eval/step/settle, latches, shift/counter), `core/numbers`, `core/fsm`, `core/fpga`, `physics/timing`, `physics/levels`.
 
 ## Pacing
 
@@ -41,52 +37,11 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 Order follows the drafts backlog, then the home sections. Tick when committed.
 
-### Wave 1 — Electricity
-- [x] Current
-- [x] Voltage
-- [x] Resistance
-- [x] Ohm's law
-- [x] Power & energy
-- [x] Series & parallel
-- [x] Voltage divider
-- [x] Kirchhoff's laws
-- [x] Thevenin & Norton
-- [x] AC vs DC
-- [x] Electric fields
-- [x] Magnetism
-
-### Wave 2 — Components & semiconductors (drafted first)
-- [x] Capacitor
-- [x] Diode
-- [x] LED
-- [x] Silicon & doping
-- [x] PN junction
-- [x] MOSFET physics
-- [x] Chip making
-- [x] Resistor
-- [x] Inductor
-- [x] Transistor (BJT)
-- [x] MOSFET
-- [x] Relay
-- [x] Switches & buttons
-- [x] Potentiometer
-- [x] Fuses & protection
-- [x] Crystal oscillator
-- [x] Op-amp
-- [x] Voltage regulators
-- [x] Logic gates
-- [x] Memory cell
+- Wave 1 Electricity ✓ 12/12
+- Wave 2 Components & semiconductors ✓ 20/20
 
 ### Wave 3 — Digital, Power, Signals
-- Digital:
-  - [x] Binary & hex
-  - [x] Combinational logic
-  - [x] Flip-flops & latches
-  - [x] Counters & shift registers
-  - [x] State machines
-  - [x] Timing
-  - [x] Level shifting
-  - [x] FPGA basics
+- Digital ✓ 8/8
 - Power:
   - [ ] Battery chemistry
   - [ ] 18650 packs

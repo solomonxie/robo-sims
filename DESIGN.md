@@ -15,10 +15,10 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 | Path | Role |
 |---|---|
-| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units, logic, FPGA fabric, numbers, stroke font. `physics/`: lesson formulas by domain (dc, ac, circuits, electromagnetism, electromechanical, semiconductors, protection, oscillators, opamps, regulators, fabrication, memory). |
+| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units, stroke font; digital: logic nets, numbers, FSMs, FPGA fabric. `physics/`: lesson formulas by domain (dc, ac, circuits, electromagnetism, electromechanical, semiconductors, protection, oscillators, opamps, regulators, fabrication, memory, timing, levels). |
 | `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
 | `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
-| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (util, colors, shapes, heat, flows, circuit, parts, electromech, dies, crystal, displays, plots, fields, story, logic, text). |
+| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (module map in `docs/lesson-plan.md`). |
 | `app/src/screens/` | Bench, Learn, lesson, Parts list, single-part viewer. |
 
 ## 3D models
