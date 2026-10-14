@@ -72,6 +72,25 @@ export function depletionWidth(na: number, nd: number, volts: number): number {
   return Math.sqrt(((2 * EPS_SI * across) / E_CHARGE) * ((naM + ndM) / (naM * ndM)))
 }
 
+/** Depletion width W, its reach into each side (Na·xp = Nd·xn), the barrier left and the peak field in V/m. */
+export function depletion(na: number, nd: number, volts: number) {
+  const w = depletionWidth(na, nd, volts)
+  const xp = (w * nd) / (na + nd)
+  const xn = (w * na) / (na + nd)
+  return { w, xp, xn, barrier: Math.max(builtInVoltage(na, nd) - volts, 0), peakField: (E_CHARGE * na * 1e6 * xp) / EPS_SI }
+}
+
+/** Potential at `x` across a junction at 0 (p side at x < 0, depleted from −xp to xn): parabolic on each side, with the
+ *  barrier split in proportion to xp and xn. Any length unit. */
+export function junctionPotential(x: number, xp: number, xn: number, barrier: number): number {
+  const w = xp + xn
+  if (w <= 0) return x < 0 ? 0 : barrier
+  if (x <= -xp) return 0
+  if (x >= xn) return barrier
+  if (x <= 0) return (barrier * xp * ((x + xp) / xp) ** 2) / w
+  return barrier - (barrier * xn * ((xn - x) / xn) ** 2) / w
+}
+
 /** Shockley diode equation. */
 export const diodeCurrent = (volts: number, saturationA = 1e-12, ideality = 1) =>
   saturationA * (Math.exp(volts / (ideality * thermalVoltage())) - 1)

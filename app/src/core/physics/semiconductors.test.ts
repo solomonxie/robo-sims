@@ -7,6 +7,8 @@ import {
   intrinsicDensity,
   SEMICONDUCTORS,
   depletionWidth,
+  depletion,
+  junctionPotential,
   diodeCurrent,
   diodeAmps,
   diodeNode,
@@ -67,6 +69,19 @@ describe('semiconductors', () => {
     const w0 = depletionWidth(1e16, 1e16, 0)
     expect(depletionWidth(1e16, 1e16, -3)).toBeGreaterThan(w0)
     expect(depletionWidth(1e16, 1e16, 0.5)).toBeLessThan(w0)
+  })
+  it('a one-sided junction depletes into the lighter side, with Na·xp = Nd·xn', () => {
+    const d = depletion(1e18, 1e15, 0)
+    expect(d.xp + d.xn).toBeCloseTo(d.w, 12)
+    expect(d.xn / d.xp).toBeCloseTo(1000, 6)
+    expect(d.peakField).toBeCloseTo((2 * d.barrier) / d.w, -2)
+    expect(depletion(1e16, 1e16, 0).peakField).toBeGreaterThan(2e6)
+  })
+  it('junction potential climbs smoothly from 0 to the barrier', () => {
+    expect(junctionPotential(-2, 1, 1, 0.7)).toBe(0)
+    expect(junctionPotential(0, 1, 1, 0.7)).toBeCloseTo(0.35)
+    expect(junctionPotential(0, 1, 3, 0.8)).toBeCloseTo(0.2)
+    expect(junctionPotential(5, 1, 3, 0.8)).toBe(0.8)
   })
   it('diode current grows ~10x per 60 mV', () => {
     expect(diodeCurrent(0.66) / diodeCurrent(0.6)).toBeCloseTo(10.2, 0)

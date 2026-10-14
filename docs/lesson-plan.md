@@ -22,7 +22,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `shapes` — `arrow`, `plusGeometry`.
 - `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
 - `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `ledLamp` (real LED, light ∝ √current), `glowHalo`, `knifeSwitch`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
-- `crystal` — `siliconCrystal` (flat Si lattice: bond pairs, donors/acceptors that ionize, free electrons, hopping holes, drift, net crossings, `track`ed hole).
+- `crystal` — `siliconCrystal` (flat Si lattice: bond pairs, donors/acceptors that ionize, free electrons, hopping holes, drift, net crossings, `track`ed hole; `wrap: false` + `junction` step: depletion zone, injection, breakdown pairs, contacts).
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
@@ -60,7 +60,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Diode
 - [x] LED
 - [x] Silicon & doping
-- [ ] PN junction
+- [x] PN junction
 - [ ] MOSFET physics
 - [ ] Chip making
 - [ ] then remaining Components, Semiconductors topics in file order

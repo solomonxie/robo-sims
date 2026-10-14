@@ -14,6 +14,10 @@ const MAX = 64
 const FLASHES = 12
 const HOP_S = 0.24
 const FREE_Z = 1.1
+const SWEEP = 6
+const MAJOR = 0
+const CROSSING = 1
+const MINOR = 2
 const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0)
 
 interface Hole {
@@ -23,6 +27,9 @@ interface Hole {
   wait: number
   bound: number
   tracked: boolean
+  cross: number
+  life: number
+  leaving: boolean
 }
 
 interface Electron {
@@ -31,6 +38,22 @@ interface Electron {
   orbit: number
   phase: number
   fall: Hole | null
+  cross: number
+  life: number
+  leaving: boolean
+}
+
+/** A PN junction (p side at lower x): free electrons stay right of the depletion zone and holes left of it. */
+export interface Junction {
+  from: number
+  to: number
+  /** Carriers of each kind pushed across per second (forward bias); they recombine on the far side. */
+  inject?: number
+  /** Pairs per second torn free inside the zone (breakdown); the field sweeps them out. */
+  generate?: number
+  /** Ends wired to a battery: they refill carriers and take the excess away. Else excess carriers recombine in pairs at
+   *  the junction. */
+  contacts?: boolean
 }
 
 export interface CrystalStep {
@@ -41,14 +64,15 @@ export interface CrystalStep {
   drift?: number | ((x: number) => number)
   /** Hole drift speed as a fraction of the electron's (μp / μn). */
   holeRatio?: number
+  junction?: Junction
 }
 
 /** Atoms on a `cols` × `rows` grid of `pitch`, centred on the origin, facing +z; wraps around in x so carriers can flow
- *  through. `dopants` maps a site (row × cols + col, row 0 at the bottom) to a donor (5th electron that escapes, leaving +)
+ *  through (with `wrap`; else the ends stop them). `dopants` maps a site (row × cols + col, row 0 at the bottom) to a donor (5th electron that escapes, leaving +)
  *  or an acceptor (a bond one short: a hole that wanders off, leaving −). Dopants ionize one by one after `ionizeAfter` s. */
 export function siliconCrystal(
   parent: THREE.Object3D,
-  { cols = 9, rows = 5, pitch = 3.2, dopants = new Map<number, Dopant>(), ionizeAfter = 0.8, track = false } = {},
+  { cols = 9, rows = 5, pitch = 3.2, dopants = new Map<number, Dopant>(), ionizeAfter = 0.8, track = false, wrap = true } = {},
 ) {
   const group = add(parent, new THREE.Group())
   const width = cols * pitch
@@ -67,19 +91,20 @@ export function siliconCrystal(
   const slots: THREE.Vector3[] = []
   const wraps: number[] = []
   bonds.forEach(([a, b], k) => {
-    const wrap = sites[b].x < sites[a].x
-    const end = wrap ? sites[a].clone().setX(sites[a].x + pitch) : sites[b]
+    const around = sites[b].x < sites[a].x
+    const end = around ? sites[a].clone().setX(sites[a].x + pitch) : sites[b]
     const mid = sites[a].clone().lerp(end, 0.5)
-    if (wrap) mid.x -= pitch * 0.1
+    if (around) mid.x -= pitch * 0.1
     const side = new THREE.Vector3(-(end.y - sites[a].y), end.x - sites[a].x, 0).setLength(off)
     slots.push(mid.clone().add(side), mid.clone().sub(side))
-    if (wrap) wraps.push(2 * k, 2 * k + 1)
+    if (around) wraps.push(2 * k, 2 * k + 1)
   })
   const touching = (k: number, atom: number) => bonds[k][0] === atom || bonds[k][1] === atom
   const bondOf = (s: number) => Math.floor(s / 2)
   const neighbours = slots.map((_, s) => {
     const [a, b] = bonds[bondOf(s)]
-    return slots.flatMap((__, o) => (bondOf(o) !== bondOf(s) && (touching(bondOf(o), a) || touching(bondOf(o), b)) ? [o] : []))
+    const near = (o: number) => wrap || Math.abs(slots[o].x - slots[s].x) < width / 2
+    return slots.flatMap((__, o) => (bondOf(o) !== bondOf(s) && (touching(bondOf(o), a) || touching(bondOf(o), b)) && near(o) ? [o] : []))
   })
   const dxWrap = (a: THREE.Vector3, b: THREE.Vector3) => {
     const d = b.x - a.x
@@ -149,13 +174,17 @@ export function siliconCrystal(
   const flash: { at: THREE.Vector3; t: number; color: THREE.Color }[] = []
   const thermalV = () => new THREE.Vector3(rand(-1, 1), rand(-1, 1), 0).normalize()
   const taken = () => new Set(holes.flatMap((h) => [h.slot, h.from]))
+  const electron = (at: THREE.Vector3, v: THREE.Vector3, orbit = -1, phase = 0): Electron =>
+    ({ p: at, v, orbit, phase, fall: null, cross: MAJOR, life: 0, leaving: false })
+  const hole = (slot: number, bound = -1): Hole =>
+    ({ slot, from: slot, t: 1, wait: rand(0.3, 0.8), bound, tracked: false, cross: MAJOR, life: 0, leaving: false })
+  const targeted = (h: Hole) => electrons.some((e) => e.fall === h)
+  const freeElectrons = () => electrons.filter((e) => e.orbit < 0 && !e.fall)
+  const freeHoles = () => holes.filter((h) => h.bound < 0 && !targeted(h))
 
   for (const ion of ions) {
-    if (ion.kind === 'donor') electrons.push({ p: sites[ion.at].clone(), v: new THREE.Vector3(), orbit: ion.at, phase: rand(0, 6.3), fall: null })
-    else {
-      const slot = 2 * bonds.findIndex(([a]) => a === ion.at)
-      holes.push({ slot, from: slot, t: 1, wait: rand(0.3, 0.8), bound: ion.at, tracked: false })
-    }
+    if (ion.kind === 'donor') electrons.push(electron(sites[ion.at].clone(), new THREE.Vector3(), ion.at, rand(0, 6.3)))
+    else holes.push(hole(2 * bonds.findIndex(([a]) => a === ion.at), ion.at))
   }
 
   const burst = (at: THREE.Vector3, color: string) => {
@@ -164,7 +193,9 @@ export function siliconCrystal(
   }
 
   const net = { electrons: 0, holes: 0 }
-  const state = { gen: 0, time: 0 }
+  const state = { gen: 0, time: 0, injE: 0, injH: 0, born: 0 }
+  const edge = width / 2 - 0.4
+  const leftEdge = -width / 2 + pitch * 0.9
   const holeAt = (h: Hole, out: THREE.Vector3) => {
     const a = slots[h.from]
     const b = slots[h.slot]
@@ -177,10 +208,110 @@ export function siliconCrystal(
   const blue = new THREE.Color(ELECTRON).multiplyScalar(0.7)
   const red = new THREE.Color(HOLE)
 
-  const step = (dt: number, { kelvin = 300, pairs = 0, drift = 0, holeRatio = 480 / 1350 }: CrystalStep = {}) => {
+  const nearest = <T>(list: T[], key: (t: T) => number) =>
+    list.reduce<T | undefined>((best, t) => (best === undefined || key(t) < key(best) ? t : best), undefined)
+  const openSlot = (where: (x: number) => boolean) => {
+    const busy = taken()
+    const open = slots.map((_, s) => s).filter((s) => where(slots[s].x) && !busy.has(s))
+    return open.length ? open[Math.floor(Math.random() * open.length)] : -1
+  }
+  const pairAt = (s: number, thermal: number) => {
+    holes.push(hole(s))
+    electrons.push(electron(slots[s].clone().setZ(FREE_Z), thermalV().multiplyScalar(thermal * 1.5)))
+    burst(slots[s], RING)
+    state.gen = 0.12
+  }
+
+  const exchange = (dt: number, pairs: number, thermal: number) => {
+    const freeE = freeElectrons().length
+    const freeH = freeHoles().length
+    const wantE = Math.min(MAX - 4, ions.filter((i) => i.kind === 'donor' && i.ionized).length + pairs)
+    const wantH = Math.min(MAX - 4, ions.filter((i) => i.kind === 'acceptor' && i.ionized).length + pairs)
+    state.gen -= dt
+    if (state.gen <= 0 && freeE < wantE && freeH < wantH) {
+      const s = openSlot(() => true)
+      if (s >= 0) pairAt(s, thermal)
+    }
+    if (state.gen <= 0 && freeE > wantE && freeH > wantH) {
+      const h = holes.find((x) => x.bound < 0 && !x.tracked && !targeted(x))
+      const e = h && nearest(freeElectrons(), (x) => x.p.distanceTo(slots[h.slot]))
+      if (h && e) e.fall = h
+      state.gen = 0.12
+    }
+  }
+
+  /** Keeps each side neutral outside the zone, pushes carriers across, tears pairs free and ends minority lifetimes. */
+  const balance = (j: Junction, dt: number, thermal: number) => {
+    const inZone = (x: number) => x > j.from && x < j.to
+    const want = (kind: Dopant) => Math.min(MAX - 4, ions.filter((i) => i.kind === kind && i.ionized && !inZone(sites[i.at].x)).length)
+    const es = freeElectrons()
+    const hs = freeHoles()
+    const majorE = es.filter((e) => e.cross === MAJOR && !e.leaving && e.p.x >= j.to)
+    const majorH = hs.filter((h) => h.cross === MAJOR && !h.leaving && h.t >= 1 && slots[h.slot].x <= j.from)
+    const extraE = es.filter((e) => !e.leaving).length - want('donor')
+    const extraH = hs.filter((h) => !h.leaving).length - want('acceptor')
+    state.gen -= dt
+    if (state.gen <= 0) {
+      state.gen = 0.12
+      if (!j.contacts) {
+        if (extraE > 0 || extraH > 0) {
+          const mid = (j.from + j.to) / 2
+          const h = nearest(majorH.filter((x) => !x.tracked), (x) => Math.abs(slots[x.slot].x - mid))
+          const e = h && nearest(majorE, (x) => x.p.distanceTo(slots[h.slot]))
+          if (h && e) e.fall = h
+        }
+      } else {
+        if (extraE > 0) {
+          const e = nearest(majorE, (x) => -x.p.x)
+          if (e) e.leaving = true
+        } else if (es.length < want('donor')) electrons.push(electron(new THREE.Vector3(edge, rand(-height / 2 + 0.6, height / 2 - 0.6), FREE_Z), new THREE.Vector3(-thermal, 0, 0)))
+        if (extraH > 0) {
+          const h = nearest(majorH, (x) => slots[x.slot].x)
+          if (h) h.leaving = true
+        } else if (hs.length < want('acceptor')) {
+          const s = openSlot((x) => x < leftEdge)
+          if (s >= 0) holes.push(hole(s))
+        }
+      }
+    }
+
+    state.injE = Math.min(1.5, state.injE + (j.inject ?? 0) * dt)
+    state.injH = Math.min(1.5, state.injH + (j.inject ?? 0) * dt)
+    const e = state.injE >= 1 && nearest(majorE, (x) => x.p.x)
+    if (e) {
+      e.cross = CROSSING
+      state.injE -= 1
+    }
+    const h = state.injH >= 1 && nearest(majorH, (x) => -slots[x.slot].x)
+    if (h) {
+      h.cross = CROSSING
+      h.wait = 0
+      state.injH -= 1
+    }
+    state.born = Math.min(2, state.born + (j.generate ?? 0) * dt)
+    if (state.born >= 1) {
+      state.born -= 1
+      const s = openSlot(inZone)
+      if (s >= 0) pairAt(s, thermal)
+    }
+
+    for (const x of es)
+      if (x.cross === MINOR && (x.life -= dt) <= 0) {
+        const target = nearest(freeHoles().filter((o) => o.cross === MAJOR && !o.leaving), (o) => x.p.distanceTo(slots[o.slot]))
+        if (target) x.fall = target
+      }
+    for (const x of hs)
+      if (x.cross === MINOR && (x.life -= dt) <= 0 && !targeted(x)) {
+        const by = nearest(freeElectrons().filter((o) => o.cross === MAJOR && !o.leaving), (o) => o.p.distanceTo(slots[x.slot]))
+        if (by) by.fall = x
+      }
+  }
+
+  const step = (dt: number, { kelvin = 300, pairs = 0, drift = 0, holeRatio = 480 / 1350, junction }: CrystalStep = {}) => {
     state.time += dt
     const driftAt = (x: number) => (typeof drift === 'number' ? drift : drift(x))
     const thermal = 2.6 * Math.sqrt(kelvin / 300)
+    const inZone = (x: number) => !!junction && x > junction.from && x < junction.to
 
     for (const ion of ions) {
       if (!ion.ionized && state.time >= ion.delay) {
@@ -197,60 +328,55 @@ export function siliconCrystal(
           if (h) h.bound = -1
         }
       }
-      ion.grown += ((ion.ionized ? 1 : 0) - ion.grown) * clamp01(dt * 4)
+      const bare = junction ? (inZone(sites[ion.at].x) ? 1.35 : 0.65) : 1
+      ion.grown += ((ion.ionized ? bare : 0) - ion.grown) * clamp01(dt * 4)
       ion.sign.visible = ion.grown > 0.02
       ion.sign.scale.setScalar(Math.max(0.001, ion.grown))
     }
 
-    const freeE = electrons.filter((e) => e.orbit < 0 && !e.fall).length
-    const freeH = holes.filter((h) => h.bound < 0 && !electrons.some((e) => e.fall === h)).length
-    const donorsOut = ions.filter((i) => i.kind === 'donor' && i.ionized).length
-    const acceptorsOut = ions.filter((i) => i.kind === 'acceptor' && i.ionized).length
-    const wantE = Math.min(MAX - 4, donorsOut + pairs)
-    const wantH = Math.min(MAX - 4, acceptorsOut + pairs)
-    state.gen -= dt
-    if (state.gen <= 0 && freeE < wantE && freeH < wantH) {
-      const busy = taken()
-      const open = slots.map((_, s) => s).filter((s) => !busy.has(s))
-      if (open.length) {
-        const s = open[Math.floor(Math.random() * open.length)]
-        holes.push({ slot: s, from: s, t: 1, wait: rand(0.3, 0.8), bound: -1, tracked: false })
-        electrons.push({ p: slots[s].clone().setZ(FREE_Z), v: thermalV().multiplyScalar(thermal * 1.5), orbit: -1, phase: 0, fall: null })
-        burst(slots[s], RING)
-        state.gen = 0.12
-      }
-    }
-    if (state.gen <= 0 && freeE > wantE && freeH > wantH) {
-      const h = holes.find((x) => x.bound < 0 && !x.tracked && !electrons.some((e) => e.fall === x))
-      const e = h && electrons.filter((x) => x.orbit < 0 && !x.fall).sort((a, b) => a.p.distanceTo(slots[h.slot]) - b.p.distanceTo(slots[h.slot]))[0]
-      if (h && e) e.fall = h
-      state.gen = 0.12
-    }
+    if (junction) balance(junction, dt, thermal)
+    else exchange(dt, pairs, thermal)
     if (track && !holes.some((h) => h.tracked)) {
       const h = holes.filter((x) => x.bound < 0).sort((a, b) => Math.abs(slots[a.slot].x) - Math.abs(slots[b.slot].x))[0]
       if (h) h.tracked = true
     }
 
     const busy = taken()
-    for (const h of holes) {
+    for (let i = holes.length - 1; i >= 0; i--) {
+      const h = holes[i]
       if (h.t < 1) {
         h.t = Math.min(1, h.t + dt / HOP_S)
         if (h.t >= 1) busy.delete(h.from)
         continue
       }
-      if (h.bound >= 0 || electrons.some((e) => e.fall === h)) continue
-      const v = driftAt(slots[h.slot].x) * holeRatio
-      const rate = Math.max(1.6 * Math.sqrt(kelvin / 300), (Math.abs(v) / (pitch * 0.5)) * 1.3)
+      if (h.bound >= 0 || targeted(h)) continue
+      const here = slots[h.slot]
+      if (junction) {
+        if (h.cross === CROSSING && here.x > junction.to + 0.3) {
+          h.cross = MINOR
+          h.life = rand(0.5, 1.2)
+        } else if (h.cross === MINOR && here.x <= junction.from) h.cross = MAJOR
+        if (h.leaving && here.x < leftEdge) {
+          busy.delete(h.slot)
+          holes.splice(i, 1)
+          continue
+        }
+      }
+      const forced = !junction ? 0 : h.cross === CROSSING ? 1 : h.leaving || inZone(here.x) ? -1 : 0
+      const v = driftAt(here.x) * holeRatio
+      const rate = forced ? 10 : Math.max(1.6 * Math.sqrt(kelvin / 300), (Math.abs(v) / (pitch * 0.5)) * 1.3)
       h.wait -= dt
       if (h.wait > 0) continue
       h.wait = rand(0.6, 1.4) / rate
-      const options = neighbours[h.slot].filter((o) => !busy.has(o))
+      const allowed = (o: number) =>
+        !junction || forced !== 0 || (h.cross === MINOR ? slots[o].x >= junction.to : slots[o].x <= junction.from)
+      const options = neighbours[h.slot].filter((o) => !busy.has(o) && allowed(o) && forced * dxWrap(here, slots[o]) > -0.01)
       if (!options.length) continue
-      const bias = clamp01(Math.abs(v) / (pitch * 0.5 * rate))
-      const here = slots[h.slot]
+      const dir = forced || Math.sign(v)
+      const bias = forced ? 1 : clamp01(Math.abs(v) / (pitch * 0.5 * rate))
       const next =
         Math.random() < bias
-          ? options.reduce((best, o) => (Math.sign(v) * dxWrap(here, slots[o]) > Math.sign(v) * dxWrap(here, slots[best]) ? o : best))
+          ? options.reduce((best, o) => (dir * dxWrap(here, slots[o]) > dir * dxWrap(here, slots[best]) ? o : best))
           : options[Math.floor(Math.random() * options.length)]
       const dx = dxWrap(here, slots[next])
       if (here.x < 0 !== here.x + dx < 0 && Math.abs(here.x) < width / 4) net.holes += Math.sign(dx)
@@ -285,12 +411,41 @@ export function siliconCrystal(
       }
       if (Math.random() < dt * 3) e.v.copy(thermalV()).multiplyScalar(thermal)
       const before = e.p.x
-      e.p.x += (e.v.x - driftAt(e.p.x)) * dt
+      let vx = e.v.x - driftAt(e.p.x)
+      if (junction) {
+        if (e.cross === CROSSING) vx = -SWEEP
+        else if (e.leaving) vx = SWEEP + Math.abs(e.v.x) * 0.5
+        else if (inZone(e.p.x)) vx = SWEEP
+      }
+      e.p.x += vx * dt
       e.p.y += e.v.y * dt
       e.p.z += (FREE_Z - e.p.z) * clamp01(dt * 4)
+      if (junction) {
+        if (e.cross === CROSSING && e.p.x < junction.from - pitch * 0.5) {
+          e.cross = MINOR
+          e.life = rand(0.5, 1.2)
+        } else if (e.cross === MAJOR && before >= junction.to && e.p.x < junction.to) {
+          e.p.x = junction.to
+          e.v.x = Math.abs(e.v.x)
+        } else if (e.cross === MINOR && before <= junction.from && e.p.x > junction.from) {
+          e.p.x = junction.from
+          e.v.x = -Math.abs(e.v.x)
+        } else if (e.cross === MINOR && e.p.x >= junction.to) e.cross = MAJOR
+      }
       if (Math.sign(before) !== Math.sign(e.p.x) && Math.abs(e.p.x) < 1) net.electrons += before > 0 ? 1 : -1
-      if (e.p.x < -width / 2) e.p.x += width
-      if (e.p.x > width / 2) e.p.x -= width
+      if (wrap) {
+        if (e.p.x < -width / 2) e.p.x += width
+        if (e.p.x > width / 2) e.p.x -= width
+      } else {
+        if (e.leaving && e.p.x > edge) {
+          electrons.splice(i, 1)
+          continue
+        }
+        if (Math.abs(e.p.x) > edge) {
+          e.p.x = Math.sign(e.p.x) * edge
+          e.v.x = -e.v.x
+        }
+      }
       const top = height / 2 - 0.4
       if (Math.abs(e.p.y) > top) {
         e.p.y = Math.sign(e.p.y) * top
