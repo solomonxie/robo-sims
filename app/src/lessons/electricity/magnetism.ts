@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { Vec3, chargeLines, coilField, loopLines, traceLine, wireField } from '../../core/fields'
+import { Vec3, chargeLines, traceLine, wireField } from '../../core/fields'
 import {
   EARTH_B_H,
   IRON_CORE,
@@ -30,7 +30,9 @@ import {
   arrowGrid,
   barMagnet,
   coil,
+  coilLines,
   compass,
+  dimField,
   ease,
   emptyGroup,
   fieldLines,
@@ -40,22 +42,15 @@ import {
   presence,
   pulseLabel,
   scope,
+  turnAboutX,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
 const tesla = (b: number) => si(b, 'T', 3)
 const amps = (a: number) => `${a > 0 ? '+' : ''}${a} A`
-const BG = new THREE.Color('#14161b')
-const DIM = new THREE.Color(B_FIELD).lerp(BG, 0.68)
-const dim = (_: THREE.Vector3, out: THREE.Color) => out.copy(DIM)
-
-/** The same planar lines turned about the x axis, for dim depth copies of an axially symmetric field. */
-const turnAboutX = (lines: Vec3[][], angles: number[]): V3[][] =>
-  angles.flatMap((a) => lines.map((l) => l.map(([x, y]): V3 => [x, y * Math.cos(a), y * Math.sin(a)])))
 
 const times = (x: number) => (x >= 100 ? String(Math.round(x)) : String(+x.toPrecision(3)))
-const reversed = (lines: Vec3[][]) => lines.map((l) => [...l].reverse())
 
 // --- Wire and compass: current makes a field that circles the wire (Oersted, 1820). ---
 
@@ -149,7 +144,7 @@ export const wireAndCompass: Lesson = {
           })
           const at = (y: number) => circles.map((l) => l.map(([u, v]): V3 => [u, y, -v]))
           lines.set(at(0.15))
-          depth.set(PLANES.flatMap(at), dim)
+          depth.set(PLANES.flatMap(at), dimField)
         }
         lines.step(dt * 1.2 * Math.sign(s.i))
         charges.step(dt * 0.6 * s.i)
@@ -208,7 +203,6 @@ const solveCoil = (p: Params) => {
 }
 /** Line pairs drawn for a field strength: one more per ×4.6 in B, so mT and T both read. */
 const pairsFor = (b: number) => (b === 0 ? 0 : Math.max(1, Math.min(6, Math.round(1.5 * Math.log10(Math.abs(b) / 1e-5)))))
-const coilFieldAt = (p: Vec3) => coilField(COIL_R, COIL_L, LOOPS, p)
 
 export const solenoid: Lesson = {
   id: 'magnetism-solenoid',
@@ -248,28 +242,16 @@ export const solenoid: Lesson = {
       r.rotation.y = Math.PI / 2
       return { r, m, side }
     })
-    const lines = fieldLines(scene, { maxSegments: 4000, spacing: 3.4, color: B_FIELD })
-    const depth = fieldLines(scene, { maxSegments: 8000, radius: 0.045, heads: false })
+    const lines = coilLines(scene, { radius: COIL_R, length: COIL_L, loops: LOOPS, box: COIL_BOX })
     const needles = PROBES.map((at) => {
       const c = compass(scene, at, 0.9)
       c.set(Math.PI / 2)
-      return { c, dir: coilFieldAt(at as Vec3) }
+      return { c, dir: lines.field(at as Vec3) }
     })
     const bLabel = pulseLabel(scene, 4, B_FIELD, [0, -COIL_R - 5.2, 0], 1.3)
 
-    const traces = new Map<number, Vec3[][]>()
-    const traceFor = (pairs: number) => {
-      if (!traces.has(pairs)) {
-        const seeds: Vec3[] = Array.from({ length: pairs }, (_, k) => [0, (COIL_R * 0.86 * (k + 0.5)) / pairs, 0])
-        const upper = loopLines(coilFieldAt, seeds, { step: 0.12, box: COIL_BOX, maxSteps: 900 })
-        traces.set(pairs, [...upper, ...upper.map((l) => l.map(([x, y, z]): Vec3 => [x, -y, z]))])
-      }
-      return traces.get(pairs)!
-    }
-
     let wound = 0
     let flow: Flow | null = null
-    let drawn = ''
     let iron = 0
     return {
       scene,
@@ -288,15 +270,7 @@ export const solenoid: Lesson = {
         }
         flow?.step(dt * 1.6 * s.i)
 
-        const pairs = pairsFor(s.b)
-        const key = `${pairs},${Math.sign(s.b)}`
-        if (key !== drawn) {
-          drawn = key
-          const flat = pairs ? traceFor(pairs) : []
-          const directed = s.b < 0 ? reversed(flat) : flat
-          lines.set(directed)
-          depth.set(turnAboutX(directed, TILTS), dim)
-        }
+        lines.set(pairsFor(s.b), s.b)
         lines.step(dt * 2 * Math.sign(s.b))
 
         iron += ((s.core === 'iron' ? 1 : 0) - iron) * ease(dt)
@@ -507,7 +481,7 @@ export const induction: Lesson = {
     const field = fieldLines(magnet, { maxSegments: 1500, spacing: 2.6, radius: 0.05, head: 0.22, color: B_FIELD })
     field.set(flat)
     const depth = fieldLines(magnet, { maxSegments: 3000, radius: 0.04, heads: false })
-    depth.set(turnAboutX(flat, TILTS), dim)
+    depth.set(turnAboutX(flat, TILTS), dimField)
 
     const pickup = add(scene, new THREE.Group())
     pickup.rotation.x = Math.PI

@@ -52,6 +52,23 @@ export function solenoidB(turns: number, lengthM: number, amps: number, core?: {
   return core ? Math.sign(b) * Math.min(Math.abs(b), core.saturation) : b
 }
 
+// --- Inductors ---
+
+/** Long solenoid: L = μ₀·μr·N²·A / l, henries. */
+export const solenoidInductance = (turns: number, lengthM: number, radiusM: number, mur = 1) =>
+  (MU_0 * mur * turns * turns * Math.PI * radiusM * radiusM) / lengthM
+
+/** Energy in a coil's field: U = ½·L·I². */
+export const inductorEnergy = (henries: number, amps: number) => 0.5 * henries * amps * amps
+
+/** A coil's voltage while its current changes by `dAmps` over `seconds`: V = L·ΔI/Δt. */
+export const inductorVolts = (henries: number, dAmps: number, seconds: number) => (henries * dAmps) / seconds
+
+/** Switch voltage while it cuts a coil's current linearly to 0 over `tOff`: the supply plus L·I/tOff. */
+export const switchOffSpike = (vs: number, amps: number, henries: number, tOff: number) => vs + inductorVolts(henries, amps, tOff)
+
+export const AIR_ARC_V = 330 // Paschen minimum: below it no gap in air sparks over
+
 /** Force on a straight wire in a uniform field: F = I·L × B, newtons (|F| = B·I·L·sin θ). */
 export const wireForce = (amps: number, length: Vec3, b: Vec3): Vec3 => cross(length, b).map((c) => amps * c) as Vec3
 

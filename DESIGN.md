@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons: Current → Magnetism); Components: Resistor (3), Capacitor (4), Diode (4), LED (4); Semiconductors: Silicon & doping (3), PN junction (3), MOSFET physics (3), Chip making (3). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
+- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons: Current → Magnetism); Components: Resistor (3), Capacitor (4), Inductor (3), Diode (4), LED (4); Semiconductors: Silicon & doping (3), PN junction (3), MOSFET physics (3), Chip making (3). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics/` (tested).
 - `make preview LESSON=<id>`: headless-Chrome render (WebGPU on Metal, same scene code, overlays mocked) for framing without a device. Not a simulator; the iPhone is the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.

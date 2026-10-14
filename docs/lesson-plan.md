@@ -21,14 +21,14 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `colors` — palette (`HIGH_V`, `LOW_V`, `CONVENTIONAL`, `HOLE`, `POWER`, `B_FIELD`, `FORCE`…), `glowMat`, `potentialColor`.
 - `shapes` — `arrow`, `plusGeometry`.
 - `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
-- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `ledLamp` (real LED, light ∝ √current), `glowHalo`, `knifeSwitch`, `pushButton`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
+- `circuit` — `cell`, `wire`, `bulb`, `arcSpark`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `ledLamp` (real LED, light ∝ √current), `glowHalo`, `knifeSwitch`, `pushButton`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
 - `crystal` — `siliconCrystal` (flat Si lattice: bond pairs, donors/acceptors that ionize, free electrons, hopping holes, drift, net crossings, `track`ed hole; `wrap: false` + `junction` step: depletion zone, injection, breakdown pairs, contacts).
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter` (`ohms` dial)/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
 - `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep` in `core/physics`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
-- `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `barMagnet`.
+- `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
 ## Pacing
 
@@ -66,7 +66,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] MOSFET physics
 - [x] Chip making
 - [x] Resistor
-- [ ] Inductor
+- [x] Inductor
 - [ ] Transistor (BJT)
 - [ ] MOSFET
 - [ ] Relay

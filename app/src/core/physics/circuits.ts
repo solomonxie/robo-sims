@@ -108,6 +108,9 @@ export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
 
 export const rcTau = (ohms: number, farads: number) => ohms * farads
 
+/** RL circuits run on the same exponential (`rcStep`, `rcFraction`) with τ = L / R. */
+export const rlTau = (ohms: number, henries: number) => henries / ohms
+
 /** Fraction of the way to the target after `t`: 1 − e^(−t/τ). */
 export const rcFraction = (t: number, tauS: number) => 1 - Math.exp(-t / tauS)
 

@@ -1,4 +1,5 @@
 import {
+  AIR_ARC_V,
   capacitorCharge,
   capacitorEnergy,
   chargesField,
@@ -12,6 +13,8 @@ import {
   EPSILON_0,
   faradayEmf,
   forceInField,
+  inductorEnergy,
+  inductorVolts,
   IRON_CORE,
   MAGNET_BR,
   magnetMoment,
@@ -21,7 +24,9 @@ import {
   plateField,
   pointField,
   solenoidB,
+  solenoidInductance,
   strokePeakEmf,
+  switchOffSpike,
   wireB,
   wireForce,
 } from '.'
@@ -103,5 +108,26 @@ describe('magnetism', () => {
     expect(strokePeakEmf(100, 1, 0.015, 0.05, 2) / peak).toBeCloseTo(2, 2)
     expect(strokePeakEmf(100, 1, 0.015, 0.05, 0)).toBe(0)
     expect(peak).toBeGreaterThan(0.01)
+  })
+})
+
+describe('inductors', () => {
+  it('L = μ₀μr·N²A / l: twice the turns, four times the inductance', () => {
+    const l = solenoidInductance(100, 0.05, 0.008)
+    expect(l).toBeCloseTo(50.5e-6, 7)
+    expect(solenoidInductance(200, 0.05, 0.008) / l).toBeCloseTo(4)
+    expect(solenoidInductance(100, 0.05, 0.008, IRON_CORE.mur) / l).toBeCloseTo(IRON_CORE.mur)
+  })
+  it('½LI² equals the field energy B²/2μ₀ × volume inside a long coil', () => {
+    const [n, len, r, i] = [100, 0.05, 0.008, 1.2]
+    const b = solenoidB(n, len, i)
+    expect(inductorEnergy(solenoidInductance(n, len, r), i)).toBeCloseTo(((b * b) / (2 * MU_0)) * Math.PI * r * r * len, 12)
+    expect(inductorEnergy(0.01, 2) / inductorEnergy(0.01, 1)).toBeCloseTo(4)
+  })
+  it('V = L·dI/dt: cutting 50 mA through 0.2 H in 1 µs makes 10 kV', () => {
+    expect(inductorVolts(0.2, 0.05, 1e-6)).toBeCloseTo(10000)
+    expect(inductorVolts(0.2, 0.05, 10e-3)).toBeCloseTo(1)
+    expect(switchOffSpike(12, 0.05, 0.2, 1e-3)).toBeCloseTo(22)
+    expect(switchOffSpike(12, 0.05, 0.2, 10e-6)).toBeGreaterThan(AIR_ARC_V)
   })
 })

@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { DIODES, Diode, Flyback, diodeAmps, diodeNode, diodeVolts, flybackSpike, flybackStep } from '../../core/physics'
 import { fitDigits, ohms, si, volts } from '../../core/units'
-import { V3, add, mesh } from '../../models/kit'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -13,18 +13,18 @@ import {
   RING,
   RS,
   acSource,
+  arcSpark,
   bulb,
   cell,
   cellFraction,
   clamp01,
-  coil,
   diodeAlong,
   diodeSymbol,
   dropAlong,
   ease,
   emptyGroup,
-  glowMat,
   groundSymbol,
+  inductorCoil,
   ivScreen,
   junction,
   knifeSwitch,
@@ -32,7 +32,6 @@ import {
   plusFlow,
   presence,
   pulseLabel,
-  rand,
   scope,
   swapResistor,
   ticks,
@@ -383,10 +382,8 @@ export const flybackDiode: Lesson = {
     wire(scene, [[CR, TOP, 0], [RX, TOP, 0], [RX, BOT, 0], PIVOT])
     add(scene, groundSymbol(), [C3_X + 4, BOT, 0])
     const toggle = knifeSwitch(scene, PIVOT, BLADE, [Math.PI])
-    const winding = coil(scene, { radius: COIL_R, length: COIL_L, turns: 9, thickness: 0.18 })
+    const winding = inductorCoil(scene, { radius: COIL_R, length: COIL_L })
     winding.group.position.set(COIL_X, TOP - COIL_R, 0)
-    const coreMat = new THREE.MeshStandardMaterial({ color: '#6d7480', emissive: B_FIELD, emissiveIntensity: 0, roughness: 0.5 })
-    add(winding.group, mesh(new THREE.CylinderGeometry(0.65, 0.65, COIL_L + 0.8, 24), coreMat)).rotation.z = Math.PI / 2
 
     const branch = add(scene, new THREE.Group(), [COIL_X, TOP, 0])
     const half = COIL_L / 2
@@ -395,16 +392,7 @@ export const flybackDiode: Lesson = {
     const flyback = diodeAlong(branch, [2, DY, 0], [-2, DY, 0], { scale: 1.5 })
     for (const x of [-half, half]) junction(branch, [x, 0, 0], 0.45).set(x < 0 ? 1 : 0.5)
 
-    const sparkMat = glowMat('#cfe3ff', 3)
-    const bolt = Array.from({ length: 5 }, () => {
-      const m = add(scene, mesh(new THREE.CylinderGeometry(0.14, 0.14, 1, 6), sparkMat))
-      m.castShadow = false
-      return m
-    })
-    const flash = add(scene, new THREE.PointLight('#bcd8ff', 0, 30, 2), [CONTACT[0] + 0.5, BOT + 1, 1])
-    const glowBall = new THREE.MeshBasicMaterial({ color: '#9cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-    const halo = add(scene, mesh(new THREE.SphereGeometry(1, 20, 14), glowBall), [CONTACT[0] + 0.4, BOT + 0.9, 0.3])
-    halo.castShadow = false
+    const spark = arcSpark(scene, [CONTACT[0] + 0.4, BOT + 0.9, 0.3])
     const peakLabel = pulseLabel(scene, 3, HIGH_V, [RX + 3.2, 0, 0], 1.4)
 
     const plot = scope(scene, S3_W, S3_H, { divs: [12, 12], zeroAt: -V3_LO / V3_SPAN })
@@ -463,28 +451,11 @@ export const flybackDiode: Lesson = {
         presence(branch, state.fitted)
         const reverse = state.closed || state.s.amps <= 0
         flyback.set(reverse ? -0.6 : clamp01(state.s.amps / 0.05))
-        coreMat.emissiveIntensity = 1.4 * clamp01(Math.abs(state.s.amps) / 0.1)
+        winding.set(Math.abs(state.s.amps) / 0.1)
 
         const arc = state.closed ? 0 : clamp01((Math.abs(state.s.volts) - 30) / 120)
         const tip: V3 = [PIVOT[0] + BLADE * Math.cos(Math.PI - THROW * state.blade), BOT + BLADE * Math.sin(Math.PI - THROW * state.blade), 0.3]
-        let prev: V3 = [CONTACT[0], CONTACT[1], 0.3]
-        bolt.forEach((m, i) => {
-          const u = (i + 1) / bolt.length
-          const jag = i === bolt.length - 1 ? 0 : rand(-0.35, 0.35)
-          const next: V3 = [lerp(CONTACT[0], tip[0], u) + jag, lerp(CONTACT[1], tip[1], u) + jag * 0.5, 0.3]
-          const a = new THREE.Vector3(...prev)
-          const d = new THREE.Vector3(...next).sub(a)
-          m.position.copy(a).addScaledVector(d, 0.5)
-          m.scale.set(1, Math.max(0.001, d.length()), 1)
-          m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize())
-          m.visible = arc > 0.02
-          prev = next
-        })
-        sparkMat.emissiveIntensity = 1 + 4 * arc * rand(0.6, 1)
-        flash.intensity = 400 * arc * rand(0.5, 1)
-        halo.visible = arc > 0.02
-        halo.scale.setScalar(0.4 + 0.8 * arc * rand(0.8, 1))
-        glowBall.opacity = 0.6 * arc
+        spark.set([CONTACT[0], CONTACT[1], 0.3], tip, arc)
 
         mainFlow.mesh.visible = state.closed
         loopFlow.mesh.visible = !state.closed && s.fitted

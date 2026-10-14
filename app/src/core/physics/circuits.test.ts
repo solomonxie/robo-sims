@@ -18,6 +18,7 @@ import {
   rcFraction,
   rcStep,
   rcTau,
+  rlTau,
   rcTimeTo,
   resistorPair,
   seriesChain,
@@ -92,6 +93,7 @@ describe('circuits', () => {
 
   it('τ = RC: 63 % after one τ, over 99 % after five, and rcTimeTo inverts it', () => {
     expect(rcTau(22e3, 100e-6)).toBeCloseTo(2.2, 9)
+    expect(rlTau(100, 10e-3)).toBeCloseTo(100e-6, 12)
     expect(rcFraction(2.2, 2.2)).toBeCloseTo(0.632, 3)
     expect(rcFraction(11, 2.2)).toBeGreaterThan(0.993)
     expect(rcTimeTo(rcFraction(3, 2), 2)).toBeCloseTo(3, 9)

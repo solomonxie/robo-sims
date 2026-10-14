@@ -6,7 +6,7 @@ import { Helix } from '../../models/power'
 import { COPPER, CONVENTIONAL, HIGH_V, POWER, glowMat, potentialColor } from './colors'
 import { plusFlow } from './flows'
 import { arrow, plusGeometry } from './shapes'
-import { clamp01, emptyGroup, rand } from './util'
+import { UP, clamp01, emptyGroup, rand } from './util'
 
 /** A cell standing on y, + on top; flip with `rotation.z = π`. */
 export function cell(height = 5, r = 1.6): THREE.Group {
@@ -447,6 +447,46 @@ export function ledLamp(parent: THREE.Object3D, color: string, at: V3, { scale =
         photons.setMatrixAt(i, m.compose(p, q, sc.setScalar(Math.max(0.001, s))))
       })
       photons.instanceMatrix.needsUpdate = true
+    },
+  }
+}
+
+/** Spark jumping between contacts: a jagged bolt a → b with a halo and a flash light at `at`.
+ *  `set(a, b, strength 0..1)` every frame; 0 hides it. */
+export function arcSpark(parent: THREE.Object3D, at: V3) {
+  const sparkMat = glowMat('#cfe3ff', 3)
+  const bolt = Array.from({ length: 5 }, () => {
+    const m = add(parent, mesh(new THREE.CylinderGeometry(0.14, 0.14, 1, 6), sparkMat))
+    m.castShadow = false
+    return m
+  })
+  const flash = add(parent, new THREE.PointLight('#bcd8ff', 0, 30, 2), [at[0] + 0.1, at[1] + 0.1, at[2] + 0.7])
+  const glowBall = new THREE.MeshBasicMaterial({ color: '#9cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+  const halo = add(parent, mesh(new THREE.SphereGeometry(1, 20, 14), glowBall), at)
+  halo.castShadow = false
+  const from = new THREE.Vector3()
+  const d = new THREE.Vector3()
+  return {
+    set(a: V3, b: V3, strength: number) {
+      const on = strength > 0.02
+      let prev: V3 = a
+      bolt.forEach((m, i) => {
+        const u = (i + 1) / bolt.length
+        const jag = i === bolt.length - 1 ? 0 : rand(-0.35, 0.35)
+        const next: V3 = [a[0] + (b[0] - a[0]) * u + jag, a[1] + (b[1] - a[1]) * u + jag * 0.5, a[2] + (b[2] - a[2]) * u]
+        from.set(...prev)
+        d.set(...next).sub(from)
+        m.position.copy(from).addScaledVector(d, 0.5)
+        m.scale.set(1, Math.max(0.001, d.length()), 1)
+        m.quaternion.setFromUnitVectors(UP, d.normalize())
+        m.visible = on
+        prev = next
+      })
+      sparkMat.emissiveIntensity = 1 + 4 * strength * rand(0.6, 1)
+      flash.intensity = 400 * strength * rand(0.5, 1)
+      halo.visible = on
+      halo.scale.setScalar(0.4 + 0.8 * strength * rand(0.8, 1))
+      glowBall.opacity = 0.6 * strength
     },
   }
 }

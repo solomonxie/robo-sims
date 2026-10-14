@@ -1,5 +1,6 @@
 import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConstant } from '../lessons/components/capacitor'
 import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lessons/components/diode'
+import { energyInACoil, flybackSpike, rlTimeConstant } from '../lessons/components/inductor'
 import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
@@ -84,6 +85,9 @@ const READY: Record<string, Lesson> = {
   'components/capacitor/rc-time-constant': rcTimeConstant,
   'components/capacitor/decoupling': decoupling,
   'components/capacitor/electrolytic-vs-ceramic': electrolyticVsCeramic,
+  'components/inductor/energy-in-a-coil': energyInACoil,
+  'components/inductor/rl-time-constant': rlTimeConstant,
+  'components/inductor/flyback-spike': flybackSpike,
   'components/diode/forward-drop': forwardDrop,
   'components/diode/reverse-blocking': reverseBlocking,
   'components/diode/flyback-diode': flybackDiode,

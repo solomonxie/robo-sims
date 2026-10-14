@@ -1,7 +1,8 @@
 // Fields and magnets: field lines, arrow grids, charges, compass, coil.
 import * as THREE from 'three/webgpu'
+import { Vec3, coilField, loopLines } from '../../core/fields'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
-import { COPPER, HIGH_V, LOW_V, NORTH, RING, SOUTH, glowMat } from './colors'
+import { B_FIELD, COPPER, HIGH_V, LOW_V, NORTH, RING, SOUTH, glowMat } from './colors'
 import { plusGeometry } from './shapes'
 import { UP, clamp01 } from './util'
 
@@ -237,6 +238,58 @@ export function coil(parent: THREE.Object3D, { radius = 2, length = 8, turns = 1
   const body = add(group, mesh(new THREE.TubeGeometry(new CoilPath(radius, length, turns), Math.ceil(turns * 28), thickness, 8), COPPER()))
   body.castShadow = false
   return { group, lane: (offset = thickness * 2) => new CoilPath(radius + offset, length, turns) }
+}
+
+/** `coil` round a grey core (rod radius `core`, 0 = air) that glows with the field: `set(f 0..1)`. */
+export function inductorCoil(parent: THREE.Object3D, { radius = 1.1, length = 6.4, turns = 9, thickness = 0.18, core = 0.65 } = {}) {
+  const c = coil(parent, { radius, length, turns, thickness })
+  const coreMat = new THREE.MeshStandardMaterial({ color: '#6d7480', emissive: B_FIELD, emissiveIntensity: 0, roughness: 0.5 })
+  if (core > 0) add(c.group, mesh(new THREE.CylinderGeometry(core, core, length + 0.8, 24), coreMat)).rotation.z = Math.PI / 2
+  return { ...c, set: (f: number) => (coreMat.emissiveIntensity = 1.4 * clamp01(f)) }
+}
+
+const DIM_FIELD = new THREE.Color(B_FIELD).lerp(new THREE.Color('#14161b'), 0.68)
+/** `fieldLines` paint for dim depth copies. */
+export const dimField = (_: THREE.Vector3, out: THREE.Color) => out.copy(DIM_FIELD)
+
+/** The same planar lines turned about the x axis, for dim depth copies of an axially symmetric field. */
+export const turnAboutX = (lines: Vec3[][], angles: number[]): V3[][] =>
+  angles.flatMap((a) => lines.map((l) => l.map(([x, y]): V3 => [x, y * Math.cos(a), y * Math.sin(a)])))
+
+/** Field lines of a `coil` (radius, length, loops) out to `box` (half-sizes): `set(pairs, sign)` shows `pairs` lines
+ *  above and below the axis, pointing +x inside for sign > 0, plus dim copies turned about x; traces are cached. */
+export function coilLines(
+  parent: THREE.Object3D,
+  { radius, length, loops, box: bounds, spacing = 3.4, tilts = [Math.PI / 3, -Math.PI / 3] }: { radius: number; length: number; loops: number; box: [number, number]; spacing?: number; tilts?: number[] },
+) {
+  const group = add(parent, new THREE.Group())
+  const lines = fieldLines(group, { maxSegments: 4000, spacing, color: B_FIELD })
+  const depth = fieldLines(group, { maxSegments: 8000, radius: 0.045, heads: false })
+  const field = (p: Vec3) => coilField(radius, length, loops, p)
+  const cache = new Map<number, Vec3[][]>()
+  const traceFor = (pairs: number) => {
+    if (!cache.has(pairs)) {
+      const seeds: Vec3[] = Array.from({ length: pairs }, (_, k) => [0, (radius * 0.86 * (k + 0.5)) / pairs, 0])
+      const upper = loopLines(field, seeds, { step: 0.12, box: bounds, maxSteps: 900 })
+      cache.set(pairs, [...upper, ...upper.map((l) => l.map(([x, y, z]): Vec3 => [x, -y, z]))])
+    }
+    return cache.get(pairs)!
+  }
+  let shown = ''
+  return {
+    group,
+    field,
+    set(pairs: number, sign = 1) {
+      const key = `${pairs},${Math.sign(sign)}`
+      if (key === shown) return
+      shown = key
+      const flat = pairs ? traceFor(pairs) : []
+      const directed = sign < 0 ? flat.map((l) => [...l].reverse()) : flat
+      lines.set(directed)
+      depth.set(turnAboutX(directed, tilts), dimField)
+    },
+    step: (distance: number) => lines.step(distance),
+  }
 }
 
 /** Bar magnet along x centred on the origin, `size` = [length, height, depth]: north half (+x) red, south half blue. */
