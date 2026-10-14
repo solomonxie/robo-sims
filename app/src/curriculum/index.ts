@@ -42,6 +42,7 @@ import { capacityAndCRate, cellVoltageCurve, internalResistance } from '../lesso
 import { balancing, bmsProtection, oneSToFourS } from '../lessons/power/18650-packs'
 import { chargeCurveLesson, thermalLimits, tp4056 } from '../lessons/power/charging'
 import { choosingAModule, efficiency, inductorRipple } from '../lessons/power/buck-boost'
+import { addUpTheLoads, peakVsAverage, runtimeEstimate } from '../lessons/power/power-budget'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -202,6 +203,9 @@ const READY: Record<string, Lesson> = {
   'power/buck-boost/inductor-ripple': inductorRipple,
   'power/buck-boost/efficiency': efficiency,
   'power/buck-boost/choosing-a-module': choosingAModule,
+  'power/power-budget/add-up-the-loads': addUpTheLoads,
+  'power/power-budget/runtime-estimate': runtimeEstimate,
+  'power/power-budget/peak-vs-average': peakVsAverage,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

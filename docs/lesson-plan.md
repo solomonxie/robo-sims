@@ -48,7 +48,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] 18650 packs
   - [x] Charging
   - [x] Buck & boost
-  - [ ] Power budget
+  - [x] Power budget
   - [ ] Wiring & gauge
   - [ ] Noise & decoupling
   - [ ] Brownouts
