@@ -940,3 +940,174 @@ export function presence(o: THREE.Object3D, p: number) {
   o.visible = p > 0.01
   o.scale.setScalar(Math.max(0.001, p))
 }
+
+const WHITE = new THREE.Color('#ffffff')
+const tmpM = new THREE.Matrix4()
+const tmpQ = new THREE.Quaternion()
+const tmpS = new THREE.Vector3()
+const tmpD = new THREE.Vector3()
+const tmpP = new THREE.Vector3()
+
+/** Field lines: glowing polylines in one instanced pool, with arrowheads gliding along them `spacing` apart, so the
+ *  direction reads (none within `margin` of a line's ends, where lines crowd). `set(lines, paint?)` swaps the lines (each runs along the field; `paint` tints by position, e.g. to
+ *  dim far planes); `step(distance)` slides the heads. Works for any field (electric, magnetic). */
+export function fieldLines(
+  parent: THREE.Object3D,
+  { maxSegments = 6000, maxHeads = 240, radius = 0.06, head = 0.26, spacing = 4, margin = 1, color = RING, heads: withHeads = true } = {},
+) {
+  const group = add(parent, new THREE.Group())
+  const segs = new THREE.InstancedMesh(new THREE.CylinderGeometry(radius, radius, 1, 6, 1, true), new THREE.MeshBasicMaterial({ color: '#ffffff' }), maxSegments)
+  const heads = new THREE.InstancedMesh(new THREE.ConeGeometry(head, head * 2.6, 14), new THREE.MeshBasicMaterial({ color: '#ffffff' }), withHeads ? maxHeads : 1)
+  for (const o of withHeads ? [segs, heads] : [segs]) {
+    o.frustumCulled = false
+    o.castShadow = false
+    o.count = 0
+    group.add(o)
+  }
+  const base = new THREE.Color(color)
+  const c = new THREE.Color()
+  let tracks: { pts: THREE.Vector3[]; at: number[]; tint: THREE.Color }[] = []
+  let offset = 0
+  const placeHeads = () => {
+    if (!withHeads) return
+    let k = 0
+    for (const { pts, at, tint } of tracks) {
+      const total = at[at.length - 1]
+      let i = 1
+      for (let s = offset; s < total - margin && k < maxHeads; s += spacing) {
+        if (s < margin) continue
+        while (at[i] < s) i++
+        const a = pts[i - 1]
+        const b = pts[i]
+        tmpD.subVectors(b, a)
+        const len = tmpD.length()
+        if (len < 1e-6) continue
+        tmpP.copy(a).addScaledVector(tmpD, (s - at[i - 1]) / len)
+        tmpQ.setFromUnitVectors(UP, tmpD.divideScalar(len))
+        heads.setMatrixAt(k, tmpM.compose(tmpP, tmpQ, tmpS.set(1, 1, 1)))
+        heads.setColorAt(k, c.copy(tint).lerp(WHITE, 0.3))
+        k++
+      }
+    }
+    heads.count = k
+    heads.instanceMatrix.needsUpdate = true
+    if (heads.instanceColor) heads.instanceColor.needsUpdate = true
+  }
+  return {
+    group,
+    set(lines: V3[][], paint?: (at: THREE.Vector3, out: THREE.Color) => void) {
+      let k = 0
+      tracks = []
+      for (const line of lines) {
+        const pts = line.map((p) => new THREE.Vector3(...p))
+        const at = [0]
+        const tint = new THREE.Color()
+        if (paint) paint(pts[Math.floor(pts.length / 2)], tint)
+        else tint.copy(base)
+        for (let i = 1; i < pts.length; i++) {
+          tmpD.subVectors(pts[i], pts[i - 1])
+          const len = tmpD.length()
+          at.push(at[i - 1] + len)
+          if (k >= maxSegments || len < 1e-6) continue
+          tmpQ.setFromUnitVectors(UP, tmpD.divideScalar(len))
+          segs.setMatrixAt(k, tmpM.compose(tmpP.addVectors(pts[i], pts[i - 1]).multiplyScalar(0.5), tmpQ, tmpS.set(1, len, 1)))
+          segs.setColorAt(k, paint ? (paint(tmpP, c), c) : base)
+          k++
+        }
+        tracks.push({ pts, at, tint })
+      }
+      segs.count = k
+      segs.instanceMatrix.needsUpdate = true
+      if (segs.instanceColor) segs.instanceColor.needsUpdate = true
+      placeHeads()
+    },
+    step(distance: number) {
+      offset = (((offset + distance) % spacing) + spacing) % spacing
+      placeHeads()
+    },
+  }
+}
+
+
+/** Up to `max` arrows (shaft + cone) showing a vector field at sample points. `set(points, vec)` puts one arrow centred
+ *  on each point along `vec(p, out)` (scene units, capped at `maxLen`), brighter the longer it is; short ones hide. */
+export function arrowGrid(parent: THREE.Object3D, max: number, { color = RING, radius = 0.08, head = 0.26, maxLen = 2, dim = '#3a3e48' } = {}) {
+  const group = add(parent, new THREE.Group())
+  const shaftGeo = new THREE.CylinderGeometry(radius, radius, 1, 8)
+  shaftGeo.translate(0, 0.5, 0)
+  const coneGeo = new THREE.ConeGeometry(head, head * 2.4, 12)
+  coneGeo.translate(0, head * 1.2, 0)
+  const material = new THREE.MeshBasicMaterial({ color: '#ffffff' })
+  const shafts = new THREE.InstancedMesh(shaftGeo, material, max)
+  const cones = new THREE.InstancedMesh(coneGeo, material, max)
+  for (const o of [shafts, cones]) {
+    o.frustumCulled = false
+    o.castShadow = false
+    o.count = 0
+    group.add(o)
+  }
+  const low = new THREE.Color(dim)
+  const high = new THREE.Color(color)
+  const c = new THREE.Color()
+  const p = new THREE.Vector3()
+  const v = new THREE.Vector3()
+  const coneLen = head * 2.4
+  return {
+    group,
+    set(points: V3[], vec: (p: THREE.Vector3, out: THREE.Vector3) => void) {
+      let k = 0
+      for (const at of points) {
+        if (k >= max) break
+        vec(p.set(...at), v.set(0, 0, 0))
+        const len = Math.min(maxLen, v.length())
+        if (len < 0.15) continue
+        v.normalize()
+        tmpQ.setFromUnitVectors(UP, v)
+        const s = Math.min(1, len / (coneLen * 1.6))
+        const shaft = Math.max(0.001, len - coneLen * s)
+        tmpP.copy(p).addScaledVector(v, -len / 2)
+        shafts.setMatrixAt(k, tmpM.compose(tmpP, tmpQ, tmpS.set(1, shaft, 1)))
+        tmpP.addScaledVector(v, shaft)
+        cones.setMatrixAt(k, tmpM.compose(tmpP, tmpQ, tmpS.setScalar(s)))
+        c.copy(low).lerp(high, 0.35 + 0.65 * (len / maxLen))
+        shafts.setColorAt(k, c)
+        cones.setColorAt(k, c)
+        k++
+      }
+      shafts.count = cones.count = k
+      for (const o of [shafts, cones]) {
+        o.instanceMatrix.needsUpdate = true
+        if (o.instanceColor) o.instanceColor.needsUpdate = true
+      }
+    },
+  }
+}
+
+/** Charged ball facing +z: red with a "+" when positive, blue with a "−" when negative, grey at 0. `set(q, maxQ)`
+ *  sizes it from `r0` (q = 0) up to `r1` (|q| = maxQ). */
+export function chargeBall(parent: THREE.Object3D, at: V3, { r0 = 0.5, r1 = 1.3 } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const material = glowMat(HIGH_V, 0.55)
+  const ball = add(group, mesh(new THREE.SphereGeometry(1, 32, 20), material))
+  const sign = mat('#ffffff', { emissive: '#bbbbbb' })
+  const plus = add(group, mesh(plusGeometry(1.1), sign), [0, 0, 1])
+  const minus = box(group, [1.1, 0.35, 0.35], sign, [0, 0, 1])
+  const neutral = new THREE.Color('#8a8f99')
+  return {
+    group,
+    set(q: number, maxQ: number) {
+      const r = r0 + (r1 - r0) * clamp01(Math.abs(q) / maxQ)
+      ball.scale.setScalar(r)
+      plus.visible = q > 0
+      minus.visible = q < 0
+      for (const g of [plus, minus]) {
+        g.scale.setScalar(r * 0.75)
+        g.position.z = r * 0.95
+      }
+      const col = q > 0 ? HIGH_V : q < 0 ? LOW_V : neutral
+      material.color.set(col)
+      material.emissive.set(col)
+      return r
+    },
+  }
+}

@@ -1,4 +1,15 @@
 import {
+  COULOMB_K,
+  DIELECTRIC,
+  EPSILON_0,
+  capacitorCharge,
+  capacitorEnergy,
+  chargesField,
+  coulombForce,
+  forceInField,
+  plateCapacitance,
+  plateField,
+  pointField,
   builtInVoltage,
   carrierCurrent,
   chargeFlowed,
@@ -389,5 +400,34 @@ describe('ac', () => {
     const x = sloshAmplitude(peak, 1.5e-6, 50)
     expect(x).toBeGreaterThan(30e-9)
     expect(x).toBeLessThan(100e-9)
+  })
+})
+
+describe('electric fields', () => {
+  it('Coulomb force: sign says repel or attract, inverse square in r', () => {
+    expect(coulombForce(1e-6, 1e-6, 0.1)).toBeCloseTo(0.8988, 4)
+    expect(coulombForce(2e-6, -3e-6, 0.12)).toBeCloseTo(-3.745, 3)
+    expect(coulombForce(2e-6, 2e-6, 0.2) / coulombForce(2e-6, 2e-6, 0.1)).toBeCloseTo(0.25, 12)
+    expect(coulombForce(0, 5e-6, 0.05)).toBe(0)
+  })
+
+  it('field of charges: E = kq / r², F = qE, superposed', () => {
+    expect(pointField(2e-9, 0.05)).toBeCloseTo(7190, 0)
+    expect(chargesField([{ q: 2e-9, at: [0, 0, 0] }], [0.05, 0, 0])[0]).toBeCloseTo(pointField(2e-9, 0.05), 6)
+    const mid = chargesField([{ q: 2e-9, at: [-0.05, 0, 0] }, { q: -2e-9, at: [0.05, 0, 0] }], [0, 0, 0])
+    expect(mid[0]).toBeCloseTo(2 * pointField(2e-9, 0.05), 6)
+    expect(forceInField(1e-9, 7190)).toBeCloseTo(7.19e-6, 12)
+    expect(forceInField(1e-6, pointField(1e-6, 0.1))).toBeCloseTo(coulombForce(1e-6, 1e-6, 0.1), 12)
+    expect(COULOMB_K * 4 * Math.PI * EPSILON_0).toBeCloseTo(1, 9)
+  })
+
+  it('parallel plates: C = ε₀εrA / d, Q = CV, E = V / d, U = ½CV²', () => {
+    const c = plateCapacitance(0.01, 0.002)
+    expect(c).toBeCloseTo(44.27e-12, 14)
+    expect(plateCapacitance(0.01, 0.001, DIELECTRIC.mica)).toBeCloseTo(12 * c, 14)
+    expect(capacitorCharge(c, 9)).toBeCloseTo(398.4e-12, 13)
+    expect(plateField(9, 0.002)).toBe(4500)
+    expect(capacitorEnergy(c, 9)).toBeCloseTo(1.793e-9, 12)
+    expect(capacitorEnergy(c, 9)).toBeCloseTo((capacitorCharge(c, 9) * 9) / 2, 18)
   })
 })

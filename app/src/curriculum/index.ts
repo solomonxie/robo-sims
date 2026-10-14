@@ -1,5 +1,6 @@
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
+import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
 import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-law'
 import { kclAtANode, kvlAroundALoop, nodalAnalysis } from '../lessons/electricity/kirchhoffs-laws'
 import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/power-energy'
@@ -60,6 +61,9 @@ const READY: Record<string, Lesson> = {
   'electricity/ac-vs-dc/sine-waves-and-rms': sineAndRms,
   'electricity/ac-vs-dc/frequency-and-period': frequencyAndPeriod,
   'electricity/ac-vs-dc/mains-vs-battery': mainsVsBattery,
+  'electricity/electric-fields/coulomb-force': coulombLaw,
+  'electricity/electric-fields/field-lines': fieldLineMap,
+  'electricity/electric-fields/capacitance-from-plates': capacitanceFromPlates,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

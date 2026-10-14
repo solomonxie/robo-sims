@@ -1,5 +1,6 @@
 // Textbook formulas behind the Learn lessons. SI units unless the name says otherwise.
 import { Element, branchCurrents, loopSteps, solveNodal, theveninAt } from './nodal'
+import { Vec3, inverseSquare } from './fields'
 
 export const E_CHARGE = 1.602176634e-19 // C
 export const BOLTZMANN_EV = 8.617333e-5 // eV/K
@@ -324,6 +325,39 @@ export const lampOhms = (volts: number, watts: number) => (volts * volts) / watt
 
 /** How far free electrons slosh each way in AC: peak drift speed / ω. */
 export const sloshAmplitude = (peakAmps: number, areaM2: number, hz: number) => driftVelocity(peakAmps, areaM2) / angularFrequency(hz)
+
+// --- Electric fields ---
+
+export const COULOMB_K = 8.9875517923e9 // N·m²/C²
+export const EPSILON_0 = 8.8541878128e-12 // F/m
+
+/** Coulomb's law F = k·q₁q₂ / r², newtons; positive repels, negative attracts. */
+export const coulombForce = (q1: number, q2: number, r: number) => (COULOMB_K * q1 * q2) / (r * r)
+
+/** Field of a point charge at distance r: E = k·q / r², N/C (= V/m). */
+export const pointField = (q: number, r: number) => (COULOMB_K * q) / (r * r)
+
+/** Field of point charges (C, positions in m) at p, superposed: N/C as a vector. */
+export const chargesField = (charges: { q: number; at: Vec3 }[], p: Vec3) => inverseSquare(charges, p, COULOMB_K)
+
+/** Force on a test charge in a field: F = q·E. */
+export const forceInField = (q: number, field: number) => q * field
+
+/** Relative permittivity εr of common capacitor dielectrics. */
+export const DIELECTRIC = { air: 1, ptfe: 2.1, mica: 6 }
+export type Dielectric = keyof typeof DIELECTRIC
+
+/** Parallel plates: C = ε₀·εr·A / d. */
+export const plateCapacitance = (areaM2: number, gapM: number, er = 1) => (EPSILON_0 * er * areaM2) / gapM
+
+/** Uniform field between plates: E = V / d. */
+export const plateField = (volts: number, gapM: number) => volts / gapM
+
+/** Q = C·V. */
+export const capacitorCharge = (farads: number, volts: number) => farads * volts
+
+/** Energy stored in the field: U = ½·C·V². */
+export const capacitorEnergy = (farads: number, volts: number) => 0.5 * farads * volts * volts
 
 // --- Semiconductors (silicon) ---
 
