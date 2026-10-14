@@ -1,6 +1,7 @@
 import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConstant } from '../lessons/components/capacitor'
 import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lessons/components/diode'
 import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
+import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
@@ -76,6 +77,9 @@ const READY: Record<string, Lesson> = {
   'electricity/magnetism/solenoid': solenoid,
   'electricity/magnetism/right-hand-rule': rightHandRule,
   'electricity/magnetism/induction': induction,
+  'components/resistor/value-and-tolerance': valueAndTolerance,
+  'components/resistor/power-rating': powerRating,
+  'components/resistor/pull-up-and-pull-down': pullUpAndPullDown,
   'components/capacitor/charging-and-discharging': chargingAndDischarging,
   'components/capacitor/rc-time-constant': rcTimeConstant,
   'components/capacitor/decoupling': decoupling,

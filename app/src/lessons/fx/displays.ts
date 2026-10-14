@@ -59,8 +59,8 @@ export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', g
   return display
 }
 
-/** Handheld multimeter facing +z, on the V⎓ range; jacks at the bottom (red V, black COM). */
-export function multimeter() {
+/** Handheld multimeter facing +z, on the V⎓ range (Ω with `ohms`); jacks at the bottom (red V, black COM). */
+export function multimeter({ ohms = false } = {}) {
   const group = new THREE.Group()
   box(group, [8.4, 12.4, 1.6], mat('#f2c230', { rough: 0.7 }), [0, 0, 0])
   box(group, [7.2, 11.2, 0.3], mat('#2a2c32', { rough: 0.5 }), [0, 0, 0.85])
@@ -70,7 +70,7 @@ export function multimeter() {
   group.add(display.group)
   const dial = cylinder(group, 1.9, 0.5, mat('#3a3d45', { rough: 0.5 }), [0, -0.6, 1.2], 'z', 40)
   dial.castShadow = true
-  const dc = Math.PI / 4 // dial at V⎓
+  const dc = ((ohms ? 7 : 1) / 8) * Math.PI * 2
   box(group, [0.3, 1.6, 0.2], mat('#f4f4f4', { emissive: '#555555' }), [Math.sin(dc) * 0.8, -0.6 + Math.cos(dc) * 0.8, 1.5]).rotation.z = -dc
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2

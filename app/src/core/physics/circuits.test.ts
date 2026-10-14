@@ -1,4 +1,7 @@
 import {
+  floatingPickup,
+  logicLevel,
+  pulledPin,
   adcCounts,
   bridgeCircuit,
   bridgeCurrents,
@@ -182,5 +185,28 @@ describe('Thevenin & Norton', () => {
     expect(best.volts).toBeCloseTo(3, 12)
     for (const load of [100, 220, 1000]) expect(powerTransfer(6, 150, load).loadW).toBeLessThan(best.loadW)
     expect(powerTransfer(6, 150, 1500).efficiency).toBeCloseTo(1500 / 1650, 12)
+  })
+})
+
+describe('digital inputs', () => {
+  it('ESP32 reads ≤ 0.825 V low and ≥ 2.475 V high at 3.3 V; between is undefined', () => {
+    expect(logicLevel(0.8, 3.3)).toBe(0)
+    expect(logicLevel(2.5, 3.3)).toBe(1)
+    expect(logicLevel(1.65, 3.3)).toBeNull()
+  })
+  it('a pull-up holds the pin high until the button shorts it to ground', () => {
+    const up = pulledPin('up', false, 10e3, 3.3)
+    expect(up.volts).toBeCloseTo(3.3 - 50e-9 * 10e3)
+    expect(pulledPin('up', true, 10e3, 3.3)).toEqual({ volts: 0, amps: 3.3e-4 })
+    expect(pulledPin('down', false, 10e3, 3.3).volts).toBeCloseTo(5e-4)
+    expect(pulledPin('down', true, 1e3, 3.3)).toEqual({ volts: 3.3, amps: 3.3e-3 })
+  })
+  it('without a pull the released pin floats', () => {
+    expect(pulledPin('none', false, 10e3, 3.3)).toEqual({ volts: null, amps: 0 })
+    expect(pulledPin('none', true, 10e3, 3.3).volts).toBe(0)
+    const samples = Array.from({ length: 400 }, (_, i) => floatingPickup(i / 4000, 3.3))
+    expect(Math.min(...samples)).toBeGreaterThanOrEqual(0)
+    expect(Math.max(...samples)).toBeLessThanOrEqual(3.3)
+    expect(new Set(samples.map((v) => logicLevel(v, 3.3))).size).toBe(3)
   })
 })

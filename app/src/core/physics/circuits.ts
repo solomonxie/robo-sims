@@ -78,6 +78,30 @@ export const adcCounts = (volts: number, vref: number, bits: number) => {
   return Math.min(top, Math.max(0, Math.round((volts / vref) * top)))
 }
 
+// --- Digital inputs ---
+
+/** ESP32 input thresholds as fractions of VDD: ≤ 0.25 reads LOW, ≥ 0.75 HIGH, between is undefined. */
+export const VIL = 0.25
+export const VIH = 0.75
+export const PIN_LEAK_A = 50e-9
+
+export const logicLevel = (volts: number, vdd: number): 0 | 1 | null => (volts <= VIL * vdd ? 0 : volts >= VIH * vdd ? 1 : null)
+
+export type Pull = 'none' | 'up' | 'down'
+
+/** Input pin with a pull resistor and a button to the other rail (to ground when there's no pull).
+ *  `volts` is null while nothing drives the pin (floating); `amps` flows through the resistor. */
+export function pulledPin(pull: Pull, pressed: boolean, ohms: number, vdd: number, leakA = PIN_LEAK_A) {
+  if (pull === 'none') return { volts: pressed ? 0 : null, amps: 0 }
+  if (pressed) return { volts: pull === 'up' ? 0 : vdd, amps: vdd / ohms }
+  const drop = Math.min(vdd, leakA * ohms)
+  return { volts: pull === 'up' ? vdd - drop : drop, amps: drop / ohms }
+}
+
+/** What a floating input wanders to: 50 Hz mains hum picked up by the wire, plus a slow drift, clipped to the rails. */
+export const floatingPickup = (t: number, vdd: number) =>
+  Math.min(vdd, Math.max(0, vdd * (0.5 + 0.42 * Math.sin(2 * Math.PI * 50 * t) + 0.12 * Math.sin(2 * Math.PI * 150 * t + 0.7) + 0.18 * Math.sin(2 * Math.PI * 0.9 * t + 1))))
+
 /** Exact RC step: capacitor voltage after `dt` heading toward `target`. */
 export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
   target + (vc - target) * Math.exp(-dt / tauS)

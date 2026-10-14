@@ -279,6 +279,27 @@ export function knifeSwitch(parent: THREE.Object3D, pivot: V3, length: number, c
   }
 }
 
+/** Momentary push button across a → b: two contacts, a steel bar held off them on the left of a → b, and a red cap.
+ *  `set(0..1)` presses the bar onto the contacts. */
+export function pushButton(parent: THREE.Object3D, a: V3, b: V3) {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+  const group = add(parent, new THREE.Group(), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
+  group.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
+  const ball = new THREE.SphereGeometry(0.42, 16, 12)
+  for (const s of [-1, 1]) add(group, mesh(ball, STEEL()), [(s * len) / 2, 0, 0])
+  const gap = 0.45 * len
+  const plunger = add(group, new THREE.Group(), [0, gap, 0])
+  rod(plunger, [-len / 2 - 0.3, 0.45, 0], [len / 2 + 0.3, 0.45, 0], 0.24, STEEL())
+  rod(plunger, [0, 0.45, 0], [0, 2.2, 0], 0.16, STEEL())
+  cylinder(plunger, 0.95, 0.7, mat('#d23b3b', { rough: 0.5 }), [0, 2.4, 0], 'y', 24)
+  return {
+    group,
+    set(pressed: number) {
+      plunger.position.y = gap * (1 - clamp01(pressed))
+    },
+  }
+}
+
 /** Axial diode along a → b, anode at a: `glass` is a DO-35 (1N4148, zeners: orange glass, black band), else a DO-41
  *  (1N4007: black, grey band), `scale` × the real part. `set(f)`: f > 0 glows a halo round the junction (conducting),
  *  f < 0 raises a pale wall across it (blocking). */

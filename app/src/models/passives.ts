@@ -1,12 +1,12 @@
 import * as THREE from 'three/webgpu'
-import { resistorColorBands } from '../core/resistorColors'
+import { Grade, resistorBands } from '../core/resistorColors'
 import { BLACK_PLASTIC, add, box, cylinder, lathe, lead, mat, mesh, rod, STEEL } from './kit'
 
 const LEAD_R = 0.11
 const INSERT = -1.5 // how deep leads go into the board
 
-/** Dog-bone resistor body with color bands, along x, centered on the origin. */
-export function resistorBody(ohms: number, bodyColor = '#d9c08c'): THREE.Group {
+/** Dog-bone resistor body with color bands (5 for a 1 % part), along x, centered on the origin. */
+export function resistorBody(ohms: number, bodyColor = '#d9c08c', grade: Grade = 5): THREE.Group {
   const g = new THREE.Group()
   const half = 1.2
   lathe(
@@ -27,11 +27,23 @@ export function resistorBody(ohms: number, bodyColor = '#d9c08c'): THREE.Group {
     [0, 0, 0],
     'x',
   )
-  const bandX = [-0.78, -0.42, -0.08, 0.72]
-  resistorColorBands(ohms).forEach((color, i) => {
-    const r = i === 0 || i === 3 ? 0.48 : 0.41
+  const bands = resistorBands(ohms, grade)
+  const bandX = bands.length === 5 ? [-0.8, -0.46, -0.2, 0.06, 0.78] : [-0.78, -0.42, -0.08, 0.72]
+  bands.forEach((color, i) => {
+    const r = i === 0 || i === bands.length - 1 ? 0.48 : 0.41
     cylinder(g, r, 0.18, mat(color, { rough: 0.5 }), [bandX[i], 0, 0], 'x')
   })
+  return g
+}
+
+/** Typical film-resistor body [length, diameter] in mm by power rating (W). */
+export const RESISTOR_MM: Record<number, [number, number]> = { 0.125: [3.5, 1.8], 0.25: [6.1, 2.4], 0.5: [9, 3.2], 1: [11, 4.5], 2: [15, 5] }
+
+/** `resistorBody` stretched to the real size of a `ratingW` part (the ¼ W body is 1×). */
+export function resistorBodyFor(ohms: number, ratingW: number): THREE.Group {
+  const [len, dia] = RESISTOR_MM[ratingW]
+  const g = resistorBody(ohms)
+  g.scale.set(len / RESISTOR_MM[0.25][0], dia / RESISTOR_MM[0.25][1], dia / RESISTOR_MM[0.25][1])
   return g
 }
 

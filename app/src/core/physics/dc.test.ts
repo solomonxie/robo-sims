@@ -2,6 +2,7 @@ import {
   awgDiameter,
   carrierCurrent,
   chargeFlowed,
+  deratedPower,
   driftVelocity,
   E_CHARGE,
   electronsIn,
@@ -10,8 +11,10 @@ import {
   energyOver,
   filamentOhms,
   heatingTemp,
+  hotSpotC,
   JOULES_PER_WH,
   metalResistance,
+  pickRating,
   meterReading,
   powerI2R,
   powerV2R,
@@ -123,5 +126,21 @@ describe('power and energy', () => {
     expect(wattHours(9, 550)).toBeCloseTo(4.95)
     expect(wattHours(1.2, 2000)).toBeCloseTo(2.4)
     expect(runtimeHours(3000, 200)).toBe(15)
+  })
+  it('derating: full rating to 70 °C, half at 112.5 °C, none at 155 °C', () => {
+    expect(deratedPower(0.25, 25)).toBe(0.25)
+    expect(deratedPower(0.25, 70)).toBe(0.25)
+    expect(deratedPower(0.25, 112.5)).toBeCloseTo(0.125)
+    expect(deratedPower(0.25, 160)).toBe(0)
+    expect(hotSpotC(0.25, 0.25, 70)).toBe(RESISTOR_MAX_C)
+    expect(hotSpotC(deratedPower(1, 100), 1, 100)).toBeCloseTo(RESISTOR_MAX_C)
+  })
+  it('picks the smallest rating with 2× headroom', () => {
+    expect(pickRating(0.1, 25)).toBe(0.25)
+    expect(pickRating(0.125, 25)).toBe(0.25)
+    expect(pickRating(0.14, 25)).toBe(0.5)
+    expect(pickRating(0.14, 100)).toBe(0.5)
+    expect(pickRating(0.2, 100)).toBe(1)
+    expect(pickRating(1.5, 25)).toBeNull()
   })
 })

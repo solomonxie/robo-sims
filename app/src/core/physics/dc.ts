@@ -92,6 +92,20 @@ export const resistorThermalK = (ratingW: number, ambientC = ROOM_C, maxC = RESI
 export const heatingTemp = (ambientC: number, watts: number, kPerW: number, tauS: number, seconds: number) =>
   ambientC + watts * kPerW * (1 - Math.exp(-seconds / tauS))
 
+export const DERATE_FROM_C = 70
+export const RATINGS_W = [0.125, 0.25, 0.5, 1, 2]
+
+/** Most a resistor may dissipate at `ambientC`: its rating up to 70 °C, then falling linearly to 0 at 155 °C. */
+export const deratedPower = (ratingW: number, ambientC: number) =>
+  ratingW * Math.min(1, Math.max(0, (RESISTOR_MAX_C - ambientC) / (RESISTOR_MAX_C - DERATE_FROM_C)))
+
+/** Settled hot-spot temperature: the full rating lifts it 85 °C (70 → 155 °C). */
+export const hotSpotC = (watts: number, ratingW: number, ambientC: number) => ambientC + (watts * (RESISTOR_MAX_C - DERATE_FROM_C)) / ratingW
+
+/** Smallest rating that still has `margin`× headroom over `watts` at `ambientC`, or null. */
+export const pickRating = (watts: number, ambientC: number, margin = 2, ratings = RATINGS_W) =>
+  ratings.find((r) => deratedPower(r, ambientC) >= margin * watts) ?? null
+
 export const JOULES_PER_WH = 3600
 
 /** Battery energy Wh = V·Ah. */

@@ -21,9 +21,9 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `colors` — palette (`HIGH_V`, `LOW_V`, `CONVENTIONAL`, `HOLE`, `POWER`, `B_FIELD`, `FORCE`…), `glowMat`, `potentialColor`.
 - `shapes` — `arrow`, `plusGeometry`.
 - `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
-- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `ledLamp` (real LED, light ∝ √current), `glowHalo`, `knifeSwitch`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
+- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `ledLamp` (real LED, light ∝ √current), `glowHalo`, `knifeSwitch`, `pushButton`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
 - `crystal` — `siliconCrystal` (flat Si lattice: bond pairs, donors/acceptors that ionize, free electrons, hopping holes, drift, net crossings, `track`ed hole; `wrap: false` + `junction` step: depletion zone, injection, breakdown pairs, contacts).
-- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
+- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter` (`ohms` dial)/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
 - `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep` in `core/physics`.
@@ -65,7 +65,19 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] PN junction
 - [x] MOSFET physics
 - [x] Chip making
-- [ ] then remaining Components, Semiconductors topics in file order
+- [x] Resistor
+- [ ] Inductor
+- [ ] Transistor (BJT)
+- [ ] MOSFET
+- [ ] Relay
+- [ ] Switches & buttons
+- [ ] Potentiometer
+- [ ] Fuses & protection
+- [ ] Crystal oscillator
+- [ ] Op-amp
+- [ ] Voltage regulators
+- [ ] Logic gates
+- [ ] Memory cell
 
 ### Later waves (file order within each)
 - Wave 3: Digital, Power, Signals
