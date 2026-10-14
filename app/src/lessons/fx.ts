@@ -686,3 +686,37 @@ export function chargeTank(height: number, r: number, { square = false, color = 
     },
   }
 }
+
+/** Column of `count` voltage blocks stacked up from the origin, each tinted by the potential at its middle,
+ *  with bright seams between; `set(volts bottom → top)` sizes them (full red at `maxVolts`). */
+export function voltStack(parent: THREE.Object3D, count: number, perVolt: number, maxVolts: number, width = 1.2) {
+  const group = add(parent, new THREE.Group())
+  const unit = new THREE.BoxGeometry(1, 1, 1)
+  const seam = mat('#e8e8e8', { emissive: '#666666' })
+  const blocks = Array.from({ length: count }, () => {
+    const material = new THREE.MeshStandardMaterial({ roughness: 0.5, transparent: true, opacity: 0.85 })
+    const block = add(group, mesh(unit, material))
+    const cap = box(group, [width + 0.3, 0.12, width * 0.6 + 0.3], seam)
+    return { block, material, cap }
+  })
+  const c = new THREE.Color()
+  return {
+    group,
+    set(volts: number[]) {
+      let y = 0
+      blocks.forEach(({ block, material, cap }, i) => {
+        const v = volts[i] ?? 0
+        const h = Math.max(0.001, v * perVolt)
+        block.visible = cap.visible = v > 0
+        block.scale.set(width, h, width * 0.6)
+        block.position.y = y + h / 2
+        potentialColor((y + h / 2) / (maxVolts * perVolt), c)
+        material.color.copy(c)
+        material.emissive.copy(c)
+        material.emissiveIntensity = 0.45
+        y += h
+        cap.position.y = y
+      })
+    },
+  }
+}

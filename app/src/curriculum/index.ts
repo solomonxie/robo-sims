@@ -1,6 +1,7 @@
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-law'
 import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/power-energy'
+import { cellsSeriesParallel, mixedNetworks, parallelResistors, seriesResistors } from '../lessons/electricity/series-parallel'
 import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
@@ -40,6 +41,10 @@ const READY: Record<string, Lesson> = {
   'electricity/power-energy/p-v-i': pEqualsVI,
   'electricity/power-energy/heat-in-a-resistor': heatInAResistor,
   'electricity/power-energy/wh-and-mah': whAndMah,
+  'electricity/series-parallel/series-resistors': seriesResistors,
+  'electricity/series-parallel/parallel-resistors': parallelResistors,
+  'electricity/series-parallel/cells-in-series-and-parallel': cellsSeriesParallel,
+  'electricity/series-parallel/mixed-networks': mixedNetworks,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

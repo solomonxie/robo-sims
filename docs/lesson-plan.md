@@ -18,6 +18,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Metal interiors: `ionLattice` + `electronGas` in `fx.ts` (sized by length/radius; drift, scatter rate, `mesh.count` for carrier density). Heat: `heatGlow`, `thermometer`.
 - Products (P = V × I, Wh = V × Ah): `areaPlot` (slab area = product, `lit` fraction for what's left); colour `POWER`. Changing labels: `pulseLabel`. Heat: `heatWaves`, `smoke`. Battery level: `chargeTank`.
 - Stateful time-lapse sims (heating, draining): step state with tested pure fns (`rcStep`, `energyOver`), reset on control change; show sim time in a readout and keep chips to ≤ 4 short values so they stay on one row.
+- Voltages that add up (series drops, stacked cells): `voltStack`. Branching current: one `Flow` per wire segment, speed ∝ that segment's current, so the main wire visibly carries the sum. Morphing circuits (reduce to an equivalent): ease a per-part presence 0..1 toward the step's target and scale by it, not a timeline.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -38,7 +39,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Resistance
 - [x] Ohm's law
 - [x] Power & energy
-- [ ] Series & parallel
+- [x] Series & parallel
 - [ ] Voltage divider
 - [ ] Kirchhoff's laws
 - [ ] Thevenin & Norton

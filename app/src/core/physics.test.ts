@@ -28,6 +28,10 @@ import {
   MODERN_NMOS,
   rcStep,
   resistorPair,
+  seriesChain,
+  parallelBranches,
+  cellPack,
+  seriesWithPair,
   RESISTIVITY,
   ROOM_C,
   TEMP_COEFF,
@@ -108,6 +112,32 @@ describe('electricity', () => {
     const p = resistorPair(100, 100, 9, 'parallel')
     expect(p.totalOhms).toBe(50)
     expect(p.amps1 + p.amps2).toBeCloseTo(p.amps)
+  })
+  it('a series chain shares the voltage in proportion to R', () => {
+    const s = seriesChain(9, [100, 200])
+    expect(s.totalOhms).toBe(300)
+    expect(s.amps).toBeCloseTo(0.03)
+    expect(s.drops[0]).toBeCloseTo(3)
+    expect(s.drops[0] + s.drops[1]).toBeCloseTo(9)
+  })
+  it('parallel branches: currents add, total below the smallest', () => {
+    const p = parallelBranches(9, [100, 100, 220])
+    expect(p.branchAmps[0]).toBeCloseTo(0.09)
+    expect(p.branchAmps.reduce((a, b) => a + b)).toBeCloseTo(p.amps)
+    expect(p.totalOhms).toBeLessThan(100)
+    expect(parallelBranches(9, [100, 100]).totalOhms).toBeCloseTo(50)
+  })
+  it('cells: series adds volts, parallel adds mAh', () => {
+    expect(cellPack(1.5, 2000, 2, 1)).toEqual({ volts: 3, mAh: 2000, wh: 6, cells: 2 })
+    expect(cellPack(1.5, 2000, 1, 2)).toEqual({ volts: 1.5, mAh: 4000, wh: 6, cells: 2 })
+    expect(cellPack(3.7, 3000, 2, 2).wh).toBeCloseTo(44.4)
+  })
+  it('R1 + (R2 ∥ R3) reduces step by step', () => {
+    const m = seriesWithPair(100, 220, 220, 9)
+    expect(m.pairOhms).toBeCloseTo(110)
+    expect(m.totalOhms).toBeCloseTo(210)
+    expect(m.v1 + m.pairV).toBeCloseTo(9)
+    expect(m.amps2 + m.amps3).toBeCloseTo(m.amps)
   })
   it('one time constant charges to 63%', () => {
     expect(rcStep(0, 1, 2, 2)).toBeCloseTo(0.632, 3)

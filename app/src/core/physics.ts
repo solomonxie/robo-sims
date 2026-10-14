@@ -120,6 +120,36 @@ export function resistorPair(r1: number, r2: number, volts: number, mode: 'serie
   return { totalOhms, amps: volts / totalOhms, amps1: volts / r1, amps2: volts / r2, volts1: volts, volts2: volts }
 }
 
+/** Series chain across `volts`: one current through all, each resistor drops I·R. */
+export function seriesChain(volts: number, ohms: number[]) {
+  const totalOhms = ohms.reduce((s, r) => s + r, 0)
+  const amps = volts / totalOhms
+  return { totalOhms, amps, drops: ohms.map((r) => amps * r) }
+}
+
+/** Parallel branches across `volts`: each gets the full voltage, the currents add. */
+export function parallelBranches(volts: number, ohms: number[]) {
+  const totalOhms = 1 / ohms.reduce((s, r) => s + 1 / r, 0)
+  const branchAmps = ohms.map((r) => volts / r)
+  return { totalOhms, amps: volts / totalOhms, branchAmps }
+}
+
+/** `series` cells per string, `parallel` strings: volts add along a string, capacity adds across strings. */
+export function cellPack(cellV: number, cellMAh: number, series: number, parallel: number) {
+  const volts = cellV * series
+  const mAh = cellMAh * parallel
+  return { volts, mAh, wh: wattHours(volts, mAh), cells: series * parallel }
+}
+
+/** R₁ in series with (R₂ ∥ R₃) across `volts`: reduce the pair, then the chain. */
+export function seriesWithPair(r1: number, r2: number, r3: number, volts: number) {
+  const pairOhms = 1 / (1 / r2 + 1 / r3)
+  const totalOhms = r1 + pairOhms
+  const amps = volts / totalOhms
+  const pairV = amps * pairOhms
+  return { pairOhms, totalOhms, amps, v1: amps * r1, pairV, amps2: pairV / r2, amps3: pairV / r3 }
+}
+
 /** Exact RC step: capacitor voltage after `dt` heading toward `target`. */
 export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
   target + (vc - target) * Math.exp(-dt / tauS)

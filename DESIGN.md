@@ -18,7 +18,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 | `app/src/core/` | Pure TS, no React/Three: breadboard holes + union-find nets, catalog, formulas, LED-loop solver. Unit-tested. |
 | `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
 | `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
-| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + a `build()` returning an animated 3D stage. Shared effects in `fx.ts` (charge flows, cells, arrows, potential colours, seven-segment digits, multimeter, metal lattice + electron gas, thermometer, resistor loop, formula triangle, area plot, heat waves, smoke, charge tank). |
+| `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + a `build()` returning an animated 3D stage. Shared effects in `fx.ts` (charge flows, cells, arrows, potential colours, seven-segment digits, multimeter, metal lattice + electron gas, thermometer, resistor loop, formula triangle, area plot, heat waves, smoke, charge tank, volt stack). |
 | `app/src/screens/` | Bench, Learn, lesson, Parts list, single-part viewer. |
 
 ## 3D models
@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One lesson at a time, polished before the next. Shipped: **Current**, **Voltage**, **Resistance**, **Ohm's law**, **Power & energy** (3 lessons each). Lessons live in `lessons/<category>/<topic>.ts`. The rest are drafts in `archive/lesson-drafts/` (backlog order in its README).
+- One lesson at a time, polished before the next. Shipped: **Current**, **Voltage**, **Resistance**, **Ohm's law**, **Power & energy** (3 lessons each), **Series & parallel** (4). Lessons live in `lessons/<category>/<topic>.ts`. The rest are drafts in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics.ts` (tested).
 - `make preview LESSON=<lesson id>` renders the lesson in headless Chrome (WebGPU on Metal, same scene code) with the screen's overlays mocked, to iterate on framing and look without a device. It's not a simulator; the iPhone is still the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.
