@@ -41,6 +41,7 @@ import { blinkyInHardware, luts } from '../lessons/digital/fpga-basics'
 import { capacityAndCRate, cellVoltageCurve, internalResistance } from '../lessons/power/battery-chemistry'
 import { balancing, bmsProtection, oneSToFourS } from '../lessons/power/18650-packs'
 import { chargeCurveLesson, thermalLimits, tp4056 } from '../lessons/power/charging'
+import { choosingAModule, efficiency, inductorRipple } from '../lessons/power/buck-boost'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -198,6 +199,9 @@ const READY: Record<string, Lesson> = {
   'power/charging/tp4056': tp4056,
   'power/charging/charge-curve': chargeCurveLesson,
   'power/charging/thermal-limits': thermalLimits,
+  'power/buck-boost/inductor-ripple': inductorRipple,
+  'power/buck-boost/efficiency': efficiency,
+  'power/buck-boost/choosing-a-module': choosingAModule,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

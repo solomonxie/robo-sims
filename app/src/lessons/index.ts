@@ -41,6 +41,7 @@ import { blinkyInHardware, luts } from './digital/fpga-basics'
 import { capacityAndCRate, cellVoltageCurve, internalResistance } from './power/battery-chemistry'
 import { balancing, bmsProtection, oneSToFourS } from './power/18650-packs'
 import { chargeCurveLesson, thermalLimits, tp4056 } from './power/charging'
+import { choosingAModule, efficiency, inductorRipple } from './power/buck-boost'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -48,5 +49,5 @@ export const UNITS: Unit[] = [
   { title: 'Components', lessons: [valueAndTolerance, powerRating, pullUpAndPullDown, chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, energyInACoil, rlTimeConstant, flybackSpike, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix, npnAsASwitch, gainAndSaturation, baseResistor, gateThreshold, lowSideSwitching, logicLevelMosfets, gateDrive, coilAndContacts, drivingARelay, solidStateRelay, contactBounce, debouncing, toggleVsMomentary, wiperAsDivider, linearVsLogTaper, fuseRatings, reversePolarity, tvsDiode, resonance, loadCapacitors, clockAccuracy, idealRules, invertingAmplifier, voltageFollower, comparator, linearLdo, dropoutAndHeat, buckConverter, boostConverter] },
   { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, nandFromTransistors, truthTables, adders, sramLatch, dramCapacitor, flashFloatingGate, lithographyMachine, waferToChip, what3nmMeans] },
   { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595, mooreVsMealy, trafficLight, robotBehaviour, propagationDelay, metastability, clockDividers, logicThresholds, dividerShifter, bidirectionalShifter, luts, blinkyInHardware] },
-  { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits] },
+  { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits, inductorRipple, efficiency, choosingAModule] },
 ]
