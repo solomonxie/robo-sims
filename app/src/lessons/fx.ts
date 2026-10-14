@@ -805,9 +805,138 @@ export function inOutBars(parent: THREE.Object3D, colors: string[], perUnit: num
 /** Ideal current source facing +z, centred on the origin: a dark disc in a steel rim with a glowing arrow
  *  pushing up (+y); flip with `rotation.z = π`. */
 export function currentSource(r = 1.6, color = CONVENTIONAL): THREE.Group {
+  const g = sourceDisc(r)
+  arrow(g, [0, -0.15 * r, 0.6], [0, 1, 0], color, r * 0.55)
+  return g
+}
+
+function sourceDisc(r: number): THREE.Group {
   const g = new THREE.Group()
   cylinder(g, r, 0.9, mat('#26272c', { rough: 0.4 }), [0, 0, 0], 'z', 40)
   add(g, mesh(new THREE.TorusGeometry(r, 0.16, 10, 48), STEEL()), [0, 0, 0.45])
-  arrow(g, [0, -0.15 * r, 0.6], [0, 1, 0], color, r * 0.55)
   return g
+}
+
+/** AC voltage source facing +z, centred on the origin: the same disc with a glowing sine ∿ across it. */
+export function acSource(r = 1.6, color = HIGH_V): THREE.Group {
+  const g = sourceDisc(r)
+  const pts = Array.from({ length: 33 }, (_, k) => new THREE.Vector3((k / 32 - 0.5) * 1.3 * r, 0.32 * r * Math.sin((k / 32) * 2 * Math.PI), 0))
+  add(g, mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.09 * r, 8), glowMat(color, 0.8)), [0, 0, 0.5])
+  return g
+}
+
+const SCREEN_Z = 0.25
+
+/** Oscilloscope screen facing +z, centred on the origin: `width` × `height` with a grid of `divs` and brighter centre lines.
+ *  `zeroAt` (fraction up from the bottom) picks the bright 0 line. `trace(color)` adds a line, `level(color)` a dashed marker;
+ *  y is in scene units from the centre, clipped to the screen. */
+export function scope(
+  parent: THREE.Object3D,
+  width: number,
+  height: number,
+  { divs = [10, 8], zeroAt = 0.5 }: { divs?: [number, number]; zeroAt?: number } = {},
+) {
+  const group = add(parent, new THREE.Group())
+  box(group, [width + 1.2, height + 1.2, 0.8], mat('#2a2c32', { rough: 0.5 }), [0, 0, -0.55])
+  box(group, [width, height, 0.1], mat('#0b1013', { emissive: '#050a0a', rough: 0.3 }), [0, 0, -0.1])
+  const grid = mat('#22302c', { emissive: '#0c1612' })
+  const axis = mat('#46645a', { emissive: '#1a2a24' })
+  const [nx, ny] = divs
+  for (let k = 0; k <= nx; k++) {
+    const x = -width / 2 + (k / nx) * width
+    rod(group, [x, -height / 2, 0], [x, height / 2, 0], k === nx / 2 ? 0.06 : 0.035, k === nx / 2 ? axis : grid)
+  }
+  for (let k = 0; k <= ny; k++) {
+    const y = -height / 2 + (k / ny) * height
+    const zero = Math.abs(k / ny - zeroAt) < 1e-6
+    rod(group, [-width / 2, y, zero ? 0.02 : 0], [width / 2, y, zero ? 0.02 : 0], zero ? 0.06 : 0.035, zero ? axis : grid)
+  }
+  const clip = (y: number) => Math.min(height / 2, Math.max(-height / 2, y))
+  const xAt = (u: number) => -width / 2 + u * width
+
+  const trace = (color: string, { samples = 160, radius = 0.13 } = {}) => {
+    const material = glowMat(color, 0.9)
+    const segs = new THREE.InstancedMesh(new THREE.CylinderGeometry(radius, radius, 1, 8), material, samples - 1)
+    const joints = new THREE.InstancedMesh(new THREE.SphereGeometry(radius, 8, 6), material, samples)
+    const head = mesh(new THREE.SphereGeometry(radius * 2.6, 16, 12), glowMat(color, 1.2))
+    const line = add(group, new THREE.Group())
+    for (const o of [segs, joints, head]) {
+      o.frustumCulled = false
+      o.castShadow = false
+      line.add(o)
+    }
+    const pts = Array.from({ length: samples }, () => new THREE.Vector3())
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const d = new THREE.Vector3()
+    const mid = new THREE.Vector3()
+    const sc = new THREE.Vector3()
+    /** Draws y(u) for u = 0 (left) … 1 (right); the head dot sits at `headU` (null hides it). */
+    const draw = (y: (u: number) => number, headU: number | null = 1) => {
+      pts.forEach((p, i) => p.set(xAt(i / (samples - 1)), clip(y(i / (samples - 1))), SCREEN_Z))
+      for (let i = 0; i < samples - 1; i++) {
+        d.subVectors(pts[i + 1], pts[i])
+        const len = d.length()
+        q.setFromUnitVectors(UP, d.divideScalar(len || 1))
+        segs.setMatrixAt(i, m.compose(mid.addVectors(pts[i], pts[i + 1]).multiplyScalar(0.5), q, sc.set(1, len, 1)))
+      }
+      pts.forEach((p, i) => joints.setMatrixAt(i, m.makeTranslation(p)))
+      segs.instanceMatrix.needsUpdate = joints.instanceMatrix.needsUpdate = true
+      head.visible = headU !== null
+      if (headU !== null) head.position.set(xAt(headU), clip(y(headU)), SCREEN_Z)
+    }
+    return {
+      group: line,
+      material,
+      draw,
+      /** The last `window` seconds of `signal(t)` up to `now`, newest at the right (or left) edge, so it scrolls. */
+      scroll(signal: (t: number) => number, now: number, window: number, newest: 'right' | 'left' = 'right') {
+        const r = newest === 'right'
+        draw((u) => signal(now - (r ? 1 - u : u) * window), r ? 1 : 0)
+      },
+    }
+  }
+
+  const level = (color: string, dash = 0.55) => {
+    const g = add(group, new THREE.Group())
+    const material = glowMat(color, 0.7)
+    const geo = new THREE.BoxGeometry(dash, 0.09, 0.09)
+    for (let x = -width / 2 + dash / 2; x < width / 2; x += dash * 2) add(g, mesh(geo, material), [x, 0, SCREEN_Z - 0.05]).castShadow = false
+    return {
+      group: g,
+      set(y: number) {
+        g.visible = Math.abs(y) <= height / 2
+        g.position.y = y
+      },
+    }
+  }
+
+  return { group, width, height, xAt, trace, level }
+}
+
+/** Rotating phasor facing +z: a faint ring of `radius` with cross-hairs and an arm to a glowing tip; `set(angle)` turns it
+ *  (0 = +x, counter-clockwise). Returns where the tip is. */
+export function phasor(parent: THREE.Object3D, radius: number, color = HIGH_V) {
+  const group = add(parent, new THREE.Group())
+  const faint = mat('#5a606c', { emissive: '#22252b' })
+  add(group, mesh(new THREE.TorusGeometry(radius, 0.07, 8, 96), faint))
+  rod(group, [-radius - 0.6, 0, 0], [radius + 0.6, 0, 0], 0.04, faint)
+  rod(group, [0, -radius - 0.6, 0], [0, radius + 0.6, 0], 0.04, faint)
+  const arm = add(group, new THREE.Group())
+  rod(arm, [0, 0, 0.1], [radius, 0, 0.1], 0.13, glowMat(color, 0.6))
+  add(arm, mesh(new THREE.SphereGeometry(0.3, 16, 12), STEEL()), [0, 0, 0.1])
+  add(arm, mesh(new THREE.SphereGeometry(0.45, 20, 14), glowMat(color, 1.2)), [radius, 0, 0.1])
+  return {
+    group,
+    set(angle: number): V3 {
+      arm.rotation.z = angle
+      return [radius * Math.cos(angle), radius * Math.sin(angle), 0.1]
+    },
+  }
+}
+
+/** Grows or shrinks a part in place; hidden when gone. */
+export function presence(o: THREE.Object3D, p: number) {
+  o.visible = p > 0.01
+  o.scale.setScalar(Math.max(0.001, p))
 }

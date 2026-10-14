@@ -22,6 +22,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Divider-style columns: one `columnFraction`-like potential fn per layout; outputs end in `terminal` (ball tinted by potential) + `groundSymbol`. Sensors: `thermistorAlong`; real boards (e.g. `buildEsp32`, rotated `x = π/2` to face the camera, scaled ~0.4) as the reader.
 - Circuits beyond series/parallel: build an `Element[]` and solve with `core/nodal.ts` (`solveNodal`; `relaxNode`/`relaxSweep` for step-by-step animation), wrapped in a tested `physics.ts` fn. Paint a wire with a resistor at its middle by `dropAlong`; nodes are `junction` balls; signed currents at a node: `inOutBars`.
 - Equivalents: `theveninAt` (nodal.ts) gives Vth/IN/Rth of any `Element[]` by open + shorted solves. Swapping views of one circuit: ease view weights toward one-hot, `presence`-scale parts, blend node potentials and flow speeds by the weights. Current source: `currentSource`.
+- Signals over time: `scope` (fx.ts) screen + `trace.scroll(signal, now, window)` (scrolls; or `draw(y(u))` for a frozen view) + `level` dashed markers; `phasor` for the rotating-arm view, `acSource` symbol. Slow real frequencies by a fixed factor and say so in the points.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -46,7 +47,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Voltage divider
 - [x] Kirchhoff's laws
 - [x] Thevenin & Norton
-- [ ] AC vs DC
+- [x] AC vs DC
 - [ ] Electric fields
 - [ ] Magnetism
 

@@ -24,6 +24,7 @@ import {
   path,
   plusGeometry,
   potentialColor,
+  presence,
   pulseLabel,
   resistorAlong,
   wire,
@@ -55,11 +56,6 @@ const plusFlow = (parent: THREE.Object3D, points: V3[], paint: (at: THREE.Vector
 const swapResistor = (holder: THREE.Group, value: number, a: V3, b: V3) => {
   emptyGroup(holder)
   resistorAlong(holder, value, a, b, R_SCALE)
-}
-/** Grows or shrinks a part in place; hidden when gone. */
-const presence = (o: THREE.Object3D, p: number) => {
-  o.visible = p > 0.01
-  o.scale.setScalar(Math.max(0.001, p))
 }
 /** Thin outline of the "black box" whose terminals sit on its right wall. */
 const boxOutline = (parent: THREE.Object3D, x0: number, x1: number, h: number) =>
