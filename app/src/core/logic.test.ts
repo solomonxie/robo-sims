@@ -13,6 +13,7 @@ import {
   REGISTER_BIT,
   SR_LATCH,
   cmosNand,
+  counterRipple,
   evalNet,
   fromBits,
   fullAdder,
@@ -25,6 +26,8 @@ import {
   netTable,
   oneHot,
   rippleSteps,
+  shiftIn,
+  shiftOutSteps,
   toBits,
   truthTable,
 } from './logic'
@@ -116,5 +119,27 @@ describe('logic', () => {
     const start = netRun(REGISTER_BIT, [r(0, 1, 1), r(0, 1, 0)], evalNet(REGISTER_BIT, r(0, 1, 0)))[1]
     const seq = [r(1, 1, 0), r(1, 1, 1), r(0, 0, 0), r(0, 0, 1), r(0, 1, 0), r(0, 1, 1)]
     expect(netRun(REGISTER_BIT, seq, start).map((s) => s[12])).toEqual([0, 1, 1, 1, 1, 0])
+  })
+
+  it('a shift register moves every bit up one place per edge', () => {
+    expect(shiftIn(0b1011, 1, 4)).toBe(0b0111)
+    expect([1, 0, 0, 0, 0].reduce((r, b) => shiftIn(r, b as Bit, 4), 0)).toBe(0b0000)
+    expect([1, 0, 0].reduce((r, b) => shiftIn(r, b as Bit, 4), 0)).toBe(0b0100)
+  })
+
+  it('a ripple counter passes through wrong counts before it settles', () => {
+    expect(counterRipple(0, 4)).toEqual([1])
+    expect(counterRipple(1, 4)).toEqual([0, 2])
+    expect(counterRipple(7, 4)).toEqual([6, 4, 0, 8])
+    expect(counterRipple(15, 4)).toEqual([14, 12, 8, 0])
+  })
+
+  it('74HC595: eight SRCLK edges load a byte MSB first, outputs change only on RCLK', () => {
+    const steps = shiftOutSteps({ shift: 0x0f, latch: 0x0f }, 0xa5)
+    expect(steps.map((x) => x.ser)).toEqual([1, 0, 1, 0, 0, 1, 0, 1, 0])
+    expect(steps[0].s).toEqual({ shift: 0x1f, latch: 0x0f })
+    expect(steps[7].s).toEqual({ shift: 0xa5, latch: 0x0f })
+    expect(steps.slice(0, 8).every((x) => x.s.latch === 0x0f)).toBe(true)
+    expect(steps[8].s).toEqual({ shift: 0xa5, latch: 0xa5 })
   })
 })

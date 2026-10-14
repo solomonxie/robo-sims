@@ -15,10 +15,9 @@ import {
   groundSymbol,
   junction,
   ledLamp,
-  litWire,
   partLetter,
-  potentialColor,
   segmentDisplay,
+  signalWire,
   timingDiagram,
   wire,
 } from '../fx'
@@ -283,14 +282,6 @@ const Q_BIT = 12
 const CLK_Y = -4.6
 const LOAD_Y = -6.4
 const IN_X = -26
-
-/** A copper wire with a glowing sleeve showing its level. */
-function signalWire(parent: THREE.Object3D, pts: V3[]) {
-  wire(parent, pts, 0.2)
-  const glow = litWire(parent, pts, 0.3)
-  const c = new THREE.Color()
-  return (level: number) => glow.set(1, potentialColor(level, c))
-}
 
 export const registers: Lesson = {
   id: 'flip-flops-latches-registers',

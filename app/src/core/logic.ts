@@ -222,3 +222,32 @@ export const REGISTER_BIT: Net = [
   { gate: 'OR', in: [1, 2] },
   ...D_FLIP_FLOP.map((g) => ({ ...g, in: g.in.map((s) => (typeof s === 'number' ? s + 4 : s === 'D' ? 3 : s)) })),
 ]
+
+/** Shift register clock edge: every bit moves up one place, `ser` enters bit 0. */
+export const shiftIn = (reg: number, ser: Bit, width: number) => ((reg * 2) % 2 ** width) + ser
+
+/** Ripple counter after a clock edge: bit 0 toggles, and each bit that falls 1 → 0 toggles the next one a flip-flop
+ *  delay later. Returns the count after each delay; the last is count + 1 (wrapping). */
+export function counterRipple(count: number, width: number): number[] {
+  const out: number[] = []
+  const bits = toBits(count, width)
+  for (let k = 0; k < width; k++) {
+    bits[k] = bit(!bits[k])
+    out.push(fromBits(bits))
+    if (bits[k]) break
+  }
+  return out
+}
+
+/** 74HC595: a shift stage clocked by SRCLK and a storage stage (the outputs) loaded from it by RCLK. */
+export interface Hc595 {
+  shift: number
+  latch: number
+}
+/** shiftOut MSB first, then one RCLK pulse: SER and the state after each of the 8 SRCLK edges, then after the latch. */
+export function shiftOutSteps(from: Hc595, byte: number): { ser: Bit; s: Hc595 }[] {
+  const steps = toBits(byte, 8)
+    .reverse()
+    .map((ser) => ({ ser, s: (from = { ...from, shift: shiftIn(from.shift, ser, 8) }) }))
+  return [...steps, { ser: 0, s: { ...from, latch: from.shift } }]
+}

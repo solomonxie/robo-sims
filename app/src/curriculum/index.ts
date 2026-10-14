@@ -33,6 +33,7 @@ import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors
 import { binaryCounting, hexShorthand, twosComplement } from '../lessons/digital/binary-hex'
 import { decoder, halfAndFullAdder, multiplexer, tableToCircuit } from '../lessons/digital/combinational-logic'
 import { dFlipFlop, registers, srLatch } from '../lessons/digital/flip-flops-latches'
+import { hc595, rippleCounter, shiftRegister } from '../lessons/digital/counters-shift-registers'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -164,6 +165,9 @@ const READY: Record<string, Lesson> = {
   'digital/flip-flops-latches/sr-latch': srLatch,
   'digital/flip-flops-latches/d-flip-flop': dFlipFlop,
   'digital/flip-flops-latches/registers': registers,
+  'digital/counters-shift-registers/ripple-counter': rippleCounter,
+  'digital/counters-shift-registers/shift-register': shiftRegister,
+  'digital/counters-shift-registers/74hc595-output-expander': hc595,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,

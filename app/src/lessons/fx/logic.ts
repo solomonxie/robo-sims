@@ -86,6 +86,14 @@ export function litWire(parent: THREE.Object3D, points: V3[], r = 0.45) {
   }
 }
 
+/** A copper wire with a glowing sleeve; the returned fn shows its level 0..1. */
+export function signalWire(parent: THREE.Object3D, pts: V3[]) {
+  wire(parent, pts, 0.2)
+  const glow = litWire(parent, pts, 0.3)
+  const c = new THREE.Color()
+  return (level: number) => glow.set(1, potentialColor(level, c))
+}
+
 /** LEDs at (xs[i], y), index 0 = least significant bit. Each anode is fed from a bit ball below, cathodes share a ground
  *  rail; `places` label the columns under the rail, bright while that bit is 1, and the bit digit sits above each LED.
  *  `frame(dt, levels)` takes eased bit levels 0..1. */
