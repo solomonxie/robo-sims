@@ -6,6 +6,8 @@ import { Helix } from '../models/power'
 export const ELECTRON = '#4da6ff'
 export const CONVENTIONAL = '#ff9a2e'
 export const RING = '#ffd84d'
+export const HIGH_V = '#ff4d4d'
+export const LOW_V = '#3d6bff'
 export const COPPER = () => mat('#c8803f', { metal: 0.35, rough: 0.4 })
 
 export function glowMat(color: string, intensity = 0.7) {
@@ -26,8 +28,10 @@ export class Flow {
   readonly length: number
   readonly count: number
   private offset = 0
+  private paint?: (at: THREE.Vector3, out: THREE.Color) => void
   private readonly m = new THREE.Matrix4()
   private readonly p = new THREE.Vector3()
+  private readonly c = new THREE.Color()
 
   constructor(
     private readonly curve: THREE.Curve<THREE.Vector3>,
@@ -55,12 +59,25 @@ export class Flow {
     this.step(distance)
   }
 
+  /** Colors each dot by where it is (e.g. by potential); unlit so the color reads exactly. */
+  colorBy(paint: (at: THREE.Vector3, out: THREE.Color) => void) {
+    this.paint = paint
+    this.mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff' })
+    this.place()
+    return this
+  }
+
   private place() {
     for (let i = 0; i < this.count; i++) {
       this.curve.getPointAt((i / this.count + this.offset) % 1, this.p)
       this.mesh.setMatrixAt(i, this.m.makeTranslation(this.p))
+      if (this.paint) {
+        this.paint(this.p, this.c)
+        this.mesh.setColorAt(i, this.c)
+      }
     }
     this.mesh.instanceMatrix.needsUpdate = true
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true
   }
 }
 
@@ -182,3 +199,118 @@ export function randomDir(len: number): THREE.Vector3 {
 export const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
 export const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
+
+/** 0 → LOW_V (blue), 1 → HIGH_V (red). */
+export function potentialColor(f: number, out = new THREE.Color()): THREE.Color {
+  return out.set(LOW_V).lerp(new THREE.Color(HIGH_V), clamp01(f))
+}
+
+/** Removes and disposes everything in `g` (shared materials are left alone). */
+export function emptyGroup(g: THREE.Group) {
+  g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
+  g.clear()
+}
+
+/** Vertical voltage ruler at x: a tick per volt, long ticks every 5 V and at 0. */
+export function voltScale(parent: THREE.Object3D, x: number, fromV: number, toV: number, perVolt: number, z = 0) {
+  const tickMat = mat('#8a8f99')
+  const major = mat('#e8e8e8')
+  rod(parent, [x, fromV * perVolt, z], [x, toV * perVolt, z], 0.08, tickMat)
+  for (let v = Math.ceil(fromV); v <= toV; v++) {
+    const big = v % 5 === 0
+    box(parent, [big ? 1.6 : 0.9, 0.12, 0.12], big ? major : tickMat, [x, v * perVolt, z])
+  }
+}
+
+/** Earth symbol: a stem down from the origin, then three shrinking bars. */
+export function groundSymbol(color = '#e8e8e8'): THREE.Group {
+  const g = new THREE.Group()
+  const m = mat(color, { emissive: '#333333' })
+  rod(g, [0, 0, 0], [0, -1, 0], 0.1, m)
+  ;[1.6, 1.05, 0.5].forEach((w, i) => box(g, [w, 0.16, 0.16], m, [0, -1 - i * 0.38, 0]))
+  return g
+}
+
+const SEGMENTS: Record<string, string> = {
+  '0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd',
+  '6': 'afgedc', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '',
+  A: 'abcefg', B: 'cdefg', C: 'adef',
+}
+
+/** Seven-segment readout of `cells` digits facing +z, centred on the origin; `set("-3.00")`. LCD-dark unless `glow`. */
+export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', glow = false) {
+  const group = new THREE.Group()
+  const w = height * 0.5
+  const t = height * 0.11
+  const pitch = w + height * 0.32
+  const on = glow ? glowMat(color, 0.9) : mat(color)
+  const h = height / 2
+  const spots: Record<string, [number, number, boolean]> = {
+    a: [0, h, true], g: [0, 0, true], d: [0, -h, true],
+    f: [-w / 2, h / 2, false], b: [w / 2, h / 2, false], e: [-w / 2, -h / 2, false], c: [w / 2, -h / 2, false],
+  }
+  const digits = Array.from({ length: cells }, (_, i) => {
+    const x = (i - (cells - 1) / 2) * pitch
+    const seg = Object.fromEntries(
+      Object.entries(spots).map(([k, [sx, sy, flat]]) => [k, box(group, flat ? [w, t, t] : [t, h, t], on, [x + sx, sy, 0])]),
+    )
+    const dot = box(group, [t * 1.2, t * 1.2, t], on, [x + pitch / 2, -h, 0])
+    return { seg, dot }
+  })
+  return {
+    group,
+    set(text: string) {
+      const chars: { ch: string; dot: boolean }[] = []
+      for (const ch of text) {
+        if (ch === '.' && chars.length) chars[chars.length - 1].dot = true
+        else chars.push({ ch, dot: false })
+      }
+      while (chars.length < cells) chars.unshift({ ch: ' ', dot: false })
+      digits.forEach(({ seg, dot }, i) => {
+        const lit = SEGMENTS[chars[i].ch] ?? ''
+        for (const k in seg) seg[k].visible = lit.includes(k)
+        dot.visible = chars[i].dot
+      })
+    },
+  }
+}
+
+/** Handheld multimeter facing +z, on the V⎓ range; jacks at the bottom (red V, black COM). */
+export function multimeter() {
+  const group = new THREE.Group()
+  box(group, [8.4, 12.4, 1.6], mat('#f2c230', { rough: 0.7 }), [0, 0, 0])
+  box(group, [7.2, 11.2, 0.3], mat('#2a2c32', { rough: 0.5 }), [0, 0, 0.85])
+  box(group, [6.2, 2.9, 0.2], mat('#a9b89a', { emissive: '#3a4434', rough: 0.4 }), [0, 3.7, 1.05])
+  const display = segmentDisplay(4, 1.9)
+  display.group.position.set(0.1, 3.7, 1.2)
+  group.add(display.group)
+  const dial = cylinder(group, 1.9, 0.5, mat('#3a3d45', { rough: 0.5 }), [0, -0.6, 1.2], 'z', 40)
+  dial.castShadow = true
+  const dc = Math.PI / 4 // dial at V⎓
+  box(group, [0.3, 1.6, 0.2], mat('#f4f4f4', { emissive: '#555555' }), [Math.sin(dc) * 0.8, -0.6 + Math.cos(dc) * 0.8, 1.5]).rotation.z = -dc
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2
+    box(group, [0.12, 0.45, 0.1], mat(a === dc ? RING : '#8a8f99', { emissive: a === dc ? '#aa8800' : '#000000' }), [
+      Math.sin(a) * 2.6,
+      -0.6 + Math.cos(a) * 2.6,
+      1.05,
+    ]).rotation.z = -a
+  }
+  const red: V3 = [1.7, -4.3, 1.1]
+  const black: V3 = [-1.7, -4.3, 1.1]
+  for (const [at, color] of [[red, '#d23b3b'], [black, '#202226']] as const) {
+    cylinder(group, 0.6, 0.3, mat(color, { rough: 0.4 }), at, 'z', 24)
+    cylinder(group, 0.25, 0.32, mat('#111'), [at[0], at[1], at[2] + 0.02], 'z', 16)
+  }
+  return { group, display, red, black }
+}
+
+/** Test probe touching `tip`, handle pointing along `dir`; returns where its cable leaves. */
+export function probe(parent: THREE.Object3D, tip: V3, dir: V3, color: string): V3 {
+  const d = new THREE.Vector3(...dir).normalize()
+  const at = (k: number): V3 => [tip[0] + d.x * k, tip[1] + d.y * k, tip[2] + d.z * k]
+  rod(parent, tip, at(1.2), 0.07, STEEL())
+  rod(parent, at(1.2), at(1.6), 0.4, mat(color, { rough: 0.5 }), 16)
+  rod(parent, at(1.6), at(4.6), 0.28, mat(color, { rough: 0.5 }), 16)
+  return at(4.6)
+}

@@ -23,6 +23,26 @@ export const carrierCurrent = (chargeC: number, velocity: number, areaM2: number
 export const driftVelocity = (amps: number, areaM2: number, n = COPPER_FREE_ELECTRONS) =>
   amps / (n * areaM2 * E_CHARGE)
 
+/** E = V·Q: energy a charge gains or gives up crossing a potential difference. */
+export const energyAcross = (volts: number, coulombs: number) => volts * coulombs
+
+/** Node potentials down a series chain, from `volts` at the top to 0 V at the bottom. */
+export function seriesPotentials(volts: number, ohms: number[]): number[] {
+  const total = ohms.reduce((s, r) => s + r, 0)
+  const out = [volts]
+  for (const r of ohms) out.push(out[out.length - 1] - (volts * r) / total)
+  out[out.length - 1] = 0
+  return out
+}
+
+/** The same potentials measured from a different 0 V reference. */
+export const relativeTo = (potentials: number[], reference: number) => potentials.map((v) => v - reference)
+
+export const METER_INPUT_OHMS = 10e6 // typical DMM on a volts range
+
+/** A voltmeter shows red probe minus black (COM). */
+export const meterReading = (redV: number, blackV: number) => redV - blackV
+
 /** R = ρL/A for a round wire. */
 export const wireResistance = (rho: number, lengthM: number, diameterM: number) =>
   (rho * lengthM) / (Math.PI * (diameterM / 2) ** 2)

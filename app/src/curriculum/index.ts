@@ -1,4 +1,5 @@
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
+import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -24,6 +25,9 @@ const READY: Record<string, Lesson> = {
   'electricity/current/what-flows-in-a-wire': whatFlows,
   'electricity/current/conventional-vs-electron-flow': conventionalVsElectron,
   'electricity/current/amps-and-the-coulomb': ampsAndCoulomb,
+  'electricity/voltage/potential-difference': potentialDifference,
+  'electricity/voltage/ground-and-reference': groundAndReference,
+  'electricity/voltage/measuring-with-a-multimeter': measuringWithMultimeter,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

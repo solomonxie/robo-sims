@@ -9,6 +9,10 @@ import {
   drainCurrent,
   driftVelocity,
   electronsPerSecond,
+  energyAcross,
+  meterReading,
+  relativeTo,
+  seriesPotentials,
   intrinsicCarriers,
   MODERN_NMOS,
   rcStep,
@@ -33,6 +37,24 @@ describe('electricity', () => {
     const v = driftVelocity(1, 1e-6)
     expect(carrierCurrent(-E_CHARGE, -v, 1e-6)).toBeCloseTo(1)
     expect(carrierCurrent(E_CHARGE, v, 1e-6)).toBeCloseTo(1)
+  })
+  it('1 V gives 1 J per coulomb; an electron across 1 V gains 1 eV', () => {
+    expect(energyAcross(9, 1)).toBe(9)
+    expect(energyAcross(1, E_CHARGE)).toBeCloseTo(1.602e-19, 22)
+  })
+  it('a 1k + 2k chain on 9 V sits at 9, 6, 0 V; moving ground keeps the differences', () => {
+    const v = seriesPotentials(9, [1000, 2000])
+    expect(v[0]).toBe(9)
+    expect(v[1]).toBeCloseTo(6)
+    expect(v[2]).toBe(0)
+    const fromMiddle = relativeTo(v, v[1])
+    expect(fromMiddle[0]).toBeCloseTo(3)
+    expect(fromMiddle[2]).toBeCloseTo(-6)
+    expect(fromMiddle[0] - fromMiddle[1]).toBeCloseTo(v[0] - v[1])
+  })
+  it('a meter reads red minus black, so swapped probes read negative', () => {
+    expect(meterReading(9, 6)).toBe(3)
+    expect(meterReading(6, 9)).toBe(-3)
   })
   it('drift speed in 1 mm² copper at 1 A is well under a mm/s', () => {
     const v = driftVelocity(1, 1e-6)
