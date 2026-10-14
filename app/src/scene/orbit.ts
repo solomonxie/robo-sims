@@ -9,7 +9,7 @@ export interface OrbitLimits {
   maxPolar: number
 }
 
-/** Spherical camera rig around a target: rotate, pinch-zoom, pan on the ground plane. */
+/** Spherical camera rig around a target: rotate, pinch-zoom, pan in the screen plane. */
 export class Orbit {
   target = new THREE.Vector3()
   azimuth = Math.PI / 5
@@ -32,11 +32,13 @@ export class Orbit {
     this.radius = THREE.MathUtils.clamp(this.radius / scale, this.limits.minRadius, this.limits.maxRadius)
   }
 
+  /** Slide the view in the screen plane so the scene follows the finger. */
   pan(dxPx: number, dyPx: number) {
     const k = this.radius * 0.0022
+    const cp = Math.cos(this.polar)
     const right = new THREE.Vector3(Math.cos(this.azimuth), 0, -Math.sin(this.azimuth))
-    const forward = new THREE.Vector3(Math.sin(this.azimuth), 0, Math.cos(this.azimuth))
-    this.target.addScaledVector(right, -dxPx * k).addScaledVector(forward, -dyPx * k)
+    const up = new THREE.Vector3(-cp * Math.sin(this.azimuth), Math.sin(this.polar), -cp * Math.cos(this.azimuth))
+    this.target.addScaledVector(right, -dxPx * k).addScaledVector(up, dyPx * k)
   }
 
   apply(camera: THREE.PerspectiveCamera) {
