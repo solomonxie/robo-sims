@@ -27,6 +27,7 @@ import { groundAndReference, measuringWithMultimeter, potentialDifference } from
 import { lithographyMachine, waferToChip, what3nmMeans } from './semiconductors/chip-making'
 import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from './semiconductors/mosfet-physics'
 import { adders, nandFromTransistors, truthTables } from './semiconductors/logic-gates'
+import { dramCapacitor, flashFloatingGate, sramLatch } from './semiconductors/memory-cell'
 import { breakdown, depletionRegion, forwardAndReverseBias } from './semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from './semiconductors/silicon-doping'
 import { Unit } from './types'
@@ -34,5 +35,5 @@ import { Unit } from './types'
 export const UNITS: Unit[] = [
   { title: 'Electricity', lessons: [whatFlows, conventionalVsElectron, ampsAndCoulomb, potentialDifference, groundAndReference, measuringWithMultimeter, resistivityAndGauge, temperatureEffects, readingResistorBands, vEqualsIR, solvingALoop, ohmPlot, pEqualsVI, heatInAResistor, whAndMah, seriesResistors, parallelResistors, cellsSeriesParallel, mixedNetworks, dividerFormula, loadingDivider, dividerSensor, kclAtANode, kvlAroundALoop, nodalAnalysis, theveninEquivalent, maximumPowerTransfer, sineAndRms, frequencyAndPeriod, mainsVsBattery, coulombLaw, fieldLineMap, capacitanceFromPlates, wireAndCompass, solenoid, rightHandRule, induction] },
   { title: 'Components', lessons: [valueAndTolerance, powerRating, pullUpAndPullDown, chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, energyInACoil, rlTimeConstant, flybackSpike, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix, npnAsASwitch, gainAndSaturation, baseResistor, gateThreshold, lowSideSwitching, logicLevelMosfets, gateDrive, coilAndContacts, drivingARelay, solidStateRelay, contactBounce, debouncing, toggleVsMomentary, wiperAsDivider, linearVsLogTaper, fuseRatings, reversePolarity, tvsDiode, resonance, loadCapacitors, clockAccuracy, idealRules, invertingAmplifier, voltageFollower, comparator, linearLdo, dropoutAndHeat, buckConverter, boostConverter] },
-  { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, nandFromTransistors, truthTables, adders, lithographyMachine, waferToChip, what3nmMeans] },
+  { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, nandFromTransistors, truthTables, adders, sramLatch, dramCapacitor, flashFloatingGate, lithographyMachine, waferToChip, what3nmMeans] },
 ]

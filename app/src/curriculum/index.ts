@@ -27,6 +27,7 @@ import { groundAndReference, measuringWithMultimeter, potentialDifference } from
 import { lithographyMachine, waferToChip, what3nmMeans } from '../lessons/semiconductors/chip-making'
 import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from '../lessons/semiconductors/mosfet-physics'
 import { adders, nandFromTransistors, truthTables } from '../lessons/semiconductors/logic-gates'
+import { dramCapacitor, flashFloatingGate, sramLatch } from '../lessons/semiconductors/memory-cell'
 import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { Lesson } from '../lessons/types'
@@ -147,6 +148,9 @@ const READY: Record<string, Lesson> = {
   'semiconductors/logic-gates/nand-from-transistors': nandFromTransistors,
   'semiconductors/logic-gates/truth-tables': truthTables,
   'semiconductors/logic-gates/adders': adders,
+  'semiconductors/memory-cell/sram-latch': sramLatch,
+  'semiconductors/memory-cell/dram-capacitor': dramCapacitor,
+  'semiconductors/memory-cell/flash-floating-gate': flashFloatingGate,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,

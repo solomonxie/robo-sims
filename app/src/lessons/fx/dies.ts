@@ -170,8 +170,9 @@ function inside(q: THREE.Vector2, v: THREE.Vector2, x0: number, x1: number, y0: 
 }
 
 /** MOSFET cross-section facing +z, the top of the silicon at y = 0. `kind` 'n': p substrate, n+ wells, an electron
- *  channel; 'p' the mirror (holes). Source on the left unless `flip`. `pins` are where wires attach, in `parent` space. */
-export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 'p', width = 16, depth = 7, flip = false } = {}) {
+ *  channel; 'p' the mirror (holes). Source on the left unless `flip`; `gateLetter` '' hides the G. `pins` are where wires
+ *  attach, in `parent` space. */
+export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 'p', width = 16, depth = 7, flip = false, gateLetter = 'G' } = {}) {
   const group = add(parent, new THREE.Group(), at)
   const nmos = kind === 'n'
   const s = flip ? -1 : 1
@@ -198,7 +199,7 @@ export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 
   }
   letter('S', xs, -depth - 1)
   letter('d', xd, -depth - 1)
-  letter('G', 1.1, OXIDE + GATE_H + 0.9)
+  if (gateLetter) letter(gateLetter, 1.1, OXIDE + GATE_H + 0.9)
 
   const zone = box(group, [length, 1, 0.05], new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, depthWrite: false }), [0, 0, THICK / 2 + 0.05])
   zone.castShadow = false

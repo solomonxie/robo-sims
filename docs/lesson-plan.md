@@ -20,7 +20,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `circuit` — cells, sources, `wire`, `lane`, resistors, diodes, `ledLamp`, `bulb`, switches, `motorCan`, `icPackage`, `chargeTank`, `groundSymbol`/`groundAt`, `opAmpSymbol`; layout `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
 - `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter`.
 - `electromech` — cut-open `relayPart`/`ssrPart`, `tactSwitch`, `toggleSwitch`, `rotaryPot` [`electromechanical`].
-- `dies` — `bjtDie`, `mosfetDie` cross-sections [`semiconductors`].
+- `dies` — `bjtDie`, `mosfetDie` cross-sections [`semiconductors`, `memory`: SRAM/DRAM/Flash cells].
 - `crystal` — `siliconCrystal` lattice; `junction` mode for PN.
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope`, `ivScreen`/`ticks`, `phasor`, `clockFace`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
@@ -75,7 +75,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Op-amp
 - [x] Voltage regulators
 - [x] Logic gates
-- [ ] Memory cell
+- [x] Memory cell
 
 ### Later waves (file order within each)
 - Wave 3: Digital, Power, Signals
