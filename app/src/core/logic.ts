@@ -68,3 +68,101 @@ export function rippleSteps(a: number, b: number, width: number, cin: Bit = 0): 
   }
   return states
 }
+
+/** A gate input: a named circuit input or an earlier gate's index. */
+export type Src = string | number
+export type Net = { gate: GateName; in: Src[] }[]
+export type Inputs = Record<string, Bit>
+
+const fire = (g: Net[number], ins: Inputs, vals: Bit[]) => {
+  const at = (s: Src) => (typeof s === 'number' ? vals[s] : ins[s])
+  return GATES[g.gate].fn(at(g.in[0]), at(g.in.at(-1)!))
+}
+
+/** Settled output of every gate; gates are listed so each reads only inputs and earlier gates. */
+export function evalNet(net: Net, ins: Inputs): Bit[] {
+  const vals: Bit[] = []
+  net.forEach((g, i) => (vals[i] = fire(g, ins, vals)))
+  return vals
+}
+
+/** Unit-delay timing from gate outputs `start`: each step every gate reads the previous step's wires. Ends when
+ *  nothing changes (the last state is `evalNet`); states in between can briefly be wrong, a glitch. */
+export function netSteps(net: Net, ins: Inputs, start: Bit[]): Bit[][] {
+  const states = [start]
+  for (let k = 0; k <= net.length; k++) {
+    const prev = states[k]
+    const next = net.map((g) => fire(g, ins, prev))
+    if (next.every((v, i) => v === prev[i])) break
+    states.push(next)
+  }
+  return states
+}
+
+/** Gates on the longest input-to-output path: the worst-case delay in gate delays. */
+export function netDepth(net: Net) {
+  const d: number[] = []
+  net.forEach((g, i) => (d[i] = 1 + Math.max(...g.in.map((s) => (typeof s === 'number' ? d[s] : 0)))))
+  return Math.max(...d)
+}
+
+/** Truth table of gate `out`: rows count in binary with `names[0]` as the high bit. */
+export function netTable(net: Net, names: string[], out: number) {
+  return Array.from({ length: 2 ** names.length }, (_, r) => {
+    const ins = Object.fromEntries(names.map((k, i) => [k, bit(Math.floor(r / 2 ** (names.length - 1 - i)) % 2)])) as Inputs
+    return { ins, out: evalNet(net, ins)[out] }
+  })
+}
+
+/** Majority vote AB + BC + AC; the last gate is the output. */
+export const MAJORITY: Net = [
+  { gate: 'AND', in: ['A', 'B'] },
+  { gate: 'AND', in: ['B', 'C'] },
+  { gate: 'AND', in: ['A', 'C'] },
+  { gate: 'OR', in: [0, 1] },
+  { gate: 'OR', in: [3, 2] },
+]
+/** Odd parity A ⊕ B ⊕ C. */
+export const PARITY: Net = [
+  { gate: 'XOR', in: ['A', 'B'] },
+  { gate: 'XOR', in: [0, 'C'] },
+]
+/** Alarm: armed A and (door B or window C). */
+export const ALARM: Net = [
+  { gate: 'OR', in: ['B', 'C'] },
+  { gate: 'AND', in: ['A', 0] },
+]
+
+/** 2:1 multiplexer Y = S̄·D0 + S·D1; gate 3 is Y. */
+export const MUX2: Net = [
+  { gate: 'NOT', in: ['S'] },
+  { gate: 'AND', in: ['D0', 0] },
+  { gate: 'AND', in: ['D1', 'S'] },
+  { gate: 'OR', in: [1, 2] },
+]
+export const mux = (data: Bit[], sel: number) => data[sel]
+
+/** 2-to-4 decoder: gates 2..5 are Y0..Y3, exactly one is 1. */
+export const DECODER2: Net = [
+  { gate: 'NOT', in: ['A1'] },
+  { gate: 'NOT', in: ['A0'] },
+  { gate: 'AND', in: [0, 1] },
+  { gate: 'AND', in: [0, 'A0'] },
+  { gate: 'AND', in: ['A1', 1] },
+  { gate: 'AND', in: ['A1', 'A0'] },
+]
+export const oneHot = (n: number, width: number): Bit[] => Array.from({ length: 2 ** width }, (_, i) => bit(i === n))
+
+/** Half adder: gate 0 = sum, 1 = carry. */
+export const HALF_ADDER: Net = [
+  { gate: 'XOR', in: ['A', 'B'] },
+  { gate: 'AND', in: ['A', 'B'] },
+]
+/** Full adder as two half adders and an OR: gate 1 = sum, 4 = carry out. */
+export const FULL_ADDER: Net = [
+  { gate: 'XOR', in: ['A', 'B'] },
+  { gate: 'XOR', in: [0, 'C'] },
+  { gate: 'AND', in: ['A', 'B'] },
+  { gate: 'AND', in: [0, 'C'] },
+  { gate: 'OR', in: [2, 3] },
+]

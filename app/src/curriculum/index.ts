@@ -31,6 +31,7 @@ import { dramCapacitor, flashFloatingGate, sramLatch } from '../lessons/semicond
 import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { binaryCounting, hexShorthand, twosComplement } from '../lessons/digital/binary-hex'
+import { decoder, halfAndFullAdder, multiplexer, tableToCircuit } from '../lessons/digital/combinational-logic'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -155,6 +156,10 @@ const READY: Record<string, Lesson> = {
   'digital/binary-hex/binary-counting': binaryCounting,
   'digital/binary-hex/hex-shorthand': hexShorthand,
   'digital/binary-hex/two-s-complement': twosComplement,
+  'digital/combinational-logic/truth-tables': tableToCircuit,
+  'digital/combinational-logic/multiplexer': multiplexer,
+  'digital/combinational-logic/decoder': decoder,
+  'digital/combinational-logic/half-and-full-adder': halfAndFullAdder,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,

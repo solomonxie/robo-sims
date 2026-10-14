@@ -1,10 +1,11 @@
 // Logic-gate symbols, glowing signal paths, LED bit rows.
 import * as THREE from 'three/webgpu'
-import { GateName } from '../../core/logic'
+import { GateName, Net, Src } from '../../core/logic'
 import { V3, add, lead, mat, mesh, rod } from '../../models/kit'
 import { groundSymbol, junction, ledLamp, wire } from './circuit'
 import { GREY, LED_RED, RING, potentialColor } from './colors'
 import { pulseLabel, segmentDisplay } from './displays'
+import { partLetter } from './parts'
 
 const INVERTED: GateName[] = ['NOT', 'NAND', 'NOR', 'XNOR']
 
@@ -120,6 +121,87 @@ export function bitRow(parent: THREE.Object3D, xs: number[], y: number, places: 
         c.digit.show(v >= 0.5 ? '1' : '0')
         c.digit.frame(dt)
       })
+    },
+  }
+}
+
+export interface NetLayout {
+  /** Input balls by name, labelled to their left. */
+  inputs: Record<string, V3>
+  /** Gate centres, same order as the net. */
+  gates: V3[]
+  /** x of the vertical bus each source fans out on (inputs by name, gates by index); default: just before the pin. */
+  bus?: Record<string, number>
+  /** LEDs fed by gate `src`, legs at `at`; cathodes share a ground rail on the right. */
+  outputs: { src: number; at: V3; label: string }[]
+  size?: number
+  ledScale?: number
+}
+
+/** A gate-level schematic: inputs → gates → LEDs, every wire glowing by its level. `frame(dt, ins, gates)` takes eased
+ *  levels 0..1; `wires` lists each gate input's path, `outs` each output's, for extra highlights. */
+export function gateNet(parent: THREE.Object3D, net: Net, layout: NetLayout) {
+  const { size = 3.6, bus = {} } = layout
+  const syms = net.map((g, i) => gateSymbol(parent, layout.gates[i], g.gate, { size }))
+  const from = (s: Src) => (typeof s === 'number' ? syms[s].pins.out : layout.inputs[s])
+  const route = (pts: V3[]) => pts.filter((q, i) => !i || q[0] !== pts[i - 1][0] || q[1] !== pts[i - 1][1])
+  const glowing = (pts: V3[], src: Src) => {
+    wire(parent, pts, 0.2)
+    return { src, pts, glow: litWire(parent, pts, 0.3), c: new THREE.Color() }
+  }
+  const wires = net.flatMap((g, i) =>
+    g.in.map((s, j) => {
+      const a = from(s)
+      const b = j ? syms[i].pins.b : syms[i].pins.a
+      const x = bus[String(s)] ?? b[0] - 0.8
+      return { gate: i, pin: j, ...glowing(route([a, [x, a[1], 0], [x, b[1], 0], b]), s) }
+    }),
+  )
+  const forks = Object.entries(bus).flatMap(([k, x]) => {
+    const src: Src = k in layout.inputs ? k : Number(k)
+    const y = from(src)[1]
+    const taps = wires.filter((w) => w.src === src).map((w) => w.pts.at(-1)![1])
+    const lo = Math.min(y, ...taps)
+    const hi = Math.max(y, ...taps)
+    const inside = (v: number) => v > lo + 0.01 && v < hi - 0.01
+    const at = [...new Set([y, ...taps])].filter((v) => inside(v) || (v === y && hi > lo && taps.some((t) => Math.abs(t - y) < 0.01)))
+    return at.map((v) => ({ src, dot: junction(parent, [x, v, 0], 0.5) }))
+  })
+  const scale = layout.ledScale ?? size / 4
+  const h = scale / 2
+  const rail = Math.max(...layout.outputs.map((o) => o.at[0])) + h + 1.6
+  const low = Math.min(...layout.outputs.map((o) => o.at[1])) - 2
+  wire(parent, [[rail, Math.max(...layout.outputs.map((o) => o.at[1])), 0], [rail, low, 0]])
+  add(parent, groundSymbol(), [rail, low, 0]).scale.setScalar(0.6)
+  const outs = layout.outputs.map((o) => {
+    const a = syms[o.src].pins.out
+    const [x, y] = o.at
+    const lamp = ledLamp(parent, LED_RED, o.at, { scale, anodeRight: false })
+    wire(parent, [[x + h, y, 0], [rail, y, 0]])
+    partLetter(parent, o.label, [x - h - 1 - 0.4 * o.label.length, y + 1.2, 0], 0.9, RING)
+    return { lamp, gate: o.src, ...glowing(route([a, [x - h, a[1], 0], [x - h, y, 0]]), o.src) }
+  })
+  const balls = Object.entries(layout.inputs).map(([k, at]) => {
+    partLetter(parent, k, [at[0] - 1.1 - 0.5 * k.length, at[1], 0], 0.9, RING)
+    return { k, ball: junction(parent, at, 0.55) }
+  })
+  return {
+    syms,
+    wires,
+    outs,
+    frame(dt: number, ins: Record<string, number>, gates: number[]) {
+      const level = (s: Src) => (typeof s === 'number' ? gates[s] : ins[s])
+      for (const w of [...wires, ...outs]) w.glow.set(1, potentialColor(level(w.src), w.c))
+      net.forEach((g, i) => {
+        syms[i].inputs(level(g.in[0]), level(g.in.at(-1)!))
+        syms[i].set(gates[i])
+      })
+      for (const o of outs) {
+        o.lamp.set(gates[o.gate])
+        o.lamp.step(dt)
+      }
+      for (const b of balls) b.ball.set(ins[b.k])
+      for (const f of forks) f.dot.set(level(f.src))
     },
   }
 }
