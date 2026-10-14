@@ -30,6 +30,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `bjt` — `transistorPart` (TO-92 on its side, legs C/B/E to the left, die glow + heat; `litEpoxy`, `partLetter`), `bjtDie` (NPN slab: electrons E → C, holes from B); model `bjtSwitch`/`bjtCollector`/`baseResistorFor` (`BJTS`), `motorAmps`/`motorRpm` (`TT_MOTOR`) in `core/physics`.
 - `relay` — `relayPart` (cut-open relay: coil on a glowing core, hinged armature + spring, COM/NO/NC pins down, `contactLane`, optional case), `ssrPart` (IR LED → photo die → triac); model `SRD_05` pull-in/drop-out/`operateTime`/`releaseTime`, `SSR_25DA`, `zeroCrossConducts` in `core/physics`; `flybackStep` takes `onVolts`/`breakdownV`/`floorV`.
 - `switches` — `tactSwitch` (cut-open 6 mm tact: snap dome over a centre pad, `set(press, closed)`), `toggleSwitch` (MTS-102 SPDT: bat lever, rocker, lugs a/com/b, `tip(u)`); model `SWITCHES`, `bounceEdges`/`bouncedState`, `rcDebounceStep`, `schmittHigh`, `debounceStep`, `latchToggle` in `core/physics`.
+- `pot` — `rotaryPot` (cut-open 16 mm pot: carbon track tinted by potential, wiper + knob, pins a/w/b, `track(s)`/`trackAt`, `tops`); model `potDivider`, `taperFraction` (A taper 10 % at half turn), `attenuationDb`, `perceivedLevel` in `core/physics`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
@@ -74,7 +75,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] MOSFET
 - [x] Relay
 - [x] Switches & buttons
-- [ ] Potentiometer
+- [x] Potentiometer
 - [ ] Fuses & protection
 - [ ] Crystal oscillator
 - [ ] Op-amp

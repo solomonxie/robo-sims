@@ -6,6 +6,7 @@ import { baseResistor, gainAndSaturation, npnAsASwitch } from '../lessons/compon
 import { gateDrive, gateThreshold, logicLevelMosfets, lowSideSwitching } from '../lessons/components/mosfet'
 import { coilAndContacts, drivingARelay, solidStateRelay } from '../lessons/components/relay'
 import { contactBounce, debouncing, toggleVsMomentary } from '../lessons/components/switches-buttons'
+import { linearVsLogTaper, wiperAsDivider } from '../lessons/components/potentiometer'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -113,6 +114,8 @@ const READY: Record<string, Lesson> = {
   'components/switches-buttons/contact-bounce': contactBounce,
   'components/switches-buttons/debouncing': debouncing,
   'components/switches-buttons/toggle-vs-momentary': toggleVsMomentary,
+  'components/potentiometer/wiper-as-divider': wiperAsDivider,
+  'components/potentiometer/linear-vs-log-taper': linearVsLogTaper,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,

@@ -1,4 +1,8 @@
 import {
+  attenuationDb,
+  perceivedLevel,
+  potDivider,
+  taperFraction,
   floatingPickup,
   logicLevel,
   pulledPin,
@@ -280,5 +284,28 @@ describe('switch bounce and debouncing', () => {
     expect(latchToggle(false, false, true)).toBe(true)
     expect(latchToggle(true, true, true)).toBe(true)
     expect(latchToggle(true, true, false)).toBe(true)
+  })
+})
+
+describe('potentiometer', () => {
+  it('splits the track at the wiper', () => {
+    const p = potDivider(3.3, 10e3, 0.5)
+    expect(p.vout).toBeCloseTo(1.65)
+    expect(p.lower + p.upper).toBeCloseTo(10e3)
+    expect(p.amps).toBeCloseTo(0.33e-3)
+    expect(potDivider(3.3, 10e3, 1.2).vout).toBeCloseTo(3.3)
+  })
+  it('log taper is 10 % at half turn and meets linear at the ends', () => {
+    expect(taperFraction(0.5, 'log')).toBeCloseTo(0.1)
+    expect(taperFraction(0, 'log')).toBe(0)
+    expect(taperFraction(1, 'log')).toBeCloseTo(1)
+    expect(taperFraction(0.3, 'linear')).toBeCloseTo(0.3)
+  })
+  it('maps output to perceived level in dB', () => {
+    expect(attenuationDb(0.1)).toBeCloseTo(-20)
+    expect(perceivedLevel(0.1)).toBeCloseTo(0.5)
+    expect(perceivedLevel(0.5)).toBeCloseTo(0.849, 2)
+    expect(perceivedLevel(0)).toBe(0)
+    expect(perceivedLevel(taperFraction(0.75, 'log'))).toBeCloseTo(0.756, 2)
   })
 })

@@ -288,3 +288,29 @@ export function debounceStep(s: Debounce, raw: boolean, dt: number, holdS: numbe
 
 /** Code toggle on a (debounced) button: flip `on` at each press edge. */
 export const latchToggle = (on: boolean, wasPressed: boolean, pressed: boolean) => (pressed && !wasPressed ? !on : on)
+
+// --- Potentiometer ---
+
+/** Mechanical sweep of a typical rotary pot (RV16, RV09). */
+export const POT_SWEEP_DEG = 270
+
+export type Taper = 'linear' | 'log'
+
+/** Fraction of the track between pin 1 and the wiper at `turn` (0..1 of the sweep). Log (A) taper: 10 % at half turn. */
+export function taperFraction(turn: number, taper: Taper) {
+  const u = Math.min(1, Math.max(0, turn))
+  return taper === 'linear' ? u : (81 ** u - 1) / 80
+}
+
+/** Pot as a divider: pin 3 at `vin`, pin 1 at 0 V, nothing drawn from the wiper. */
+export function potDivider(vin: number, totalOhms: number, turn: number, taper: Taper = 'linear') {
+  const f = taperFraction(turn, taper)
+  const lower = f * totalOhms
+  return { fraction: f, lower, upper: totalOhms - lower, vout: vin * f, amps: vin / totalOhms }
+}
+
+/** Attenuation in dB of an output fraction (−∞ at 0). */
+export const attenuationDb = (fraction: number) => 20 * Math.log10(fraction)
+
+/** How loud (or bright) a fraction feels, 0..1: decibels mapped linearly over the usable `rangeDb`. */
+export const perceivedLevel = (fraction: number, rangeDb = 40) => Math.min(1, Math.max(0, 1 + attenuationDb(fraction) / rangeDb))
