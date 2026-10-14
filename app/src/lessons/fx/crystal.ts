@@ -5,7 +5,7 @@ import { ELECTRON, HIGH_V, HOLE, LOW_V, RING, glowMat } from './colors'
 import { plusGeometry } from './shapes'
 import { UP, clamp01, rand } from './util'
 
-export const SILICON = '#9aa3ad'
+const SILICON = '#9aa3ad'
 export const DONOR = '#4cd07d'
 export const ACCEPTOR = '#ff6fb0'
 export type Dopant = 'donor' | 'acceptor'

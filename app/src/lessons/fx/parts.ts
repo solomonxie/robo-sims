@@ -3,13 +3,13 @@ import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
 import { buildTo92, TO92, TO220, buildTo220 } from '../../models/passives'
 import { glowHalo, icPackage } from './circuit'
-import { CONVENTIONAL, glowMat, potentialColor } from './colors'
+import { CONVENTIONAL, LABEL, glowMat, potentialColor } from './colors'
 import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
 import { clamp01 } from './util'
 
-export const partLetter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = '#c9ced8') => {
-  const d = segmentDisplay(1, height, color, true)
+export const partLetter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = LABEL) => {
+  const d = segmentDisplay(text.length, height, color, true)
   d.set(text)
   add(parent, d.group, at)
   return d

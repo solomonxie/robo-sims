@@ -3,7 +3,6 @@ import * as THREE from 'three/webgpu'
 import { V3, add, box, mat } from '../../models/kit'
 import { ELECTRON, HIGH_V, HOLE, LOW_V, glowMat, potentialColor } from './colors'
 import { ACCEPTOR, DONOR } from './crystal'
-import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
 import { partLetter } from './parts'
 import { plusGeometry } from './shapes'
@@ -172,6 +171,9 @@ function inside(q: THREE.Vector2, v: THREE.Vector2, x0: number, x1: number, y0: 
 /** MOSFET cross-section facing +z, the top of the silicon at y = 0. `kind` 'n': p substrate, n+ wells, an electron
  *  channel; 'p' the mirror (holes). Source on the left unless `flip`; `gateLetter` '' hides the G. `pins` are where wires
  *  attach, in `parent` space. */
+export const oxideGlass = () => new THREE.MeshStandardMaterial({ color: '#e8eef8', transparent: true, opacity: 0.55, roughness: 0.2, depthWrite: false })
+export const gateMetal = () => new THREE.MeshStandardMaterial({ color: '#7f8590', roughness: 0.4, metalness: 0.2 })
+
 export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 'p', width = 16, depth = 7, flip = false, gateLetter = 'G' } = {}) {
   const group = add(parent, new THREE.Group(), at)
   const nmos = kind === 'n'
@@ -186,17 +188,12 @@ export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 
   box(group, [width, depth, THICK], substrate, [0, -depth / 2, 0])
   const wellMat = mat(tint(nmos ? DONOR : ACCEPTOR, 0.35), { rough: 0.6 })
   for (const x of [xs, xd]) box(group, [wellW, WELL_D, THICK + 0.04], wellMat, [x, -WELL_D / 2 + 0.01, 0])
-  const glass = new THREE.MeshStandardMaterial({ color: '#e8eef8', transparent: true, opacity: 0.55, roughness: 0.2, depthWrite: false })
-  box(group, [length + 0.8, OXIDE, THICK], glass, [0, OXIDE / 2, 0]).castShadow = false
-  const gateMat = new THREE.MeshStandardMaterial({ color: '#7f8590', roughness: 0.4, metalness: 0.2 })
+  box(group, [length + 0.8, OXIDE, THICK], oxideGlass(), [0, OXIDE / 2, 0]).castShadow = false
+  const gateMat = gateMetal()
   box(group, [length, GATE_H, THICK], gateMat, [0, OXIDE + GATE_H / 2, 0])
   const metal = mat('#b9bec6', { metal: 0.4, rough: 0.35 })
   for (const x of [xs, xd]) box(group, [wellW * 0.6, 0.6, THICK * 0.7], metal, [x, 0.3, 0])
-  const letter = (text: string, x: number, y: number) => {
-    const d = segmentDisplay(1, 0.9, '#c9ced8', true)
-    d.set(text)
-    add(group, d.group, [x, y, THICK / 2 + 0.05])
-  }
+  const letter = (text: string, x: number, y: number) => partLetter(group, text, [x, y, THICK / 2 + 0.05], 0.9)
   letter('S', xs, -depth - 1)
   letter('d', xd, -depth - 1)
   if (gateLetter) letter(gateLetter, 1.1, OXIDE + GATE_H + 0.9)

@@ -15,13 +15,13 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 `lessons/fx/` (models in `core/physics/` in brackets):
 - `util` — `clamp01`, `lerp`, `ease`, `path`, `emptyGroup`, `presence`, `halton`.
-- `colors` — palette, `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`. `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
+- `colors` — palette (`LABEL`, `LED_RED`…), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`. `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
 - `flows` — `Flow`, `plusFlow`, glass wire, `ionLattice`, `electronGas`.
 - `circuit` — cells, sources, `wire`, `lane`, resistors, diodes, `ledLamp`, `bulb`, switches, `motorCan`, `icPackage`, `chargeTank`, `groundSymbol`/`groundAt`, `opAmpSymbol`; layout `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
-- `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter`.
+- `parts` — real packages: `transistorPart` (TO-92), `fetPart` (TO-92/TO-220), `dip8OpAmp`, `sot223Regulator`, `hc49Crystal`, `glassFuse`; `litEpoxy`, `partLetter` (static text).
 - `electromech` — cut-open `relayPart`/`ssrPart`, `tactSwitch`, `toggleSwitch`, `rotaryPot` [`electromechanical`].
-- `dies` — `bjtDie`, `mosfetDie` cross-sections [`semiconductors`, `memory`: SRAM/DRAM/Flash cells].
-- `crystal` — `siliconCrystal` lattice; `junction` mode for PN.
+- `dies` — `bjtDie`, `mosfetDie` cross-sections, `oxideGlass`/`gateMetal` for extra gate stacks [`semiconductors`, `memory`].
+- `crystal` — `siliconCrystal` lattice, `DONOR`/`ACCEPTOR`; `junction` mode for PN.
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope`, `ivScreen`/`ticks`, `phasor`, `clockFace`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, coils (`coil`, `inductorCoil`, `coilLines`), `barMagnet`.
@@ -77,8 +77,36 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Logic gates
 - [x] Memory cell
 
+### Wave 3 — Digital, Power, Signals
+- Digital:
+  - [ ] Binary & hex
+  - [ ] Combinational logic
+  - [ ] Flip-flops & latches
+  - [ ] Counters & shift registers
+  - [ ] State machines
+  - [ ] Timing
+  - [ ] Level shifting
+  - [ ] FPGA basics
+- Power:
+  - [ ] Battery chemistry
+  - [ ] 18650 packs
+  - [ ] Charging
+  - [ ] Buck & boost
+  - [ ] Power budget
+  - [ ] Wiring & gauge
+  - [ ] Noise & decoupling
+  - [ ] Brownouts
+- Signals:
+  - [ ] Filters
+  - [ ] Fourier intuition
+  - [ ] Oscilloscope
+  - [ ] Logic analyzer
+  - [ ] Transmission lines
+  - [ ] Radio basics
+  - [ ] Grounding & shielding
+  - [ ] PCB design
+
 ### Later waves (file order within each)
-- Wave 3: Digital, Power, Signals
 - Wave 4: Microcontrollers, Sensors, Software
 - Wave 5: Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
 - Wave 6: Mechanics, Waves, Math, Materials, Printing

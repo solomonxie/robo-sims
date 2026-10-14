@@ -8,6 +8,8 @@ import {
   ELECTRON,
   GREY,
   HOLE,
+  LABEL,
+  LED_RED,
   RING,
   clamp01,
   ease,
@@ -19,6 +21,7 @@ import {
   ledLamp,
   litWire,
   mosfetDie,
+  partLetter,
   potentialColor,
   pulseLabel,
   segmentDisplay,
@@ -29,7 +32,6 @@ import {
 import { Lesson, Params, Stage, n } from '../types'
 
 const VDD = 1.2
-const LED = '#ff3b30'
 const HI = potentialColor(1)
 const LO = potentialColor(0)
 const bitChoice = (key: string, label: string, initial: Bit) => ({
@@ -130,7 +132,7 @@ export const nandFromTransistors: Lesson = {
     })
 
     const ledX = XO + 1.4
-    const lamp = ledLamp(scene, LED, [ledX, YB, 0], { scale: 1.4, anodeRight: false })
+    const lamp = ledLamp(scene, LED_RED, [ledX, YB, 0], { scale: 1.4, anodeRight: false })
     wire(scene, [[ledX + 0.7, YB, 0], [ledX + 2, YB, 0], [ledX + 2, YG, 0]])
     add(scene, groundSymbol(), [ledX + 2, YG, 0])
 
@@ -230,7 +232,7 @@ export const truthTables: Lesson = {
   },
   legend: [
     { color: RING, label: 'Inputs A, B now; lit row = this combination', shape: 'dot' },
-    { color: LED, label: 'LED on = Y is 1', shape: 'dot' },
+    { color: LED_RED, label: 'LED on = Y is 1', shape: 'dot' },
     { color: '#ff4d4d', label: 'Wires: red = 1 (Vdd), blue = 0', shape: 'dot' },
   ],
   points: [
@@ -258,7 +260,7 @@ export const truthTables: Lesson = {
     const frame = new THREE.MeshStandardMaterial({ color: '#1b1d22', roughness: 0.6 })
     const back = add(table, new THREE.Mesh(new THREE.BoxGeometry(8.2, 1, 0.4), frame), [0, 0, -0.6])
     const head = ['A', 'B', 'Y'].map((t, i) => {
-      const d = segmentDisplay(1, 1.1, i === 2 ? LED : GREY, true)
+      const d = segmentDisplay(1, 1.1, i === 2 ? LED_RED : GREY, true)
       d.set(t)
       return add(table, d.group, [-2.6 + i * 2.6, 0, 0])
     })
@@ -267,7 +269,7 @@ export const truthTables: Lesson = {
     const sep = add(table, new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), new THREE.MeshStandardMaterial({ color: GREY })), [1.3, 0, 0])
 
     const ledAt: V3 = [GX + 8.6, 0, 0]
-    const lamp = ledLamp(scene, LED, ledAt, { scale: 1.6, anodeRight: false })
+    const lamp = ledLamp(scene, LED_RED, ledAt, { scale: 1.6, anodeRight: false })
     wire(scene, [[ledAt[0] + 0.8, 0, 0], [ledAt[0] + 2, 0, 0], [ledAt[0] + 2, -4.6, 0]])
     add(scene, groundSymbol(), [ledAt[0] + 2, -4.6, 0])
 
@@ -293,7 +295,7 @@ export const truthTables: Lesson = {
       const top = ((rows.length + 1) / 2) * ROW_H
       cells = rows.map((r, k) =>
         [r.a, r.b, r.out].map((v, i) => {
-          const d = segmentDisplay(1, 1.1, i === 2 ? (v ? LED : GREY) : '#c9ced8', true)
+          const d = segmentDisplay(1, 1.1, i === 2 ? (v ? LED_RED : GREY) : LABEL, true)
           d.set(one && i === 1 ? '-' : String(v))
           add(table, d.group, [-2.6 + i * 2.6, top - (k + 1.5) * ROW_H, 0])
           return d
@@ -366,7 +368,7 @@ const K = 1.1
 
 /** Upside-down LED under a block, anode lead top at (x − K/2, YLED); cathode routed beside it to the ground rail. */
 function hangingLed(scene: THREE.Object3D, x: number) {
-  const lamp = ledLamp(scene, LED, [x, YLED, 0], { scale: K })
+  const lamp = ledLamp(scene, LED_RED, [x, YLED, 0], { scale: K })
   lamp.group.rotation.z = Math.PI
   wire(scene, [[x + K / 2, YLED, 0], [x + 1.9, YLED, 0], [x + 1.9, YGND, 0]])
   return lamp
@@ -416,9 +418,7 @@ export const adders: Lesson = {
       const own = mat.clone()
       ;(body.children[0] as THREE.Mesh).material = own
       add(scene, body, [x, 0, 0])
-      const label = segmentDisplay(2, 0.9, '#c9ced8', true)
-      label.set('FA')
-      add(scene, label.group, [x, -0.4, 0.65])
+      partLetter(scene, 'FA', [x, -0.4, 0.65], 0.9)
       const inA: V3 = [x - 0.8, YIN, 0]
       const inB: V3 = [x + 0.8, YIN, 0]
       for (const at of [inA, inB]) wire(scene, [at, [at[0], FA / 2, 0]])

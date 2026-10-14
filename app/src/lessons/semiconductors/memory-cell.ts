@@ -27,10 +27,13 @@ import { createStage } from '../../scene/stage'
 import {
   ELECTRON,
   GREY,
+  LABEL,
+  LED_RED,
   RING,
   chargeTank,
   clamp01,
   ease,
+  gateMetal,
   gateSymbol,
   glowMat,
   halton,
@@ -40,10 +43,11 @@ import {
   ledLamp,
   litWire,
   mosfetDie,
+  oxideGlass,
+  partLetter,
   potentialColor,
   pulseLabel,
   scope,
-  segmentDisplay,
   storyClock,
   storySlider,
   ticks,
@@ -51,12 +55,6 @@ import {
 } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
-const LED = '#ff3b30'
-const label = (parent: THREE.Object3D, text: string, at: V3, h = 0.9, color = '#c9ced8') => {
-  const d = segmentDisplay(text.length, h, color, true)
-  d.set(text)
-  return add(parent, d.group, at)
-}
 
 // --- SRAM latch: two inverters feed each other; access switches on the word line connect them to the bit lines. ---
 
@@ -101,7 +99,7 @@ export const sramLatch: Lesson = {
     { color: RING, label: 'Word line opens both access switches', shape: 'dot' },
     { color: ELECTRON, label: 'Access NMOS channel: bit line ↔ cell', shape: 'arrow-right' },
     { color: '#ff4d4d', label: 'Nodes and lines: red = 1, blue = 0', shape: 'dot' },
-    { color: '#c9ced8', label: 'Big digits: Q (left) and Q̄ (right)', shape: 'dot' },
+    { color: LABEL, label: 'Big digits: Q (left) and Q̄ (right)', shape: 'dot' },
   ],
   points: [
     'SRAM (static RAM) stores a bit in a loop of two inverters: Q feeds the bottom inverter, whose output Q̄ feeds the top one back to Q. A 1 holds a 0 holds a 1.',
@@ -144,7 +142,7 @@ export const sramLatch: Lesson = {
         ball: junction(scene, node, 0.5),
         end: junction(scene, [s * XBL, YBL, 0], 0.6),
         volts: pulseLabel(scene, 3, GREY, [s * XBL, -YBL - 1.4, 0], 0.9),
-        digit: pulseLabel(scene, 1, '#c9ced8', [s * (h + 1.2), 0, 0], 2.2),
+        digit: pulseLabel(scene, 1, LABEL, [s * (h + 1.2), 0, 0], 2.2),
       }
     })
     junction(scene, [-XBL, 0, 0], 0.4).set(0.5)
@@ -294,9 +292,9 @@ export const dramCapacitor: Lesson = {
     const lit = { cap: litWire(scene, capNet), line: litWire(scene, lineNet), bit: litWire(scene, bitline), wl: litWire(scene, wl) }
     const sa = icPackage(3.4, 2.4, 2)
     add(scene, sa, [XBD, -7.4, 0])
-    label(scene, 'SA', [XBD, -7.4, 0.65], 0.9)
+    partLetter(scene, 'SA', [XBD, -7.4, 0.65], 0.9)
     const cellV = pulseLabel(scene, 3, GREY, [XC + 3.4, YC + 1.2, 0], 0.9)
-    const bitDigit = pulseLabel(scene, 1, '#c9ced8', [XC + 3.4, YC - 1.4, 0], 1.6)
+    const bitDigit = pulseLabel(scene, 1, LABEL, [XC + 3.4, YC - 1.4, 0], 1.6)
     const lineV = pulseLabel(scene, 3, GREY, [XBD - 2.6, 3.4, 0], 0.9)
 
     const drops = Array.from({ length: 5 }, (_, i) => ({ y: i / 5, m: add(scene, mesh(new THREE.SphereGeometry(0.22, 10, 8), glowMat('#ff4d4d', 1)), [XC, 0, 0]) }))
@@ -451,7 +449,7 @@ export const flashFloatingGate: Lesson = {
   legend: [
     { color: ELECTRON, label: 'Electrons tunnel to the floating gate (FG)', shape: 'arrow-right' },
     { color: '#ff4d4d', label: 'Control gate (CG), substrate: red = high V', shape: 'dot' },
-    { color: LED, label: 'LED lit: cell conducts at read = 1', shape: 'dot' },
+    { color: LED_RED, label: 'LED lit: cell conducts at read = 1', shape: 'dot' },
   ],
   points: [
     'A Flash cell is a MOSFET with an extra gate: a floating gate of polysilicon sealed in oxide between the channel and the control gate. Nothing is wired to it, so charge put there has no way out.',
@@ -470,13 +468,12 @@ export const flashFloatingGate: Lesson = {
     const L = die.length
     const fgTop = die.pins.gate[1]
     const fgBot = YF + 0.4
-    const glass = new THREE.MeshStandardMaterial({ color: '#e8eef8', transparent: true, opacity: 0.55, roughness: 0.2, depthWrite: false })
-    box(scene, [L + 0.8, IPD, 4], glass, [0, fgTop + IPD / 2, 0]).castShadow = false
-    const cgMat = new THREE.MeshStandardMaterial({ color: '#7f8590', roughness: 0.4, metalness: 0.2 })
+    box(scene, [L + 0.8, IPD, 4], oxideGlass(), [0, fgTop + IPD / 2, 0]).castShadow = false
     const cgY = fgTop + IPD + CG_H / 2
+    const cgMat = gateMetal()
     box(scene, [L, CG_H, 4], cgMat, [0, cgY, 0])
-    label(scene, 'CG', [-L / 2 + 1, cgY, 2.15], 0.8)
-    label(scene, 'FG', [-L / 2 + 1, (fgTop + fgBot) / 2, 2.15], 0.8)
+    partLetter(scene, 'CG', [-L / 2 + 1, cgY, 2.15], 0.8)
+    partLetter(scene, 'FG', [-L / 2 + 1, (fgTop + fgBot) / 2, 2.15], 0.8)
     const cgTop: V3 = [0, cgY + CG_H / 2, 0]
     const cgPin: V3 = [0, cgTop[1] + 2.4, 0]
     wire(scene, [cgTop, cgPin])
@@ -494,11 +491,11 @@ export const flashFloatingGate: Lesson = {
     const dx = die.pins.drain[0]
     const ledAt: V3 = [dx + 2.6, die.pins.drain[1] + 1.6, 0]
     wire(scene, [die.pins.drain, [dx, ledAt[1], 0], [ledAt[0] - 0.6, ledAt[1], 0]])
-    const lamp = ledLamp(scene, LED, ledAt, { scale: 1, anodeRight: true })
+    const lamp = ledLamp(scene, LED_RED, ledAt, { scale: 1, anodeRight: true })
     const rail: V3[] = [[ledAt[0] + 0.6, ledAt[1], 0], [ledAt[0] + 2, ledAt[1], 0], [ledAt[0] + 2, gy, 0]]
     wire(scene, rail)
     const railBall = junction(scene, rail[2], 0.55)
-    const bitDigit = pulseLabel(scene, 1, '#c9ced8', [ledAt[0] + 4, ledAt[1], 0], 1.6)
+    const bitDigit = pulseLabel(scene, 1, LABEL, [ledAt[0] + 4, ledAt[1], 0], 1.6)
 
     const eMat = glowMat(ELECTRON, 1.3)
     const stored = new THREE.InstancedMesh(new THREE.SphereGeometry(0.24, 12, 8), eMat, DOTS)
