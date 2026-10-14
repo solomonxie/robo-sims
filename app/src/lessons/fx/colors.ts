@@ -27,3 +27,5 @@ export function glowMat(color: string, intensity = 0.7) {
 export function potentialColor(f: number, out = new THREE.Color()): THREE.Color {
   return out.set(LOW_V).lerp(new THREE.Color(HIGH_V), clamp01(f))
 }
+export const CLK_COLOR = '#5ad8e6'
+export const DATA_COLOR = '#b48cff'

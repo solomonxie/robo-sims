@@ -3,12 +3,9 @@ import { Bit, Hc595, bit, counterRipple, shiftIn, shiftOutSteps, toBits } from '
 import { binary, hex } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, LED_RED, RING, ease, flipFlopBlock, gateSymbol, groundSymbol, inBall, junction, ledLamp, partLetter, segmentDisplay, signalWire, timingDiagram } from '../fx'
+import { CLK_COLOR, DATA_COLOR, GREY, LED_RED, LOGIC_WIRES, RING, ease, flipFlopBlock, gateSymbol, groundSymbol, inBall, junction, ledLamp, partLetter, segmentDisplay, signalWire, timingDiagram } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
-const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
-const CLK_COLOR = '#5ad8e6'
-const D_COLOR = '#b48cff'
 const BUS_DY = -3.6
 const SP = 8.4
 const rowXs = (k: number, sp = SP) => Array.from({ length: k }, (_, i) => (i - (k - 1) / 2) * sp)
@@ -82,7 +79,7 @@ export const rippleCounter: Lesson = {
       : `count ← count + 1 on each rising edge of CLK · 4 bits: 0 … 15, then back to 0`,
   legend: [
     { color: RING, label: 'CLK = clock; Q0 (1s) on the left … Q3 (8s)', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Scope: CLK and the four Q bits', shape: 'arrow-right' },
   ],
   points: [
@@ -196,7 +193,7 @@ export const shiftRegister: Lesson = {
   formula: (p) => `Q0 ← D, Q1 ← Q0, …, Q7 ← Q6 on each rising edge of CLK · ${SR_DATA[String(p.data)].text}`,
   legend: [
     { color: RING, label: 'D = serial data in, CLK = clock; Q0 … Q7 out', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Scope: CLK, D and Q0–Q3, each one edge later', shape: 'arrow-right' },
   ],
   points: [
@@ -228,7 +225,7 @@ export const shiftRegister: Lesson = {
     })
     const scope = timingDiagram(scene, [0, -20.6, 0], [
       { label: 'CLK', color: CLK_COLOR },
-      { label: 'D', color: D_COLOR },
+      { label: 'D', color: DATA_COLOR },
       ...[0, 1, 2, 3].map((k) => ({ label: `Q${k}`, color: LED_RED })),
     ], { width: 52, rowH: 2.2 })
     const s = { key: '', t: 0, edges: 0, reg: 0, lv: Array<number>(SR_BITS).fill(0), c: 0, d: 0 }
@@ -302,7 +299,7 @@ export const hc595: Lesson = {
       : 'No storage stage: the LEDs show every bit on its way in',
   legend: [
     { color: RING, label: 'DS data, SHCP shift clock, STCP store clock', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: '#8a93a6', label: 'Top row shifts, bottom row holds the outputs', shape: 'dot' },
   ],
   points: [
@@ -356,7 +353,7 @@ export const hc595: Lesson = {
     const shown = segmentDisplay(2, 3, LED_RED, true)
     add(scene, shown.group, [outX + 2.6, -6.4, 0])
     const scope = timingDiagram(scene, [0, -17.6, 0], [
-      { label: 'DS', color: D_COLOR },
+      { label: 'DS', color: DATA_COLOR },
       { label: 'SHCP', color: CLK_COLOR },
       { label: 'STCP', color: '#ffb84d' },
     ], { width: 56, rowH: 2.6 })

@@ -41,3 +41,6 @@ export function presence(o: THREE.Object3D, p: number) {
   o.visible = p > 0.01
   o.scale.setScalar(Math.max(0.001, p))
 }
+
+/** One eased step from `from` toward `to`. */
+export const glide = (dt: number, from: number, to: number, k = 14) => from + (to - from) * ease(dt, k)

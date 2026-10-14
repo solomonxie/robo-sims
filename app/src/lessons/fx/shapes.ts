@@ -30,3 +30,11 @@ export function arrow(parent: THREE.Object3D, at: V3, dir: V3, color = CONVENTIO
 export function pointArrow(a: THREE.Object3D, dir: V3) {
   a.quaternion.setFromUnitVectors(UP, new THREE.Vector3(...dir).normalize())
 }
+
+/** Translucent glowing box, e.g. a highlight behind part of a schematic. */
+export function glowBox(parent: THREE.Object3D, size: V3, at: V3, color: string, opacity = 0.2) {
+  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, transparent: true, opacity, depthWrite: false })
+  const box = add(parent, new THREE.Mesh(new THREE.BoxGeometry(...size), m), at)
+  box.castShadow = false
+  return { mesh: box, m }
+}

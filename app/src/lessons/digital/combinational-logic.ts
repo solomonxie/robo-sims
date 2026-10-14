@@ -20,21 +20,13 @@ import {
 import { binary } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, LABEL, LED_RED, RING, NetLayout, ease, emptyGroup, gateNet, litWire, partLetter, segmentDisplay, storyClock, storySlider } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { GREY, LABEL, LED_RED, LOGIC_WIRES, NetLayout, RING, ease, emptyGroup, gateNet, glowBox, litWire, partLetter, segmentDisplay, storyClock, storySlider } from '../fx'
+import { Lesson, Params, Stage, bitChoice, n } from '../types'
 
 const DELAY_S = 0.4
 const GATE_PS = 15
 const SLOW = DELAY_S / (GATE_PS * 1e-12)
 const delayText = (net: Net) => `${netDepth(net)} gate${netDepth(net) > 1 ? 's' : ''} ≈ ${netDepth(net) * GATE_PS} ps`
-const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
-
-const bitChoice = (key: string, label: string, initial: Bit) => ({
-  kind: 'choice' as const,
-  key,
-  options: [0, 1].map((v) => ({ value: String(v), label: `${label} = ${v}` })),
-  initial: String(initial),
-})
 
 /** Unit-delay playback: on an input change the gates update one level per DELAY_S; levels ease toward that state. */
 function settler(net: Net) {
@@ -55,13 +47,6 @@ function settler(net: Net) {
       return s
     },
   }
-}
-
-const glowBox = (parent: THREE.Object3D, size: V3, at: V3, color: string, opacity: number) => {
-  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, transparent: true, opacity, depthWrite: false })
-  const mesh = add(parent, new THREE.Mesh(new THREE.BoxGeometry(...size), m), at)
-  mesh.castShadow = false
-  return mesh
 }
 
 // --- Truth tables: any table becomes AND terms ORed together; three examples with three inputs. ---
@@ -124,7 +109,7 @@ export const tableToCircuit: Lesson = {
   },
   legend: [
     { color: RING, label: 'Inputs; lit column = this row of the table', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: `Change ripples 1 gate per ${DELAY_S} s (≈ ${GATE_PS} ps)`, shape: 'arrow-right' },
   ],
   points: [
@@ -186,7 +171,7 @@ export const tableToCircuit: Lesson = {
         const s = live.sim.frame(dt, { A: a, B: b, C: c })
         live.net!.frame(dt, s.ins, s.gates)
         live.col += (colX(clock.step) - live.col) * ease(dt, 10)
-        highlight.position.x = live.col
+        highlight.mesh.position.x = live.col
       },
       readouts: (p) => {
         const f = FUNCS[String(p.fn)]
@@ -229,7 +214,7 @@ export const multiplexer: Lesson = {
   },
   legend: [
     { color: RING, label: 'Path the selected data takes to Y', shape: 'arrow-right' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: `S = 0 enables the top AND, S = 1 the bottom`, shape: 'dot' },
   ],
   points: [
@@ -310,7 +295,7 @@ export const decoder: Lesson = {
   },
   legend: [
     { color: RING, label: 'Address bits A1 A0; outputs Y0–Y3', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Each AND watches for one address', shape: 'dot' },
   ],
   points: [
@@ -406,7 +391,7 @@ export const halfAndFullAdder: Lesson = {
   },
   legend: [
     { color: RING, label: 'S is worth 1, Co (carry out) 2; C = carry in', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: '#6f8cff', label: 'Full adder: shaded = its two half adders', shape: 'dot' },
   ],
   points: [

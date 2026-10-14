@@ -29,7 +29,7 @@ export const LUT3 = {
 
 /** Serial config chain after `s` shifts: new bits enter at cell 0, last bit first, so after n shifts it holds `next`. */
 export const configLoad = (old: Bit[], next: Bit[], s: number): Bit[] =>
-  old.map((b, j) => (j < s ? next[next.length - Math.min(s, next.length) + j] : old[j - s]))
+  old.map((_, j) => (j < s ? next[next.length - Math.min(s, next.length) + j] : old[j - s]))
 
 /** One logic block: a LUT whose pin k reads routing track `ins[k]` (−1 = unconnected, reads 0), then a flip-flop. */
 export interface Clb {

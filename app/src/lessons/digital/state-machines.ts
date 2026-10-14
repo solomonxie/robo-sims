@@ -23,6 +23,8 @@ import { Bit, bit } from '../../core/logic'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
+  CLK_COLOR,
+  DATA_COLOR,
   GREY,
   LED_RED,
   RING,
@@ -40,8 +42,6 @@ import {
 } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
-const CLK_COLOR = '#5ad8e6'
-const B_COLOR = '#b48cff'
 const NODE = '#ffd84d'
 const TRANSITIONS = { color: RING, label: 'Lit disc = current state; arrow flashes when taken', shape: 'arrow-right' } as const
 
@@ -130,7 +130,7 @@ export const mooreVsMealy: Lesson = {
     partLetter(scene, 'presses', [21, -9, 0], 0.7, GREY)
     const scope = timingDiagram(scene, [0, -18.6, 0], [
       { label: 'CLK', color: CLK_COLOR },
-      { label: 'B', color: B_COLOR },
+      { label: 'B', color: DATA_COLOR },
       { label: 'out', color: LED_RED },
     ], { width: 44, rowH: 3 })
     const s = { key: '', t: 0, edges: 0, state: 'UP' as string, out: 0, count: 0, lv: { b: 0, c: 0, o: 0 } }

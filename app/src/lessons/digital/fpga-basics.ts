@@ -23,9 +23,9 @@ import {
   GREY,
   LABEL,
   RING,
-  ease,
   emptyGroup,
   flipFlopBlock,
+  glide,
   glowMat,
   inBall,
   junction,
@@ -39,7 +39,6 @@ import {
 import { Lesson, Stage, n } from '../types'
 
 const WIRES = { color: '#ff4d4d', label: 'Wires and bits: red = 1, blue = 0', shape: 'dot' } as const
-const glide = (dt: number, from: number, to: number) => from + (to - from) * ease(dt, 14)
 const DARK = '#2b3039'
 const OFF = new THREE.Color('#1c1f25')
 const GOLD = new THREE.Color(RING)

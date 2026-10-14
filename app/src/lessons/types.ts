@@ -72,3 +72,11 @@ export const e12 = (p: Params, k: string) => nearestE12(n(p, k))
 
 export const resistorSlider = (key: string, label: string, initial: number) =>
   ({ kind: 'slider', key, label, min: 47, max: 1000, initial, log: true, format: (v: number) => ohms(nearestE12(v)) }) as const
+
+/** 0/1 choice for a logic input. */
+export const bitChoice = (key: string, label: string, initial: number) => ({
+  kind: 'choice' as const,
+  key,
+  options: [0, 1].map((v) => ({ value: String(v), label: `${label} = ${v}` })),
+  initial: String(initial),
+})

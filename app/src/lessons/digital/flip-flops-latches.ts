@@ -4,14 +4,18 @@ import { binary, hex } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
+  CLK_COLOR,
+  DATA_COLOR,
   GREY,
   LED_RED,
+  LOGIC_WIRES,
   NetLayout,
   RING,
   ease,
   emptyGroup,
   flipFlopBlock,
   gateNet,
+  glowBox,
   groundSymbol,
   junction,
   ledLamp,
@@ -29,9 +33,6 @@ const SLOW = DELAY_S / (GATE_PS * 1e-12)
 const CLK_S = 4
 const REAL_GHZ = SLOW / CLK_S / 1e9
 const slowText = `${GATE_PS} ps gate delay shown as ${DELAY_S} s (${(SLOW / 1e9).toFixed(0)} × 10⁹ slower)`
-const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
-const CLK_COLOR = '#5ad8e6'
-const D_COLOR = '#b48cff'
 
 /** Live unit-delay run: every DELAY_S each gate reads the last outputs, so the feedback loops hold their state. */
 function live(net: Net, from: Bit[]) {
@@ -51,12 +52,6 @@ function live(net: Net, from: Bit[]) {
 /** Power up, then clock a 0 in so every run starts from Q = 0. */
 const cleared = (net: Net, ins: Inputs, clk: string) => netRun(net, [{ ...ins, [clk]: 1 }, { ...ins, [clk]: 0 }], evalNet(net, { ...ins, [clk]: 0 }))[1]
 const clockAt = (t: number): Bit => bit(t % CLK_S >= CLK_S / 2)
-
-const glowBox = (parent: THREE.Object3D, size: V3, at: V3, color: string) => {
-  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, transparent: true, opacity: 0.1, depthWrite: false })
-  add(parent, new THREE.Mesh(new THREE.BoxGeometry(...size), m), at).castShadow = false
-  return m
-}
 
 /** Cross-coupled pair: gate `top` at (x, 4) reads `bot` on pin b, `bot` at (x, −4) reads `top` on pin a. */
 const crossVia = (top: number, bot: number, x: number): NetLayout['via'] => ({
@@ -102,7 +97,7 @@ export const srLatch: Lesson = {
   },
   legend: [
     { color: RING, label: 'S sets Q = 1, R resets; Q̄ = not Q', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Scope: S, R, Q over the last 12 s', shape: 'arrow-right' },
   ],
   points: [
@@ -126,7 +121,7 @@ export const srLatch: Lesson = {
     const sim = live(SR_NET, [0, 1])
     const scope = timingDiagram(scene, [0, -15, 0], [
       { label: 'S', color: RING },
-      { label: 'R', color: D_COLOR },
+      { label: 'R', color: DATA_COLOR },
       { label: 'Q', color: LED_RED },
     ], { width: 26, rowH: 2.4 })
     const s = { key: '', t: 0, race: 0 }
@@ -201,7 +196,7 @@ export const dFlipFlop: Lesson = {
       : 'Q = D while CLK = 1 (transparent) · Q holds while CLK = 0',
   legend: [
     { color: RING, label: 'D = data, CLK = clock; Q̄ = not Q', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: '#6f8cff', label: 'Shaded latch glows while it is open', shape: 'dot' },
   ],
   points: [
@@ -237,7 +232,7 @@ export const dFlipFlop: Lesson = {
     const holder = add(scene, new THREE.Group())
     const scope = timingDiagram(scene, [0, -19, 0], [
       { label: 'CLK', color: CLK_COLOR },
-      { label: 'D', color: D_COLOR },
+      { label: 'D', color: DATA_COLOR },
       { label: 'Q', color: LED_RED },
     ], { width: 40, rowH: 3 })
     const live0 = { kind: '', d: '', t: 0, net: null as ReturnType<typeof gateNet> | null, sim: live(FF_NET, []), boxes: [] as THREE.MeshStandardMaterial[], dots: [] as ReturnType<typeof junction>[] }
@@ -247,7 +242,7 @@ export const dFlipFlop: Lesson = {
       holder.position.x = k.shift
       live0.net = gateNet(holder, k.net, k.layout)
       live0.sim = live(k.net, cleared(k.net, { D: 0 }, 'CLK'))
-      live0.boxes = kind === 'ff' ? [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff'), glowBox(holder, [19.6, 13.6, 0.2], [16.1, 0, -1.2], '#ffb84d')] : [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff')]
+      live0.boxes = kind === 'ff' ? [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff', 0.1).m, glowBox(holder, [19.6, 13.6, 0.2], [16.1, 0, -1.2], '#ffb84d', 0.1).m] : [glowBox(holder, [21.4, 13.6, 0.2], [-5.8, 0, -1.2], '#6f8cff', 0.1).m]
       live0.dots = kind === 'ff' ? [junction(holder, [-25.2, -11, 0], 0.5), junction(holder, [4, -4.9, 0], 0.5)] : []
       Object.assign(live0, { kind, d, t: 0 })
     }
@@ -293,7 +288,7 @@ export const registers: Lesson = {
   },
   legend: [
     { color: RING, label: 'D3–D0 in, Q3–Q0 out; CLK = clock', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Scope: CLK, LOAD and the four Q bits', shape: 'arrow-right' },
   ],
   points: [
@@ -349,7 +344,7 @@ export const registers: Lesson = {
     add(scene, value.group, [27.5, 3.6, 0])
     const scope = timingDiagram(scene, [0, -17.6, 0], [
       { label: 'CLK', color: CLK_COLOR },
-      { label: 'LOAD', color: D_COLOR },
+      { label: 'LOAD', color: DATA_COLOR },
       ...[3, 2, 1, 0].map((k) => ({ label: `Q${k}`, color: LED_RED })),
     ], { width: 36, rowH: 2.4 })
     const s = { t: 0 }

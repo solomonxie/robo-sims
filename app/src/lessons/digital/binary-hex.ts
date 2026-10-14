@@ -3,15 +3,8 @@ import { toBits } from '../../core/logic'
 import { addWrap, binary, countSteps, hex, nibbles, placeValues, signedRange, toSigned, wrap } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, HIGH_V, LABEL, LED_RED, RING, bitRow, ease, glowMat, pulseLabel, segmentDisplay } from '../fx'
+import { GREY, HIGH_V, LABEL, LED_RED, RING, bitRow, ease, glowBox, glowMat, pulseLabel, segmentDisplay } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
-
-const glowBar = (parent: THREE.Object3D, size: V3, at: V3, color: string) => {
-  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, transparent: true, opacity: 0.2, depthWrite: false })
-  const mesh = add(parent, new THREE.Mesh(new THREE.BoxGeometry(...size), m), at)
-  mesh.castShadow = false
-  return { mesh, m }
-}
 
 // --- Binary counting: each LED is a power of two; the lit ones add up to the number. ---
 
@@ -149,7 +142,7 @@ export const hexShorthand: Lesson = {
     const groups = [0, 1, 2, 3].map((k) => {
       const x = NIB_X(k)
       const w = 4 * P16 - 0.4
-      const box = glowBar(scene, [w, 21, 0.2], [x, 0.2, -1.2], RING)
+      const box = glowBox(scene, [w, 21, 0.2], [x, 0.2, -1.2], RING)
       add(scene, new THREE.Mesh(new THREE.BoxGeometry(w, 0.14, 0.14), new THREE.MeshStandardMaterial({ color: GREY })), [x, -5.5, 0])
       return {
         box,
@@ -255,7 +248,7 @@ export const twosComplement: Lesson = {
       const a = angleOf(u) - Math.PI / 2 ** W4
       const g = add(wheel, new THREE.Group())
       g.rotation.z = a
-      return glowBar(g, [3.6, 0.32, 0.3], [R, 0, 0], color)
+      return glowBox(g, [3.6, 0.32, 0.3], [R, 0, 0], color)
     }
     const wrapSeam = seam(0, GREY)
     const ofSeam = seam(8, HIGH_V)

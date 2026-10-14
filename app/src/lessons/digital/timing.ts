@@ -19,16 +19,19 @@ import { secs, sci, si } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
+  CLK_COLOR,
+  DATA_COLOR,
   GREY,
   HIGH_V,
   LABEL,
   LED_RED,
+  LOGIC_WIRES,
   POWER,
   RING,
-  ease,
   emptyGroup,
   flipFlopBlock,
   gateSymbol,
+  glide,
   glowMat,
   groundSymbol,
   hc49Crystal,
@@ -43,10 +46,6 @@ import {
 } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
-const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
-const CLK_COLOR = '#5ad8e6'
-const D_COLOR = '#b48cff'
-const glide = (dt: number, from: number, to: number) => from + (to - from) * ease(dt, 14)
 
 /** Toggle flip-flop: Q̄ from a NOT gate above the block feeds D back. Returns the Q and Q̄ wires and the q branch x. */
 function toggleLoop(parent: THREE.Object3D, b: ReturnType<typeof flipFlopBlock>, x: number, notY: number) {
@@ -149,7 +148,7 @@ export const propagationDelay: Lesson = {
   },
   legend: [
     { color: RING, label: `CLK = clock; inverters ${ns(HC.tpd)} each`, shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: POWER, label: 'Ball: green = caught, red = missed', shape: 'dot' },
   ],
   points: [
@@ -168,7 +167,7 @@ export const propagationDelay: Lesson = {
     const holder = add(scene, new THREE.Group())
     const scope = timingDiagram(scene, [0, -15, 0], [
       { label: 'CLK', color: CLK_COLOR },
-      { label: 'Q1', color: D_COLOR },
+      { label: 'Q1', color: DATA_COLOR },
       { label: 'd2', color: RING },
       { label: 'Q2', color: LED_RED },
     ], { width: 44, rowH: 3 })
@@ -291,7 +290,7 @@ export const metastability: Lesson = {
     (p.sync === '2' ? ' · second flip-flop adds a whole clock period' : ''),
   legend: [
     { color: RING, label: 'D = async input, CLK = 1 GHz clock', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: POWER, label: `Lamp: read ${READ_PS} ps after the edge; red = undecided`, shape: 'dot' },
   ],
   points: [
@@ -341,7 +340,7 @@ export const metastability: Lesson = {
           s.ui = syncCircuit(holder, two)
           s.scope = timingDiagram(holder, [-2, -12.4, 0], [
             { label: 'CLK', color: CLK_COLOR },
-            { label: 'D', color: D_COLOR },
+            { label: 'D', color: DATA_COLOR },
             { label: 'Q1', color: LED_RED },
             ...(two ? [{ label: 'Q2', color: LED_RED }] : []),
           ], { width: 44, rowH: 2.2 })
@@ -409,7 +408,7 @@ export const clockDividers: Lesson = {
   },
   legend: [
     { color: RING, label: 'CLK = crystal clock; TC = 1 at count N/2 − 1', shape: 'dot' },
-    WIRES,
+    LOGIC_WIRES,
     { color: GREY, label: 'Scope: CLK, TC and the divided output', shape: 'arrow-right' },
   ],
   points: [

@@ -2,6 +2,7 @@
 export * from './circuit'
 export * from './colors'
 export * from './crystal'
+export * from './diagrams'
 export * from './dies'
 export * from './displays'
 export * from './electromech'

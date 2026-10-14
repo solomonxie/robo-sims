@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { Bit, GATES, GateName, bit, cmosNand, rippleSteps, toBits, truthTable } from '../../core/logic'
+import { GATES, GateName, bit, cmosNand, rippleSteps, toBits, truthTable } from '../../core/logic'
 import { MODERN_NMOS, MODERN_PMOS, Mosfet, channelOverdrive, mosfetDrain } from '../../core/physics'
 import { si, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
@@ -29,17 +29,11 @@ import {
   storySlider,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, bitChoice, n } from '../types'
 
 const VDD = 1.2
 const HI = potentialColor(1)
 const LO = potentialColor(0)
-const bitChoice = (key: string, label: string, initial: Bit) => ({
-  kind: 'choice' as const,
-  key,
-  options: [0, 1].map((v) => ({ value: String(v), label: `${label} = ${v}` })),
-  initial: String(initial),
-})
 
 // --- NAND from transistors: two PMOS in parallel pull Y up, two NMOS in series pull it down. ---
 
