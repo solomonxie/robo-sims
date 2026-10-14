@@ -1,9 +1,9 @@
-// Real parts in lesson circuits: TO-92/TO-220 transistors, DIP-8 op-amp, SOT-223 regulator, HC-49 crystal, glass fuse.
+// Real parts in lesson circuits: TO-92/TO-220 transistors, DIP-8 op-amp, SOT-223 regulator, HC-49 crystal, glass fuse, TP4056 module.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
+import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL, TIN } from '../../models/kit'
 import { buildTo92, TO92, TO220, buildTo220 } from '../../models/passives'
 import { glowHalo, icPackage } from './circuit'
-import { CONVENTIONAL, LABEL, glowMat, potentialColor } from './colors'
+import { CONVENTIONAL, LABEL, LED_RED, glowMat, potentialColor } from './colors'
 import { heatGlow } from './heat'
 import { LabelOpts, label } from './text'
 import { clamp01 } from './util'
@@ -302,6 +302,90 @@ export function glassFuse(parent: THREE.Object3D, at: V3, { scale = 1, slow = fa
         h.bead.scale.set(1 / (1 - 0.45 * m), 1, 1).multiplyScalar(0.4 + 0.8 * m)
       }
       soot.opacity = 0.45 * m
+    },
+  }
+}
+
+const SILK = { glow: false, color: '#eef2f6' }
+
+/** TP4056 charger module (26 × 17 mm blue board, USB-C on the left, DW01 + 8205A protection) flat facing +z, centred on
+ *  `at`, `k` units per mm. `pins` (world): IN± beside the socket, OUT+ B+ B− OUT− down the right edge, `usb` the socket
+ *  mouth, `rProg` the R3 resistor. `set(chrg, stdby, heat)` lights the red / blue LEDs and heats the chip. */
+export function tp4056Module(parent: THREE.Object3D, at: V3, k = 0.5) {
+  const g = add(parent, new THREE.Group(), at)
+  const W = 26 * k
+  const H = 17 * k
+  box(g, [W, H, 1.6 * k], mat('#1d4fa8', { rough: 0.55 }), [0, 0, -0.8 * k])
+  const tin = TIN()
+  const dark = mat('#0c0d10', { rough: 0.8 })
+  const ux = -W / 2 + 3.4 * k
+  box(g, [7.3 * k, 8.9 * k, 3.2 * k], STEEL(), [ux, 0, 1.6 * k])
+  box(g, [0.3 * k, 7.6 * k, 2 * k], dark, [ux - 3.7 * k, 0, 1.6 * k])
+  for (const s of [-1, 1]) box(g, [1.6 * k, 1.2 * k, 0.4 * k], STEEL(), [ux + 2.6 * k, s * 5 * k, 0.2 * k])
+
+  const pad = (x: number, y: number, text: string, align: LabelOpts['align']) => {
+    cylinder(g, 1.1 * k, 0.12 * k, tin, [x, y, 0.06 * k], 'z', 20)
+    cylinder(g, 0.45 * k, 0.14 * k, dark, [x, y, 0.08 * k], 'z', 14)
+    add(g, label(text, { ...SILK, size: 0.85 * k, align }), [x + (align === 'left' ? 1.6 : -1.6) * k, y - 0.4 * k, 0.05 * k])
+    return [at[0] + x, at[1] + y, at[2] + 0.2 * k] as V3
+  }
+  const px = W / 2 - 1.6 * k
+  const ys = [6.6, 2.2, -2.2, -6.6].map((y) => y * k)
+  const right = ['OUT+', 'B+', 'B-', 'OUT-'].map((t, i) => pad(px, ys[i], t, 'right'))
+  const inP = pad(-W / 2 + 1.6 * k, 6.8 * k, 'IN+', 'left')
+  const inM = pad(-W / 2 + 1.6 * k, -6.8 * k, 'IN-', 'left')
+
+  const chip = (x: number, y: number, w: number, h: number, t: number, legs: number, pitch: number, text: string, body = mat('#25272d', { rough: 0.5 })) => {
+    box(g, [w, h, t], body, [x, y, t / 2])
+    for (let i = 0; i < legs; i++) {
+      const lx = x + (i - (legs - 1) / 2) * pitch
+      for (const s of [-1, 1]) box(g, [0.4 * k, 0.9 * k, 0.3 * k], tin, [lx, y + s * (h / 2 + 0.35 * k), 0.15 * k])
+    }
+    add(g, label(text, { size: Math.min(0.75 * k, (w / text.length) * 1.1), color: '#9aa0aa', glow: false }), [x, y - 0.35 * k, t + 0.02 * k])
+  }
+  const bodyMat = mat('#25272d', { rough: 0.5 }, true)
+  litEpoxy(bodyMat)
+  chip(0, 1.2 * k, 5 * k, 4 * k, 1.5 * k, 4, 1.27 * k, 'TP4056', bodyMat)
+  chip(7 * k, -3.6 * k, 3 * k, 1.7 * k, 1.1 * k, 3, 0.95 * k, 'DW01')
+  chip(6.6 * k, 2.6 * k, 3 * k, 4.4 * k, 1 * k, 4, 0.65 * k, '8205A')
+
+  const smd = (x: number, y: number, w: number, color: string, vertical = false) => {
+    const [sx, sy] = vertical ? [0.8 * k, w] : [w, 0.8 * k]
+    box(g, [sx, sy, 0.5 * k], mat(color, { rough: 0.5 }), [x, y, 0.25 * k])
+    for (const s of [-1, 1]) box(g, vertical ? [0.82 * k, 0.3 * k, 0.52 * k] : [0.3 * k, 0.82 * k, 0.52 * k], tin, vertical ? [x, y + (s * w) / 2, 0.26 * k] : [x + (s * w) / 2, y, 0.26 * k])
+  }
+  const rx = -3.6 * k
+  const ry = -4.6 * k
+  smd(rx, ry, 1.6 * k, '#1b1c20')
+  add(g, label('R3', { ...SILK, size: 0.75 * k }), [rx, ry - 1.5 * k, 0.05 * k])
+  smd(-0.8 * k, -4.6 * k, 2 * k, '#b48a5a')
+  smd(2.6 * k, -4.6 * k, 2 * k, '#b48a5a')
+  smd(3.4 * k, 1.2 * k, 2 * k, '#b48a5a', true)
+  smd(-W / 2 + 9 * k, 5.6 * k, 1.6 * k, '#1b1c20')
+
+  const led = (x: number, color: string) => {
+    box(g, [1.6 * k, 0.8 * k, 0.4 * k], mat('#e8e8e8', { rough: 0.6 }), [x, 6.4 * k, 0.2 * k])
+    const m = glowMat(color, 0)
+    add(g, mesh(new THREE.BoxGeometry(1.1 * k, 0.75 * k, 0.4 * k), m), [x, 6.4 * k, 0.55 * k])
+    const halo = glowHalo(g, [x, 6.4 * k, 1.2 * k], 0.9 * k)
+    return (on: boolean) => {
+      m.emissiveIntensity = on ? 1.6 : 0.05
+      halo.set(on ? 0.7 : 0, color)
+    }
+  }
+  const red = led(-0.6 * k, LED_RED)
+  const blue = led(2.2 * k, '#3d7bff')
+  const w = (x: number, y: number, z = 0): V3 => [at[0] + x, at[1] + y, at[2] + z]
+  return {
+    group: g,
+    pins: { inP, inM, outP: right[0], bP: right[1], bM: right[2], outM: right[3] },
+    usb: w(ux - 3.7 * k, 0, 1.6 * k),
+    rProg: w(rx, ry, 0.5 * k),
+    chipTop: w(0, 1.2 * k, 1.5 * k),
+    set(chrg: boolean, stdby: boolean, heat = 0) {
+      red(chrg)
+      blue(stdby)
+      heatGlow(bodyMat, heat)
     },
   }
 }

@@ -19,7 +19,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `cells` — `cellCutaway` (electrodes, separator, shuttling ions), `cell18650`, `nickelStrip` (weld sparks), `cellPackModel` (SxP zig-zag pack) [`physics/batteries`, `physics/packs`].
 - `heat`, `flows`, `crystal`, `dies` [`semiconductors`, `memory`], `fields` [`core/fields`], `plots`, `story` (stepped lessons).
 - `circuit` — cells, sources, `wire`/`lane`, R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
-- `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`. `electromech` — relay/SSR, switches, pot.
+- `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `tp4056Module` [`physics/charging`], `partLetter`. `electromech` — relay/SSR, switches, pot.
 - `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `ivScreen`, `phasor`, `clockFace`.
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet` (`Net` schematic), `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`, `core/numbers`].
 - `diagrams` — `timingDiagram` (logic analyser), `stateDiagram` [`core/fsm`].
@@ -46,7 +46,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Power:
   - [x] Battery chemistry
   - [x] 18650 packs
-  - [ ] Charging
+  - [x] Charging
   - [ ] Buck & boost
   - [ ] Power budget
   - [ ] Wiring & gauge
