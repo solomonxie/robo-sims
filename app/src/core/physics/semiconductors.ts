@@ -185,6 +185,12 @@ export function diodeNode(vs: number, ohms: number, d: Diode, { load = Infinity,
   return { v, diodeA: diodeA(v), loadA: v / load, sourceA: (vs - v) / ohms }
 }
 
+/** Real LEDs leak ~10 nA per volt below their knee; without it a femtoamp would still drop ~0.5 V across the die. */
+export const LED_LEAK_OHMS = 100e6
+
+/** Current through `ohms` in series with an LED (and its leakage) from `volts` down to 0 V. */
+export const ledStringAmps = (volts: number, ohms: number, d: Diode) => diodeNode(volts, ohms, d, { load: LED_LEAK_OHMS }).sourceA
+
 /** Peak switch-node voltage when a coil carrying `amps` dumps into `farads` alone: Vs + I·√(L/C). */
 export const flybackSpike = (vs: number, amps: number, henries: number, farads: number) => vs + amps * Math.sqrt(henries / farads)
 

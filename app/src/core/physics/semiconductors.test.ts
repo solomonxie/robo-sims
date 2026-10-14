@@ -42,6 +42,7 @@ import {
   baseResistorFor,
   bjtCollector,
   bjtSwitch,
+  ledStringAmps,
 } from '.'
 
 describe('semiconductors', () => {
@@ -302,6 +303,15 @@ describe('BJT', () => {
     expect(r.ic / r.ib).toBeGreaterThan(q.beta)
     expect(r.vce).toBeGreaterThan(1)
     expect(r.watts).toBeCloseTo(r.ic * r.vce + r.ib * r.vbe, 9)
+  })
+  it('base off with an LED load: only nA leak through it, so Vce ≈ the supply', () => {
+    const led = (v: number) => ledStringAmps(v, 150, LEDS.red)
+    for (const vin of [0, 0.01, 0.1]) {
+      const r = bjtSwitch({ vin, rb: 4700, vcc: 5, load: led }, q)
+      expect(r.region).toBe('cutoff')
+      expect(r.vce).toBeGreaterThan(4.95)
+    }
+    expect(led(5)).toBeCloseTo(diodeNode(5, 150, LEDS.red).sourceA, 6)
   })
   it('base resistor rule: Rb = (Vin − 0.7) · β / (3·Ic)', () => {
     expect(baseResistorFor(3.3, 0.15, q)).toBeCloseTo(866.7, 1)

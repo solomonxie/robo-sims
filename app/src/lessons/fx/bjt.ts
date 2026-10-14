@@ -27,6 +27,8 @@ export function transistorPart(parent: THREE.Object3D, at: V3, { scale = 1.6 } =
   const part = add(flip, buildTo92())
   part.scale.setScalar(scale)
   const body = part.userData.body as THREE.MeshStandardMaterial
+  body.color.set('#4a4d57')
+  body.roughness = 0.3
   const dieX = at[0] + (1.5 + TO92.base + TO92.h / 2) * scale
   const halo = glowHalo(flip, [0, (TO92.base + TO92.h / 2) * scale, -(TO92.r + 0.3) * scale], 0.8 * scale)
   const edge = at[0] + (1.5 + TO92.base + TO92.h + 0.45) * scale

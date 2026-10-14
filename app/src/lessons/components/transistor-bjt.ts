@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { BJTS, Bjt, LEDS, LED_RATED_A, TT_MOTOR, baseResistorFor, bjtCollector, bjtSwitch, diodeNode, motorAmps, motorRpm } from '../../core/physics'
+import { BJTS, Bjt, LEDS, LED_RATED_A, TT_MOTOR, baseResistorFor, bjtCollector, bjtSwitch, diodeNode, ledStringAmps, motorAmps, motorRpm } from '../../core/physics'
 import { e12Below, nearestE12 } from '../../core/resistorColors'
 import { fitDigits, ohms, si, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
@@ -45,7 +45,7 @@ const LEG = 0.5 * S
 const RED = LEDS.red
 const R_LED = 150
 const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
-const ledLoad = (r: number) => (v: number) => diodeNode(v, r, RED).sourceA
+const ledLoad = (r: number) => (v: number) => ledStringAmps(v, r, RED)
 const SWITCH = { cutoff: 'off', active: 'half on', saturation: 'on' } as const
 const REGION = { cutoff: 'cut-off', active: 'active', saturation: 'saturated' } as const
 
