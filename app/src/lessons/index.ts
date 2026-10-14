@@ -34,11 +34,12 @@ import { binaryCounting, hexShorthand, twosComplement } from './digital/binary-h
 import { decoder, halfAndFullAdder, multiplexer, tableToCircuit } from './digital/combinational-logic'
 import { dFlipFlop, registers, srLatch } from './digital/flip-flops-latches'
 import { hc595, rippleCounter, shiftRegister } from './digital/counters-shift-registers'
+import { mooreVsMealy, robotBehaviour, trafficLight } from './digital/state-machines'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
   { title: 'Electricity', lessons: [whatFlows, conventionalVsElectron, ampsAndCoulomb, potentialDifference, groundAndReference, measuringWithMultimeter, resistivityAndGauge, temperatureEffects, readingResistorBands, vEqualsIR, solvingALoop, ohmPlot, pEqualsVI, heatInAResistor, whAndMah, seriesResistors, parallelResistors, cellsSeriesParallel, mixedNetworks, dividerFormula, loadingDivider, dividerSensor, kclAtANode, kvlAroundALoop, nodalAnalysis, theveninEquivalent, maximumPowerTransfer, sineAndRms, frequencyAndPeriod, mainsVsBattery, coulombLaw, fieldLineMap, capacitanceFromPlates, wireAndCompass, solenoid, rightHandRule, induction] },
   { title: 'Components', lessons: [valueAndTolerance, powerRating, pullUpAndPullDown, chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, energyInACoil, rlTimeConstant, flybackSpike, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix, npnAsASwitch, gainAndSaturation, baseResistor, gateThreshold, lowSideSwitching, logicLevelMosfets, gateDrive, coilAndContacts, drivingARelay, solidStateRelay, contactBounce, debouncing, toggleVsMomentary, wiperAsDivider, linearVsLogTaper, fuseRatings, reversePolarity, tvsDiode, resonance, loadCapacitors, clockAccuracy, idealRules, invertingAmplifier, voltageFollower, comparator, linearLdo, dropoutAndHeat, buckConverter, boostConverter] },
   { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, nandFromTransistors, truthTables, adders, sramLatch, dramCapacitor, flashFloatingGate, lithographyMachine, waferToChip, what3nmMeans] },
-  { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595] },
+  { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595, mooreVsMealy, trafficLight, robotBehaviour] },
 ]

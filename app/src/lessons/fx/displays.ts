@@ -9,6 +9,7 @@ const SEGMENTS: Record<string, string> = {
   '6': 'afgedc', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '',
   A: 'abcefg', B: 'cdefg', C: 'adef', P: 'abefg', n: 'ceg', S: 'afgcd', G: 'afedc', d: 'bcdeg', E: 'adefg', F: 'aefg', Y: 'bcdfg', o: 'cdeg',
   D: 'bcdeg', q: 'abcfg', r: 'eg', L: 'def', t: 'defg', H: 'bcefg', U: 'bcdef', c: 'deg',
+  u: 'cde', '/': 'z',
 }
 
 /** Seven-segment readout of `cells` digits facing +z, centred on the origin; `set("-3.00")`. LCD-dark unless `glow`.
@@ -30,6 +31,8 @@ export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', g
     const seg = Object.fromEntries(
       Object.entries(spots).map(([k, [sx, sy, flat]]) => [k, box(slot, flat ? [w, t, t] : [t, h, t], on, [sx, sy, 0])]),
     )
+    seg.z = box(slot, [t, Math.hypot(w, height), t], on)
+    seg.z.rotation.z = -Math.atan2(w, height)
     const dot = box(group, [t * 1.2, t * 1.2, t], on, [0, -h, 0])
     return { slot, seg, dot }
   })

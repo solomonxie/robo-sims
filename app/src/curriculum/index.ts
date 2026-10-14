@@ -34,6 +34,7 @@ import { binaryCounting, hexShorthand, twosComplement } from '../lessons/digital
 import { decoder, halfAndFullAdder, multiplexer, tableToCircuit } from '../lessons/digital/combinational-logic'
 import { dFlipFlop, registers, srLatch } from '../lessons/digital/flip-flops-latches'
 import { hc595, rippleCounter, shiftRegister } from '../lessons/digital/counters-shift-registers'
+import { mooreVsMealy, robotBehaviour, trafficLight } from '../lessons/digital/state-machines'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -168,6 +169,9 @@ const READY: Record<string, Lesson> = {
   'digital/counters-shift-registers/ripple-counter': rippleCounter,
   'digital/counters-shift-registers/shift-register': shiftRegister,
   'digital/counters-shift-registers/74hc595-output-expander': hc595,
+  'digital/state-machines/moore-vs-mealy': mooreVsMealy,
+  'digital/state-machines/traffic-light-fsm': trafficLight,
+  'digital/state-machines/robot-behaviour-fsm': robotBehaviour,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,
