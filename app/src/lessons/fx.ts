@@ -9,6 +9,7 @@ export const CONVENTIONAL = '#ff9a2e'
 export const RING = '#ffd84d'
 export const HIGH_V = '#ff4d4d'
 export const LOW_V = '#3d6bff'
+export const POWER = '#5ce1a0'
 export const COPPER = () => mat('#c8803f', { metal: 0.35, rough: 0.4 })
 
 export function glowMat(color: string, intensity = 0.7) {
@@ -154,10 +155,13 @@ export function bulb(): { group: THREE.Group; setGlow: (g: number) => void } {
   filament.castShadow = false
   const light = new THREE.PointLight('#ffcf8a', 0, 60, 2)
   add(group, light, [0, 1.6, 0])
+  const haloMat = new THREE.MeshBasicMaterial({ color: '#ffcf8a', transparent: true, opacity: 0, depthWrite: false })
+  add(group, mesh(new THREE.SphereGeometry(1.9, 24, 16), haloMat), [0, 1.5, 0]).castShadow = false
   return {
     group,
     setGlow(g) {
       filamentMat.emissiveIntensity = g * 6
+      haloMat.opacity = 0.3 * g
       light.intensity = g * 500
     },
   }
@@ -513,6 +517,172 @@ export function thermometer(height = 10) {
       const h = Math.max(0.05, clamp01(f) * height)
       fill.scale.y = h
       fill.position.y = 0.9 + h / 2
+    },
+  }
+}
+
+/** A glowing segment number at `at` that swells briefly whenever its text changes. */
+export function pulseLabel(parent: THREE.Object3D, cells: number, color: string, at: V3, height = 1.6) {
+  const d = segmentDisplay(cells, height, color, true)
+  d.group.position.set(...at)
+  parent.add(d.group)
+  let text = ''
+  let pulse = 0
+  return {
+    display: d,
+    show(next: string) {
+      if (next === text) return
+      if (text) pulse = 1
+      text = next
+      d.set(next)
+    },
+    frame(dt: number) {
+      pulse = Math.max(0, pulse - dt * 3)
+      d.group.scale.setScalar(1 + 0.3 * pulse * pulse)
+    },
+  }
+}
+
+/** x × y drawn as an area: axes from the origin (arrows tinted `xColor`/`yColor`), a faint grid every `step`,
+ *  and a slab whose area is the product. `set(x, y, lit)` sizes it; only the left `lit` fraction glows. */
+export function areaPlot(
+  parent: THREE.Object3D,
+  { maxX, maxY, perX, perY, stepX, stepY, color, xColor, yColor }: {
+    maxX: number; maxY: number; perX: number; perY: number; stepX: number; stepY: number; color: string; xColor: string; yColor: string
+  },
+) {
+  const group = add(parent, new THREE.Group())
+  const axis = mat('#c9ccd3', { emissive: '#3a3d45' })
+  const grid = mat('#3a3e48')
+  const xEnd = maxX * perX
+  const yEnd = maxY * perY
+  rod(group, [0, 0, 0], [xEnd + 0.8, 0, 0], 0.12, axis)
+  rod(group, [0, 0, 0], [0, yEnd + 0.8, 0], 0.12, axis)
+  for (let k = 1; k * stepX <= maxX + 1e-9; k++) rod(group, [k * stepX * perX, 0, -0.4], [k * stepX * perX, yEnd, -0.4], 0.04, grid)
+  for (let k = 1; k * stepY <= maxY + 1e-9; k++) rod(group, [0, k * stepY * perY, -0.4], [xEnd, k * stepY * perY, -0.4], 0.04, grid)
+  arrow(group, [xEnd + 1.4, 0, 0], [1, 0, 0], xColor, 0.5)
+  arrow(group, [0, yEnd + 1.4, 0], [0, 1, 0], yColor, 0.5)
+  const unit = new THREE.BoxGeometry(1, 1, 1)
+  const litMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.45, roughness: 0.5, transparent: true, opacity: 0.6, depthWrite: false })
+  const spentMat = new THREE.MeshStandardMaterial({ color: '#2a2e36', roughness: 0.7, transparent: true, opacity: 0.6 })
+  const lit = add(group, mesh(unit, litMat))
+  const spent = add(group, mesh(unit, spentMat))
+  const edgeX = add(group, mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 8), glowMat(xColor, 0.8)))
+  const edgeY = add(group, mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 8), glowMat(yColor, 0.8)))
+  edgeX.rotation.z = Math.PI / 2
+  const depth = 0.5
+  return {
+    group,
+    set(x: number, y: number, litFraction = 1) {
+      const w = Math.max(0.001, x * perX)
+      const h = Math.max(0.001, y * perY)
+      const f = clamp01(litFraction)
+      lit.visible = f > 0
+      lit.scale.set(Math.max(0.001, w * f), h, depth)
+      lit.position.set((w * f) / 2, h / 2, 0)
+      spent.visible = f < 1
+      spent.scale.set(Math.max(0.001, w * (1 - f)), h, depth * 0.6)
+      spent.position.set(w * f + (w * (1 - f)) / 2, h / 2, 0)
+      edgeX.scale.y = w
+      edgeX.position.set(w / 2, h, depth / 2)
+      edgeY.scale.y = h
+      edgeY.position.set(w, h / 2, depth / 2)
+    },
+  }
+}
+
+/** Wavy heat lines rising from a strip `width` wide along x at the origin; `step(dt, heat 0..1)`. */
+export function heatWaves(parent: THREE.Object3D, width: number, { count = 5, rise = 5 } = {}) {
+  const group = add(parent, new THREE.Group())
+  const curve = new THREE.CatmullRomCurve3(Array.from({ length: 9 }, (_, k) => new THREE.Vector3(0.35 * Math.sin(k * 1.6), (k / 8) * 2.4, 0)))
+  const geometry = new THREE.TubeGeometry(curve, 48, 0.09, 6)
+  const lines = Array.from({ length: count }, (_, i) => {
+    const material = new THREE.MeshBasicMaterial({ color: '#ff9a4d', transparent: true, opacity: 0, depthWrite: false })
+    const m = add(group, mesh(geometry, material), [count === 1 ? 0 : -width / 2 + (i / (count - 1)) * width, 0, 0])
+    m.castShadow = false
+    return { m, material, phase: i / count + rand(0, 0.15) }
+  })
+  return {
+    group,
+    step(dt: number, heat: number) {
+      const h = clamp01(heat)
+      for (const l of lines) {
+        l.phase = (l.phase + dt * (0.35 + 0.5 * h)) % 1
+        l.m.position.y = l.phase * rise
+        l.material.opacity = 0.75 * h * Math.sin(Math.PI * l.phase)
+        l.m.visible = h > 0.01
+      }
+    },
+  }
+}
+
+/** Grey puffs rising from the origin, spread over `width` along x; `step(dt, amount 0..1)` sets how many. */
+export function smoke(parent: THREE.Object3D, width: number, { count = 24, rise = 7 } = {}) {
+  const puffs = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(0.6, 14, 10),
+    new THREE.MeshStandardMaterial({ color: '#c3c6cc', roughness: 1, transparent: true, opacity: 0.3, depthWrite: false }),
+    count,
+  )
+  puffs.frustumCulled = false
+  puffs.castShadow = false
+  const group = add(parent, new THREE.Group())
+  group.add(puffs)
+  const life = Array.from({ length: count }, () => 1)
+  const x = Array.from({ length: count }, () => 0)
+  const m = new THREE.Matrix4()
+  const q = new THREE.Quaternion()
+  const p = new THREE.Vector3()
+  const sc = new THREE.Vector3()
+  return {
+    group,
+    step(dt: number, amount: number) {
+      const a = clamp01(amount)
+      for (let i = 0; i < count; i++) {
+        if (life[i] >= 1 && Math.random() < dt * 6 * a) {
+          life[i] = 0
+          x[i] = rand(-width / 2, width / 2)
+        }
+        if (life[i] < 1) life[i] = Math.min(1, life[i] + dt / 2.2)
+        const t = life[i]
+        const s = t >= 1 ? 0 : (0.4 + 1.6 * t) * Math.sin(Math.PI * Math.min(1, t * 1.3 + 0.05))
+        p.set(x[i] + Math.sin(t * 5 + i) * 0.6, t * rise, Math.cos(t * 4 + i) * 0.4)
+        puffs.setMatrixAt(i, m.compose(p, q, sc.setScalar(Math.max(0.001, s))))
+      }
+      puffs.instanceMatrix.needsUpdate = true
+    },
+  }
+}
+
+/** See-through battery, + on top, standing on its centre: a cylinder (or a box when `square`) with a glowing charge fill;
+ *  `set(level 0..1)`. */
+export function chargeTank(height: number, r: number, { square = false, color = POWER } = {}) {
+  const group = new THREE.Group()
+  const shellMat = new THREE.MeshStandardMaterial({ color: '#e8eef8', transparent: true, opacity: 0.16, roughness: 0.1, depthWrite: false })
+  const shellGeo = square ? new THREE.BoxGeometry(2 * r, height, 1.3 * r) : new THREE.CylinderGeometry(r, r, height, 40, 1, true)
+  add(group, mesh(shellGeo, shellMat)).castShadow = false
+  const capMat = mat('#2a2c32', { rough: 0.5 })
+  for (const s of [-1, 1]) {
+    if (square) box(group, [2 * r + 0.1, 0.25, 1.3 * r + 0.1], capMat, [0, (s * height) / 2, 0])
+    else cylinder(group, r + 0.05, 0.25, capMat, [0, (s * height) / 2, 0], 'y', 40)
+  }
+  if (square) {
+    cylinder(group, 0.35 * r, 0.5, STEEL(), [-0.45 * r, height / 2 + 0.3, 0], 'y', 16)
+    box(group, [0.7 * r, 0.5, 0.7 * r], STEEL(), [0.45 * r, height / 2 + 0.3, 0])
+  } else cylinder(group, r * 0.35, 0.4, STEEL(), [0, height / 2 + 0.3, 0], 'y', 16)
+  const fillMat = glowMat(color, 0.6)
+  const inner = height - 0.5
+  const fillGeo = square ? new THREE.BoxGeometry(2 * r - 0.3, 1, 1.3 * r - 0.3) : new THREE.CylinderGeometry(r - 0.15, r - 0.15, 1, 40)
+  const fill = add(group, mesh(fillGeo, fillMat))
+  const plus = add(group, mesh(plusGeometry(0.7 * r), mat('#ff4d4d', { emissive: '#aa1111' })), [0, height / 2 - 0.6 * r, square ? 0.66 * r : r])
+  plus.castShadow = false
+  return {
+    group,
+    set(level: number) {
+      const h = Math.max(0.001, clamp01(level) * inner)
+      fill.scale.y = h
+      fill.position.y = -inner / 2 + h / 2
+      fill.visible = level > 0.002
+      fillMat.emissiveIntensity = 0.25 + 0.5 * clamp01(level)
     },
   }
 }

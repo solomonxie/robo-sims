@@ -16,6 +16,7 @@ import {
   emptyGroup,
   formulaTriangle,
   glowMat,
+  pulseLabel,
   resistorAlong,
   resistorLoop,
   segmentDisplay,
@@ -34,28 +35,6 @@ const LEGEND_VIR = [
   { color: CONVENTIONAL, label: 'Current I, mA', shape: 'dot' as const },
   { color: RING, label: 'Resistance R, Ω', shape: 'dot' as const },
 ]
-
-/** A glowing number that swells briefly whenever its text changes. */
-function label(parent: THREE.Object3D, cells: number, color: string, at: V3, height = 1.6) {
-  const d = segmentDisplay(cells, height, color, true)
-  d.group.position.set(...at)
-  parent.add(d.group)
-  let text = ''
-  let pulse = 0
-  return {
-    display: d,
-    show(next: string) {
-      if (next === text) return
-      if (text) pulse = 1
-      text = next
-      d.set(next)
-    },
-    frame(dt: number) {
-      pulse = Math.max(0, pulse - dt * 3)
-      d.group.scale.setScalar(1 + 0.3 * pulse * pulse)
-    },
-  }
-}
 
 // --- V = I × R: one loop, two knobs; the current follows. ---
 
@@ -84,9 +63,9 @@ export const vEqualsIR: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 22 })
     const loop = resistorLoop(scene, { w: LOOP_W, h: LOOP_H, scale: 2.3, maxVolts: MAX_V })
-    const v = label(scene, 3, HIGH_V, [-LOOP_W + 5, 0, 0])
-    const r = label(scene, 4, RING, [LOOP_W - 5.4, 0, 0])
-    const i = label(scene, 3, CONVENTIONAL, [-1.4, LOOP_H + 2.2, 0])
+    const v = pulseLabel(scene, 3, HIGH_V, [-LOOP_W + 5, 0, 0])
+    const r = pulseLabel(scene, 4, RING, [LOOP_W - 5.4, 0, 0])
+    const i = pulseLabel(scene, 3, CONVENTIONAL, [-1.4, LOOP_H + 2.2, 0])
     const flowArrow = arrow(scene, [4, LOOP_H + 2.2, 0], [1, 0, 0], CONVENTIONAL, 0.9)
     const solve = (p: Params) => ohmsLaw({ voltsV: n(p, 'volts'), ohms: nearestE12(n(p, 'ohms')) })
 
@@ -172,10 +151,10 @@ export const solvingALoop: Lesson = {
     const scene = createStage({ span: 24 })
     const circuit = add(scene, new THREE.Group(), [SMALL_X, 0, 0])
     const loop = resistorLoop(circuit, { w: SMALL_W, h: SMALL_H, cellH: 4, scale: 1.5, maxVolts: MAX_V })
-    const labels: Record<Unknown, ReturnType<typeof label>> = {
-      volts: label(circuit, 3, HIGH_V, [-SMALL_W + 3.7, 0, 0], 1.3),
-      ohms: label(circuit, 3, RING, [SMALL_W - 3.6, 0, 0], 1.3),
-      amps: label(circuit, 3, CONVENTIONAL, [-1.2, SMALL_H + 2, 0], 1.3),
+    const labels: Record<Unknown, ReturnType<typeof pulseLabel>> = {
+      volts: pulseLabel(circuit, 3, HIGH_V, [-SMALL_W + 3.7, 0, 0], 1.3),
+      ohms: pulseLabel(circuit, 3, RING, [SMALL_W - 3.6, 0, 0], 1.3),
+      amps: pulseLabel(circuit, 3, CONVENTIONAL, [-1.2, SMALL_H + 2, 0], 1.3),
     }
     arrow(circuit, [3.2, SMALL_H + 2, 0], [1, 0, 0], CONVENTIONAL, 0.8)
 

@@ -10,6 +10,16 @@ import {
   driftVelocity,
   electronsPerSecond,
   energyAcross,
+  energyOver,
+  heatingTemp,
+  JOULES_PER_WH,
+  powerI2R,
+  powerV2R,
+  powerVI,
+  RESISTOR_MAX_C,
+  resistorThermalK,
+  runtimeHours,
+  wattHours,
   filamentOhms,
   meterReading,
   relativeTo,
@@ -101,6 +111,36 @@ describe('electricity', () => {
   })
   it('one time constant charges to 63%', () => {
     expect(rcStep(0, 1, 2, 2)).toBeCloseTo(0.632, 3)
+  })
+})
+
+describe('power and energy', () => {
+  it('P = V·I = I²R = V²/R agree', () => {
+    expect(powerVI(12, 0.5)).toBe(6)
+    expect(powerI2R(0.5, 24)).toBe(6)
+    expect(powerV2R(12, 24)).toBe(6)
+    expect(powerV2R(5, 100)).toBeCloseTo(0.25)
+  })
+  it('doubling the voltage across a resistor quadruples its power', () => {
+    expect(powerV2R(10, 47) / powerV2R(5, 47)).toBeCloseTo(4)
+  })
+  it('1 W for a minute is 60 J; 1 Wh is 3600 J', () => {
+    expect(energyOver(1, 60)).toBe(60)
+    expect(energyOver(1, 3600)).toBe(JOULES_PER_WH)
+  })
+  it('a resistor at its rating settles at the hot-spot limit', () => {
+    const k = resistorThermalK(0.25)
+    expect(k).toBeCloseTo((RESISTOR_MAX_C - ROOM_C) / 0.25)
+    expect(resistorThermalK(1)).toBeCloseTo(k / 4)
+    expect(heatingTemp(ROOM_C, 0.25, k, 20, 0)).toBe(ROOM_C)
+    expect(heatingTemp(ROOM_C, 0.25, k, 20, 20)).toBeCloseTo(ROOM_C + 130 * (1 - Math.exp(-1)))
+    expect(heatingTemp(ROOM_C, 0.25, k, 20, 1e4)).toBeCloseTo(RESISTOR_MAX_C)
+  })
+  it('watt-hours compare batteries that mAh alone gets wrong', () => {
+    expect(wattHours(3.7, 3000)).toBeCloseTo(11.1)
+    expect(wattHours(9, 550)).toBeCloseTo(4.95)
+    expect(wattHours(1.2, 2000)).toBeCloseTo(2.4)
+    expect(runtimeHours(3000, 200)).toBe(15)
   })
 })
 

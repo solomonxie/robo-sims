@@ -69,6 +69,38 @@ export const relativeChange = (value: number, reference: number) => value / refe
 export const filamentOhms = (volts: number, hotOhms: number, ratedV: number, coldRatio = 0.1) =>
   hotOhms * (coldRatio + (1 - coldRatio) * Math.sqrt(Math.abs(volts) / ratedV))
 
+// --- Power and energy ---
+
+/** P = V·I, watts. */
+export const powerVI = (volts: number, amps: number) => volts * amps
+
+/** P = I²R. */
+export const powerI2R = (amps: number, ohms: number) => amps * amps * ohms
+
+/** P = V²/R. */
+export const powerV2R = (volts: number, ohms: number) => (volts * volts) / ohms
+
+/** E = P·t, joules. */
+export const energyOver = (watts: number, seconds: number) => watts * seconds
+
+export const RESISTOR_MAX_C = 155 // film resistor hot-spot limit
+export const RESISTOR_BURN_C = 350 // coating chars and the film opens
+
+/** Thermal resistance θ (K/W) that puts a resistor at `maxC` when it dissipates its rating at `ambientC`. */
+export const resistorThermalK = (ratingW: number, ambientC = ROOM_C, maxC = RESISTOR_MAX_C) => (maxC - ambientC) / ratingW
+
+/** Temperature after `seconds` of steady power, starting at ambient: rises toward ambient + P·θ with time constant τ. */
+export const heatingTemp = (ambientC: number, watts: number, kPerW: number, tauS: number, seconds: number) =>
+  ambientC + watts * kPerW * (1 - Math.exp(-seconds / tauS))
+
+export const JOULES_PER_WH = 3600
+
+/** Battery energy Wh = V·Ah. */
+export const wattHours = (volts: number, mAh: number) => (volts * mAh) / 1000
+
+/** Hours a capacity lasts at a steady draw. */
+export const runtimeHours = (mAh: number, mA: number) => mAh / mA
+
 export interface PairResult {
   totalOhms: number
   amps: number

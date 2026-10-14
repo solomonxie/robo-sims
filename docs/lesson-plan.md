@@ -16,6 +16,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - In-scene numbers: `fitDigits(value, cells)` (`core/units.ts`) fills a `segmentDisplay`. A circuit with a cell and resistor is `resistorLoop` (potential-coloured charges); `formulaTriangle` for V/I/R-style triangles.
 - Rebuilt groups: `emptyGroup` disposes geometry and every material except cached `mat()` ones, so build per-rebuild materials with `glowMat`/`new`, shared ones with `mat()`.
 - Metal interiors: `ionLattice` + `electronGas` in `fx.ts` (sized by length/radius; drift, scatter rate, `mesh.count` for carrier density). Heat: `heatGlow`, `thermometer`.
+- Products (P = V × I, Wh = V × Ah): `areaPlot` (slab area = product, `lit` fraction for what's left); colour `POWER`. Changing labels: `pulseLabel`. Heat: `heatWaves`, `smoke`. Battery level: `chargeTank`.
+- Stateful time-lapse sims (heating, draining): step state with tested pure fns (`rcStep`, `energyOver`), reset on control change; show sim time in a readout and keep chips to ≤ 4 short values so they stay on one row.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -35,7 +37,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Voltage
 - [x] Resistance
 - [x] Ohm's law
-- [ ] Power & energy
+- [x] Power & energy
 - [ ] Series & parallel
 - [ ] Voltage divider
 - [ ] Kirchhoff's laws
