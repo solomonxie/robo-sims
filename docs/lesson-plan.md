@@ -21,6 +21,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Voltages that add up (series drops, stacked cells): `voltStack`. Branching current: one `Flow` per wire segment, speed ∝ that segment's current, so the main wire visibly carries the sum. Morphing circuits (reduce to an equivalent): ease a per-part presence 0..1 toward the step's target and scale by it, not a timeline.
 - Divider-style columns: one `columnFraction`-like potential fn per layout; outputs end in `terminal` (ball tinted by potential) + `groundSymbol`. Sensors: `thermistorAlong`; real boards (e.g. `buildEsp32`, rotated `x = π/2` to face the camera, scaled ~0.4) as the reader.
 - Circuits beyond series/parallel: build an `Element[]` and solve with `core/nodal.ts` (`solveNodal`; `relaxNode`/`relaxSweep` for step-by-step animation), wrapped in a tested `physics.ts` fn. Paint a wire with a resistor at its middle by `dropAlong`; nodes are `junction` balls; signed currents at a node: `inOutBars`.
+- Equivalents: `theveninAt` (nodal.ts) gives Vth/IN/Rth of any `Element[]` by open + shorted solves. Swapping views of one circuit: ease view weights toward one-hot, `presence`-scale parts, blend node potentials and flow speeds by the weights. Current source: `currentSource`.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -44,7 +45,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Series & parallel
 - [x] Voltage divider
 - [x] Kirchhoff's laws
-- [ ] Thevenin & Norton
+- [x] Thevenin & Norton
 - [ ] AC vs DC
 - [ ] Electric fields
 - [ ] Magnetism

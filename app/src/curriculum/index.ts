@@ -5,6 +5,7 @@ import { heatInAResistor, pEqualsVI, whAndMah } from '../lessons/electricity/pow
 import { cellsSeriesParallel, mixedNetworks, parallelResistors, seriesResistors } from '../lessons/electricity/series-parallel'
 import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
 import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electricity/voltage-divider'
+import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
@@ -53,6 +54,8 @@ const READY: Record<string, Lesson> = {
   'electricity/kirchhoff-s-laws/kcl-at-a-node': kclAtANode,
   'electricity/kirchhoff-s-laws/kvl-around-a-loop': kvlAroundALoop,
   'electricity/kirchhoff-s-laws/nodal-analysis': nodalAnalysis,
+  'electricity/thevenin-norton/thevenin-equivalent': theveninEquivalent,
+  'electricity/thevenin-norton/maximum-power-transfer': maximumPowerTransfer,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

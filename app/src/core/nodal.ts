@@ -153,3 +153,14 @@ export function relaxSweep(nodes: number, elements: Element[], volts: number[]):
   for (let k = 1; k <= nodes; k++) v = relaxNode(elements, v, k)
   return v
 }
+
+/** Thevenin equivalent seen between node `out` and ground: Vth open-circuit, IN = short-circuit current (Norton),
+ *  Rth = Vth / IN. Null if the circuit can't be solved. */
+export function theveninAt(nodes: number, elements: Element[], out: number) {
+  const open = solveNodal(nodes, elements)
+  const shorted = solveNodal(nodes, [...elements, { kind: 'V', a: out, b: 0, volts: 0 }])
+  if (!open || !shorted) return null
+  const vth = open.volts[out]
+  const norton = shorted.amps[elements.length]
+  return { vth, norton, rth: vth / norton }
+}

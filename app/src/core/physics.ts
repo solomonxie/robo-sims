@@ -1,5 +1,5 @@
 // Textbook formulas behind the Learn lessons. SI units unless the name says otherwise.
-import { Element, branchCurrents, loopSteps, solveNodal } from './nodal'
+import { Element, branchCurrents, loopSteps, solveNodal, theveninAt } from './nodal'
 
 export const E_CHARGE = 1.602176634e-19 // C
 export const BOLTZMANN_EV = 8.617333e-5 // eV/K
@@ -244,6 +244,48 @@ export function bridgeNodes(volts: number, r: [number, number, number, number, n
   const elements = bridgeCircuit(volts, r)
   const s = solveNodal(3, elements)!
   return { elements, volts: s.volts, va: s.volts[BRIDGE.a], vb: s.volts[BRIDGE.b], ...bridgeCurrents(elements, s.volts) }
+}
+
+// --- Thevenin & Norton ---
+
+/** Nodes of the Thevenin demo: the cell's + (1), the R₁/R₂ tap A (2), the output terminal (3). */
+export const T_NET = { top: 1, a: 2, out: 3 }
+
+/** Cell `volts` → R₁ → A, R₂ from A to ground, R₃ from A to the output terminal. */
+export function theveninNetwork(volts: number, [r1, r2, r3]: [number, number, number]): Element[] {
+  const { top, a, out } = T_NET
+  return [
+    { kind: 'V', a: top, b: 0, volts },
+    { kind: 'R', a: top, b: a, ohms: r1 },
+    { kind: 'R', a, b: 0, ohms: r2 },
+    { kind: 'R', a, b: out, ohms: r3 },
+  ]
+}
+
+/** Vth, Rth and IN of the demo network, plus the full solve with `load` across its terminals. */
+export function theveninDemo(volts: number, r: [number, number, number], load: number) {
+  const elements = theveninNetwork(volts, r)
+  const eq = theveninAt(3, elements, T_NET.out)!
+  const s = solveNodal(3, [...elements, { kind: 'R', a: T_NET.out, b: 0, ohms: load }])!
+  return { ...eq, va: s.volts[T_NET.a], vl: s.volts[T_NET.out], i1: s.amps[1], i2: s.amps[2], il: s.amps[4] }
+}
+
+/** Load on a Thevenin source: IL = Vth / (Rth + RL), VL = IL·RL. */
+export function theveninLoad(vth: number, rth: number, load: number) {
+  const amps = vth / (rth + load)
+  return { amps, volts: amps * load }
+}
+
+/** Load on a Norton source IN ∥ Rth: the current divides, IL = IN·Rth / (Rth + RL). */
+export function nortonLoad(norton: number, rth: number, load: number) {
+  const amps = (norton * rth) / (rth + load)
+  return { amps, volts: amps * load, inRth: norton - amps }
+}
+
+/** Power split between RL and the source's own Rth; the load peaks at Vth² / 4Rth when RL = Rth. */
+export function powerTransfer(vth: number, rth: number, load: number) {
+  const { amps, volts } = theveninLoad(vth, rth, load)
+  return { amps, volts, loadW: volts * amps, lostW: amps * amps * rth, efficiency: load / (rth + load), maxW: (vth * vth) / (4 * rth) }
 }
 
 // --- Semiconductors (silicon) ---

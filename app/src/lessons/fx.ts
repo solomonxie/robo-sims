@@ -801,3 +801,13 @@ export function inOutBars(parent: THREE.Object3D, colors: string[], perUnit: num
     },
   }
 }
+
+/** Ideal current source facing +z, centred on the origin: a dark disc in a steel rim with a glowing arrow
+ *  pushing up (+y); flip with `rotation.z = π`. */
+export function currentSource(r = 1.6, color = CONVENTIONAL): THREE.Group {
+  const g = new THREE.Group()
+  cylinder(g, r, 0.9, mat('#26272c', { rough: 0.4 }), [0, 0, 0], 'z', 40)
+  add(g, mesh(new THREE.TorusGeometry(r, 0.16, 10, 48), STEEL()), [0, 0, 0.45])
+  arrow(g, [0, -0.15 * r, 0.6], [0, 1, 0], color, r * 0.55)
+  return g
+}

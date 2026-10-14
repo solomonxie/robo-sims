@@ -49,6 +49,10 @@ import {
   bridgeCircuit,
   bridgeCurrents,
   bridgeMatrix,
+  nortonLoad,
+  powerTransfer,
+  theveninDemo,
+  theveninLoad,
 } from './physics'
 import { gaussSolve, relaxSweep } from './nodal'
 import { sci, si } from './units'
@@ -293,5 +297,36 @@ describe('kirchhoff', () => {
     const exact = bridgeNodes(9, r)
     expect(v[2]).toBeCloseTo(exact.va, 6)
     expect(bridgeCurrents(els, v).amps[4]).toBeCloseTo(exact.amps[4], 6)
+  })
+})
+
+describe('Thevenin & Norton', () => {
+  it('the demo network reduces to 6 V behind 150 Ω, 40 mA short-circuit', () => {
+    const s = theveninDemo(12, [100, 100, 100], 1e3)
+    expect(s.vth).toBeCloseTo(6, 12)
+    expect(s.rth).toBeCloseTo(150, 9)
+    expect(s.norton).toBeCloseTo(0.04, 12)
+  })
+  it('any load sees the same volts and amps from the network, its Thevenin and its Norton equivalent', () => {
+    for (const load of [10, 150, 470, 10e3]) {
+      const s = theveninDemo(12, [220, 330, 47], load)
+      const t = theveninLoad(s.vth, s.rth, load)
+      const n = nortonLoad(s.norton, s.rth, load)
+      expect(t.amps).toBeCloseTo(s.il, 12)
+      expect(t.volts).toBeCloseTo(s.vl, 10)
+      expect(n.amps).toBeCloseTo(s.il, 12)
+      expect(n.inRth).toBeCloseTo(s.norton - s.il, 12)
+      expect(s.i1).toBeCloseTo(s.i2 + s.il, 12)
+    }
+  })
+  it('load power peaks at RL = Rth with Vth² / 4Rth and 50 % efficiency', () => {
+    const best = powerTransfer(6, 150, 150)
+    expect(best.loadW).toBeCloseTo(0.06, 12)
+    expect(best.maxW).toBeCloseTo(0.06, 12)
+    expect(best.efficiency).toBe(0.5)
+    expect(best.lostW).toBeCloseTo(best.loadW, 12)
+    expect(best.volts).toBeCloseTo(3, 12)
+    for (const load of [100, 220, 1000]) expect(powerTransfer(6, 150, load).loadW).toBeLessThan(best.loadW)
+    expect(powerTransfer(6, 150, 1500).efficiency).toBeCloseTo(1500 / 1650, 12)
   })
 })

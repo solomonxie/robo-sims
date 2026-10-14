@@ -1,4 +1,4 @@
-import { Element, branchCurrents, gaussSolve, kclResidual, loopSteps, loopSum, relaxNode, relaxSweep, solveNodal, stamp } from './nodal'
+import { Element, branchCurrents, gaussSolve, kclResidual, loopSteps, loopSum, relaxNode, relaxSweep, solveNodal, stamp, theveninAt } from './nodal'
 
 const R = (a: number, b: number, ohms: number): Element => ({ kind: 'R', a, b, ohms })
 const V = (a: number, b: number, volts: number): Element => ({ kind: 'V', a, b, volts })
@@ -120,5 +120,20 @@ describe('relaxSweep', () => {
   })
   it('refuses a floating source', () => {
     expect(() => relaxSweep(2, [V(1, 2, 1), R(1, 0, 1), R(2, 0, 1)], [0, 0, 0])).toThrow()
+  })
+})
+
+describe('theveninAt', () => {
+  it('a divider seen from its tap is Vth = V·R₂/(R₁ + R₂) behind R₁ ∥ R₂', () => {
+    const t = theveninAt(2, [V(1, 0, 9), R(1, 2, 1000), R(2, 0, 2000)], 2)!
+    expect(t.vth).toBeCloseTo(6, 12)
+    expect(t.norton).toBeCloseTo(0.009, 12)
+    expect(t.rth).toBeCloseTo(2000 / 3, 9)
+  })
+  it('a current source in parallel with R is its own Norton form', () => {
+    const t = theveninAt(1, [I(0, 1, 0.01), R(1, 0, 470)], 1)!
+    expect(t.norton).toBeCloseTo(0.01, 12)
+    expect(t.vth).toBeCloseTo(4.7, 12)
+    expect(t.rth).toBeCloseTo(470, 9)
   })
 })
