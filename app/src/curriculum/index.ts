@@ -4,6 +4,7 @@ import { energyInACoil, flybackSpike, rlTimeConstant } from '../lessons/componen
 import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
 import { baseResistor, gainAndSaturation, npnAsASwitch } from '../lessons/components/transistor-bjt'
 import { gateDrive, gateThreshold, logicLevelMosfets, lowSideSwitching } from '../lessons/components/mosfet'
+import { coilAndContacts, drivingARelay, solidStateRelay } from '../lessons/components/relay'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -105,6 +106,9 @@ const READY: Record<string, Lesson> = {
   'components/mosfet/low-side-switching': lowSideSwitching,
   'components/mosfet/logic-level-mosfets': logicLevelMosfets,
   'components/mosfet/gate-drive': gateDrive,
+  'components/relay/coil-and-contacts': coilAndContacts,
+  'components/relay/driving-a-relay': drivingARelay,
+  'components/relay/solid-state-relay': solidStateRelay,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,

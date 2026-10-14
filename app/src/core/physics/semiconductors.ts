@@ -201,15 +201,26 @@ export interface Flyback {
 }
 
 /** One step of a coil (L, R) from `vs` to a switch to ground, with stray capacitance `farads` at the switch node and
- *  optionally a flyback `diode` from that node back to `vs`. Closed: the node is held at 0 V. */
+ *  optionally a flyback `diode` from that node back to `vs`. Closed: the node is held at `onVolts` (0 V). Open, the switch
+ *  avalanches at `breakdownV` and its body diode conducts at `floorV`: the node stays between them. */
 export function flybackStep(
   s: Flyback,
-  { vs, ohms, henries, farads, diode, closed }: { vs: number; ohms: number; henries: number; farads: number; diode?: Diode; closed: boolean },
+  {
+    vs,
+    ohms,
+    henries,
+    farads,
+    diode,
+    closed,
+    onVolts = 0,
+    breakdownV = Infinity,
+    floorV = -Infinity,
+  }: { vs: number; ohms: number; henries: number; farads: number; diode?: Diode; closed: boolean; onVolts?: number; breakdownV?: number; floorV?: number },
   dt: number,
 ): Flyback {
   if (closed) {
-    const target = vs / ohms
-    return { amps: target + (s.amps - target) * Math.exp((-dt * ohms) / henries), volts: 0 }
+    const target = (vs - onVolts) / ohms
+    return { amps: target + (s.amps - target) * Math.exp((-dt * ohms) / henries), volts: onVolts }
   }
   if (diode) {
     if (s.amps <= 0) return { amps: 0, volts: vs }
@@ -217,7 +228,7 @@ export function flybackStep(
     return { amps: Math.max(0, s.amps + ((vs - volts - ohms * s.amps) / henries) * dt), volts }
   }
   const amps = s.amps + ((vs - s.volts - ohms * s.amps) / henries) * dt
-  return { amps, volts: s.volts + (amps / farads) * dt }
+  return { amps, volts: Math.min(breakdownV, Math.max(floorV, s.volts + (amps / farads) * dt)) }
 }
 
 export interface Mosfet {
@@ -360,13 +371,14 @@ export interface Bjt {
   /** Early voltage (V) and ohmic collector resistance (Ω), which sets Vce(sat) at high current. */
   earlyV: number
   rc: number
-  /** Datasheet limits: collector current (A) and TO-92 dissipation (W). */
+  /** Datasheet limits: collector current (A), TO-92 dissipation (W) and Vceo (V). */
   maxA: number
   maxW: number
+  maxV: number
 }
 
 /** NPN with Vbe = 0.65 V at Ic = 10 mA. */
-const npn = (beta: number, betaR: number, earlyV: number, rc: number, maxA: number, maxW: number): Bjt => ({
+const npn = (beta: number, betaR: number, earlyV: number, rc: number, maxA: number, maxW: number, maxV: number): Bjt => ({
   beta,
   betaR,
   be: { saturationA: 0.01 / Math.expm1(0.65 / thermalVoltage()) / beta, ideality: 1 },
@@ -374,12 +386,13 @@ const npn = (beta: number, betaR: number, earlyV: number, rc: number, maxA: numb
   rc,
   maxA,
   maxW,
+  maxV,
 })
 
 /** Small TO-92 NPNs, typical hFE. */
 export const BJTS = {
-  '2N2222': npn(150, 6, 75, 1, 0.6, 0.625),
-  BC547: npn(300, 4, 60, 1.5, 0.1, 0.5),
+  '2N2222': npn(150, 6, 75, 1, 0.6, 0.625, 40),
+  BC547: npn(300, 4, 60, 1.5, 0.1, 0.5, 45),
 } satisfies Record<string, Bjt>
 
 export type BjtRegion = 'cutoff' | 'active' | 'saturation'

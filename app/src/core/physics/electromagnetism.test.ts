@@ -32,6 +32,24 @@ import {
   TT_MOTOR,
   motorAmps,
   motorRpm,
+  SRD_05,
+  SSR_25DA,
+  coilAmps,
+  coilDecayTime,
+  coilRiseTime,
+  contactHeat,
+  dropOutAmps,
+  flybackStep,
+  nextZeroCross,
+  operateTime,
+  pullInAmps,
+  relayLatch,
+  relayPull,
+  releaseTime,
+  ssrHeat,
+  ssrInputAmps,
+  ssrTriggered,
+  zeroCrossConducts,
 } from '.'
 
 describe('electric fields', () => {
@@ -142,5 +160,88 @@ describe('DC motor', () => {
     expect(motorAmps(5)).toBe(TT_MOTOR.noLoadA)
     expect(motorRpm(5)).toBeCloseTo(162, 0)
     expect(motorRpm(6)).toBeCloseTo(200, 0)
+  })
+})
+
+describe('relays', () => {
+  const r = SRD_05
+  it('pull in under the datasheet’s 75 % of coil volts and drop out above its 10 %', () => {
+    const pullV = pullInAmps(r) * r.ohms
+    const dropV = dropOutAmps(r) * r.ohms
+    expect(pullV).toBeCloseTo(3.44, 2)
+    expect(pullV).toBeLessThan(0.75 * r.coilV)
+    expect(dropV).toBeCloseTo(0.535, 2)
+    expect(dropV).toBeGreaterThan(0.1 * r.coilV)
+    expect(coilAmps(5, r)).toBeCloseTo(0.0714, 4)
+  })
+
+  it('pull grows with I² and 1/g², balancing the spring at pull-in and drop-out, capped by the iron', () => {
+    expect(relayPull(pullInAmps(r), r.openGapM, r)).toBeCloseTo(r.springN, 9)
+    expect(relayPull(dropOutAmps(r), r.closedGapM, r)).toBeCloseTo(r.springN, 9)
+    expect(relayPull(0.02, r.openGapM, r) / relayPull(0.01, r.openGapM, r)).toBeCloseTo(4, 9)
+    expect(relayPull(0.01, r.closedGapM, r) / relayPull(0.01, r.openGapM, r)).toBeCloseTo((0.45 / 0.07) ** 2, 6)
+    expect(relayPull(1, r.closedGapM, r)).toBeCloseTo((1.6 ** 2 * r.poleM2) / (2 * MU_0), 9)
+  })
+
+  it('latch with hysteresis: closes at pull-in, holds down to drop-out', () => {
+    expect(relayLatch(false, 0.045, r)).toBe(false)
+    expect(relayLatch(false, 0.05, r)).toBe(true)
+    expect(relayLatch(true, 0.01, r)).toBe(true)
+    expect(relayLatch(true, 0.007, r)).toBe(false)
+  })
+
+  it('operate and release times: coil τ to pull-in / drop-out, plus the armature’s flight', () => {
+    const tau = r.henries / r.ohms
+    expect(coilRiseTime(0.5, 1, 70, 0.1)).toBeCloseTo(tau * Math.LN2, 12)
+    expect(coilRiseTime(1, 1, 70, 0.1)).toBe(Infinity)
+    expect(operateTime(5, r)).toBeCloseTo(3.67e-3, 5)
+    expect(operateTime(3, r)).toBe(Infinity)
+    expect(coilDecayTime(1, Math.exp(-1), 70, 0.1, 0)).toBeCloseTo(tau, 12)
+    const diode = releaseTime(0.7, r)
+    const avalanche = releaseTime(35, r)
+    expect(diode).toBeCloseTo(4.2e-3, 4)
+    expect(avalanche).toBeLessThan(diode)
+    expect(avalanche - r.travelS).toBeLessThan((diode - r.travelS) / 10)
+  })
+
+  it('flybackStep agrees: a clamp at breakdown holds the node there while the current falls as coilDecayTime says', () => {
+    const coil = { vs: 5, ohms: r.ohms, henries: r.henries, farads: 10e-9, breakdownV: 40, closed: false }
+    let s = { amps: coilAmps(5, r), volts: 0 }
+    let t = 0
+    let peak = 0
+    while (s.amps > dropOutAmps(r)) {
+      s = flybackStep(s, coil, 1e-8)
+      t += 1e-8
+      peak = Math.max(peak, s.volts)
+    }
+    expect(peak).toBe(40)
+    expect(t).toBeCloseTo(coilDecayTime(coilAmps(5, r), dropOutAmps(r), r.ohms, r.henries, 35), 5)
+    expect(flybackStep({ amps: 0, volts: 0 }, { ...coil, closed: true, onVolts: 0.5 }, 1).amps).toBeCloseTo(4.5 / 70, 9)
+    let low = 0
+    for (let k = 0; k < 2e5; k++) low = Math.min(low, (s = flybackStep(s, { ...coil, floorV: -0.7 }, 1e-8)).volts)
+    expect(low).toBe(-0.7)
+  })
+
+  it('contacts and a triac SSR heat up differently', () => {
+    expect(contactHeat(10, r)).toBeCloseTo(3, 9)
+    expect(ssrHeat(10, SSR_25DA)).toBeCloseTo(14.4, 1)
+  })
+
+  it('SSR input is an LED: a 3.3 V pin drives it directly', () => {
+    expect(ssrInputAmps(3.3, SSR_25DA)).toBeGreaterThan(6e-3)
+    expect(ssrInputAmps(3.3, SSR_25DA)).toBeLessThan(8e-3)
+    expect(ssrTriggered(3.3, SSR_25DA)).toBe(true)
+    expect(ssrTriggered(2, SSR_25DA)).toBe(false)
+    expect(ssrInputAmps(0, SSR_25DA)).toBe(0)
+  })
+
+  it('zero-cross SSR waits for the mains to pass 0 V, both ways', () => {
+    expect(nextZeroCross(0, 50)).toBeCloseTo(0, 12)
+    expect(nextZeroCross(4.2e-3, 50)).toBeCloseTo(10e-3, 12)
+    expect(nextZeroCross(10e-3, 50)).toBeCloseTo(10e-3, 12)
+    expect(zeroCrossConducts(8e-3, 4.2e-3, 54.2e-3, 50)).toBe(false)
+    expect(zeroCrossConducts(11e-3, 4.2e-3, 54.2e-3, 50)).toBe(true)
+    expect(zeroCrossConducts(58e-3, 4.2e-3, 54.2e-3, 50)).toBe(true)
+    expect(zeroCrossConducts(60.5e-3, 4.2e-3, 54.2e-3, 50)).toBe(false)
   })
 })
