@@ -6,6 +6,7 @@ describe('units', () => {
     expect(si(4700, 'Ω', 2)).toBe('4.7 kΩ')
     expect(si(0, 'V')).toBe('0 V')
     expect(si(3e-9, 'm')).toBe('3 nm')
+    expect(si(2e-15, 'J')).toBe('2 fJ')
     expect(sci(6.24e18)).toBe('6.24 × 10¹⁸')
     expect(sci(2.5e-5)).toBe('2.5 × 10⁻⁵')
     expect(superscript(-12)).toBe('⁻¹²')

@@ -26,6 +26,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
+- `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep` in `core/physics`.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `barMagnet`.
 
 ## Pacing
@@ -61,7 +62,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] LED
 - [x] Silicon & doping
 - [x] PN junction
-- [ ] MOSFET physics
+- [x] MOSFET physics
 - [ ] Chip making
 - [ ] then remaining Components, Semiconductors topics in file order
 

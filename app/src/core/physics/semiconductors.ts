@@ -220,14 +220,126 @@ export interface Mosfet {
   k: number
   /** Subthreshold slope factor. */
   n: number
+  /** Channel-length modulation, 1/V. */
+  lambda?: number
 }
 
-export const MODERN_NMOS: Mosfet = { vthV: 0.35, k: 1e-3, n: 1.3 }
+/** Chip transistors at ~1 V; holes are ~2.8× less mobile, so the matched PMOS is drawn that much wider. */
+export const MODERN_NMOS: Mosfet = { vthV: 0.35, k: 1e-3, n: 1.3, lambda: 0.1 }
+export const MODERN_PMOS: Mosfet = MODERN_NMOS
+export const HOLE_MOBILITY_RATIO = SEMICONDUCTORS.silicon.mobilityN / SEMICONDUCTORS.silicon.mobilityP
+
+/** Discrete parts, k fitted to the datasheet Rds(on). */
+export const MOSFETS = {
+  '2N7000': { vthV: 2.1, k: 0.07, n: 1.5, lambda: 0.02 },
+  IRLZ44N: { vthV: 1.5, k: 13, n: 1.5, lambda: 0.01 },
+} satisfies Record<string, Mosfet>
+
+export type MosfetRegion = 'cutoff' | 'triode' | 'saturation'
+
+/** Drain current (A) with the source at 0 V: square law above threshold — triode k(Vov·Vds − Vds²/2) until Vds reaches
+ *  Vov, then saturation ½k·Vov² — plus an exponential subthreshold leak. Source and drain swap for Vds < 0. */
+export function mosfetDrain(vgs: number, vds: number, m: Mosfet = MODERN_NMOS): { amps: number; region: MosfetRegion } {
+  if (vds < 0) {
+    const r = mosfetDrain(vgs - vds, -vds, m)
+    return { amps: -r.amps, region: r.region }
+  }
+  const vt = thermalVoltage()
+  const nvt = m.n * vt
+  const vov = vgs - m.vthV
+  const leak = (m.k / 2) * nvt ** 2 * Math.exp(Math.min(vov, 0) / nvt) * -Math.expm1(-vds / vt)
+  const clm = 1 + (m.lambda ?? 0) * vds
+  if (vov <= 0) return { amps: leak, region: 'cutoff' }
+  if (vds < vov) return { amps: leak + m.k * (vov * vds - vds ** 2 / 2) * clm, region: 'triode' }
+  return { amps: leak + (m.k / 2) * vov ** 2 * clm, region: 'saturation' }
+}
 
 /** Saturation drain current: square law above threshold, exponential leak below. */
-export function drainCurrent(vgs: number, m: Mosfet = MODERN_NMOS): number {
-  const nvt = m.n * thermalVoltage()
-  const atThreshold = (m.k / 2) * nvt ** 2
-  if (vgs <= m.vthV) return atThreshold * Math.exp((vgs - m.vthV) / nvt)
-  return atThreshold + (m.k / 2) * (vgs - m.vthV) ** 2
+export const drainCurrent = (vgs: number, m: Mosfet = MODERN_NMOS) => mosfetDrain(vgs, Math.max(1, vgs), { ...m, lambda: 0 }).amps
+
+/** On-resistance at small Vds: 1 / (k·(Vgs − Vth)). */
+export const rdsOn = (vgs: number, m: Mosfet) => (vgs > m.vthV ? 1 / (m.k * (vgs - m.vthV)) : Infinity)
+
+/** Local overdrive Vgs − Vth − V(u) at fraction `u` of the way from source to drain, in volts; channel charge per area is
+ *  Cox times this. Falls to 0 at the drain end once Vds ≥ Vov (pinch-off). */
+export function channelOverdrive(u: number, vgs: number, vds: number, m: Mosfet = MODERN_NMOS): number {
+  const vov = vgs - m.vthV
+  if (vov <= 0) return 0
+  const vd = Math.min(Math.max(vds, 0), vov)
+  return Math.sqrt(Math.max(0, vov * vov - u * (2 * vov * vd - vd * vd)))
 }
+
+const EPS_OX = 3.9 * 8.854e-12 // F/m
+
+/** Gate-oxide capacitance per area, F/m². */
+export const oxideCapacitance = (metres: number) => EPS_OX / metres
+
+/** Electrons (or holes) per µm² drawn into the channel by `overdrive` volts across an oxide `metres` thick. */
+export const channelCarriers = (overdrive: number, metres: number) => (oxideCapacitance(metres) * Math.max(0, overdrive)) / E_CHARGE / 1e12
+
+const pull = (vin: number, vout: number, vdd: number, pmos: Mosfet) => mosfetDrain(vdd - vin, vdd - vout, pmos).amps
+
+/** CMOS inverter output: the PMOS (source at Vdd) and NMOS (source at 0) pass the same current; bisection on Vout. */
+export function cmosInverter(vin: number, vdd: number, nmos: Mosfet = MODERN_NMOS, pmos: Mosfet = MODERN_PMOS) {
+  let lo = 0
+  let hi = vdd
+  for (let k = 0; k < 60; k++) {
+    const v = (lo + hi) / 2
+    if (pull(vin, v, vdd, pmos) > mosfetDrain(vin, v, nmos).amps) lo = v
+    else hi = v
+  }
+  const vout = (lo + hi) / 2
+  return { vout, amps: mosfetDrain(vin, vout, nmos).amps }
+}
+
+/** Input where Vout = Vin, both transistors in saturation: (Vtn + r·(Vdd − Vtp)) / (1 + r), r = √(kp/kn). */
+export function switchingPoint(vdd: number, nmos: Mosfet = MODERN_NMOS, pmos: Mosfet = MODERN_PMOS) {
+  const r = Math.sqrt(pmos.k / nmos.k)
+  return (nmos.vthV + r * (vdd - pmos.vthV)) / (1 + r)
+}
+
+export interface InverterLoad {
+  vout: number
+  /** Energy (J) drawn from the supply and burnt in each transistor so far. */
+  supplyJ: number
+  pmosJ: number
+  nmosJ: number
+}
+
+/** Advances an inverter driving `farads` by `dt` s: C·dVout/dt = Ip − In, in sub-steps short enough to stay stable. */
+export function inverterStep(
+  s: InverterLoad,
+  { vin, vdd, farads, nmos = MODERN_NMOS, pmos = MODERN_PMOS }: { vin: number; vdd: number; farads: number; nmos?: Mosfet; pmos?: Mosfet },
+  dt: number,
+): InverterLoad {
+  const steps = Math.min(4000, Math.ceil(dt / ((0.05 * farads) / (Math.max(nmos.k, pmos.k) * vdd))))
+  const h = dt / steps
+  let { vout, supplyJ, pmosJ, nmosJ } = s
+  for (let i = 0; i < steps; i++) {
+    const ip = pull(vin, vout, vdd, pmos)
+    const iN = mosfetDrain(vin, vout, nmos).amps
+    supplyJ += ip * vdd * h
+    pmosJ += ip * (vdd - vout) * h
+    nmosJ += iN * vout * h
+    vout = Math.min(vdd, Math.max(0, vout + ((ip - iN) / farads) * h))
+  }
+  return { vout, supplyJ, pmosJ, nmosJ }
+}
+
+/** Time for the output to cross Vdd/2 after the input steps from 0 to Vdd (or back: matched devices are symmetric). */
+export function inverterDelay(vdd: number, farads: number, nmos: Mosfet = MODERN_NMOS, pmos: Mosfet = MODERN_PMOS) {
+  const h = (0.02 * farads) / (nmos.k * Math.max(vdd - nmos.vthV, 0.05))
+  let s: InverterLoad = { vout: vdd, supplyJ: 0, pmosJ: 0, nmosJ: 0 }
+  let t = 0
+  for (let i = 0; s.vout > vdd / 2 && i < 1e5; i++) {
+    s = inverterStep(s, { vin: vdd, vdd, farads, nmos, pmos }, h)
+    t += h
+  }
+  return t
+}
+
+/** Energy drawn from the supply per full 0 → 1 → 0 cycle of a load: C·V² (half burnt charging, half discharging). */
+export const switchingEnergy = (farads: number, vdd: number) => farads * vdd * vdd
+
+/** Dynamic power α·C·V²·f. */
+export const dynamicPower = (farads: number, vdd: number, hz: number, activity = 1) => activity * switchingEnergy(farads, vdd) * hz

@@ -26,6 +26,18 @@ import {
   photonEv,
   rowOnFractions,
   MODERN_NMOS,
+  MOSFETS,
+  HOLE_MOBILITY_RATIO,
+  channelCarriers,
+  channelOverdrive,
+  cmosInverter,
+  dynamicPower,
+  inverterDelay,
+  inverterStep,
+  mosfetDrain,
+  rdsOn,
+  switchingEnergy,
+  switchingPoint,
 } from '.'
 
 describe('semiconductors', () => {
@@ -170,5 +182,78 @@ describe('LEDs', () => {
     expect(f.reduce((a, b) => a + b)).toBeCloseTo(1, 9)
     for (const x of f) expect(x).toBeCloseTo(0.125, 1)
     expect(rowOnFractions(0.0625, 0.125, 8, 8).slice(0, 2)).toEqual([0.5, 0.5])
+  })
+})
+
+describe('MOSFET model', () => {
+  const m = MODERN_NMOS
+  it('is cut off below threshold, triode at small Vds, saturated past Vds = Vgs − Vth', () => {
+    expect(mosfetDrain(0.2, 0.5).region).toBe('cutoff')
+    expect(mosfetDrain(0.85, 0.2).region).toBe('triode')
+    expect(mosfetDrain(0.85, 0.6).region).toBe('saturation')
+    const clm = (vds: number) => 1 + m.lambda! * vds
+    expect(mosfetDrain(0.85, 0.2).amps).toBeCloseTo(m.k * (0.5 * 0.2 - 0.02) * clm(0.2), 5)
+    expect(mosfetDrain(0.85, 0.6).amps).toBeCloseTo((m.k / 2) * 0.25 * clm(0.6), 5)
+  })
+  it('is continuous at the triode/saturation edge and nearly flat beyond it', () => {
+    expect(mosfetDrain(0.85, 0.5 - 1e-9).amps).toBeCloseTo(mosfetDrain(0.85, 0.5).amps, 9)
+    expect(mosfetDrain(0.85, 1).amps / mosfetDrain(0.85, 0.5).amps).toBeCloseTo(1.1 / 1.05, 3)
+    expect(mosfetDrain(0.85, 0).amps).toBe(0)
+  })
+  it('leaks ~10x less per 77 mV below threshold, and swaps source and drain for Vds < 0', () => {
+    expect(mosfetDrain(0.2, 0.5).amps / mosfetDrain(0.2 - 0.0775, 0.5).amps).toBeCloseTo(10, 0)
+    expect(mosfetDrain(0.85, -0.2).amps).toBeCloseTo(-mosfetDrain(1.05, 0.2).amps, 9)
+  })
+  it('discrete parts match their datasheet on-resistance', () => {
+    expect(rdsOn(10, MOSFETS['2N7000'])).toBeCloseTo(1.8, 1)
+    expect(rdsOn(5, MOSFETS.IRLZ44N)).toBeCloseTo(0.022, 3)
+    expect(rdsOn(1, MOSFETS.IRLZ44N)).toBe(Infinity)
+  })
+  it('the channel thins toward the drain and pinches off in saturation', () => {
+    expect(channelOverdrive(0, 0.85, 0.3)).toBeCloseTo(0.5)
+    expect(channelOverdrive(1, 0.85, 0.3)).toBeCloseTo(0.2)
+    expect(channelOverdrive(1, 0.85, 0.8)).toBe(0)
+    expect(channelOverdrive(0.5, 0.2, 0.3)).toBe(0)
+    expect(channelCarriers(0.5, 1.2e-9)).toBeCloseTo(9e4, -4)
+  })
+})
+
+describe('CMOS inverter', () => {
+  const weak = { ...MODERN_NMOS, k: MODERN_NMOS.k / HOLE_MOBILITY_RATIO }
+  it('swings rail to rail and flips at Vdd/2 when matched', () => {
+    expect(cmosInverter(0, 1).vout).toBeGreaterThan(0.999)
+    expect(cmosInverter(1, 1).vout).toBeLessThan(0.001)
+    expect(cmosInverter(0.5, 1).vout).toBeCloseTo(0.5, 2)
+    expect(switchingPoint(1)).toBeCloseTo(0.5)
+  })
+  it('a weaker PMOS pulls the switching point down', () => {
+    const vm = switchingPoint(1, MODERN_NMOS, weak)
+    expect(vm).toBeLessThan(0.47)
+    expect(cmosInverter(vm - 0.02, 1, MODERN_NMOS, weak).vout).toBeGreaterThan(0.5)
+    expect(cmosInverter(vm + 0.02, 1, MODERN_NMOS, weak).vout).toBeLessThan(0.5)
+    expect(cmosInverter(0.5, 1, MODERN_NMOS, weak).vout).toBeLessThan(0.3)
+  })
+  it('draws current only while switching', () => {
+    expect(cmosInverter(0, 1).amps).toBeLessThan(1e-9)
+    expect(cmosInverter(0.5, 1).amps).toBeCloseTo((MODERN_NMOS.k / 2) * 0.15 ** 2 * 1.05, 5)
+  })
+  it('charging a load draws C·V² from the supply and burns half of it in the PMOS', () => {
+    const c = 10e-15
+    let s = { vout: 0, supplyJ: 0, pmosJ: 0, nmosJ: 0 }
+    s = inverterStep(s, { vin: 0, vdd: 1, farads: c }, 2e-9)
+    expect(s.vout).toBeCloseTo(1, 3)
+    expect(s.supplyJ).toBeCloseTo(switchingEnergy(c, 1), 17)
+    expect(s.pmosJ / s.supplyJ).toBeCloseTo(0.5, 2)
+    s = inverterStep(s, { vin: 1, vdd: 1, farads: c }, 2e-9)
+    expect(s.vout).toBeLessThan(1e-3)
+    expect(s.nmosJ / switchingEnergy(c, 1)).toBeCloseTo(0.5, 2)
+  })
+  it('lower supply saves V² energy but switches slower', () => {
+    expect(switchingEnergy(1e-15, 0.5) / switchingEnergy(1e-15, 1)).toBeCloseTo(0.25)
+    expect(dynamicPower(1e-15, 1, 1e9, 0.1)).toBeCloseTo(1e-7)
+    const fast = inverterDelay(1, 10e-15)
+    expect(fast).toBeGreaterThan(5e-12)
+    expect(fast).toBeLessThan(50e-12)
+    expect(inverterDelay(0.5, 10e-15) / fast).toBeGreaterThan(5)
   })
 })

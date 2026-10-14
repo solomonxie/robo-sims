@@ -13,6 +13,7 @@ import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '.
 import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electricity/voltage-divider'
 import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
+import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from '../lessons/semiconductors/mosfet-physics'
 import { breakdown, depletionRegion, forwardAndReverseBias } from '../lessons/semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from '../lessons/semiconductors/silicon-doping'
 import { Lesson } from '../lessons/types'
@@ -92,6 +93,9 @@ const READY: Record<string, Lesson> = {
   'semiconductors/pn-junction/depletion-region': depletionRegion,
   'semiconductors/pn-junction/forward-and-reverse-bias': forwardAndReverseBias,
   'semiconductors/pn-junction/breakdown': breakdown,
+  'semiconductors/mosfet-physics/channel-formation': channelFormation,
+  'semiconductors/mosfet-physics/cmos-inverter': cmosInverterLesson,
+  'semiconductors/mosfet-physics/switching-energy': switchingEnergyLesson,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

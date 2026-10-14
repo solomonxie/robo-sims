@@ -13,6 +13,7 @@ import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '.
 import { dividerFormula, dividerSensor, loadingDivider } from './electricity/voltage-divider'
 import { maximumPowerTransfer, theveninEquivalent } from './electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from './electricity/voltage'
+import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from './semiconductors/mosfet-physics'
 import { breakdown, depletionRegion, forwardAndReverseBias } from './semiconductors/pn-junction'
 import { bandGap, holesAndElectrons, nAndPType } from './semiconductors/silicon-doping'
 import { Unit } from './types'
@@ -20,5 +21,5 @@ import { Unit } from './types'
 export const UNITS: Unit[] = [
   { title: 'Electricity', lessons: [whatFlows, conventionalVsElectron, ampsAndCoulomb, potentialDifference, groundAndReference, measuringWithMultimeter, resistivityAndGauge, temperatureEffects, readingResistorBands, vEqualsIR, solvingALoop, ohmPlot, pEqualsVI, heatInAResistor, whAndMah, seriesResistors, parallelResistors, cellsSeriesParallel, mixedNetworks, dividerFormula, loadingDivider, dividerSensor, kclAtANode, kvlAroundALoop, nodalAnalysis, theveninEquivalent, maximumPowerTransfer, sineAndRms, frequencyAndPeriod, mainsVsBattery, coulombLaw, fieldLineMap, capacitanceFromPlates, wireAndCompass, solenoid, rightHandRule, induction] },
   { title: 'Components', lessons: [chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix] },
-  { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown] },
+  { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson] },
 ]
