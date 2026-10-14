@@ -64,6 +64,11 @@ export const metalResistance = (ohmsAtRef: number, alpha: number, tempC: number,
 /** Fractional change from the reference value, e.g. 0.39 for +39 %. */
 export const relativeChange = (value: number, reference: number) => value / reference - 1
 
+/** Tungsten filament resistance vs applied voltage: `coldRatio` of its hot value at 0 V, rising to `hotOhms` at `ratedV`
+ *  as it heats (a √V fit to real lamps). */
+export const filamentOhms = (volts: number, hotOhms: number, ratedV: number, coldRatio = 0.1) =>
+  hotOhms * (coldRatio + (1 - coldRatio) * Math.sqrt(Math.abs(volts) / ratedV))
+
 export interface PairResult {
   totalOhms: number
   amps: number

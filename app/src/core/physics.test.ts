@@ -10,6 +10,7 @@ import {
   driftVelocity,
   electronsPerSecond,
   energyAcross,
+  filamentOhms,
   meterReading,
   relativeTo,
   seriesPotentials,
@@ -29,6 +30,12 @@ import {
 import { sci, si } from './units'
 
 describe('electricity', () => {
+  it('a filament starts at a tenth of its hot resistance and reaches it at the rated voltage', () => {
+    expect(filamentOhms(0, 120, 12)).toBeCloseTo(12)
+    expect(filamentOhms(12, 120, 12)).toBeCloseTo(120)
+    expect(filamentOhms(3, 120, 12)).toBeCloseTo(66)
+    expect(filamentOhms(-3, 120, 12)).toBe(filamentOhms(3, 120, 12))
+  })
   it('1 A is about 6.24e18 electrons per second', () => {
     expect(electronsPerSecond(1)).toBeCloseTo(6.2415e18, -15)
   })

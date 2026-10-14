@@ -1,4 +1,5 @@
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
+import { ohmPlot, solvingALoop, vEqualsIR } from '../lessons/electricity/ohms-law'
 import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
@@ -32,6 +33,9 @@ const READY: Record<string, Lesson> = {
   'electricity/resistance/resistivity-and-wire-gauge': resistivityAndGauge,
   'electricity/resistance/temperature-effects': temperatureEffects,
   'electricity/resistance/reading-resistor-bands': readingResistorBands,
+  'electricity/ohm-s-law/v-i-r': vEqualsIR,
+  'electricity/ohm-s-law/solving-a-loop': solvingALoop,
+  'electricity/ohm-s-law/ohm-plot': ohmPlot,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -1,6 +1,7 @@
 // Visual vocabulary shared by lessons: moving charges, wires, arrows, cells.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../models/kit'
+import { resistorBody } from '../models/passives'
 import { Helix } from '../models/power'
 
 export const ELECTRON = '#4da6ff'
@@ -214,6 +215,77 @@ export function emptyGroup(g: THREE.Group) {
     for (const m of [material ?? []].flat()) if (!m.userData.shared) m.dispose()
   })
   g.clear()
+}
+
+/** A resistor body laid along the segment a → b, scaled up to read at lesson size. */
+export function resistorAlong(parent: THREE.Object3D, ohms: number, a: V3, b: V3, scale = 1.6) {
+  const r = add(parent, resistorBody(ohms), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
+  r.scale.setScalar(scale)
+  r.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
+  return r
+}
+
+const LOOP_LANE = 1.3 // charges ride in front of the wire so they stay visible through the parts
+
+/** Cell (+ up) on the left, resistor down the right, + charges in front coloured by potential.
+ *  `set(volts, ohms)` swaps the resistor and recolours (full red at `maxVolts`); `flow.step` moves the charges. */
+export function resistorLoop(parent: THREE.Object3D, { w = 11, h = 6, cellH = 5, scale = 1.8, maxVolts = 12 } = {}) {
+  const rs = 1.2 * scale
+  wire(parent, [[-w, -h, 0], [-w, h, 0], [w, h, 0], [w, -h, 0], [-w, -h, 0]])
+  const battery = cell(cellH, 1.5)
+  battery.position.set(-w, 0, 0)
+  parent.add(battery)
+  const holder = add(parent, new THREE.Group())
+  let level = 0
+  const fraction = (x: number, y: number) => {
+    if (y >= h - 0.01) return 1
+    if (y <= -h + 0.01) return 0
+    if (x <= -w + 0.01) return clamp01((y + cellH / 2) / cellH)
+    return clamp01((y + rs) / (2 * rs))
+  }
+  const lane: V3[] = [[-w, -h, LOOP_LANE], [-w, h, LOOP_LANE], [w, h, LOOP_LANE], [w, -h, LOOP_LANE]]
+  const flow = new Flow(path(lane, true), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
+  flow.colorBy((at, out) => potentialColor(fraction(at.x, at.y) * level, out))
+  parent.add(flow.mesh)
+  let shownOhms = NaN
+  return {
+    flow,
+    battery,
+    set(volts: number, ohms: number) {
+      level = volts / maxVolts
+      if (ohms === shownOhms) return
+      emptyGroup(holder)
+      resistorAlong(holder, ohms, [w, 1, 0], [w, -1, 0], scale)
+      shownOhms = ohms
+    },
+  }
+}
+
+/** Formula triangle (top over left × right): outline, ÷ bar and × divider; parts sit in `slots`; `light` one operator. */
+export function formulaTriangle(side = 12) {
+  const group = new THREE.Group()
+  const height = side * 0.866
+  const top = (2 * height) / 3
+  const base = -height / 3
+  const barY = base + height * 0.42
+  const halfAt = (y: number) => ((top - y) / height) * (side / 2)
+  const edge = mat('#8a8f99', { emissive: '#2a2d33' })
+  lead(group, [[0, top, 0], [side / 2, base, 0], [-side / 2, base, 0], [0, top, 0]], 0.14, edge)
+  const bar = glowMat('#8a8f99', 0.15)
+  const cross = glowMat('#8a8f99', 0.15)
+  rod(group, [-halfAt(barY), barY, 0], [halfAt(barY), barY, 0], 0.16, bar)
+  rod(group, [0, barY, 0], [0, base, 0], 0.16, cross)
+  const lowY = (barY + base) / 2
+  const slots: V3[] = [[0, (top + barY) / 2 - height * 0.06, 0], [-halfAt(lowY) / 2, lowY, 0], [halfAt(lowY) / 2, lowY, 0]]
+  const light = (which: 'bar' | 'cross' | null, glow = 1.2) => {
+    for (const [k, m] of [['bar', bar], ['cross', cross]] as const) {
+      const on = k === which
+      m.color.set(on ? '#ffffff' : '#8a8f99')
+      m.emissive.set(on ? RING : '#8a8f99')
+      m.emissiveIntensity = on ? glow : 0.15
+    }
+  }
+  return { group, slots, light }
 }
 
 /** Vertical voltage ruler at x: a tick per volt, long ticks every 5 V and at 0. */

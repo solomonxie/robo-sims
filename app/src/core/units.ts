@@ -29,3 +29,13 @@ export function sci(value: number, digits = 3): string {
 
 /** -12 → "⁻¹²". */
 export const superscript = (n: number) => String(n).replace(/[-0-9]/g, (c) => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)])
+
+/** Fills `cells` seven-segment digits with as many decimals as fit: (6, 3) → "6.00", (27.27, 3) → "27.3". */
+export function fitDigits(value: number, cells: number): string {
+  const sign = value < 0 ? 1 : 0
+  for (let decimals = Math.max(0, cells - 1 - sign); decimals > 0; decimals--) {
+    const s = Math.abs(value).toFixed(decimals)
+    if (s.length - 1 + sign <= cells) return (sign ? '-' : '') + s
+  }
+  return (sign ? '-' : '') + Math.round(Math.abs(value))
+}

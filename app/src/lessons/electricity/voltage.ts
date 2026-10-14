@@ -3,7 +3,6 @@ import { ohmsLaw } from '../../core/formulas'
 import { E_CHARGE, METER_INPUT_OHMS, energyAcross, meterReading, relativeTo, seriesPotentials } from '../../core/physics'
 import { sci, si } from '../../core/units'
 import { V3, add, box, mat, mesh, tube } from '../../models/kit'
-import { resistorBody } from '../../models/passives'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
@@ -21,6 +20,7 @@ import {
   plusGeometry,
   potentialColor,
   probe,
+  resistorAlong,
   segmentDisplay,
   voltScale,
   wire,
@@ -30,14 +30,6 @@ import { Lesson, Stage, n } from '../types'
 const PER_VOLT = 1.1 // drawn height of one volt
 const LANE_Z = 1.3 // charges ride in front of the wire so they stay visible through the resistor
 const volts = (v: number) => si(v, 'V', 3)
-
-/** A resistor body laid along the segment a → b, scaled up to read at lesson size. */
-function resistorAlong(parent: THREE.Object3D, ohms: number, a: V3, b: V3, scale = 1.6) {
-  const r = add(parent, resistorBody(ohms), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
-  r.scale.setScalar(scale)
-  r.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
-  return r
-}
 
 // --- Potential difference: potential drawn as height; the battery lifts charge, the resistor lets it fall. ---
 
