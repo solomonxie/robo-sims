@@ -21,11 +21,10 @@ export const BAND_NAMES = ['Black', 'Brown', 'Red', 'Orange', 'Yellow', 'Green',
 export const BAND_COLORS = DIGIT_COLORS
 export const TOLERANCE = { name: 'Gold', color: GOLD, percent: 5 }
 
-/** Two significant digits and the power of ten: 4700 → { first: 4, second: 7, exponent: 2 }. */
+/** Two significant digits and the power of ten: 4700 → { first: 4, second: 7, exponent: 2 }; 0.47 → exponent −2. */
 export function resistorDigits(ohms: number): { first: number; second: number; exponent: number } {
-  if (ohms < 10) throw new Error('resistorDigits expects ohms >= 10')
-  let exponent = 0
-  let value = Math.round(ohms)
+  let exponent = -2
+  let value = Math.max(10, Math.round(ohms * 100))
   while (value >= 100) {
     value /= 10
     exponent++
@@ -38,9 +37,12 @@ export function resistorDigits(ohms: number): { first: number; second: number; e
 /** Value the bands encode: (10·first + second) × 10^exponent. */
 export const bandValue = (first: number, second: number, exponent: number) => (10 * first + second) * 10 ** exponent
 
+/** Multiplier band: 10^exponent; gold ×0.1, silver ×0.01. */
+const multiplierColor = (exponent: number) => (exponent >= 0 ? DIGIT_COLORS[exponent] : exponent === -1 ? GOLD : SILVER)
+
 export function resistorColorBands(ohms: number): [string, string, string, string] {
   const { first, second, exponent } = resistorDigits(ohms)
-  return [DIGIT_COLORS[first], DIGIT_COLORS[second], DIGIT_COLORS[exponent], GOLD]
+  return [DIGIT_COLORS[first], DIGIT_COLORS[second], multiplierColor(exponent), GOLD]
 }
 
 const E12 = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82]
@@ -102,8 +104,7 @@ export function resistorBands(ohms: number, grade: Grade = 5): string[] {
   if (grade !== 1) return [...resistorColorBands(ohms).slice(0, 3), color]
   const exponent = Math.floor(Math.log10(ohms) + 1e-9) - 2
   const digits = String(Math.round(ohms / 10 ** exponent)).split('').map(Number)
-  const multiplier = exponent >= 0 ? DIGIT_COLORS[exponent] : exponent === -1 ? GOLD : SILVER
-  return [...digits.map((d) => DIGIT_COLORS[d]), multiplier, color]
+  return [...digits.map((d) => DIGIT_COLORS[d]), multiplierColor(exponent), color]
 }
 
 /** The `k`-th part of a production batch as measured: bell-shaped around `ohms` (σ ≈ percent / 3), never outside ±percent. */

@@ -33,6 +33,12 @@ describe('resistorDigits', () => {
     expect(resistorDigits(1e6)).toEqual({ first: 1, second: 0, exponent: 5 })
     expect(resistorDigits(996)).toEqual({ first: 1, second: 0, exponent: 2 })
   })
+  it('goes below 10 Ω with gold (×0.1) and silver (×0.01) multipliers', () => {
+    expect(resistorDigits(4.7)).toEqual({ first: 4, second: 7, exponent: -1 })
+    expect(resistorDigits(0.1)).toEqual({ first: 1, second: 0, exponent: -2 })
+    expect(resistorColorBands(2.2)).toEqual(['#ff0000', '#ff0000', '#d4af37', '#d4af37'])
+    expect(resistorColorBands(0.47)).toEqual(['#ffff00', '#8b00ff', '#c0c0c0', '#d4af37'])
+  })
 })
 
 describe('nearestE12', () => {
