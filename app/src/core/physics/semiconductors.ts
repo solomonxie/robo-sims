@@ -202,7 +202,8 @@ export interface Flyback {
 
 /** One step of a coil (L, R) from `vs` to a switch to ground, with stray capacitance `farads` at the switch node and
  *  optionally a flyback `diode` from that node back to `vs`. Closed: the node is held at `onVolts` (0 V). Open, the switch
- *  avalanches at `breakdownV` and its body diode conducts at `floorV`: the node stays between them. */
+ *  avalanches at `breakdownV` and its body diode conducts at `floorV`: the node stays between them. `lossOhms` across the
+ *  coil (core and winding losses) damps the ringing. */
 export function flybackStep(
   s: Flyback,
   {
@@ -215,7 +216,8 @@ export function flybackStep(
     onVolts = 0,
     breakdownV = Infinity,
     floorV = -Infinity,
-  }: { vs: number; ohms: number; henries: number; farads: number; diode?: Diode; closed: boolean; onVolts?: number; breakdownV?: number; floorV?: number },
+    lossOhms = Infinity,
+  }: { vs: number; ohms: number; henries: number; farads: number; diode?: Diode; closed: boolean; onVolts?: number; breakdownV?: number; floorV?: number; lossOhms?: number },
   dt: number,
 ): Flyback {
   if (closed) {
@@ -228,7 +230,8 @@ export function flybackStep(
     return { amps: Math.max(0, s.amps + ((vs - volts - ohms * s.amps) / henries) * dt), volts }
   }
   const amps = s.amps + ((vs - s.volts - ohms * s.amps) / henries) * dt
-  return { amps, volts: Math.min(breakdownV, Math.max(floorV, s.volts + (amps / farads) * dt)) }
+  const charge = amps - (s.volts - vs) / lossOhms
+  return { amps, volts: Math.min(breakdownV, Math.max(floorV, s.volts + (charge / farads) * dt)) }
 }
 
 export interface Mosfet {

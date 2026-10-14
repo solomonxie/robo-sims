@@ -220,6 +220,16 @@ describe('relays', () => {
     let low = 0
     for (let k = 0; k < 2e5; k++) low = Math.min(low, (s = flybackStep(s, { ...coil, floorV: -0.7 }, 1e-8)).volts)
     expect(low).toBe(-0.7)
+    const ringAfter = (lossOhms: number) => {
+      let q = { amps: coilAmps(5, r), volts: 5 }
+      let swing = 0
+      for (let k = 0; k < 6e5; k++) {
+        q = flybackStep(q, { ...coil, lossOhms }, 1e-8)
+        if (k > 3e5) swing = Math.max(swing, Math.abs(q.volts - 5))
+      }
+      return swing
+    }
+    expect(ringAfter(3000)).toBeLessThan(ringAfter(Infinity) / 10)
   })
 
   it('contacts and a triac SSR heat up differently', () => {

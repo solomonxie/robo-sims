@@ -230,6 +230,7 @@ const Q2 = BJTS['2N2222']
 const FET2 = MOSFETS['2N7000']
 const D2 = DIODES['1N4007']
 const C_STRAY2 = 10e-9
+const LOSS2 = 3000
 const ON2 = 8e-3
 const PERIOD2 = 2 * ON2
 const SLOW2 = 400
@@ -278,7 +279,7 @@ function driveOf(driver: Driver) {
 /** One steady pin period (on, then off), sampled N2 times: coil current, transistor volts, armature (0 up … 1 on NO). */
 function cycle2(driver: Driver, fitted: boolean) {
   const d = driveOf(driver)
-  const base = { vs: VCC, ohms: RELAY.ohms, henries: RELAY.henries, farads: C_STRAY2, diode: fitted ? D2 : undefined, onVolts: d.onV, breakdownV: d.maxV, floorV: -0.7 }
+  const base = { vs: VCC, ohms: RELAY.ohms, henries: RELAY.henries, farads: C_STRAY2, diode: fitted ? D2 : undefined, onVolts: d.onV, breakdownV: d.maxV, floorV: -0.7, lossOhms: LOSS2 }
   const on = { ...base, closed: true }
   const off = { ...base, closed: false }
   const h = PERIOD2 / N2 / SUB2
@@ -339,7 +340,7 @@ export const drivingARelay: Lesson = {
   points: [
     'The coil wants 71 mA at 5 V; an ESP32 pin gives ~20 mA at 3.3 V (40 mA absolute max). So the pin only drives a transistor, and the transistor carries the coil current from the 5 V rail (here the board’s 5 V pin).',
     'A 2N2222 with 1 kΩ takes 2.6 mA from the pin and saturates easily (Transistor → Base resistor). A 2N7000 takes nothing, but at a 3.3 V gate it is only half on: ~51 mA, 1.4 V lost, so the coil gets 3.6 V, barely above pull-in. Use a logic-level MOSFET (AO3400) or a 5 V gate.',
-    'The coil is a 0.1 H inductor. Switched off without a diode, its current drives the transistor’s voltage up until it breaks down (40 V for a 2N2222) and dumps ½LI² into it at every release (Inductor → Flyback spike). Then it rings. Few parts survive that a million times.',
+    'The coil is a 0.1 H inductor. Switched off without a diode, its current drives the transistor’s voltage up until it breaks down (40 V for a 2N2222) and dumps ½LI² into it at every release (Inductor → Flyback spike), then rings briefly until the coil’s own losses soak it up. Few parts survive that a million times.',
     'A 1N4007 across the coil, band to +5 V, gives the current a loop: the transistor sees only 5 V plus a diode drop. The current then dies away over τ = L/R ≈ 1.4 ms, so the contacts let go about 2 ms later than without. For fast release add a zener in series with the diode.',
     'Relay modules carry all of this: transistor (often behind an optocoupler), diode and an LED. Time here is slowed 400×.',
   ],
