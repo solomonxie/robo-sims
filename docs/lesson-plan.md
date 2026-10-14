@@ -17,11 +17,11 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
 `lessons/fx/` modules:
-- `util` — `clamp01`, `lerp`, `ease`, `path`, `emptyGroup`, `presence`.
+- `util` — `clamp01`, `lerp`, `ease`, `path`, `emptyGroup`, `presence`, `halton`.
 - `colors` — palette (`HIGH_V`, `LOW_V`, `CONVENTIONAL`, `POWER`, `B_FIELD`, `FORCE`…), `glowMat`, `potentialColor`.
 - `shapes` — `arrow`, `plusGeometry`.
 - `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
-- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
+- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
@@ -55,7 +55,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Magnetism
 
 ### Wave 2 — Components & semiconductors (drafted first)
-- [ ] Capacitor
+- [x] Capacitor
 - [ ] Diode
 - [ ] LED
 - [ ] Silicon & doping

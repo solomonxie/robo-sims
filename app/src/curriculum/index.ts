@@ -1,3 +1,4 @@
+import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConstant } from '../lessons/components/capacitor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
@@ -69,6 +70,10 @@ const READY: Record<string, Lesson> = {
   'electricity/magnetism/solenoid': solenoid,
   'electricity/magnetism/right-hand-rule': rightHandRule,
   'electricity/magnetism/induction': induction,
+  'components/capacitor/charging-and-discharging': chargingAndDischarging,
+  'components/capacitor/rc-time-constant': rcTimeConstant,
+  'components/capacitor/decoupling': decoupling,
+  'components/capacitor/electrolytic-vs-ceramic': electrolyticVsCeramic,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

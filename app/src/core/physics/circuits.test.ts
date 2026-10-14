@@ -10,7 +10,12 @@ import {
   nortonLoad,
   parallelBranches,
   powerTransfer,
+  decoupleStep,
+  electrolyticLeakage,
+  rcFraction,
   rcStep,
+  rcTau,
+  rcTimeTo,
   resistorPair,
   seriesChain,
   seriesWithPair,
@@ -80,6 +85,24 @@ describe('circuits', () => {
   })
   it('one time constant charges to 63%', () => {
     expect(rcStep(0, 1, 2, 2)).toBeCloseTo(0.632, 3)
+  })
+
+  it('τ = RC: 63 % after one τ, over 99 % after five, and rcTimeTo inverts it', () => {
+    expect(rcTau(22e3, 100e-6)).toBeCloseTo(2.2, 9)
+    expect(rcFraction(2.2, 2.2)).toBeCloseTo(0.632, 3)
+    expect(rcFraction(11, 2.2)).toBeGreaterThan(0.993)
+    expect(rcTimeTo(rcFraction(3, 2), 2)).toBeCloseTo(3, 9)
+  })
+
+  it('decoupling: no cap sags by I·R at once; a cap supplies a short burst, ΔV ≈ I·Δt / C', () => {
+    expect(decoupleStep(3.3, 3.3, 5, 0, 0.1, 1e-9)).toBeCloseTo(2.8, 9)
+    expect(3.3 - decoupleStep(3.3, 3.3, 5, 100e-9, 0.1, 10e-9)).toBeCloseTo(0.01, 3)
+    expect(decoupleStep(2.8, 3.3, 5, 1e-9, 0, 1e-6)).toBeCloseTo(3.3, 6)
+  })
+
+  it('electrolytic leakage: 0.01·C·V, at least 3 µA', () => {
+    expect(electrolyticLeakage(100e-6, 9)).toBeCloseTo(9e-6, 12)
+    expect(electrolyticLeakage(1e-6, 5)).toBeCloseTo(3e-6, 12)
   })
 })
 

@@ -33,6 +33,7 @@ import {
   emptyGroup,
   fieldLines,
   glowMat,
+  halton,
   path,
   plusGeometry,
   potentialColor,
@@ -365,15 +366,6 @@ const solvePlates = (p: Params) => {
   const er = DIELECTRIC[medium]
   const c = plateCapacitance(area / 1e4, gap / 1000, er)
   return { area, gap, medium, er, c, q: capacitorCharge(c, CAP_V), e: plateField(CAP_V, gap / 1000), u: capacitorEnergy(c, CAP_V) }
-}
-const halton = (i: number, b: number) => {
-  let f = 1
-  let r = 0
-  for (let k = i + 1; k > 0; k = Math.floor(k / b)) {
-    f /= b
-    r += f * (k % b)
-  }
-  return r
 }
 
 export const capacitanceFromPlates: Lesson = {

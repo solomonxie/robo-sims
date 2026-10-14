@@ -82,6 +82,21 @@ export const adcCounts = (volts: number, vref: number, bits: number) => {
 export const rcStep = (vc: number, target: number, tauS: number, dt: number) =>
   target + (vc - target) * Math.exp(-dt / tauS)
 
+export const rcTau = (ohms: number, farads: number) => ohms * farads
+
+/** Fraction of the way to the target after `t`: 1 − e^(−t/τ). */
+export const rcFraction = (t: number, tauS: number) => 1 - Math.exp(-t / tauS)
+
+/** Time to cover `fraction` of the way: −τ·ln(1 − fraction). */
+export const rcTimeTo = (fraction: number, tauS: number) => -tauS * Math.log(1 - fraction)
+
+/** Chip supply pin fed from `vs` through `rPath`, held up by a decoupling cap `farads` (0 = none), while the chip draws `amps`. */
+export const decoupleStep = (v: number, vs: number, rPath: number, farads: number, amps: number, dt: number) =>
+  farads > 0 ? rcStep(v, vs - amps * rPath, rPath * farads, dt) : vs - amps * rPath
+
+/** Datasheet DC leakage of an aluminium electrolytic: 0.01·C·V (µF·V → µA), at least 3 µA. */
+export const electrolyticLeakage = (farads: number, volts: number) => Math.max(0.01 * farads * 1e6 * volts, 3) * 1e-6
+
 // --- Kirchhoff ---
 
 /** Node numbers of the two-source circuit: V₁ and V₂ each feed node N through R₁ and R₂; R₃ runs from N to ground. */

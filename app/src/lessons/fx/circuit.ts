@@ -236,3 +236,28 @@ export function acSource(r = 1.6, color = HIGH_V): THREE.Group {
   add(g, mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.09 * r, 8), glowMat(color, 0.8)), [0, 0, 0.5])
   return g
 }
+
+/** Disc ceramic capacitor along a → b: an orange disc facing +z at the middle, `scale` × the 2.54 mm part, leads to both ends. */
+export function ceramicAlong(parent: THREE.Object3D, a: V3, b: V3, scale = 1.6) {
+  const group = add(parent, new THREE.Group())
+  const mid: V3 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]
+  const r = 0.95 * scale
+  const disc = add(group, mesh(new THREE.SphereGeometry(1, 28, 18), mat('#d9912b', { rough: 0.5 })), mid)
+  disc.scale.set(r, r, 0.32 * scale)
+  const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize().multiplyScalar(r * 0.8)
+  rod(group, a, [mid[0] - d.x, mid[1] - d.y, mid[2] - d.z], 0.11 * scale, STEEL())
+  rod(group, [mid[0] + d.x, mid[1] + d.y, mid[2] + d.z], b, 0.11 * scale, STEEL())
+  return group
+}
+
+/** Black IC package facing +z, centred on the origin, `pins` legs down each side (x = ±width/2) and a notch at the top. */
+export function icPackage(width: number, height: number, pins = 4): THREE.Group {
+  const g = new THREE.Group()
+  box(g, [width, height, 1.2], mat('#1c1d22', { rough: 0.6 }), [0, 0, 0])
+  cylinder(g, 0.35, 0.1, mat('#3a3c44'), [0, height / 2 - 0.6, 0.6], 'z', 16)
+  for (let i = 0; i < pins; i++) {
+    const y = height / 2 - ((i + 0.5) / pins) * height
+    for (const s of [-1, 1]) box(g, [0.9, 0.45, 0.25], STEEL(), [s * (width / 2 + 0.4), y, -0.2])
+  }
+  return g
+}
