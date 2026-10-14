@@ -9,6 +9,7 @@ import { contactBounce, debouncing, toggleVsMomentary } from '../lessons/compone
 import { linearVsLogTaper, wiperAsDivider } from '../lessons/components/potentiometer'
 import { fuseRatings, reversePolarity, tvsDiode } from '../lessons/components/fuses-protection'
 import { clockAccuracy, loadCapacitors, resonance } from '../lessons/components/crystal-oscillator'
+import { comparator, idealRules, invertingAmplifier, voltageFollower } from '../lessons/components/op-amp'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -124,6 +125,10 @@ const READY: Record<string, Lesson> = {
   'components/crystal-oscillator/resonance': resonance,
   'components/crystal-oscillator/load-capacitors': loadCapacitors,
   'components/crystal-oscillator/clock-accuracy': clockAccuracy,
+  'components/op-amp/ideal-rules': idealRules,
+  'components/op-amp/inverting-amplifier': invertingAmplifier,
+  'components/op-amp/voltage-follower': voltageFollower,
+  'components/op-amp/comparator': comparator,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,
