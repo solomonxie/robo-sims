@@ -16,6 +16,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 `lessons/fx/` (model in brackets):
 - `util` — easing (`ease`, `glide`), `lerp`, `path`, `emptyGroup`, `presence`, `halton`.
 - `colors` — palette, `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
+- `cells` — `cellCutaway` (electrodes, separator, shuttling ions) [`physics/batteries`].
 - `heat`, `flows`, `crystal`, `dies` [`semiconductors`, `memory`], `fields` [`core/fields`], `plots`, `story` (stepped lessons).
 - `circuit` — cells, sources, `wire`/`lane`, R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`. `electromech` — relay/SSR, switches, pot.
@@ -43,7 +44,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 ### Wave 3 — Digital, Power, Signals
 - Digital ✓ 8/8
 - Power:
-  - [ ] Battery chemistry
+  - [x] Battery chemistry
   - [ ] 18650 packs
   - [ ] Charging
   - [ ] Buck & boost

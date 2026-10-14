@@ -38,6 +38,7 @@ import { mooreVsMealy, robotBehaviour, trafficLight } from '../lessons/digital/s
 import { clockDividers, metastability, propagationDelay } from '../lessons/digital/timing'
 import { bidirectionalShifter, dividerShifter, logicThresholds } from '../lessons/digital/level-shifting'
 import { blinkyInHardware, luts } from '../lessons/digital/fpga-basics'
+import { capacityAndCRate, cellVoltageCurve, internalResistance } from '../lessons/power/battery-chemistry'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -186,6 +187,9 @@ const READY: Record<string, Lesson> = {
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,
+  'power/battery-chemistry/cell-voltage-curve': cellVoltageCurve,
+  'power/battery-chemistry/capacity-and-c-rate': capacityAndCRate,
+  'power/battery-chemistry/internal-resistance': internalResistance,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
