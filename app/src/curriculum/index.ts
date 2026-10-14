@@ -2,6 +2,7 @@ import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConsta
 import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lessons/components/diode'
 import { energyInACoil, flybackSpike, rlTimeConstant } from '../lessons/components/inductor'
 import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
+import { baseResistor, gainAndSaturation, npnAsASwitch } from '../lessons/components/transistor-bjt'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -96,6 +97,9 @@ const READY: Record<string, Lesson> = {
   'components/led/current-limiting-resistor': currentLimitingResistor,
   'components/led/rgb-led': rgbLed,
   'components/led/led-matrix': ledMatrix,
+  'components/transistor-bjt/npn-as-a-switch': npnAsASwitch,
+  'components/transistor-bjt/gain-and-saturation': gainAndSaturation,
+  'components/transistor-bjt/base-resistor': baseResistor,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,

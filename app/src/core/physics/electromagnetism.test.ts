@@ -29,6 +29,9 @@ import {
   switchOffSpike,
   wireB,
   wireForce,
+  TT_MOTOR,
+  motorAmps,
+  motorRpm,
 } from '.'
 
 describe('electric fields', () => {
@@ -129,5 +132,15 @@ describe('inductors', () => {
     expect(inductorVolts(0.2, 0.05, 10e-3)).toBeCloseTo(1)
     expect(switchOffSpike(12, 0.05, 0.2, 1e-3)).toBeCloseTo(22)
     expect(switchOffSpike(12, 0.05, 0.2, 10e-6)).toBeGreaterThan(AIR_ARC_V)
+  })
+})
+
+describe('DC motor', () => {
+  it('stalls below I0·R, then holds the no-load current and spins ∝ back-EMF', () => {
+    expect(motorAmps(0.5)).toBeCloseTo(0.1, 9)
+    expect(motorRpm(0.5)).toBe(0)
+    expect(motorAmps(5)).toBe(TT_MOTOR.noLoadA)
+    expect(motorRpm(5)).toBeCloseTo(162, 0)
+    expect(motorRpm(6)).toBeCloseTo(200, 0)
   })
 })

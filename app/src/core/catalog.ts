@@ -6,6 +6,7 @@ export type PartType =
   | 'resistor'
   | 'led'
   | 'rgb-led'
+  | 'to92'
   | 'ceramic-cap'
   | 'electrolytic-cap'
   | 'jumper'
@@ -117,6 +118,19 @@ export const CATALOG: CatalogEntry[] = [
       { id: 'blue', x: 1.5, z: 0 },
     ],
     specs: { forwardVoltageV: 2.0, maxCurrentMA: 20 },
+  },
+  {
+    name: 'npn-2n2222',
+    type: 'to92',
+    title: '2N2222 NPN transistor',
+    description: 'TO-92, flat face front: E B C. A few mA into the base switches up to 600 mA',
+    category: 'Passives',
+    pins: [
+      { id: 'e', label: 'E', x: -1, z: 0 },
+      { id: 'b', label: 'B', x: 0, z: 0 },
+      { id: 'c', label: 'C', x: 1, z: 0 },
+    ],
+    specs: { hfe: 150, maxCurrentMA: 600, maxPowerW: 0.625 },
   },
   {
     name: 'cap-100nf',

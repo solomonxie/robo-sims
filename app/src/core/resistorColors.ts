@@ -58,6 +58,12 @@ export function e12Above(ohms: number): number {
   return [...E12, 100].map((v) => v * decade).find((v) => v >= ohms * (1 - 1e-9))!
 }
 
+/** Largest E12 value at or below `ohms` (enough base drive). */
+export function e12Below(ohms: number): number {
+  const decade = 10 ** Math.floor(Math.log10(ohms) - 1)
+  return [...E12, 100].map((v) => v * decade).reverse().find((v) => v <= ohms * (1 + 1e-9))!
+}
+
 /** Range a part can really measure within ±`percent`. */
 export const toleranceRange = (ohms: number, percent: number): [number, number] => [ohms * (1 - percent / 100), ohms * (1 + percent / 100)]
 

@@ -136,6 +136,27 @@ export function buildRgbLed(): THREE.Group {
   return g
 }
 
+/** TO-92 body [width, height, depth] and how far its flat face sits in front of the round back's centre. */
+export const TO92 = { w: 1.8, h: 1.8, r: 0.9, flat: 0.5, base: 1.4 }
+
+/** TO-92 transistor, flat face toward +z, legs at x = −1, 0, 1 (E B C on a 2N2222). The epoxy is `userData.body`. */
+export function buildTo92(): THREE.Group {
+  const g = new THREE.Group()
+  const { r, flat, h, base } = TO92
+  const a = Math.acos(flat / r)
+  const shape = new THREE.Shape()
+  shape.absarc(0, 0, r, a - Math.PI / 2, (3 * Math.PI) / 2 - a, false)
+  shape.closePath()
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 2, curveSegments: 32 })
+  geo.rotateX(-Math.PI / 2)
+  const body = mat('#2a2b30', { rough: 0.45 }, true)
+  add(g, mesh(geo, body), [0, base, 0])
+  box(g, [1.1, 0.5, 0.02], mat('#5a5d66', { rough: 0.6 }), [0, base + h * 0.62, flat + 0.06])
+  ;[-1, 0, 1].forEach((x) => lead(g, [[x * 0.5, base, 0], [x * 0.5, base - 0.4, 0], [x, base - 0.9, 0], [x, INSERT, 0]], LEAD_R))
+  g.userData.body = body
+  return g
+}
+
 /** Disc ceramic capacitor, leads 2 holes apart. */
 export function buildCeramicCap(): THREE.Group {
   const g = new THREE.Group()

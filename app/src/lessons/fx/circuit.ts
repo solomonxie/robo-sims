@@ -490,3 +490,29 @@ export function arcSpark(parent: THREE.Object3D, at: V3) {
     },
   }
 }
+
+/** Small DC motor facing +z on legs: a steel can (radius `r`) centred at `at`, a red two-blade flag on the shaft, and
+ *  terminals running down to `at` − (±0.8r, r + `legs`). `spin(dt, rpm)` turns the flag at the real speed. */
+export function motorCan(parent: THREE.Object3D, at: V3, { r = 1.8, legs = 0.8 } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const can = add(group, new THREE.Group())
+  cylinder(can, r, 1.6 * r, mat('#c9ccd1', { metal: 0.45, rough: 0.35 }), [0, 0, -0.3 * r], 'z', 40)
+  cylinder(can, r * 0.94, 0.12, mat('#8d939c', { metal: 0.3, rough: 0.45 }), [0, 0, 0.5 * r + 0.06], 'z', 40)
+  cylinder(can, r * 0.3, 0.3, mat('#5a4a3a', { rough: 0.5 }), [0, 0, 0.5 * r + 0.2], 'z', 16)
+  rod(can, [0, 0, 0.5 * r], [0, 0, 0.5 * r + 1.1], 0.09 * r, STEEL())
+  const flag = add(can, new THREE.Group(), [0, 0, 0.5 * r + 1])
+  box(flag, [1.7 * r, 0.32 * r, 0.12], mat('#d23b3b', { rough: 0.5 }), [0, 0, 0])
+  box(flag, [0.3 * r, 0.3 * r, 0.14], mat('#f4f1e8', { rough: 0.5 }), [0.7 * r, 0, 0.02])
+  const pins = [-1, 1].map((s): V3 => [at[0] + s * 0.8 * r, at[1] - r - legs, at[2]])
+  for (const s of [-1, 1]) lead(group, [[s * 0.8 * r, -0.55 * r, 0], [s * 0.8 * r, -r - legs, 0]], 0.13, STEEL())
+  return {
+    group,
+    /** The can, flag and shaft: tilt it to show the can's side. */
+    can,
+    /** Left and right terminal ends. */
+    pins,
+    spin(dt: number, rpm: number) {
+      flag.rotation.z -= (dt * rpm * 2 * Math.PI) / 60
+    },
+  }
+}

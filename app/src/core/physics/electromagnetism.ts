@@ -104,3 +104,19 @@ export function strokePeakEmf(turns: number, m: number, r: number, amplitude: nu
   for (let i = 0; i < samples; i++) peak = Math.max(peak, Math.abs(magnetStroke(turns, m, r, amplitude, hz, i / (samples * hz)).emf))
   return peak
 }
+
+export interface DcMotor {
+  /** Winding resistance (Ω), current drawn spinning free (A), and back-EMF per rpm of the output shaft (V/rpm). */
+  ohms: number
+  noLoadA: number
+  voltsPerRpm: number
+}
+
+/** TT gear motor (1:48): ~1 A stall and ~160 rpm free at 5 V. */
+export const TT_MOTOR: DcMotor = { ohms: 5, noLoadA: 0.15, voltsPerRpm: 0.02625 }
+
+/** Unloaded motor current at `volts`: stalled (V / R) until friction is overcome at noLoadA, then back-EMF holds it there. */
+export const motorAmps = (volts: number, m: DcMotor = TT_MOTOR) => Math.min(volts / m.ohms, m.noLoadA)
+
+/** Free-running speed: back-EMF = V − I·R. */
+export const motorRpm = (volts: number, m: DcMotor = TT_MOTOR) => Math.max(0, volts - m.noLoadA * m.ohms) / m.voltsPerRpm

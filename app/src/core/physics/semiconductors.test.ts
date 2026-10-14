@@ -38,6 +38,10 @@ import {
   rdsOn,
   switchingEnergy,
   switchingPoint,
+  BJTS,
+  baseResistorFor,
+  bjtCollector,
+  bjtSwitch,
 } from '.'
 
 describe('semiconductors', () => {
@@ -255,5 +259,54 @@ describe('CMOS inverter', () => {
     expect(fast).toBeGreaterThan(5e-12)
     expect(fast).toBeLessThan(50e-12)
     expect(inverterDelay(0.5, 10e-15) / fast).toBeGreaterThan(5)
+  })
+})
+
+describe('BJT', () => {
+  const q = BJTS['2N2222']
+  const resistor = (ohms: number) => (v: number) => v / ohms
+  it('Vbe sits near 0.65–0.75 V over the useful base currents', () => {
+    expect(diodeVolts(10e-3 / q.beta, q.be)).toBeCloseTo(0.65, 3)
+    expect(diodeVolts(1e-3, q.be)).toBeGreaterThan(0.68)
+    expect(diodeVolts(1e-3, q.be)).toBeLessThan(0.76)
+  })
+  it('active: Ic = β·Ib, raised slightly by Vce (Early)', () => {
+    const r = bjtCollector(50e-6, 5, q)
+    expect(r.region).toBe('active')
+    expect(r.amps / 50e-6).toBeGreaterThan(q.beta)
+    expect(r.amps / 50e-6).toBeLessThan(q.beta * 1.1)
+    expect(bjtCollector(50e-6, 1, q).amps).toBeLessThan(r.amps)
+  })
+  it('saturation: the current collapses below ~0.1 V and is 0 with no base current', () => {
+    expect(bjtCollector(50e-6, 0.05, q).region).toBe('saturation')
+    expect(bjtCollector(50e-6, 0.05, q).amps).toBeLessThan(0.5 * q.beta * 50e-6)
+    expect(bjtCollector(0, 5, q).amps).toBe(0)
+  })
+  it('a 1 kΩ base from 3.3 V saturates a 20 mA load: Vce ≈ 0.1 V, the load gets almost all of Vcc', () => {
+    const r = bjtSwitch({ vin: 3.3, rb: 1000, vcc: 5, load: resistor(250) }, q)
+    expect(r.ib).toBeCloseTo((3.3 - r.vbe) / 1000, 6)
+    expect(r.region).toBe('saturation')
+    expect(r.vce).toBeLessThan(0.15)
+    expect(r.ic).toBeCloseTo((5 - r.vce) / 250, 6)
+    expect(r.gain).toBeLessThan(10)
+  })
+  it('0 V on the base: cut off, the whole supply across the transistor', () => {
+    const r = bjtSwitch({ vin: 0, rb: 1000, vcc: 5, load: resistor(250) }, q)
+    expect(r.region).toBe('cutoff')
+    expect(r.ic).toBeLessThan(1e-6)
+    expect(r.vce).toBeGreaterThan(4.99)
+  })
+  it('too little base current: active, Ic = β·Ib and the transistor eats the rest as heat', () => {
+    const r = bjtSwitch({ vin: 3.3, rb: 100e3, vcc: 5, load: resistor(25) }, q)
+    expect(r.region).toBe('active')
+    expect(r.ic / r.ib).toBeGreaterThan(q.beta)
+    expect(r.vce).toBeGreaterThan(1)
+    expect(r.watts).toBeCloseTo(r.ic * r.vce + r.ib * r.vbe, 9)
+  })
+  it('base resistor rule: Rb = (Vin − 0.7) · β / (3·Ic)', () => {
+    expect(baseResistorFor(3.3, 0.15, q)).toBeCloseTo(866.7, 1)
+    const r = bjtSwitch({ vin: 3.3, rb: 820, vcc: 5, load: resistor(5 / 0.15) }, q)
+    expect(r.region).toBe('saturation')
+    expect(r.vce).toBeLessThan(0.3)
   })
 })

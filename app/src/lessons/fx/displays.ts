@@ -7,7 +7,7 @@ import { UP } from './util'
 const SEGMENTS: Record<string, string> = {
   '0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd',
   '6': 'afgedc', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '',
-  A: 'abcefg', B: 'cdefg', C: 'adef', P: 'abefg', n: 'ceg', S: 'afgcd', G: 'afedc', d: 'bcdeg',
+  A: 'abcefg', B: 'cdefg', C: 'adef', P: 'abefg', n: 'ceg', S: 'afgcd', G: 'afedc', d: 'bcdeg', E: 'adefg',
 }
 
 /** Seven-segment readout of `cells` digits facing +z, centred on the origin; `set("-3.00")`. LCD-dark unless `glow`.

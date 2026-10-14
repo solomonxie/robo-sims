@@ -4,6 +4,7 @@ import {
   bandValue,
   batchPart,
   e12Above,
+  e12Below,
   nearestE12,
   nearestIn,
   resistorBands,
@@ -93,5 +94,14 @@ describe('E-series and grades', () => {
     expect(Math.min(...parts)).toBeGreaterThanOrEqual(950)
     expect(Math.max(...parts)).toBeLessThanOrEqual(1050)
     expect(parts.reduce((a, b) => a + b, 0) / parts.length).toBeCloseTo(1000, -1)
+  })
+})
+
+describe('e12Below', () => {
+  it('rounds down to a standard value', () => {
+    expect(e12Below(820)).toBe(820)
+    expect(e12Below(867)).toBe(820)
+    expect(e12Below(99)).toBeCloseTo(82, 9)
+    expect(e12Below(1000)).toBe(1000)
   })
 })

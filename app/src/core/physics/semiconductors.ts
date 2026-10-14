@@ -343,3 +343,81 @@ export const switchingEnergy = (farads: number, vdd: number) => farads * vdd * v
 
 /** Dynamic power α·C·V²·f. */
 export const dynamicPower = (farads: number, vdd: number, hz: number, activity = 1) => activity * switchingEnergy(farads, vdd) * hz
+
+export interface Bjt {
+  /** Forward and reverse current gain (βF = hFE, βR). */
+  beta: number
+  betaR: number
+  /** Base–emitter junction: Ib against Vbe (saturation current Is / βF). */
+  be: Diode
+  /** Early voltage (V) and ohmic collector resistance (Ω), which sets Vce(sat) at high current. */
+  earlyV: number
+  rc: number
+  /** Datasheet limits: collector current (A) and TO-92 dissipation (W). */
+  maxA: number
+  maxW: number
+}
+
+/** NPN with Vbe = 0.65 V at Ic = 10 mA. */
+const npn = (beta: number, betaR: number, earlyV: number, rc: number, maxA: number, maxW: number): Bjt => ({
+  beta,
+  betaR,
+  be: { saturationA: 0.01 / Math.expm1(0.65 / thermalVoltage()) / beta, ideality: 1 },
+  earlyV,
+  rc,
+  maxA,
+  maxW,
+})
+
+/** Small TO-92 NPNs, typical hFE. */
+export const BJTS = {
+  '2N2222': npn(150, 6, 75, 1, 0.6, 0.625),
+  BC547: npn(300, 4, 60, 1.5, 0.1, 0.5),
+} satisfies Record<string, Bjt>
+
+export type BjtRegion = 'cutoff' | 'active' | 'saturation'
+
+/** Simplified Ebers–Moll at base current `ib` and intrinsic `vce`: βF·Ib(1 + Vce/Va) in the active region, falling to ~0 at
+ *  Vce ≈ Vt·ln(1 + 1/βR) as the collector junction turns on too (saturation). */
+function emCollector(ib: number, vce: number, m: Bjt) {
+  if (ib <= 0) return 0
+  const e = Math.exp(-vce / thermalVoltage())
+  return ((ib * (1 - e * (1 + 1 / m.betaR))) / (1 / m.beta + e / m.betaR)) * (1 + Math.max(0, vce) / m.earlyV)
+}
+
+const regionOf = (ib: number, ic: number, vce: number, m: Bjt): BjtRegion =>
+  ic < 1e-6 ? 'cutoff' : ic < 0.9 * m.beta * ib * (1 + vce / m.earlyV) ? 'saturation' : 'active'
+
+/** Collector current at terminal `vce` for a fixed base current: one output-characteristic curve. */
+export function bjtCollector(ib: number, vce: number, m: Bjt): { amps: number; region: BjtRegion } {
+  let lo = 0
+  let hi = Math.max(0, vce)
+  for (let k = 0; k < 60; k++) {
+    const v = (lo + hi) / 2
+    if (v + emCollector(ib, v, m) * m.rc < vce) lo = v
+    else hi = v
+  }
+  const amps = emCollector(ib, (lo + hi) / 2, m)
+  return { amps, region: regionOf(ib, amps, vce, m) }
+}
+
+/** NPN low-side switch: `vin` through `rb` into the base, emitter to ground, a `load` (amps at the volts across it,
+ *  increasing) from `vcc` to the collector. Base first (Vbe from the BE junction), then bisection on the intrinsic Vce. */
+export function bjtSwitch({ vin, rb, vcc, load }: { vin: number; rb: number; vcc: number; load: (volts: number) => number }, m: Bjt) {
+  const base = diodeNode(vin, rb, m.be)
+  const ib = Math.max(0, base.sourceA)
+  let lo = 0
+  let hi = vcc
+  for (let k = 0; k < 60; k++) {
+    const v = (lo + hi) / 2
+    const ic = emCollector(ib, v, m)
+    if (ic < load(vcc - v - ic * m.rc)) lo = v
+    else hi = v
+  }
+  const ic = Math.max(0, emCollector(ib, lo, m))
+  const vce = lo + ic * m.rc
+  return { ib, vbe: base.v, ic, vce, region: regionOf(ib, ic, vce, m), watts: ic * vce + ib * base.v, gain: ib > 0 ? ic / ib : 0 }
+}
+
+/** Largest base resistor that still saturates `ic`: Rb = (Vin − Vbe) / (k·Ic/β), `k`× the bare minimum base current. */
+export const baseResistorFor = (vin: number, ic: number, m: Bjt, k = 3, vbe = 0.7) => ((vin - vbe) * m.beta) / (k * ic)
