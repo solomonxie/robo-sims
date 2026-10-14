@@ -14,24 +14,23 @@ import {
   rmsFromPeak,
   sloshAmplitude,
 } from '../../core/physics'
-import { fitDigits, si } from '../../core/units'
+import { fitDigits, si, volts, watts } from '../../core/units'
 import { V3, add, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
-  Flow,
   HIGH_V,
+  LANE,
   POWER,
   RING,
   acSource,
   bulb,
   cell,
   clamp01,
+  ease,
   glowMat,
-  path,
   phasor,
-  plusGeometry,
-  potentialColor,
+  plusFlow,
   presence,
   pulseLabel,
   scope,
@@ -39,12 +38,8 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const volts = (v: number) => si(v, 'V', 3)
-const watts = (w: number) => si(w, 'W', 3)
 const hz = (f: number) => `${+f.toPrecision(3)} Hz`
 const secs = (s: number) => si(s, 's', 3)
-const ease = (dt: number, rate = 6) => 1 - Math.exp(-dt * rate)
-const LANE = 1.3
 
 /** Loop with its source on the left side and a lamp lying on the top wire; + charges ride in front, coloured by
  *  potential: `f.top` on the wire into the lamp, `f.bottom` on the way back, graded across the source and lamp. */
@@ -65,9 +60,7 @@ function lampLoop(parent: THREE.Object3D, at: V3, { w, h, scale, sourceH }: { w:
     return f.bottom
   }
   const lane: V3[] = [[-w / 2, -top, LANE], [-w / 2, top, LANE], [w / 2, top, LANE], [w / 2, -top, LANE]]
-  const flow = new Flow(path(lane, true), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
-  flow.colorBy((p, out) => potentialColor(potential(p.x, p.y), out))
-  group.add(flow.mesh)
+  const flow = plusFlow(group, lane, (p) => potential(p.x, p.y), true)
   return { group, lamp, flow, f }
 }
 

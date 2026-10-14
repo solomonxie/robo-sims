@@ -2,61 +2,41 @@ import * as THREE from 'three/webgpu'
 import { theveninAt } from '../../core/nodal'
 import { T_NET, nortonLoad, powerTransfer, theveninDemo, theveninLoad, theveninNetwork } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, si } from '../../core/units'
+import { amps, fitDigits, mA, ohms, volts, watts } from '../../core/units'
 import { V3, add, lead, mat, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
+  CELL_H,
   CONVENTIONAL,
-  Flow,
   HIGH_V,
+  LANE,
+  OHMS_LABEL,
   POWER,
+  R_SCALE,
   RING,
+  RS,
   areaPlot,
   arrow,
   cell,
-  clamp01,
+  cellFraction,
   currentSource,
   dropAlong,
-  emptyGroup,
+  ease,
   glowMat,
   heatWaves,
   junction,
-  path,
-  plusGeometry,
-  potentialColor,
+  plusFlow,
   presence,
   pulseLabel,
   resistorAlong,
+  swapResistor,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, e12 } from '../types'
 
 const VIN = 12
 const NET: [number, number, number] = [100, 100, 100]
-const LANE = 1.3
-const R_SCALE = 1.8
-const RS = 1.2 * R_SCALE
-const CELL_H = 4.4
-const OHMS_LABEL = '#e8e8e8'
 const BOX = '#5a606c'
-const volts = (v: number) => si(v, 'V', 3)
-const amps = (a: number) => si(a, 'A', 3)
-const ohms = (r: number) => si(r, 'Ω', 3)
-const watts = (w: number) => si(w, 'W', 3)
-const mA = (a: number) => a * 1000
-const ease = (dt: number, rate = 5) => 1 - Math.exp(-dt * rate)
-const e12 = (p: Params, k: string) => nearestE12(n(p, k))
-const cellFraction = (y: number) => clamp01((y + CELL_H / 2) / CELL_H)
-const plusFlow = (parent: THREE.Object3D, points: V3[], paint: (at: THREE.Vector3) => number) => {
-  const flow = new Flow(path(points), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
-  flow.colorBy((at, out) => potentialColor(paint(at), out))
-  parent.add(flow.mesh)
-  return flow
-}
-const swapResistor = (holder: THREE.Group, value: number, a: V3, b: V3) => {
-  emptyGroup(holder)
-  resistorAlong(holder, value, a, b, R_SCALE)
-}
 /** Thin outline of the "black box" whose terminals sit on its right wall. */
 const boxOutline = (parent: THREE.Object3D, x0: number, x1: number, h: number) =>
   lead(parent, [[x0, -h, -0.6], [x0, h, -0.6], [x1, h, -0.6], [x1, -h, -0.6], [x0, -h, -0.6]], 0.1, mat(BOX, { emissive: '#22252b' }))
@@ -176,7 +156,7 @@ export const theveninEquivalent: Lesson = {
           shownLoad = s.load
           swapResistor(loadHolder, s.load, [0, 1, 0], [0, -1, 0])
         }
-        WEIGHTS[s.view].forEach((target, k) => (w[k] += (target - w[k]) * ease(dt)))
+        WEIGHTS[s.view].forEach((target, k) => (w[k] += (target - w[k]) * ease(dt, 5)))
         const [wn, wt, wo] = w
         presence(battery, wn + wt)
         presence(source, wo)

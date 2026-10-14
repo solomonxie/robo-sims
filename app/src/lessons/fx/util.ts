@@ -1,0 +1,41 @@
+import * as THREE from 'three/webgpu'
+import { V3 } from '../../models/kit'
+
+export function path(points: V3[], closed = false): THREE.CurvePath<THREE.Vector3> {
+  const pts = points.map((p) => new THREE.Vector3(...p))
+  const c = new THREE.CurvePath<THREE.Vector3>()
+  for (let i = 0; i < pts.length - 1; i++) c.add(new THREE.LineCurve3(pts[i], pts[i + 1]))
+  if (closed) c.add(new THREE.LineCurve3(pts[pts.length - 1], pts[0]))
+  return c
+}
+
+export const UP = new THREE.Vector3(0, 1, 0)
+
+export function randomDir(len: number): THREE.Vector3 {
+  return new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(len)
+}
+
+export const rand = (a: number, b: number) => a + Math.random() * (b - a)
+
+export const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
+
+export const lerp = (a: number, b: number, t: number) => a + (b - a) * clamp01(t)
+
+/** Fraction of the way to a target to move this frame, for frame-rate-independent easing. */
+export const ease = (dt: number, rate = 6) => 1 - Math.exp(-dt * rate)
+
+/** Removes and disposes everything in `g`; cached `mat()` materials are shared, so they stay. */
+export function emptyGroup(g: THREE.Group) {
+  g.traverse((o) => {
+    const { geometry, material } = o as THREE.Mesh
+    geometry?.dispose()
+    for (const m of [material ?? []].flat()) if (!m.userData.shared) m.dispose()
+  })
+  g.clear()
+}
+
+/** Grows or shrinks a part in place; hidden when gone. */
+export function presence(o: THREE.Object3D, p: number) {
+  o.visible = p > 0.01
+  o.scale.setScalar(Math.max(0.001, p))
+}

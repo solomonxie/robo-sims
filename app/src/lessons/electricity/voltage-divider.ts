@@ -2,60 +2,41 @@ import * as THREE from 'three/webgpu'
 import { thermistorResistance } from '../../core/formulas'
 import { adcCounts, dividerOut, loadedDivider } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, si } from '../../core/units'
-import { V3, add, box, mat } from '../../models/kit'
+import { amps, fitDigits, mA, ohms, volts } from '../../core/units'
+import { add, box, mat } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
 import {
+  CELL_H,
   CONVENTIONAL,
-  Flow,
   HIGH_V,
+  LANE,
   LOW_V,
+  OHMS_LABEL,
   POWER,
+  R_SCALE,
   RING,
+  RS,
   cell,
-  clamp01,
+  cellFraction,
+  ease,
   emptyGroup,
   groundSymbol,
-  path,
-  plusGeometry,
-  potentialColor,
+  lerp,
+  plusFlow,
   pulseLabel,
-  resistorAlong,
+  swapResistor,
   terminal,
   thermistorAlong,
   thermometer,
   voltStack,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, e12, n } from '../types'
 
 const VIN = 9
-const LANE = 1.3
-const R_SCALE = 1.8
-const RS = 1.2 * R_SCALE
 const H = 6
 const W = 10
-const CELL_H = 4.4
-const OHMS_LABEL = '#e8e8e8'
-const volts = (v: number) => si(v, 'V', 3)
-const amps = (a: number) => si(a, 'A', 3)
-const ohms = (r: number) => si(r, 'Ω', 3)
-const mA = (a: number) => a * 1000
-const ease = (dt: number, rate = 8) => 1 - Math.exp(-dt * rate)
-const lerp = (a: number, b: number, t: number) => a + (b - a) * clamp01(t)
-const cellFraction = (y: number) => clamp01((y + CELL_H / 2) / CELL_H)
-const e12 = (p: Params, k: string) => nearestE12(n(p, k))
-const plusFlow = (parent: THREE.Object3D, points: V3[], paint: (at: THREE.Vector3) => number, closed = false) => {
-  const flow = new Flow(path(points, closed), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
-  flow.colorBy((at, out) => potentialColor(paint(at), out))
-  parent.add(flow.mesh)
-  return flow
-}
-const swapResistor = (holder: THREE.Group, value: number, a: V3, b: V3) => {
-  emptyGroup(holder)
-  resistorAlong(holder, value, a, b, R_SCALE)
-}
 
 /** Potential fraction down a column with R₁ centred at +H/2 and R₂ at −H/2: 1 on top, `mid` at the tap, 0 below. */
 const columnFraction = (y: number, mid: number) => {
@@ -147,8 +128,8 @@ export const dividerFormula: Lesson = {
           shown[k] = r
           swapResistor(k ? bottom : top, r, [0, 1, 0], [0, -1, 0])
         })
-        shownV[0] += (s.vout - shownV[0]) * ease(dt)
-        shownV[1] += (s.v1 - shownV[1]) * ease(dt)
+        shownV[0] += (s.vout - shownV[0]) * ease(dt, 8)
+        shownV[1] += (s.v1 - shownV[1]) * ease(dt, 8)
         stack.set(shownV)
         mid = shownV[0] / VIN
         out.set(mid)
@@ -395,7 +376,7 @@ export const dividerSensor: Lesson = {
         const warmth = (s.tempC - T_MIN) / (T_MAX - T_MIN)
         sensor!.set(warmth)
         meter.set(warmth)
-        shownV += (s.vout - shownV) * ease(dt)
+        shownV += (s.vout - shownV) * ease(dt, 8)
         mid = shownV / VCC
         flow.step(dt * mA(s.amps) * S_SPEED)
         rLabel.show(fitDigits(s.ntc / 1000, 3))

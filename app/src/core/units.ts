@@ -46,3 +46,10 @@ export function niceCeil(x: number): number {
   const p = 10 ** Math.floor(Math.log10(x))
   return [1, 2, 5, 10].map((k) => k * p).find((v) => v >= x * (1 - 1e-12))!
 }
+
+export const volts = (v: number) => si(v, 'V', 3)
+export const amps = (a: number) => si(a, 'A', 3)
+export const ohms = (r: number) => si(r, 'Ω', 3)
+export const watts = (w: number) => si(w, 'W', 3)
+export const joules = (j: number) => si(j, 'J', 3)
+export const mA = (a: number) => a * 1000

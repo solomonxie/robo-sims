@@ -15,13 +15,13 @@ import {
   wattHours,
 } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, si } from '../../core/units'
+import { amps, fitDigits, joules, ohms, si, volts, watts } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
-  Flow,
   HIGH_V,
+  LANE,
   POWER,
   RING,
   areaPlot,
@@ -30,12 +30,11 @@ import {
   cell,
   chargeTank,
   clamp01,
+  ease,
   emptyGroup,
   heatGlow,
   heatWaves,
-  path,
-  plusGeometry,
-  potentialColor,
+  plusFlow,
   pulseLabel,
   resistorAlong,
   resistorLoop,
@@ -46,13 +45,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const volts = (v: number) => si(v, 'V', 3)
-const amps = (a: number) => si(a, 'A', 3)
-const watts = (w: number) => si(w, 'W', 3)
-const ohms = (r: number) => si(r, 'Ω', 3)
-const joules = (j: number) => si(j, 'J', 3)
-const LANE = 1.3
-const ease = (dt: number, rate = 8) => 1 - Math.exp(-dt * rate)
 
 // --- P = V × I: the rectangle with sides V and I has area P. ---
 
@@ -120,8 +112,8 @@ export const pEqualsVI: Lesson = {
         loop.flow.step(dt * s.ampsA * 14)
         flowArrow.visible = s.ampsA > 0
         flowArrow.scale.setScalar(0.5 + 0.7 * Math.sqrt(s.ampsA / MAX_A))
-        shownV += (s.voltsV - shownV) * ease(dt)
-        shownA += (s.ampsA - shownA) * ease(dt)
+        shownV += (s.voltsV - shownV) * ease(dt, 8)
+        shownA += (s.ampsA - shownA) * ease(dt, 8)
         plot.set(shownA, shownV)
         vLabel.set(fitDigits(s.voltsV, 3))
         vLabel.group.position.set(-2.4, shownV * PER_V, 0)
@@ -216,9 +208,7 @@ export const heatInAResistor: Lesson = {
       return clamp01((bodyHalf - x) / (2 * bodyHalf))
     }
     const lane: V3[] = [[-HEAT_W, -HEAT_H, LANE], [-HEAT_W, HEAT_H, LANE], [HEAT_W, HEAT_H, LANE], [HEAT_W, -HEAT_H, LANE]]
-    const flow = new Flow(path(lane, true), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
-    flow.colorBy((at, out) => potentialColor(fraction(at.x, at.y) * level, out))
-    scene.add(flow.mesh)
+    const flow = plusFlow(scene, lane, (at) => fraction(at.x, at.y) * level, true)
 
     const gauge = thermometer(THERMO_H)
     gauge.group.position.set(HEAT_W - 3.2, -HEAT_H + 0.5, 0)
@@ -385,9 +375,7 @@ export const whAndMah: Lesson = {
       return 0
     }
     const lane: V3[] = [[-BAT_W, -BAT_H, LANE], [-BAT_W, BAT_H, LANE], [BAT_W, BAT_H, LANE], [BAT_W, -BAT_H, LANE]]
-    const flow = new Flow(path(lane, true), 1.5, CONVENTIONAL, 0.3, plusGeometry(0.7))
-    flow.colorBy((at, out) => potentialColor(fraction(at.x, at.y) * level, out))
-    circuit.add(flow.mesh)
+    const flow = plusFlow(circuit, lane, (at) => fraction(at.x, at.y) * level, true)
     const hLabel = pulseLabel(circuit, 3, '#e8e8e8', [0.6, 0, 0], 1.8)
 
     const plotGroup = add(scene, new THREE.Group(), PLOT2_AT)
@@ -432,8 +420,8 @@ export const whAndMah: Lesson = {
         hLabel.show(fitDigits(s.hours * used, 3))
         hLabel.frame(dt)
 
-        shownAh += (s.b.mAh / 1000 - shownAh) * ease(dt)
-        shownV += (s.b.volts - shownV) * ease(dt)
+        shownAh += (s.b.mAh / 1000 - shownAh) * ease(dt, 8)
+        shownV += (s.b.volts - shownV) * ease(dt, 8)
         plot.set(shownAh, shownV, left)
         vLabel.set(fitDigits(s.b.volts, 3))
         vLabel.group.position.set(-2.4, shownV * PER_VOLT, 0)

@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu'
 import { ohmsLaw } from '../../core/formulas'
 import { filamentOhms } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, si } from '../../core/units'
+import { amps, fitDigits, mA, ohms, si, volts } from '../../core/units'
 import { V3, add, mat, mesh, rod, tube } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -25,10 +25,6 @@ import { Lesson, Params, Stage, n } from '../types'
 
 const MAX_V = 12
 const SPEED_PER_AMP = 70 // drawn units/s per amp
-const volts = (v: number) => si(v, 'V', 3)
-const amps = (a: number) => si(a, 'A', 3)
-const ohms = (r: number) => si(r, 'Ω', 3)
-const mA = (a: number) => a * 1000
 
 const LEGEND_VIR = [
   { color: HIGH_V, label: 'Voltage V, volts', shape: 'dot' as const },

@@ -1,4 +1,6 @@
 import * as THREE from 'three/webgpu'
+import { nearestE12 } from '../core/resistorColors'
+import { ohms } from '../core/units'
 import { V3 } from '../models/kit'
 
 export type Params = Record<string, number | string>
@@ -64,3 +66,9 @@ export const initialParams = (l: Lesson): Params =>
   Object.fromEntries(l.controls.map((c) => [c.key, c.initial]))
 
 export const n = (p: Params, k: string) => Number(p[k])
+
+/** Param `k` snapped to the nearest E12 resistor value. */
+export const e12 = (p: Params, k: string) => nearestE12(n(p, k))
+
+export const resistorSlider = (key: string, label: string, initial: number) =>
+  ({ kind: 'slider', key, label, min: 47, max: 1000, initial, log: true, format: (v: number) => ohms(nearestE12(v)) }) as const

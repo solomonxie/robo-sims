@@ -1,11 +1,22 @@
-import { fitDigits, niceCeil, sci, si, superscript } from './units'
+import { amps, fitDigits, joules, mA, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
 
 describe('units', () => {
   it('formats with SI prefixes and scientific notation', () => {
     expect(si(0.0123, 'A')).toBe('12.3 mA')
     expect(si(4700, 'Ω', 2)).toBe('4.7 kΩ')
+    expect(si(0, 'V')).toBe('0 V')
+    expect(si(3e-9, 'm')).toBe('3 nm')
     expect(sci(6.24e18)).toBe('6.24 × 10¹⁸')
+    expect(sci(2.5e-5)).toBe('2.5 × 10⁻⁵')
     expect(superscript(-12)).toBe('⁻¹²')
+  })
+  it('formats volts, amps, ohms, watts, joules to 3 digits', () => {
+    expect(volts(4.5)).toBe('4.5 V')
+    expect(amps(0.0123)).toBe('12.3 mA')
+    expect(ohms(4700)).toBe('4.7 kΩ')
+    expect(watts(1.2345)).toBe('1.23 W')
+    expect(joules(3600)).toBe('3.6 kJ')
+    expect(mA(0.02)).toBe(20)
   })
   it('fits a number into seven-segment cells with the most decimals', () => {
     expect(fitDigits(6, 3)).toBe('6.00')

@@ -11,7 +11,7 @@ import {
   wireResistance,
 } from '../../core/physics'
 import { BAND_COLORS, BAND_NAMES, TOLERANCE, bandValue, nearestE12, resistorDigits, toleranceRange } from '../../core/resistorColors'
-import { sci, si, superscript } from '../../core/units'
+import { ohms, sci, si, superscript } from '../../core/units'
 import { TIN, add, box, mat, mesh } from '../../models/kit'
 import { resistorBody } from '../../models/passives'
 import { createStage } from '../../scene/stage'
@@ -33,7 +33,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const ohms = (v: number) => si(v, 'Ω', 3)
 const signedPercent = (f: number) => `${f >= 0 ? '+' : ''}${+(f * 100).toPrecision(3)} %`
 
 // --- Resistivity and wire gauge: R = ρL/A, drawn as a see-through wire you stretch and thicken. ---

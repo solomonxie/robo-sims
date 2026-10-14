@@ -20,6 +20,7 @@ import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
   Flow,
+  FORCE,
   HIGH_V,
   LOW_V,
   POWER,
@@ -28,6 +29,7 @@ import {
   cell,
   chargeBall,
   clamp01,
+  ease,
   emptyGroup,
   fieldLines,
   glowMat,
@@ -41,9 +43,7 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const FORCE = '#ff7ad9'
 const RULER = '#e8e8e8'
-const ease = (dt: number, rate = 6) => 1 - Math.exp(-dt * rate)
 const newtons = (f: number) => si(f, 'N', 3)
 const coulombs = (q: number) => `${q > 0 ? '+' : ''}${si(q, 'C', 3)}`
 const kSci = sci(COULOMB_K)

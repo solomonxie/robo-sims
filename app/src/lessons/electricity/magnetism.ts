@@ -21,6 +21,7 @@ import {
   B_FIELD,
   CONVENTIONAL,
   Flow,
+  FORCE,
   NORTH,
   POWER,
   RING,
@@ -30,6 +31,7 @@ import {
   barMagnet,
   coil,
   compass,
+  ease,
   emptyGroup,
   fieldLines,
   glowMat,
@@ -42,8 +44,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const FORCE = '#ff7ad9'
-const ease = (dt: number, rate = 6) => 1 - Math.exp(-dt * rate)
 const tesla = (b: number) => si(b, 'T', 3)
 const amps = (a: number) => `${a > 0 ? '+' : ''}${a} A`
 const BG = new THREE.Color('#14161b')
