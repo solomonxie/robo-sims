@@ -27,6 +27,13 @@ import {
   theveninLoad,
   twoSourceLoop,
   twoSourceNode,
+  SWITCHES,
+  bounceEdges,
+  bouncedState,
+  debounceStep,
+  latchToggle,
+  rcDebounceStep,
+  schmittHigh,
 } from '.'
 import { gaussSolve, relaxSweep } from '../nodal'
 
@@ -210,5 +217,68 @@ describe('digital inputs', () => {
     expect(Math.min(...samples)).toBeGreaterThanOrEqual(0)
     expect(Math.max(...samples)).toBeLessThanOrEqual(3.3)
     expect(new Set(samples.map((v) => logicLevel(v, 3.3))).size).toBe(3)
+  })
+})
+
+describe('switch bounce and debouncing', () => {
+  const sw = SWITCHES.toggle
+  const edges = bounceEdges(sw.makeS, sw.bounces)
+  const pressed = (t: number) => bouncedState(t, edges, false)
+
+  it('bounce edges start at 0, end at the bounce time and leave the contact made', () => {
+    expect(edges).toHaveLength(2 * sw.bounces + 1)
+    expect(edges[0]).toBe(0)
+    expect(edges[edges.length - 1]).toBeCloseTo(sw.makeS, 12)
+    expect(edges.every((e, i) => i === 0 || e > edges[i - 1])).toBe(true)
+    expect(pressed(-1e-6)).toBe(false)
+    expect(pressed(sw.makeS + 1e-6)).toBe(true)
+    expect(bouncedState(1, edges, true)).toBe(false)
+  })
+
+  const run = (filter: (closed: boolean, dt: number) => boolean) => {
+    const dt = 1e-6
+    let out = filter(false, dt)
+    let changes = 0
+    let first = NaN
+    for (let t = 0; t < 30e-3; t += dt) {
+      const next = filter(pressed(t - 2e-3), dt)
+      if (next !== out) {
+        changes++
+        if (Number.isNaN(first)) first = t - 2e-3
+      }
+      out = next
+    }
+    return { changes, first }
+  }
+
+  it('a raw pin sees every bounce; RC + Schmitt and a software timer see one press', () => {
+    expect(run((c) => c).changes).toBe(2 * sw.bounces + 1)
+    let vc = 3.3
+    let high = true
+    const rc = run((c, dt) => {
+      vc = rcDebounceStep(vc, c, 3.3, 10e3, 1e3, 0.5e-6, dt)
+      high = schmittHigh(high, vc, 3.3)
+      return !high
+    })
+    expect(rc.changes).toBe(1)
+    expect(rc.first).toBeLessThan(sw.makeS)
+    let s = { stable: false, last: false, sinceS: 1 }
+    const sw10 = run((c, dt) => (s = debounceStep(s, c, dt, 10e-3)).stable)
+    expect(sw10.changes).toBe(1)
+    expect(sw10.first).toBeCloseTo(sw.makeS + 10e-3, 4)
+  })
+
+  it('too short a filter lets bounces through', () => {
+    let s = { stable: false, last: false, sinceS: 1 }
+    expect(run((c, dt) => (s = debounceStep(s, c, dt, 20e-6)).stable).changes).toBeGreaterThan(1)
+  })
+
+  it('schmitt holds between its thresholds; a code toggle flips once per press', () => {
+    expect(schmittHigh(true, 1.4, 3.3)).toBe(true)
+    expect(schmittHigh(false, 1.4, 3.3)).toBe(false)
+    expect(schmittHigh(false, 2, 3.3)).toBe(true)
+    expect(latchToggle(false, false, true)).toBe(true)
+    expect(latchToggle(true, true, true)).toBe(true)
+    expect(latchToggle(true, true, false)).toBe(true)
   })
 })
