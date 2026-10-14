@@ -8,6 +8,7 @@ import { coilAndContacts, drivingARelay, solidStateRelay } from './components/re
 import { contactBounce, debouncing, toggleVsMomentary } from './components/switches-buttons'
 import { linearVsLogTaper, wiperAsDivider } from './components/potentiometer'
 import { fuseRatings, reversePolarity, tvsDiode } from './components/fuses-protection'
+import { clockAccuracy, loadCapacitors, resonance } from './components/crystal-oscillator'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from './components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from './electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from './electricity/current'
@@ -29,6 +30,6 @@ import { Unit } from './types'
 
 export const UNITS: Unit[] = [
   { title: 'Electricity', lessons: [whatFlows, conventionalVsElectron, ampsAndCoulomb, potentialDifference, groundAndReference, measuringWithMultimeter, resistivityAndGauge, temperatureEffects, readingResistorBands, vEqualsIR, solvingALoop, ohmPlot, pEqualsVI, heatInAResistor, whAndMah, seriesResistors, parallelResistors, cellsSeriesParallel, mixedNetworks, dividerFormula, loadingDivider, dividerSensor, kclAtANode, kvlAroundALoop, nodalAnalysis, theveninEquivalent, maximumPowerTransfer, sineAndRms, frequencyAndPeriod, mainsVsBattery, coulombLaw, fieldLineMap, capacitanceFromPlates, wireAndCompass, solenoid, rightHandRule, induction] },
-  { title: 'Components', lessons: [valueAndTolerance, powerRating, pullUpAndPullDown, chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, energyInACoil, rlTimeConstant, flybackSpike, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix, npnAsASwitch, gainAndSaturation, baseResistor, gateThreshold, lowSideSwitching, logicLevelMosfets, gateDrive, coilAndContacts, drivingARelay, solidStateRelay, contactBounce, debouncing, toggleVsMomentary, wiperAsDivider, linearVsLogTaper, fuseRatings, reversePolarity, tvsDiode] },
+  { title: 'Components', lessons: [valueAndTolerance, powerRating, pullUpAndPullDown, chargingAndDischarging, rcTimeConstant, decoupling, electrolyticVsCeramic, energyInACoil, rlTimeConstant, flybackSpike, forwardDrop, reverseBlocking, flybackDiode, zenerClamp, forwardVoltageAndColour, currentLimitingResistor, rgbLed, ledMatrix, npnAsASwitch, gainAndSaturation, baseResistor, gateThreshold, lowSideSwitching, logicLevelMosfets, gateDrive, coilAndContacts, drivingARelay, solidStateRelay, contactBounce, debouncing, toggleVsMomentary, wiperAsDivider, linearVsLogTaper, fuseRatings, reversePolarity, tvsDiode, resonance, loadCapacitors, clockAccuracy] },
   { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, lithographyMachine, waferToChip, what3nmMeans] },
 ]

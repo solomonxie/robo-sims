@@ -32,6 +32,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `switches` — `tactSwitch` (cut-open 6 mm tact: snap dome over a centre pad, `set(press, closed)`), `toggleSwitch` (MTS-102 SPDT: bat lever, rocker, lugs a/com/b, `tip(u)`); model `SWITCHES`, `bounceEdges`/`bouncedState`, `rcDebounceStep`, `schmittHigh`, `debounceStep`, `latchToggle` in `core/physics`.
 - `pot` — `rotaryPot` (cut-open 16 mm pot: carbon track tinted by potential, wiper + knob, pins a/w/b, `track(s)`/`trackAt`, `tops`); model `potDivider`, `taperFraction` (A taper 10 % at half turn), `attenuationDb`, `perceivedLevel` in `core/physics`.
 - `protection` — `glassFuse` (5×20 mm, straight or coiled slow-blow element, `set(heat, melt)`: glows, parts into beads, soots the glass); model `FUSES`/`fuseStep`/`fuseMeltTime`/`fuseI2t`, `reverseGuard` (none/diode/P-FET), `seriesDiode`, `P6KE15A`/`surge`/`tvsNode` in `core/physics/protection`.
+- `oscillator` — `hc49Crystal` (cut-open HC-49/U: quartz blank on spring clips, `set(strain, volts)` shears/flexes it, electrodes tinted by potential), `clockFace` (bright vs ghost true-time hands); BVD model `HC49_16M`/`motionalResponse`/`responseDb`, `loadCapacitance`/`pullPpm`, `driftPerDay` in `core/physics/oscillators`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
@@ -78,7 +79,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Switches & buttons
 - [x] Potentiometer
 - [x] Fuses & protection
-- [ ] Crystal oscillator
+- [x] Crystal oscillator
 - [ ] Op-amp
 - [ ] Voltage regulators
 - [ ] Logic gates
