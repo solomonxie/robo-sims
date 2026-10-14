@@ -3,7 +3,7 @@ import { Bit, Hc595, bit, counterRipple, shiftIn, shiftOutSteps, toBits } from '
 import { binary, hex } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, LED_RED, RING, ease, flipFlopBlock, gateSymbol, groundSymbol, junction, ledLamp, partLetter, segmentDisplay, signalWire, timingDiagram } from '../fx'
+import { GREY, LED_RED, RING, ease, flipFlopBlock, gateSymbol, groundSymbol, inBall, junction, ledLamp, partLetter, segmentDisplay, signalWire, timingDiagram } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
 const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
@@ -13,11 +13,6 @@ const BUS_DY = -3.6
 const SP = 8.4
 const rowXs = (k: number, sp = SP) => Array.from({ length: k }, (_, i) => (i - (k - 1) / 2) * sp)
 const ease1 = (dt: number, from: number[], to: number[]) => from.map((l, i) => l + (to[i] - l) * ease(dt, 14))
-
-const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
-  return junction(parent, at, 0.55)
-}
 
 /** LED hanging off a signal at (x, from[1]): the wire drops to `ly`, cathode to ground; `set(level)` drives both. */
 function ledDrop(parent: THREE.Object3D, from: V3, x: number, ly: number, label: string) {

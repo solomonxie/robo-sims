@@ -29,7 +29,7 @@ import {
   ease,
   glowHalo,
   groundSymbol,
-  junction,
+  inBall,
   ledLamp,
   partLetter,
   segmentDisplay,
@@ -49,11 +49,6 @@ const TRANSITIONS = { color: RING, label: 'Lit disc = current state; arrow flash
 function panel(parent: THREE.Object3D, at: V3, w: number, h: number) {
   const m = new THREE.MeshStandardMaterial({ color: '#3a4152', roughness: 0.6, transparent: true, opacity: 0.35, depthWrite: false })
   add(parent, new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.4), m), [at[0], at[1], -2]).castShadow = false
-}
-
-const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
-  return junction(parent, at, 0.55)
 }
 
 // --- Moore vs Mealy: the same press detector both ways; Moore's output waits for the next clock, Mealy's follows the input. ---

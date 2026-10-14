@@ -8,6 +8,26 @@ import { pulseLabel, scope, segmentDisplay } from './displays'
 import { partLetter } from './parts'
 import { ease } from './util'
 
+/** Labelled input ball at `at`; returns its level driver. */
+export const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
+  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
+  return junction(parent, at, 0.55)
+}
+
+/** LED on a signal ending at `at`, cathode to ground; returns its driver. */
+export function ledOut(parent: THREE.Object3D, from: V3, at: V3, label: string) {
+  const feed = signalWire(parent, [from, [at[0] - 0.35, at[1], 0]])
+  const lamp = ledLamp(parent, LED_RED, at, { scale: 0.7, anodeRight: false })
+  signalWire(parent, [[at[0] + 0.35, at[1], 0], [at[0] + 0.35, at[1] - 3.4, 0]])(0)
+  add(parent, groundSymbol(), [at[0] + 0.35, at[1] - 3.4, 0]).scale.setScalar(0.5)
+  partLetter(parent, label, [at[0] - 2.4, at[1] + 1.4, 0], 0.9, RING)
+  return (dt: number, level: number) => {
+    feed(level)
+    lamp.set(level)
+    lamp.step(dt)
+  }
+}
+
 const INVERTED: GateName[] = ['NOT', 'NAND', 'NOR', 'XNOR']
 
 /** Gate symbol facing +z, `size` tall, pointing +x; inputs on the left (one for NOT). `set(out)` tints the body and output

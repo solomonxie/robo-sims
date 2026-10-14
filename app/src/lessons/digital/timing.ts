@@ -32,8 +32,9 @@ import {
   glowMat,
   groundSymbol,
   hc49Crystal,
+  inBall,
   junction,
-  ledLamp,
+  ledOut,
   partLetter,
   potentialColor,
   segmentDisplay,
@@ -46,25 +47,6 @@ const WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1',
 const CLK_COLOR = '#5ad8e6'
 const D_COLOR = '#b48cff'
 const glide = (dt: number, from: number, to: number) => from + (to - from) * ease(dt, 14)
-
-const inBall = (parent: THREE.Object3D, label: string, at: V3) => {
-  partLetter(parent, label, [at[0] - 1, at[1], 0], 0.9, RING, 'right')
-  return junction(parent, at, 0.55)
-}
-
-/** LED on a signal ending at `at`, cathode to ground; returns its driver. */
-function ledOut(parent: THREE.Object3D, from: V3, at: V3, label: string) {
-  const feed = signalWire(parent, [from, [at[0] - 0.35, at[1], 0]])
-  const lamp = ledLamp(parent, LED_RED, at, { scale: 0.7, anodeRight: false })
-  signalWire(parent, [[at[0] + 0.35, at[1], 0], [at[0] + 0.35, at[1] - 3.4, 0]])(0)
-  add(parent, groundSymbol(), [at[0] + 0.35, at[1] - 3.4, 0]).scale.setScalar(0.5)
-  partLetter(parent, label, [at[0] - 2.4, at[1] + 1.4, 0], 0.9, RING)
-  return (dt: number, level: number) => {
-    feed(level)
-    lamp.set(level)
-    lamp.step(dt)
-  }
-}
 
 /** Toggle flip-flop: Q̄ from a NOT gate above the block feeds D back. Returns the Q and Q̄ wires and the q branch x. */
 function toggleLoop(parent: THREE.Object3D, b: ReturnType<typeof flipFlopBlock>, x: number, notY: number) {
