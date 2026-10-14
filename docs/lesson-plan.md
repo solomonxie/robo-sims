@@ -26,7 +26,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, coils (`coil`, `inductorCoil`, `coilLines`), `barMagnet`.
 - `story` — `storySlider`, `storyClock` for stepped lessons.
-- `logic` — `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path, `signalWire` copper + level glow, `bitRow` LED bits with place values, `gateNet` schematic from a `Net` (`via` routes feedback), `timingDiagram` scrolling logic-analyser, `flipFlopBlock`, `stateDiagram` (states + arrows, `fire(edge)`) [`core/fsm.ts`: `Machine`, `fsmStep`/`fsmRun`, press detector, traffic light, obstacle avoider; `core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`, `Net` + `evalNet` (held state)/`netStep`/`netSteps` (unit delay)/`netSettle`/`netRun` (sequential)/`netDepth`/`netTable`, `SR_LATCH`/`D_LATCH`/`D_FLIP_FLOP`/`REGISTER_BIT`, `shiftIn`, `counterRipple`, `shiftOutSteps` (74HC595); `core/numbers.ts`: binary/hex, two's complement, `addWrap`; `physics/timing`: `pathAt`/`pathSlack`/`maxClock`, `metastableLevel`/`resolveTime`/`syncMtbf`, `divideBy`].
+- `logic` — `gateSymbol` (AND…XNOR, NOT), `litWire` glowing path, `signalWire` copper + level glow, `bitRow` LED bits with place values, `gateNet` schematic from a `Net` (`via` routes feedback), `timingDiagram` scrolling logic-analyser, `flipFlopBlock`, `stateDiagram` (states + arrows, `fire(edge)`) [`core/fsm.ts`: `Machine`, `fsmStep`/`fsmRun`, press detector, traffic light, obstacle avoider; `core/logic.ts`: gates, truth tables, `cmosNand`, adders, `rippleSteps`, `Net` + `evalNet` (held state)/`netStep`/`netSteps` (unit delay)/`netSettle`/`netRun` (sequential)/`netDepth`/`netTable`, `SR_LATCH`/`D_LATCH`/`D_FLIP_FLOP`/`REGISTER_BIT`, `shiftIn`, `counterRipple`, `shiftOutSteps` (74HC595); `core/numbers.ts`: binary/hex, two's complement, `addWrap`; `physics/timing`: `pathAt`/`pathSlack`/`maxClock`, `metastableLevel`/`resolveTime`/`syncMtbf`, `divideBy`; `physics/levels`: `LOGIC_INPUTS`/`readInput`/`noiseMargins`, `dividerShift`/`riseTime`, `shifterSolve` (BSS138)].
 
 ## Pacing
 
@@ -85,7 +85,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Counters & shift registers
   - [x] State machines
   - [x] Timing
-  - [ ] Level shifting
+  - [x] Level shifting
   - [ ] FPGA basics
 - Power:
   - [ ] Battery chemistry

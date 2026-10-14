@@ -36,6 +36,7 @@ import { dFlipFlop, registers, srLatch } from '../lessons/digital/flip-flops-lat
 import { hc595, rippleCounter, shiftRegister } from '../lessons/digital/counters-shift-registers'
 import { mooreVsMealy, robotBehaviour, trafficLight } from '../lessons/digital/state-machines'
 import { clockDividers, metastability, propagationDelay } from '../lessons/digital/timing'
+import { bidirectionalShifter, dividerShifter, logicThresholds } from '../lessons/digital/level-shifting'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -176,6 +177,9 @@ const READY: Record<string, Lesson> = {
   'digital/timing/propagation-delay': propagationDelay,
   'digital/timing/metastability': metastability,
   'digital/timing/clock-dividers': clockDividers,
+  'digital/level-shifting/logic-thresholds': logicThresholds,
+  'digital/level-shifting/divider-shifter': dividerShifter,
+  'digital/level-shifting/bidirectional-shifter': bidirectionalShifter,
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,
