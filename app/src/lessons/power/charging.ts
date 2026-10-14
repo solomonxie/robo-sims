@@ -433,8 +433,8 @@ export const thermalLimits: Lesson = {
     for (const t of [TP4056.coldC, TP4056.hotC]) add(scene, label(`${t}°`, { size: 0.5, color: LABEL, align: 'left' }), [THERMO3[0] + 1.6, THERMO3[1] + 0.65 + tFrac(t) * THERMO_H, 0])
     const tempLabel = pulseLabel(scene, 3, LABEL, [THERMO3[0] + 0.3, THERMO3[1] + THERMO_H + 3, 0], 1.1)
 
-    const chipHeat = heatWaves(scene, 2, { count: 3, rise: 3.4 })
-    chipHeat.group.position.set(rig.board.chipTop[0], rig.board.chipTop[1] + 1.4, rig.board.chipTop[2] + 0.5)
+    const chipHeat = heatWaves(scene, 2, { count: 3, rise: 1.6 })
+    chipHeat.group.position.set(rig.board.chipTop[0], rig.board.chipTop[1] + 1, rig.board.chipTop[2] + 0.5)
     const cellHeat = heatWaves(scene, x1 - x0 - 1, { count: 4, rise: 3 })
     cellHeat.group.position.set(CELL3[0], CELL3[1] + 1.4, 1.2)
     const dieAt: V3 = [BOARD3[0] - 10.6, BOARD3[1] - 8.6, 0]
@@ -445,7 +445,7 @@ export const thermalLimits: Lesson = {
 
     return {
       scene,
-      view: { center: [-0.8, -0.2, 0], radius: 51, polar: 1.3, azimuth: 0.15 },
+      view: { center: [-0.8, 1.2, 0], radius: 51, polar: 1.3, azimuth: 0.15 },
       frame(dt, p) {
         const ta = n(p, 'ambient')
         const ntc = p.ntc !== 'off'
