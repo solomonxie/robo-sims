@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (6 topics, 18 lessons: Silicon & doping → Memory cell), Digital (Binary & hex → Flip-flops & latches, 10 lessons). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
+- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (6 topics, 18 lessons: Silicon & doping → Memory cell), Digital (6 topics, 19 lessons: Binary & hex → Timing). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics/` (tested).
 - `make preview LESSON=<id>`: headless-Chrome render (WebGPU on Metal, same scene code, overlays mocked) for framing without a device. Not a simulator; the iPhone is the real check.
 - Rendering: Neutral tone mapping; the clear color is pre-compensated so the canvas matches the RN background exactly.
