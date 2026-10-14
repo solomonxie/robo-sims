@@ -261,3 +261,76 @@ export function icPackage(width: number, height: number, pins = 4): THREE.Group 
   }
   return g
 }
+
+/** Knife switch hinged at `pivot`: a steel blade `length` long, steel balls on the pivot and a contact at each angle in
+ *  `contacts` (rad, 0 = +x). `set(angle)` swings the blade. */
+export function knifeSwitch(parent: THREE.Object3D, pivot: V3, length: number, contacts: number[]) {
+  const ball = new THREE.SphereGeometry(0.42, 16, 12)
+  add(parent, mesh(ball, STEEL()), pivot)
+  for (const a of contacts) add(parent, mesh(ball, STEEL()), [pivot[0] + length * Math.cos(a), pivot[1] + length * Math.sin(a), pivot[2]])
+  const blade = add(parent, new THREE.Group(), [pivot[0], pivot[1], pivot[2] + 0.25])
+  rod(blade, [0, 0, 0], [length, 0, 0], 0.26, STEEL())
+  box(blade, [1.2, 0.7, 0.7], mat('#d23b3b', { rough: 0.5 }), [length * 0.55, 0, 0.4])
+  return {
+    blade,
+    set(angle: number) {
+      blade.rotation.z = angle
+    },
+  }
+}
+
+/** Axial diode along a → b, anode at a: `glass` is a DO-35 (1N4148, zeners: orange glass, black band), else a DO-41
+ *  (1N4007: black, grey band), `scale` × the real part. `set(f)`: f > 0 glows a halo round the junction (conducting),
+ *  f < 0 raises a pale wall across it (blocking). */
+export function diodeAlong(parent: THREE.Object3D, a: V3, b: V3, { scale = 1.6, glass = false } = {}) {
+  const group = add(parent, new THREE.Group())
+  const mid: V3 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]
+  const body = add(group, new THREE.Group(), mid)
+  body.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
+  body.scale.setScalar(scale)
+  const [len, r] = glass ? [1.38, 0.36] : [2.05, 0.53]
+  if (glass) {
+    const shell = new THREE.MeshStandardMaterial({ color: '#e0782a', transparent: true, opacity: 0.55, roughness: 0.1, depthWrite: false })
+    cylinder(body, r, len, shell, [0, 0, 0], 'x', 24).castShadow = false
+    for (const s of [-1, 1]) cylinder(body, r * 0.55, len * 0.36, STEEL(), [s * len * 0.25, 0, 0], 'x', 16)
+    cylinder(body, r * 0.3, len * 0.12, mat('#4a4d55'), [0, 0, 0], 'x', 12)
+    cylinder(body, r + 0.01, len * 0.14, mat('#18191d'), [len * 0.36, 0, 0], 'x', 24)
+  } else {
+    cylinder(body, r, len, mat('#1c1c1f', { rough: 0.5 }), [0, 0, 0], 'x', 24)
+    cylinder(body, r + 0.01, len * 0.14, mat('#b9bec6', { rough: 0.5 }), [len * 0.36, 0, 0], 'x', 24)
+  }
+  const haloMat = glowMat(CONVENTIONAL, 1.2)
+  const halo = add(body, mesh(new THREE.TorusGeometry(r * 1.35, 0.07, 8, 32), haloMat))
+  halo.rotation.y = Math.PI / 2
+  const wallMat = new THREE.MeshStandardMaterial({ color: '#dfe6f2', emissive: '#8fa3c0', transparent: true, opacity: 0, depthWrite: false })
+  const wall = add(body, mesh(new THREE.CylinderGeometry(r * 1.9, r * 1.9, 0.08, 32), wallMat))
+  wall.rotation.z = Math.PI / 2
+  halo.castShadow = wall.castShadow = false
+  const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize().multiplyScalar((len / 2) * scale)
+  rod(group, a, [mid[0] - d.x, mid[1] - d.y, mid[2] - d.z], 0.11 * scale, STEEL())
+  rod(group, [mid[0] + d.x, mid[1] + d.y, mid[2] + d.z], b, 0.11 * scale, STEEL())
+  return {
+    group,
+    set(f: number) {
+      halo.visible = f > 0.01
+      haloMat.emissiveIntensity = 0.4 + 1.6 * clamp01(f)
+      halo.scale.setScalar(0.8 + 0.3 * clamp01(f))
+      wall.visible = f < -0.01
+      wallMat.opacity = 0.55 * clamp01(-f)
+    },
+  }
+}
+
+/** Diode symbol facing +z, centred on the origin: a triangle pointing +x into the cathode bar. */
+export function diodeSymbol(size = 1.6, color = '#e8e8e8'): THREE.Group {
+  const g = new THREE.Group()
+  const m = mat(color, { emissive: '#444444' })
+  const h = size / 2
+  const tri = new THREE.Shape([new THREE.Vector2(-h, h), new THREE.Vector2(h, 0), new THREE.Vector2(-h, -h)])
+  const geo = new THREE.ExtrudeGeometry(tri, { depth: 0.2, bevelEnabled: false })
+  geo.translate(0, 0, -0.1)
+  add(g, mesh(geo, m))
+  box(g, [0.18, size * 1.1, 0.2], m, [h + 0.09, 0, 0])
+  for (const s of [-1, 1]) rod(g, [s * (h + 0.6), 0, 0], [s * h, 0, 0], 0.08, m)
+  return g
+}

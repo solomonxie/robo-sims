@@ -6,7 +6,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 - One agent = one **topic** (all its entries, usually 3–4 lessons) in `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`).
 - Lesson id = entry id without the category, `/` → `-`; `curriculum.test.ts` enforces it.
-- Numbers shown come from tested pure fns in `core/` (`core/physics/<domain>.ts` + test; circuits: `Element[]` → `core/nodal.ts` `solveNodal`, `relaxSweep` to animate, `theveninAt`; fields: `core/fields.ts` tracers). Formatters (`volts`, `ohms`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
+- Numbers shown come from tested pure fns in `core/` (`core/physics/<domain>.ts` + test; circuits: `Element[]` → `core/nodal.ts` `solveNodal`, `relaxSweep` to animate, `theveninAt`; diodes: `DIODES` + `diodeAmps`/`diodeNode` in `semiconductors`; fields: `core/fields.ts` tracers). Formatters (`volts`, `ohms`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/` where a draft exists. Shared visuals go in `lessons/fx/` (import `'../fx'`); grep it before writing a helper.
 - Framing: legend covers the top ~30 % (right), readout chips the bottom ~25 %; keep the scene in the middle band, wide over tall.
 - Visual rules: potential = `potentialColor` (blue 0 V → red); numbers in 3D = `segmentDisplay`/`pulseLabel` (no 3D text); charges ride at `LANE` in front of wires; flow speed ∝ that wire's current; ease toward targets with `ease(dt)`, morph parts with `presence`, not timelines.
@@ -21,7 +21,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `colors` — palette (`HIGH_V`, `LOW_V`, `CONVENTIONAL`, `POWER`, `B_FIELD`, `FORCE`…), `glowMat`, `potentialColor`.
 - `shapes` — `arrow`, `plusGeometry`.
 - `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
-- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
+- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `ceramicAlong`, `diodeAlong`/`diodeSymbol`, `knifeSwitch`, `icPackage`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
@@ -56,7 +56,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 2 — Components & semiconductors (drafted first)
 - [x] Capacitor
-- [ ] Diode
+- [x] Diode
 - [ ] LED
 - [ ] Silicon & doping
 - [ ] PN junction

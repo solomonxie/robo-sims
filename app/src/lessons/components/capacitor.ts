@@ -25,6 +25,7 @@ import {
   halton,
   heatWaves,
   icPackage,
+  knifeSwitch,
   lerp,
   plusFlow,
   plusGeometry,
@@ -133,11 +134,7 @@ export const chargingAndDischarging: Lesson = {
     wire(scene, [[W, -yTop, 0], [W, -H, 0], [-W, -H, 0]])
     wire(scene, [CONTACT_B, [CONTACT_B[0], -H, 0]])
     add(scene, cell(CELL_H, 1.5), [-W, 0, 0])
-    const contact = new THREE.SphereGeometry(0.42, 16, 12)
-    for (const at of [CONTACT_A, CONTACT_B, PIVOT]) add(scene, mesh(contact, STEEL()), at)
-    const blade = add(scene, new THREE.Group(), [PIVOT[0], PIVOT[1], 0.25])
-    rod(blade, [0, 0, 0], [-BLADE, 0, 0], 0.26, STEEL())
-    box(blade, [1.2, 0.7, 0.7], mat('#d23b3b', { rough: 0.5 }), [-BLADE * 0.55, 0, 0.4])
+    const toggle = knifeSwitch(scene, PIVOT, BLADE, [Math.PI, Math.PI + THROW])
     const holder = add(scene, new THREE.Group())
 
     const plateGeo = new THREE.BoxGeometry(PLATE, PLATE_T, PLATE)
@@ -204,7 +201,7 @@ export const chargingAndDischarging: Lesson = {
 
         const fill = state.vc / VS
         state.blade += ((s.charging ? 0 : 1) - state.blade) * ease(dt, 8)
-        blade.rotation.z = THROW * state.blade
+        toggle.set(Math.PI + THROW * state.blade)
         potentialColor(fill, plateMats[0].emissive)
         for (const t of tokens) t.count = Math.round(MAX_TOKENS * fill)
         const k = Math.round(FIELD_LINES * fill)

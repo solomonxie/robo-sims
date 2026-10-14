@@ -1,4 +1,5 @@
 import { chargingAndDischarging, decoupling, electrolyticVsCeramic, rcTimeConstant } from '../lessons/components/capacitor'
+import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lessons/components/diode'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
 import { capacitanceFromPlates, coulombLaw, fieldLineMap } from '../lessons/electricity/electric-fields'
@@ -74,6 +75,10 @@ const READY: Record<string, Lesson> = {
   'components/capacitor/rc-time-constant': rcTimeConstant,
   'components/capacitor/decoupling': decoupling,
   'components/capacitor/electrolytic-vs-ceramic': electrolyticVsCeramic,
+  'components/diode/forward-drop': forwardDrop,
+  'components/diode/reverse-blocking': reverseBlocking,
+  'components/diode/flyback-diode': flybackDiode,
+  'components/diode/zener-clamp': zenerClamp,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

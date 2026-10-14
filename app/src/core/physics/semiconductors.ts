@@ -31,6 +31,78 @@ export function depletionWidth(na: number, nd: number, volts: number): number {
 export const diodeCurrent = (volts: number, saturationA = 1e-12, ideality = 1) =>
   saturationA * (Math.exp(volts / (ideality * thermalVoltage())) - 1)
 
+export interface Diode {
+  saturationA: number
+  ideality: number
+  /** Reverse breakdown (zener) voltage, reached at `kneeA`. */
+  breakdownV?: number
+  kneeA?: number
+  breakdownIdeality?: number
+}
+
+/** SPICE-fit parts; the zener's breakdown is the same exponential, mirrored. */
+export const DIODES = {
+  '1N4148': { saturationA: 2.52e-9, ideality: 1.752 },
+  '1N4007': { saturationA: 7.03e-9, ideality: 1.808 },
+  '1N5819': { saturationA: 31.7e-6, ideality: 1.373 },
+  zener5V1: { saturationA: 1e-12, ideality: 1.2, breakdownV: 5.1, kneeA: 5e-3, breakdownIdeality: 2 },
+} satisfies Record<string, Diode>
+
+/** Current from anode to cathode at `volts` across the diode. */
+export function diodeAmps(volts: number, d: Diode): number {
+  const forward = diodeCurrent(volts, d.saturationA, d.ideality)
+  if (d.breakdownV === undefined) return forward
+  const nvt = (d.breakdownIdeality ?? 1) * thermalVoltage()
+  return forward - (d.kneeA ?? 1e-3) * Math.exp((-volts - d.breakdownV) / nvt)
+}
+
+/** Forward voltage at `amps` (inverse Shockley). */
+export const diodeVolts = (amps: number, d: Diode) => d.ideality * thermalVoltage() * Math.log(amps / d.saturationA + 1)
+
+/** Source `vs` through `ohms` into a node; the diode (anode at the node, or cathode when `reversed`) and an optional
+ *  `load` go from the node to ground. Bisection on the node voltage: every branch current is monotonic in it. */
+export function diodeNode(vs: number, ohms: number, d: Diode, { load = Infinity, reversed = false } = {}) {
+  const diodeA = (v: number) => (reversed ? -diodeAmps(-v, d) : diodeAmps(v, d))
+  let lo = Math.min(0, vs)
+  let hi = Math.max(0, vs)
+  for (let k = 0; k < 80; k++) {
+    const v = (lo + hi) / 2
+    if ((vs - v) / ohms - diodeA(v) - v / load > 0) lo = v
+    else hi = v
+  }
+  const v = (lo + hi) / 2
+  return { v, diodeA: diodeA(v), loadA: v / load, sourceA: (vs - v) / ohms }
+}
+
+/** Peak switch-node voltage when a coil carrying `amps` dumps into `farads` alone: Vs + I·√(L/C). */
+export const flybackSpike = (vs: number, amps: number, henries: number, farads: number) => vs + amps * Math.sqrt(henries / farads)
+
+export interface Flyback {
+  /** Coil current (A) and switch-node voltage (V). */
+  amps: number
+  volts: number
+}
+
+/** One step of a coil (L, R) from `vs` to a switch to ground, with stray capacitance `farads` at the switch node and
+ *  optionally a flyback `diode` from that node back to `vs`. Closed: the node is held at 0 V. */
+export function flybackStep(
+  s: Flyback,
+  { vs, ohms, henries, farads, diode, closed }: { vs: number; ohms: number; henries: number; farads: number; diode?: Diode; closed: boolean },
+  dt: number,
+): Flyback {
+  if (closed) {
+    const target = vs / ohms
+    return { amps: target + (s.amps - target) * Math.exp((-dt * ohms) / henries), volts: 0 }
+  }
+  if (diode) {
+    if (s.amps <= 0) return { amps: 0, volts: vs }
+    const volts = vs + diodeVolts(s.amps, diode)
+    return { amps: Math.max(0, s.amps + ((vs - volts - ohms * s.amps) / henries) * dt), volts }
+  }
+  const amps = s.amps + ((vs - s.volts - ohms * s.amps) / henries) * dt
+  return { amps, volts: s.volts + (amps / farads) * dt }
+}
+
 export interface Mosfet {
   vthV: number
   /** μ·Cox·W/L, A/V². */
