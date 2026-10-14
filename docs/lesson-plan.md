@@ -1,36 +1,37 @@
 # Lesson rollout plan
 
-Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each a `Lesson` with an animated 3D `build()`, like `app/src/lessons/current.ts`.
+Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each a `Lesson` with an animated 3D `build()`, like `app/src/lessons/electricity/current.ts`.
 
 ## Unit of work
 
-- One agent = one **topic** (all its entries, usually 3–4 lessons).
-- Per entry: `app/src/lessons/<category>/<topic>.ts` exports one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`, keyed by entry id).
-- Lesson id = entry id without the category, `/` → `-` (e.g. `current-amps-and-the-coulomb`); `curriculum.test.ts` enforces it. Preview with `make preview LESSON=<id>` → `/tmp/<id>.png`.
-- Numbers shown come from tested pure functions in `core/` (add + test new formulas there).
-- Reuse `archive/lesson-drafts/` where a draft exists; shared visuals go to `lessons/fx.ts`.
-- Framing: in the preview the legend covers the top ~30% (right side) and readout chips the bottom ~25%, so the scene must read in the middle band; wide (landscape) layouts fit better than tall ones.
-- Visual vocabulary: potential is `potentialColor` (blue 0 V → red high; `Flow.colorBy` tints charges by position); numbers in the scene use `segmentDisplay` (no text rendering in 3D).
-- Check control extremes too: `cd app && node tools/preview/shoot.mjs <id> /tmp/x.png params='{"key":value}'`.
-- Timed animations: `shoot.mjs <id> <png> frames=N` renders after N frames at 60 fps (default 90 = 1.5 s); check start and end states.
-- In-scene numbers: `fitDigits(value, cells)` (`core/units.ts`) fills a `segmentDisplay`. A circuit with a cell and resistor is `resistorLoop` (potential-coloured charges); `formulaTriangle` for V/I/R-style triangles.
-- Rebuilt groups: `emptyGroup` disposes geometry and every material except cached `mat()` ones, so build per-rebuild materials with `glowMat`/`new`, shared ones with `mat()`.
-- Metal interiors: `ionLattice` + `electronGas` in `fx.ts` (sized by length/radius; drift, scatter rate, `mesh.count` for carrier density). Heat: `heatGlow`, `thermometer`.
-- Products (P = V × I, Wh = V × Ah): `areaPlot` (slab area = product, `lit` fraction for what's left); colour `POWER`. Changing labels: `pulseLabel`. Heat: `heatWaves`, `smoke`. Battery level: `chargeTank`.
-- Stateful time-lapse sims (heating, draining): step state with tested pure fns (`rcStep`, `energyOver`), reset on control change; show sim time in a readout and keep chips to ≤ 4 short values so they stay on one row.
-- Voltages that add up (series drops, stacked cells): `voltStack`. Branching current: one `Flow` per wire segment, speed ∝ that segment's current, so the main wire visibly carries the sum. Morphing circuits (reduce to an equivalent): ease a per-part presence 0..1 toward the step's target and scale by it, not a timeline.
-- Divider-style columns: one `columnFraction`-like potential fn per layout; outputs end in `terminal` (ball tinted by potential) + `groundSymbol`. Sensors: `thermistorAlong`; real boards (e.g. `buildEsp32`, rotated `x = π/2` to face the camera, scaled ~0.4) as the reader.
-- Circuits beyond series/parallel: build an `Element[]` and solve with `core/nodal.ts` (`solveNodal`; `relaxNode`/`relaxSweep` for step-by-step animation), wrapped in a tested `physics.ts` fn. Paint a wire with a resistor at its middle by `dropAlong`; nodes are `junction` balls; signed currents at a node: `inOutBars`.
-- Equivalents: `theveninAt` (nodal.ts) gives Vth/IN/Rth of any `Element[]` by open + shorted solves. Swapping views of one circuit: ease view weights toward one-hot, `presence`-scale parts, blend node potentials and flow speeds by the weights. Current source: `currentSource`.
-- Signals over time: `scope` (fx.ts) screen + `trace.scroll(signal, now, window)` (scrolls; or `draw(y(u))` for a frozen view) + `level` dashed markers; `phasor` for the rotating-arm view, `acSource` symbol. Slow real frequencies by a fixed factor and say so in the points.
-- Vector fields (electric now, magnetic next): geometry in `core/fields.ts` (`inverseSquare`, `traceLine` with `closeWithin` for closed loops, `chargeLines` for point charges); draw with `fieldLines` (instanced polylines + gliding heads; `heads: false` for dim depth copies) or `arrowGrid` (log-scale the vector before passing it). Charges: `chargeBall`. Retrace only when inputs change.
-- Magnetism (`core/fields.ts`: `wireField`, `loopField`/`coilField` exact loops, `loopLines` for closed lines; `cross` for F = IL × B): `compass` (`swing` overshoots and settles), `coil` (`lane()` for a `Flow`, + current −x → +x makes B +x), `barMagnet`; colours `B_FIELD`, `NORTH`/`SOUTH`. Keep forces in the screen plane (orient wire/field so F is sideways), and log-scale line counts when B spans decades.
-- Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
+- One agent = one **topic** (all its entries, usually 3–4 lessons) in `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`).
+- Lesson id = entry id without the category, `/` → `-`; `curriculum.test.ts` enforces it.
+- Numbers shown come from tested pure fns in `core/` (`core/physics/<domain>.ts` + test; circuits: `Element[]` → `core/nodal.ts` `solveNodal`, `relaxSweep` to animate, `theveninAt`; fields: `core/fields.ts` tracers). Formatters (`volts`, `ohms`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
+- Reuse `archive/lesson-drafts/` where a draft exists. Shared visuals go in `lessons/fx/` (import `'../fx'`); grep it before writing a helper.
+- Framing: legend covers the top ~30 % (right), readout chips the bottom ~25 %; keep the scene in the middle band, wide over tall.
+- Visual rules: potential = `potentialColor` (blue 0 V → red); numbers in 3D = `segmentDisplay`/`pulseLabel` (no 3D text); charges ride at `LANE` in front of wires; flow speed ∝ that wire's current; ease toward targets with `ease(dt)`, morph parts with `presence`, not timelines.
+- Rebuilt groups: `emptyGroup` keeps cached `mat()` materials, so per-rebuild materials use `glowMat`/`new`.
+- Time-lapse sims: step with tested pure fns, reset on control change, show sim time; ≤ 4 short readouts. Slow real frequencies by a fixed factor and say so.
+- Vector fields: retrace only when inputs change; log-scale lengths/line counts that span decades; keep forces in the screen plane.
+- Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; extremes `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}'`; `frames=N` (default 90) for timed states.
+- Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
+
+`lessons/fx/` modules:
+- `util` — `clamp01`, `lerp`, `ease`, `path`, `emptyGroup`, `presence`.
+- `colors` — palette (`HIGH_V`, `LOW_V`, `CONVENTIONAL`, `POWER`, `B_FIELD`, `FORCE`…), `glowMat`, `potentialColor`.
+- `shapes` — `arrow`, `plusGeometry`.
+- `flows` — `Flow`, `plusFlow` (potential-tinted + charges), glass wire, `ionLattice`, `electronGas`.
+- `circuit` — `cell`, `wire`, `bulb`, `resistorAlong`/`swapResistor`, `resistorLoop`, `junction`, `terminal`, `dropAlong`, `groundSymbol`, sources, `thermistorAlong`, `chargeTank`; layout consts `LANE`, `R_SCALE`, `RS`, `CELL_H`, `cellFraction`.
+- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `phasor`.
+- `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
+- `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
+- `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `barMagnet`.
 
 ## Pacing
 
 - Serial: one agent at a time; next starts only after the last finishes.
 - Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 15 for one agent (< 10 for two). Else wait for the hourly check.
+- After each section (category) is done: one cleanup agent before the next topic — split/dedupe shared code (`lessons/fx/`, `core/`), drop dead code, compact this file and `DESIGN.md`. No behaviour change.
 - Hourly check: read git log + this file, check load; speed up (2 agents in parallel, on different categories) only if the Mac is idle and the last runs were clean; pause on red tests or overload.
 - Builds/tests run with `nice -n 10`.
 - After each topic commit: install on the iPhone from the clean worktree `/tmp/robo-sims-install` (`git checkout --detach <hash>`, then `nice -n 10 make ios-build ios-run`), so agents' uncommitted edits never get bundled. Its `node_modules` is an APFS clone (`/bin/cp -cR`); a symlink breaks Metro.
