@@ -1,5 +1,6 @@
 import {
   awgDiameter,
+  burnOpenWatts,
   carrierCurrent,
   chargeFlowed,
   deratedPower,
@@ -22,6 +23,7 @@ import {
   relativeChange,
   relativeTo,
   RESISTIVITY,
+  RESISTOR_BURN_C,
   RESISTOR_MAX_C,
   resistorThermalK,
   ROOM_C,
@@ -134,6 +136,11 @@ describe('power and energy', () => {
     expect(deratedPower(0.25, 160)).toBe(0)
     expect(hotSpotC(0.25, 0.25, 70)).toBe(RESISTOR_MAX_C)
     expect(hotSpotC(deratedPower(1, 100), 1, 100)).toBeCloseTo(RESISTOR_MAX_C)
+  })
+  it('burns open at ~3.8× its rating in a room, less when it is hot around it', () => {
+    expect(burnOpenWatts(0.25, 25)).toBeCloseTo(0.956, 3)
+    expect(hotSpotC(burnOpenWatts(1, 70), 1, 70)).toBeCloseTo(RESISTOR_BURN_C)
+    expect(burnOpenWatts(0.25, 100)).toBeLessThan(burnOpenWatts(0.25, 25))
   })
   it('picks the smallest rating with 2× headroom', () => {
     expect(pickRating(0.1, 25)).toBe(0.25)

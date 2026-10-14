@@ -102,6 +102,9 @@ export const deratedPower = (ratingW: number, ambientC: number) =>
 /** Settled hot-spot temperature: the full rating lifts it 85 °C (70 → 155 °C). */
 export const hotSpotC = (watts: number, ratingW: number, ambientC: number) => ambientC + (watts * (RESISTOR_MAX_C - DERATE_FROM_C)) / ratingW
 
+/** Power that settles the hot spot at the burn-open point: past it the film opens and the current stops. */
+export const burnOpenWatts = (ratingW: number, ambientC: number) => (ratingW * (RESISTOR_BURN_C - ambientC)) / (RESISTOR_MAX_C - DERATE_FROM_C)
+
 /** Smallest rating that still has `margin`× headroom over `watts` at `ambientC`, or null. */
 export const pickRating = (watts: number, ambientC: number, margin = 2, ratings = RATINGS_W) =>
   ratings.find((r) => deratedPower(r, ambientC) >= margin * watts) ?? null

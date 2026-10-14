@@ -7,6 +7,7 @@ import {
   RESISTOR_MAX_C,
   VIH,
   VIL,
+  burnOpenWatts,
   deratedPower,
   floatingPickup,
   hotSpotC,
@@ -309,10 +310,17 @@ function hotResistor(parent: THREE.Object3D, r: number, rating: number, scale: n
   return material
 }
 
-const tempLook = (material: THREE.MeshStandardMaterial | null, c: number) => {
+const CHARRED = '#2a2420'
+
+const tempLook = (material: THREE.MeshStandardMaterial | null, c: number, burnt: boolean) => {
   if (!material) return
+  if (burnt) {
+    material.color.set(CHARRED)
+    heatGlow(material, 0)
+    return
+  }
   material.color.set('#d9c08c').lerp(SCORCHED, clamp01((c - 220) / (RESISTOR_BURN_C - 220)))
-  heatGlow(material, (c - 120) / (RESISTOR_BURN_C + 100 - 120))
+  heatGlow(material, (c - 120) / (RESISTOR_BURN_C - 120))
 }
 
 export const powerRating: Lesson = {
@@ -334,7 +342,7 @@ export const powerRating: Lesson = {
   points: [
     'A resistor turns P = V² / R into heat and has to shed it through its body. The power rating is how much it can shed before the inside passes ~155 °C.',
     'Rating follows size: a ⅛ W part is 3.5 mm long, ¼ W 6 mm, 2 W 15 mm. More surface sheds more heat. The bars show each one’s load.',
-    'Rule of thumb: pick at least twice the power. At 100 % a part is within spec but runs ~110 °C hot, ages fast and browns the board.',
+    'Rule of thumb: pick at least twice the power. At 100 % a part is within spec but runs ~110 °C hot, ages fast and browns the board. Near 4× it passes 350 °C: the coating chars and the film burns open.',
     'Ratings hold up to 70 °C around the part. Hotter, the limit falls in a straight line to zero at 155 °C: in a 100 °C motor bay a ¼ W part may take only 0.16 W.',
     'Over 2 W? Use a larger R, share the power across several resistors, or fit a ceramic power resistor (5–10 W).',
   ],
@@ -387,12 +395,12 @@ export const powerRating: Lesson = {
       fill.castShadow = false
       const fumes = smoke(scene, 2 * halfLen(rating, ROW_S), { count: 10, rise: 4 })
       fumes.group.position.set(ROW_X, y + radius(rating, ROW_S), 0)
-      return { rating, holder, fill, fillMat, fumes, body: null as THREE.MeshStandardMaterial | null, temp: 25, load: 0 }
+      return { rating, holder, fill, fillMat, fumes, body: null as THREE.MeshStandardMaterial | null, temp: 25, load: 0, burnt: false }
     })
     const ring = add(scene, mesh(new THREE.TorusGeometry(1, 0.07, 8, 72), glowMat('#ffffff', 1.3)), [ROW_X, ROW_Y[1], 0.2])
     ring.castShadow = false
 
-    const st = { r: NaN, shown: NaN as number, loopBody: null as THREE.MeshStandardMaterial | null, grow: 1, ringY: ROW_Y[1], ringA: 1, ringB: 1 }
+    const st = { r: NaN, heat: '', shown: NaN as number, loopBody: null as THREE.MeshStandardMaterial | null, grow: 1, ringY: ROW_Y[1], ringA: 1, ringB: 1 }
     return {
       scene,
       view: { center: [-2.8, 1.4, 0], radius: 50, polar: 1.42, azimuth: 0.1 },
@@ -408,6 +416,11 @@ export const powerRating: Lesson = {
             for (const k of [-1, 1]) rod(row.holder, [k * (h - 0.1), 0, 0], [k * (h + 0.9), 0, 0], 0.12, TIN())
           }
         }
+        const heat = `${s.w}|${s.amb}`
+        if (heat !== st.heat) {
+          st.heat = heat
+          for (const row of rows) if (row.burnt) [row.burnt, row.temp] = [false, s.amb]
+        }
         const shown = s.pick ?? 2
         if (shown !== st.shown) {
           st.shown = shown
@@ -421,8 +434,9 @@ export const powerRating: Lesson = {
 
         for (const row of rows) {
           row.load = s.w / Math.max(1e-9, deratedPower(row.rating, s.amb))
-          row.temp = rcStep(row.temp, hotSpotC(s.w, row.rating, s.amb), 0.8 + row.rating, dt)
-          tempLook(row.body, row.temp)
+          row.temp = rcStep(row.temp, row.burnt ? s.amb : hotSpotC(s.w, row.rating, s.amb), 0.8 + row.rating, dt)
+          if (row.temp >= RESISTOR_BURN_C) row.burnt = true
+          tempLook(row.body, row.temp, row.burnt)
           row.fumes.step(dt, clamp01((row.temp - RESISTOR_MAX_C) / 150))
           const w = Math.max(0.001, (Math.min(row.load, 2) / 2) * BAR_W)
           row.fill.scale.x = w
@@ -432,7 +446,7 @@ export const powerRating: Lesson = {
           row.fillMat.emissive.set(tone)
         }
         const hot = rows.find((r) => r.rating === shown)!
-        tempLook(st.loopBody, hot.temp)
+        tempLook(st.loopBody, hot.temp, hot.burnt)
         loopFumes.group.position.set(R2_AT, H2 + radius(shown, LOOP_S), 0)
         loopFumes.step(dt, clamp01((hot.temp - RESISTOR_MAX_C) / 150))
 
@@ -445,19 +459,22 @@ export const powerRating: Lesson = {
         ring.scale.set(st.ringA, st.ringB, 1)
 
         live.f = s.v / P2_MAX_V
-        flow.step(dt * 8 * Math.min(s.v / s.r, 1.2))
-        pLabel.show(fitDigits(s.w, 4))
+        flow.step(hot.burnt ? 0 : dt * 8 * Math.min(s.v / s.r, 1.2))
+        pLabel.show(fitDigits(hot.burnt ? 0 : s.w, 4))
         pLabel.frame(dt)
       },
       readouts: (p) => {
         const s = solvePower(p)
         const shown = s.pick ?? 2
         const c = hotSpotC(s.w, shown, s.amb)
+        const opens = s.w >= burnOpenWatts(shown, s.amb)
         return [
           { label: 'Power P = V² / R', value: watts(s.w) },
           { label: 'Pick (2× margin)', value: s.pick ? RATING_LABEL[s.pick] : 'None ≤ 2 W', tone: s.pick ? 'ok' : 'bad' },
           { label: `${RATING_LABEL[shown]} at ${s.amb} °C`, value: `max ${watts(deratedPower(shown, s.amb))}` },
-          { label: 'Hot spot', value: `${Math.round(c)} °C`, tone: c > RESISTOR_MAX_C ? 'bad' : c > 110 ? 'warn' : 'ok' },
+          opens
+            ? { label: `Over ${RESISTOR_BURN_C} °C`, value: 'Burns open', tone: 'bad' }
+            : { label: 'Hot spot', value: `${Math.round(c)} °C`, tone: c > RESISTOR_MAX_C ? 'bad' : c > 110 ? 'warn' : 'ok' },
         ]
       },
     }
