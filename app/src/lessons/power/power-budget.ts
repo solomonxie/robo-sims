@@ -19,7 +19,7 @@ import {
 import { amps, fitDigits, pct, volts, watts } from '../../core/units'
 import { buildTtMotor, buildWheel } from '../../models/motion'
 import { buildEsp32, buildHcSr04, buildL298n } from '../../models/modules'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -41,6 +41,7 @@ import {
   plusFlow,
   pulseLabel,
   scope,
+  sg90Servo,
   ticks,
   wire,
 } from '../fx'
@@ -77,17 +78,6 @@ const RIG_AT: V3 = [-1.5, 0.6, 0]
 
 interface PackSpec { key: string; series: number; parallel?: number; r: number; text: string }
 
-function servoModel(parent: THREE.Object3D, at: V3) {
-  const g = add(parent, new THREE.Group(), at)
-  box(g, [3.2, 1.6, 2.2], mat('#2a5bd7', { rough: 0.5 }), [0, 0, 0])
-  box(g, [4.4, 0.25, 2.2], mat('#2a5bd7', { rough: 0.5 }), [0, 0, 0])
-  const shaftAt: V3 = [-0.75, 0, 1.4]
-  add(g, mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.6, 20), mat('#f2f2f2')), shaftAt).rotation.x = Math.PI / 2
-  const horn = add(g, new THREE.Group(), [shaftAt[0], 0, 1.75])
-  box(horn, [0.5, 2.6, 0.2], mat('#f2f2f2'), [0, 0.9, 0])
-  return horn
-}
-
 function robotRig(parent: THREE.Object3D, packs: PackSpec[]) {
   const scene = add(parent, new THREE.Group(), RIG_AT)
   scene.scale.setScalar(RIG_K)
@@ -95,10 +85,13 @@ function robotRig(parent: THREE.Object3D, packs: PackSpec[]) {
   const J: V3 = [TRUNK_X, J_Y, 0]
   for (const p of packs) {
     const g = add(scene, new THREE.Group())
-    const pack = cellPackModel(g, p.series, p.parallel ?? 1, { r: p.r, dx: 2.4 * p.r, dz: 2.4 * p.r })
+    const deep = (p.parallel ?? 1) > 1
+    const pack = cellPackModel(g, p.series, p.parallel ?? 1, { r: p.r, dx: 2.4 * p.r, dz: (deep ? 5.2 : 2.4) * p.r })
     const at: V3 = [-15.6, 0.6, 0]
     pack.group.position.set(...at)
-    const plus: V3 = [pack.plus[0] + at[0], pack.plus[1] + at[1], 0]
+    if (deep) pack.group.rotation.set(0.2, 0.75, 0)
+    const tip = new THREE.Vector3(...pack.plus).applyEuler(pack.group.rotation)
+    const plus: V3 = [tip.x + at[0], tip.y + at[1], 0]
     const out = Math.sign(pack.plus[1]) * 0.9
     const route: V3[] = [plus, [plus[0], plus[1] + out, 0], [TRUNK_X, plus[1] + out, 0], J]
     wire(g, route, 0.16)
@@ -152,7 +145,7 @@ function robotRig(parent: THREE.Object3D, packs: PackSpec[]) {
     const ring = add(scene, mesh(new THREE.TorusGeometry(1, 0.06, 6, 32), m), [SONAR[0] + (i ? 1.53 : -1.53), SONAR[1] + 1.73, 2])
     return { ring, m }
   })
-  const horn = servoModel(scene, SERVO)
+  const horn = sg90Servo(scene, SERVO)
   flat(add(scene, buildL298n(), DRV), 0.3)
   const drvHeat = heatWaves(scene, 2, { count: 3, rise: 1.8 })
   drvHeat.group.position.set(DRV[0], DRV[1] + 2.4, 1.2)

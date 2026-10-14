@@ -496,3 +496,15 @@ export function dcdcModule(parent: THREE.Object3D, at: V3, kind: DcdcKind, k = 0
     },
   }
 }
+
+/** SG90 micro servo seen from above (horn up, +z); returns the horn group to rotate about z. */
+export function sg90Servo(parent: THREE.Object3D, at: V3) {
+  const g = add(parent, new THREE.Group(), at)
+  box(g, [3.2, 1.6, 2.2], mat('#2a5bd7', { rough: 0.5 }), [0, 0, 0])
+  box(g, [4.4, 0.25, 2.2], mat('#2a5bd7', { rough: 0.5 }), [0, 0, 0])
+  const shaftAt: V3 = [-0.75, 0, 1.4]
+  add(g, mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.6, 20), mat('#f2f2f2')), shaftAt).rotation.x = Math.PI / 2
+  const horn = add(g, new THREE.Group(), [shaftAt[0], 0, 1.75])
+  box(horn, [0.5, 2.6, 0.2], mat('#f2f2f2'), [0, 0.9, 0])
+  return horn
+}
