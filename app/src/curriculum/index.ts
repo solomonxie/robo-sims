@@ -1,4 +1,5 @@
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
+import { readingResistorBands, resistivityAndGauge, temperatureEffects } from '../lessons/electricity/resistance'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
@@ -28,6 +29,9 @@ const READY: Record<string, Lesson> = {
   'electricity/voltage/potential-difference': potentialDifference,
   'electricity/voltage/ground-and-reference': groundAndReference,
   'electricity/voltage/measuring-with-a-multimeter': measuringWithMultimeter,
+  'electricity/resistance/resistivity-and-wire-gauge': resistivityAndGauge,
+  'electricity/resistance/temperature-effects': temperatureEffects,
+  'electricity/resistance/reading-resistor-bands': readingResistorBands,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

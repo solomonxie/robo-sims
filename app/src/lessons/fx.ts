@@ -314,3 +314,117 @@ export function probe(parent: THREE.Object3D, tip: V3, dir: V3, color: string): 
   rod(parent, at(1.6), at(4.6), 0.28, mat(color, { rough: 0.5 }), 16)
   return at(4.6)
 }
+
+/** Metal ions on a square grid filling a wire along x; returns `vibrate(t, amplitude)`. */
+export function ionLattice(
+  parent: THREE.Object3D,
+  length: number,
+  radius: number,
+  { spacing = 2, size = 0.55, colors = ['#d08a4e'] }: { spacing?: number; size?: number; colors?: string[] } = {},
+) {
+  const sites: THREE.Vector3[] = []
+  const k = Math.floor((radius - 0.4) / spacing)
+  for (let x = -length / 2 + spacing / 2; x < length / 2; x += spacing) {
+    for (let y = -k; y <= k; y++) {
+      for (let z = -k; z <= k; z++) if (Math.hypot(y, z) * spacing < radius - 0.4) sites.push(new THREE.Vector3(x, y * spacing, z * spacing))
+    }
+  }
+  const ions = new THREE.InstancedMesh(new THREE.SphereGeometry(size, 20, 14), new THREE.MeshStandardMaterial({ metalness: 0.25, roughness: 0.45 }), sites.length)
+  const c = new THREE.Color()
+  sites.forEach((_, i) => ions.setColorAt(i, c.set(colors[i % colors.length])))
+  parent.add(ions)
+  const phase = sites.map(() => [rand(0, 6.3), rand(0, 6.3), rand(0, 6.3)])
+  const m = new THREE.Matrix4()
+  const p = new THREE.Vector3()
+  const vibrate = (t: number, amplitude = 0.07) => {
+    sites.forEach((s, i) => {
+      const [a, b, cc] = phase[i]
+      p.set(s.x + amplitude * Math.sin(t * 9 + a), s.y + amplitude * Math.sin(t * 11 + b), s.z + amplitude * Math.sin(t * 10 + cc))
+      ions.setMatrixAt(i, m.makeTranslation(p))
+    })
+    ions.instanceMatrix.needsUpdate = true
+  }
+  vibrate(0)
+  return { ions, vibrate }
+}
+
+const FLASH_S = 0.4
+
+/** Free electrons in a wire along x: random thermal motion plus a shared drift (+drift moves them −x).
+ *  `scatter` is collisions per second; with `ring`, they flash yellow crossing x = 0. Show fewer with `mesh.count`. */
+export function electronGas(parent: THREE.Object3D, length: number, radius: number, { count = 70, thermal = 5, ring = false } = {}) {
+  const wall = Math.max(0.1, radius - 0.3)
+  const pos = Array.from({ length: count }, () => {
+    const a = rand(0, Math.PI * 2)
+    const r = Math.sqrt(Math.random()) * wall
+    return new THREE.Vector3(rand(-length / 2, length / 2), Math.cos(a) * r, Math.sin(a) * r)
+  })
+  const vel = pos.map(() => randomDir(thermal))
+  const flash = pos.map(() => 0)
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.27, 14, 10), new THREE.MeshBasicMaterial({ color: '#ffffff' }), count)
+  dots.frustumCulled = false
+  parent.add(dots)
+
+  const base = new THREE.Color(ELECTRON)
+  const hit = new THREE.Color(RING)
+  const color = new THREE.Color()
+  const m = new THREE.Matrix4()
+
+  const step = (dt: number, drift: number, scatter = 4) => {
+    for (let i = 0; i < count; i++) {
+      const p = pos[i]
+      const v = vel[i]
+      if (Math.random() < dt * scatter) v.copy(randomDir(thermal))
+      const before = p.x
+      p.x += (v.x - drift) * dt
+      p.y += v.y * dt
+      p.z += v.z * dt
+      if (ring && Math.sign(before) !== Math.sign(p.x) && Math.abs(p.x) < 1) flash[i] = FLASH_S
+      if (p.x < -length / 2) p.x += length
+      if (p.x > length / 2) p.x -= length
+      const r = Math.hypot(p.y, p.z)
+      if (r > wall) {
+        p.y *= wall / r
+        p.z *= wall / r
+        v.y = -v.y
+        v.z = -v.z
+      }
+      flash[i] = Math.max(0, flash[i] - dt)
+      dots.setMatrixAt(i, m.makeTranslation(p))
+      dots.setColorAt(i, color.copy(base).lerp(hit, flash[i] / FLASH_S))
+    }
+    dots.instanceMatrix.needsUpdate = true
+    dots.instanceColor!.needsUpdate = true
+  }
+  step(0, 0)
+  return { mesh: dots, step }
+}
+
+/** Red-hot glow for a material: 0 = off, 1 = bright orange. */
+export function heatGlow(material: THREE.MeshStandardMaterial, f: number) {
+  const t = clamp01(f)
+  material.emissive.set('#b01800').lerp(new THREE.Color('#ff8a1e'), t)
+  material.emissiveIntensity = t * t * 1.6
+}
+
+/** Glass thermometer standing on the origin, bulb at the bottom; `set(0..1)` fills it. */
+export function thermometer(height = 10) {
+  const group = new THREE.Group()
+  const red = glowMat(HIGH_V, 0.6)
+  const glass = new THREE.MeshStandardMaterial({ color: '#e8eef8', transparent: true, opacity: 0.14, roughness: 0.05, depthWrite: false })
+  add(group, mesh(new THREE.SphereGeometry(0.9, 24, 16), red), [0, 0.9, 0])
+  const column = add(group, mesh(new THREE.CylinderGeometry(0.55, 0.55, height, 24, 1, true), glass), [0, 0.9 + height / 2, 0])
+  column.castShadow = false
+  add(group, mesh(new THREE.SphereGeometry(0.55, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass), [0, 0.9 + height, 0]).castShadow = false
+  const fill = add(group, mesh(new THREE.CylinderGeometry(0.3, 0.3, 1, 16), red), [0, 0.9, 0])
+  const tickMat = mat('#8a8f99')
+  for (let i = 1; i < 10; i++) box(group, [i % 5 === 0 ? 0.9 : 0.5, 0.08, 0.08], tickMat, [-0.85, 0.9 + (i / 10) * height, 0])
+  return {
+    group,
+    set(f: number) {
+      const h = Math.max(0.05, clamp01(f) * height)
+      fill.scale.y = h
+      fill.position.y = 0.9 + h / 2
+    },
+  }
+}

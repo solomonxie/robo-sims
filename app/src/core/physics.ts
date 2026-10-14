@@ -4,7 +4,7 @@ export const E_CHARGE = 1.602176634e-19 // C
 export const BOLTZMANN_EV = 8.617333e-5 // eV/K
 export const COPPER_FREE_ELECTRONS = 8.5e28 // per m³
 
-export const RESISTIVITY = { copper: 1.68e-8, nichrome: 1.1e-6 } // Ω·m
+export const RESISTIVITY = { copper: 1.68e-8, aluminium: 2.65e-8, nichrome: 1.1e-6 } // Ω·m
 export type Metal = keyof typeof RESISTIVITY
 
 export const electronsPerSecond = (amps: number) => amps / E_CHARGE
@@ -43,9 +43,26 @@ export const METER_INPUT_OHMS = 10e6 // typical DMM on a volts range
 /** A voltmeter shows red probe minus black (COM). */
 export const meterReading = (redV: number, blackV: number) => redV - blackV
 
+/** Cross-section of a round wire, m². */
+export const wireArea = (diameterM: number) => Math.PI * (diameterM / 2) ** 2
+
 /** R = ρL/A for a round wire. */
-export const wireResistance = (rho: number, lengthM: number, diameterM: number) =>
-  (rho * lengthM) / (Math.PI * (diameterM / 2) ** 2)
+export const wireResistance = (rho: number, lengthM: number, diameterM: number) => (rho * lengthM) / wireArea(diameterM)
+
+/** American Wire Gauge to diameter in metres: AWG 36 is 0.127 mm, 39 gauges span 92×. */
+export const awgDiameter = (gauge: number) => 0.127e-3 * 92 ** ((36 - gauge) / 39)
+
+/** Temperature coefficient α near room temperature, per K. */
+export const TEMP_COEFF = { copper: 0.0039, aluminium: 0.0040, nichrome: 0.0004 }
+
+export const ROOM_C = 25
+
+/** Linear metal law R = R₀(1 + α(T − T₀)), R₀ at `refC`. */
+export const metalResistance = (ohmsAtRef: number, alpha: number, tempC: number, refC = ROOM_C) =>
+  ohmsAtRef * (1 + alpha * (tempC - refC))
+
+/** Fractional change from the reference value, e.g. 0.39 for +39 %. */
+export const relativeChange = (value: number, reference: number) => value / reference - 1
 
 export interface PairResult {
   totalOhms: number

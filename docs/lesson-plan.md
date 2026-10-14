@@ -11,6 +11,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Reuse `archive/lesson-drafts/` where a draft exists; shared visuals go to `lessons/fx.ts`.
 - Framing: in the preview the legend covers the top ~30% (right side) and readout chips the bottom ~25%, so the scene must read in the middle band; wide (landscape) layouts fit better than tall ones.
 - Visual vocabulary: potential is `potentialColor` (blue 0 V → red high; `Flow.colorBy` tints charges by position); numbers in the scene use `segmentDisplay` (no text rendering in 3D).
+- Check control extremes too: `cd app && node tools/preview/shoot.mjs <id> /tmp/x.png params='{"key":value}'`.
+- Metal interiors: `ionLattice` + `electronGas` in `fx.ts` (sized by length/radius; drift, scatter rate, `mesh.count` for carrier density). Heat: `heatGlow`, `thermometer`.
 - Done = `make test typecheck lint` green + `make preview LESSON=<id>` renders sensibly (checked by viewing the PNG) + one local commit. No device build, no push.
 
 ## Pacing
@@ -27,7 +29,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 ### Wave 1 — Electricity
 - [x] Current
 - [x] Voltage
-- [ ] Resistance
+- [x] Resistance
 - [ ] Ohm's law
 - [ ] Power & energy
 - [ ] Series & parallel

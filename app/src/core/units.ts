@@ -24,6 +24,8 @@ export function sci(value: number, digits = 3): string {
   const exp = Math.floor(Math.log10(Math.abs(value)))
   if (exp >= -2 && exp <= 3) return `${+value.toPrecision(digits)}`
   const mant = +(value / 10 ** exp).toPrecision(digits)
-  const sup = String(exp).replace(/[-0-9]/g, (c) => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)])
-  return `${mant} × 10${sup}`
+  return `${mant} × 10${superscript(exp)}`
 }
+
+/** -12 → "⁻¹²". */
+export const superscript = (n: number) => String(n).replace(/[-0-9]/g, (c) => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)])

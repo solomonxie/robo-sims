@@ -18,6 +18,12 @@ import {
   rcStep,
   resistorPair,
   RESISTIVITY,
+  ROOM_C,
+  TEMP_COEFF,
+  awgDiameter,
+  metalResistance,
+  relativeChange,
+  wireArea,
   wireResistance,
 } from './physics'
 import { sci, si } from './units'
@@ -64,6 +70,21 @@ describe('electricity', () => {
   it('1 m of 1 mm² copper is about 17 mΩ', () => {
     const d = 2 * Math.sqrt(1e-6 / Math.PI)
     expect(wireResistance(RESISTIVITY.copper, 1, d)).toBeCloseTo(0.0168, 4)
+  })
+  it('AWG 22 is 0.64 mm; every 6 gauges halves the diameter, so R quadruples', () => {
+    expect(awgDiameter(22) * 1000).toBeCloseTo(0.644, 3)
+    expect(awgDiameter(36) * 1000).toBeCloseTo(0.127, 6)
+    expect(awgDiameter(16) / awgDiameter(22)).toBeCloseTo(2, 1)
+    const r = (g: number) => wireResistance(RESISTIVITY.copper, 1, awgDiameter(g))
+    expect(r(22)).toBeCloseTo(0.0516, 3)
+    expect(r(28) / r(22)).toBeCloseTo(4, 0)
+    expect(wireArea(2e-3)).toBeCloseTo(Math.PI * 1e-6, 12)
+  })
+  it('copper gains ~39 % resistance per 100 °C; nichrome barely moves', () => {
+    expect(metalResistance(100, TEMP_COEFF.copper, ROOM_C)).toBe(100)
+    expect(metalResistance(100, TEMP_COEFF.copper, ROOM_C + 100)).toBeCloseTo(139)
+    expect(relativeChange(metalResistance(100, TEMP_COEFF.nichrome, ROOM_C + 100), 100)).toBeCloseTo(0.04)
+    expect(metalResistance(100, TEMP_COEFF.copper, ROOM_C - 50)).toBeLessThan(100)
   })
   it('series adds, parallel splits current toward the smaller resistor', () => {
     expect(resistorPair(100, 200, 9, 'series').totalOhms).toBe(300)
