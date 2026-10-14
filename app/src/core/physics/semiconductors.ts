@@ -239,6 +239,7 @@ export const HOLE_MOBILITY_RATIO = SEMICONDUCTORS.silicon.mobilityN / SEMICONDUC
 export const MOSFETS = {
   '2N7000': { vthV: 2.1, k: 0.07, n: 1.5, lambda: 0.02 },
   IRLZ44N: { vthV: 1.5, k: 13, n: 1.5, lambda: 0.01 },
+  IRFZ44N: { vthV: 3, k: 8.2, n: 1.5, lambda: 0.01 },
 } satisfies Record<string, Mosfet>
 
 export type MosfetRegion = 'cutoff' | 'triode' | 'saturation'
@@ -427,3 +428,137 @@ export function bjtSwitch({ vin, rb, vcc, load }: { vin: number; rb: number; vcc
 
 /** Largest base resistor that still saturates `ic`: Rb = (Vin − Vbe) / (k·Ic/β), `k`× the bare minimum base current. */
 export const baseResistorFor = (vin: number, ic: number, m: Bjt, k = 3, vbe = 0.7) => ((vin - vbe) * m.beta) / (k * ic)
+
+export type FetName = keyof typeof MOSFETS
+
+export interface FetPart {
+  pkg: 'TO-92' | 'TO-220'
+  /** Datasheet limits: drain–source volts, continuous drain amps. */
+  maxV: number
+  maxA: number
+  /** Junction to air with no heatsink, °C/W. */
+  rthJA: number
+  /** Gate–source and effective gate–drain capacitance (Qgd / Vds from the datasheet gate charge), F. */
+  cgs: number
+  cgd: number
+}
+
+export const FET_PARTS: Record<FetName, FetPart> = {
+  '2N7000': { pkg: 'TO-92', maxV: 60, maxA: 0.2, rthJA: 312, cgs: 15e-12, cgd: 5e-12 },
+  IRLZ44N: { pkg: 'TO-220', maxV: 55, maxA: 47, rthJA: 62, cgs: 1.6e-9, cgd: 0.57e-9 },
+  IRFZ44N: { pkg: 'TO-220', maxV: 55, maxA: 49, rthJA: 62, cgs: 1.35e-9, cgd: 0.52e-9 },
+}
+
+export const FET_TJ_MAX = 150
+
+/** Junction temperature with no heatsink: ambient + P·RθJA. */
+export const junctionTemp = (watts: number, part: FetPart, ambient = 25) => ambient + watts * part.rthJA
+
+/** NMOS low-side switch: source at 0 V, gate at `vgs`, a `load` (amps at the volts across it, increasing) from `vdd` to the
+ *  drain. Bisection on Vds. */
+export function fetSwitch({ vgs, vdd, load }: { vgs: number; vdd: number; load: (volts: number) => number }, m: Mosfet) {
+  let lo = 0
+  let hi = vdd
+  for (let k = 0; k < 60; k++) {
+    const v = (lo + hi) / 2
+    if (mosfetDrain(vgs, v, m).amps < load(vdd - v)) lo = v
+    else hi = v
+  }
+  const vds = (lo + hi) / 2
+  const { amps, region } = mosfetDrain(vgs, vds, m)
+  return { vds, amps, region, watts: amps * vds }
+}
+
+/** Gate voltage where `amps` flows with the gate tied to the drain: how datasheets quote Vgs(th). */
+export function thresholdAt(amps: number, m: Mosfet) {
+  let lo = 0
+  let hi = 20
+  for (let k = 0; k < 60; k++) {
+    const v = (lo + hi) / 2
+    if (mosfetDrain(v, v, m).amps < amps) lo = v
+    else hi = v
+  }
+  return (lo + hi) / 2
+}
+
+export interface GateDrive {
+  /** Pin high level (V) and series gate resistance (Ω). */
+  vdrive: number
+  rg: number
+  vdd: number
+  load: (volts: number) => number
+  /** PWM frequency at 50 % duty. */
+  hz: number
+}
+
+/** One PWM period from fully off: the pin charges the gate through Rg, Cgs plus Cgd, which swings with Vds and stalls Vgs on
+ *  the Miller plateau. Integrates gate charge Q(Vgs) = Cgs·Vgs + Cgd·(Vgs − Vds) in adaptive steps; returns `samples`
+ *  points of Vgs, Vds and Id, edge times (Vds 90 % ↔ 10 %; NaN if never reached) and the energy burnt while switching and
+ *  while settled. */
+export function gateDrivePeriod({ vdrive, rg, vdd, load, hz }: GateDrive, m: Mosfet, part: FetPart, samples = 200) {
+  const N = 400
+  const vg = Array.from({ length: N + 1 }, (_, i) => (vdrive * i) / N)
+  const sw = vg.map((v) => fetSwitch({ vgs: v, vdd, load }, m))
+  const qs = vg.map((v, i) => part.cgs * v + part.cgd * (v - sw[i].vds))
+  const at = (q: number) => {
+    let lo = 0
+    let hi = N
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2)
+      if (qs[mid] <= q) lo = mid
+      else hi = mid
+    }
+    const f = Math.min(1, Math.max(0, (q - qs[lo]) / (qs[hi] - qs[lo])))
+    const mix = (a: number, b: number) => a + (b - a) * f
+    return { vgs: mix(vg[lo], vg[hi]), vds: mix(sw[lo].vds, sw[hi].vds), amps: mix(sw[lo].amps, sw[hi].amps), ceff: (qs[hi] - qs[lo]) / (vg[hi] - vg[lo]) }
+  }
+  const period = 1 / hz
+  const half = period / 2
+  const out = { t: [] as number[], vgs: [] as number[], vds: [] as number[], amps: [] as number[], onEdge: NaN, offEdge: NaN, switchJ: 0, settledJ: 0 }
+  let q = qs[0]
+  let t = 0
+  let s = at(q)
+  let cross90 = NaN
+  let cross10 = NaN
+  for (let k = 0; k < samples; k++) {
+    const tk = (k / (samples - 1)) * period
+    while (t < tk) {
+      const high = t < half
+      const drv = high ? vdrive : 0
+      const end = Math.min(tk, high ? half : period)
+      const p = s.vds * s.amps
+      if (Math.abs(drv - s.vgs) < 1e-5 * vdrive) {
+        out.settledJ += p * (end - t)
+        t = end
+        continue
+      }
+      const h = Math.min(rg * s.ceff * Math.min(0.05, 0.01 / Math.abs(drv - s.vgs)), end - t)
+      q = Math.min(qs[N], Math.max(qs[0], q + ((drv - s.vgs) / rg) * h))
+      t += h
+      const next = at(q)
+      out.switchJ += ((p + next.vds * next.amps) / 2) * h
+      if (high && s.vds > 0.9 * vdd && next.vds <= 0.9 * vdd) cross90 = t
+      if (high && s.vds > 0.1 * vdd && next.vds <= 0.1 * vdd) out.onEdge = t - cross90
+      if (!high && s.vds < 0.1 * vdd && next.vds >= 0.1 * vdd) cross10 = t
+      if (!high && s.vds < 0.9 * vdd && next.vds >= 0.9 * vdd) out.offEdge = t - cross10
+      s = next
+    }
+    out.t.push(tk)
+    out.vgs.push(s.vgs)
+    out.vds.push(s.vds)
+    out.amps.push(s.amps)
+  }
+  return out
+}
+
+/** Gate voltage of the Miller plateau: where Vds is halfway down for this load. */
+export function millerPlateau(vdd: number, load: (volts: number) => number, m: Mosfet) {
+  let lo = 0
+  let hi = 20
+  for (let k = 0; k < 50; k++) {
+    const v = (lo + hi) / 2
+    if (fetSwitch({ vgs: v, vdd, load }, m).vds > vdd / 2) lo = v
+    else hi = v
+  }
+  return (lo + hi) / 2
+}

@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { Grade, resistorBands } from '../core/resistorColors'
-import { BLACK_PLASTIC, add, box, cylinder, lathe, lead, mat, mesh, rod, STEEL } from './kit'
+import { BLACK_PLASTIC, add, box, cylinder, lathe, lead, mat, mesh, rod, STEEL, TIN } from './kit'
 
 const LEAD_R = 0.11
 const INSERT = -1.5 // how deep leads go into the board
@@ -153,6 +153,38 @@ export function buildTo92(): THREE.Group {
   add(g, mesh(geo, body), [0, base, 0])
   box(g, [1.1, 0.5, 0.02], mat('#5a5d66', { rough: 0.6 }), [0, base + h * 0.62, flat + 0.06])
   ;[-1, 0, 1].forEach((x) => lead(g, [[x * 0.5, base, 0], [x * 0.5, base - 0.4, 0], [x, base - 0.9, 0], [x, INSERT, 0]], LEAD_R))
+  g.userData.body = body
+  return g
+}
+
+/** TO-220: body [width, height, thickness], metal tab [thickness, height above the body], mounting hole radius and its
+ *  centre below the tab top, and the body bottom above the board. */
+export const TO220 = { w: 3.94, h: 3.54, t: 1.77, tab: 0.5, tabUp: 2.5, hole: 0.74, holeDown: 1.1, base: 1.6 }
+
+/** TO-220 power package standing upright, label face +z, metal tab (= the middle leg) behind; legs at x = −1, 0, 1
+ *  (G D S on a MOSFET). `legs` is the lead length below the body (default: into the board). */
+export function buildTo220({ legs = TO220.base - INSERT } = {}): THREE.Group {
+  const g = new THREE.Group()
+  const { w, h, t, tab, tabUp, hole, holeDown, base } = TO220
+  const plate = new THREE.Shape()
+  plate.moveTo(-w / 2, 0)
+  plate.lineTo(w / 2, 0)
+  plate.lineTo(w / 2, h + tabUp)
+  plate.lineTo(-w / 2, h + tabUp)
+  plate.closePath()
+  const bore = new THREE.Path()
+  bore.absarc(0, h + tabUp - holeDown, hole, 0, Math.PI * 2, true)
+  plate.holes.push(bore)
+  const tabGeo = new THREE.ExtrudeGeometry(plate, { depth: tab, bevelEnabled: false, curveSegments: 24 })
+  add(g, mesh(tabGeo, mat('#c9ccd2', { metal: 0.45, rough: 0.3 })), [0, base, -t / 2])
+  const body = mat('#2a2b30', { rough: 0.45 }, true)
+  box(g, [w, h, t - tab], body, [0, base + h / 2, tab / 2])
+  box(g, [w * 0.62, h * 0.3, 0.02], mat('#5a5d66', { rough: 0.6 }), [0, base + h * 0.6, t / 2 + 0.01])
+  const legMat = TIN()
+  ;[-1, 0, 1].forEach((x) => {
+    box(g, [0.5, 0.5, 0.2], legMat, [x, base - 0.25, -0.1])
+    lead(g, [[x, base - 0.4, -0.1], [x, base - legs, -0.1]], LEAD_R, legMat)
+  })
   g.userData.body = body
   return g
 }

@@ -43,6 +43,12 @@ import {
   bjtCollector,
   bjtSwitch,
   ledStringAmps,
+  FET_PARTS,
+  fetSwitch,
+  gateDrivePeriod,
+  junctionTemp,
+  millerPlateau,
+  thresholdAt,
 } from '.'
 
 describe('semiconductors', () => {
@@ -318,5 +324,61 @@ describe('BJT', () => {
     const r = bjtSwitch({ vin: 3.3, rb: 820, vcc: 5, load: resistor(5 / 0.15) }, q)
     expect(r.region).toBe('saturation')
     expect(r.vce).toBeLessThan(0.3)
+  })
+})
+
+describe('MOSFET switch', () => {
+  const lamp = (v: number) => v / 6
+  const on = (vgs: number, name: keyof typeof MOSFETS) => fetSwitch({ vgs, vdd: 12, load: lamp }, MOSFETS[name])
+  it('datasheet Vgs(th): only ~250 µA flows there, with the gate tied to the drain', () => {
+    expect(thresholdAt(250e-6, MOSFETS.IRLZ44N)).toBeGreaterThan(1)
+    expect(thresholdAt(250e-6, MOSFETS.IRLZ44N)).toBeLessThan(2)
+    expect(thresholdAt(1e-3, MOSFETS['2N7000'])).toBeCloseTo(2.26, 1)
+    expect(mosfetDrain(thresholdAt(1e-3, MOSFETS['2N7000']), 2, MOSFETS['2N7000']).amps).toBeCloseTo(1e-3, 4)
+  })
+  it('low side: the load sees Vdd − Vds, the FET burns Vds × Id', () => {
+    const r = on(5, 'IRLZ44N')
+    expect(r.region).toBe('triode')
+    expect(r.amps).toBeCloseTo((12 - r.vds) / 6, 9)
+    expect(r.vds / r.amps).toBeCloseTo(0.022, 2)
+    expect(r.watts).toBeCloseTo(r.amps ** 2 * (r.vds / r.amps), 9)
+    expect(on(0, 'IRLZ44N').amps).toBeLessThan(1e-9)
+    expect(on(0, 'IRLZ44N').vds).toBeCloseTo(12, 6)
+  })
+  it('logic level: an IRFZ44N barely conducts at 3.3 V, the IRLZ44N is fully on; a 2N7000 cannot pass 2 A', () => {
+    expect(on(3.3, 'IRFZ44N').region).toBe('saturation')
+    expect(on(3.3, 'IRFZ44N').watts).toBeGreaterThan(2)
+    expect(on(3.3, 'IRLZ44N').vds).toBeLessThan(0.1)
+    expect(on(10, 'IRFZ44N').vds).toBeLessThan(0.05)
+    expect(on(5, '2N7000').amps).toBeLessThan(0.4)
+  })
+  it('junction temperature with no heatsink', () => {
+    expect(junctionTemp(1, FET_PARTS.IRLZ44N)).toBe(87)
+    expect(junctionTemp(0.4, FET_PARTS['2N7000'])).toBeCloseTo(149.8, 1)
+  })
+  it('gate drive: the Miller plateau sets the edge, Rg × 10 makes it 10× slower', () => {
+    const m = MOSFETS.IRLZ44N
+    const part = FET_PARTS.IRLZ44N
+    const plateau = millerPlateau(12, lamp, m)
+    expect(plateau).toBeGreaterThan(1.6)
+    expect(plateau).toBeLessThan(2.2)
+    const drive = { vdrive: 5, rg: 100, vdd: 12, load: lamp, hz: 1000 }
+    const fast = gateDrivePeriod(drive, m, part)
+    const est = (100 * part.cgd * 0.8 * 12) / (5 - plateau)
+    expect(fast.onEdge).toBeGreaterThan(0.7 * est)
+    expect(fast.onEdge).toBeLessThan(1.3 * est)
+    expect(fast.offEdge).toBeGreaterThan(fast.onEdge)
+    const slow = gateDrivePeriod({ ...drive, rg: 1000 }, m, part)
+    expect(slow.onEdge / fast.onEdge).toBeCloseTo(10, 0)
+    expect(slow.switchJ / fast.switchJ).toBeGreaterThan(5)
+    const mid = fast.vgs[Math.round(fast.t.length * 0.25)]
+    expect(mid).toBeCloseTo(5, 3)
+    expect(fast.vds[fast.t.length - 1]).toBeCloseTo(12, 3)
+  })
+  it('too slow for the PWM period: the FET never fully turns on', () => {
+    const r = gateDrivePeriod({ vdrive: 5, rg: 10e3, vdd: 12, load: lamp, hz: 20e3 }, MOSFETS.IRLZ44N, FET_PARTS.IRLZ44N)
+    expect(r.onEdge).toBeNaN()
+    expect(Math.min(...r.vds)).toBeGreaterThan(1)
+    expect(r.switchJ * 20e3).toBeGreaterThan(2)
   })
 })

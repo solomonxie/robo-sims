@@ -7,6 +7,7 @@ export type PartType =
   | 'led'
   | 'rgb-led'
   | 'to92'
+  | 'to220'
   | 'ceramic-cap'
   | 'electrolytic-cap'
   | 'jumper'
@@ -131,6 +132,32 @@ export const CATALOG: CatalogEntry[] = [
       { id: 'c', label: 'C', x: 1, z: 0 },
     ],
     specs: { hfe: 150, maxCurrentMA: 600, maxPowerW: 0.625 },
+  },
+  {
+    name: 'mosfet-2n7000',
+    type: 'to92',
+    title: '2N7000 N-channel MOSFET',
+    description: 'TO-92, flat face front: S G D. Small-signal: 200 mA, ~5 Ω on at 5 V gate',
+    category: 'Passives',
+    pins: [
+      { id: 's', label: 'S', x: -1, z: 0 },
+      { id: 'g', label: 'G', x: 0, z: 0 },
+      { id: 'd', label: 'D', x: 1, z: 0 },
+    ],
+    specs: { vthV: 2.1, maxCurrentMA: 200, maxPowerW: 0.4 },
+  },
+  {
+    name: 'mosfet-irlz44n',
+    type: 'to220',
+    title: 'IRLZ44N logic-level MOSFET',
+    description: 'TO-220: G D S, tab = drain. 22 mΩ at a 5 V gate, 47 A',
+    category: 'Passives',
+    pins: [
+      { id: 'g', label: 'G', x: -1, z: 0 },
+      { id: 'd', label: 'D', x: 0, z: 0 },
+      { id: 's', label: 'S', x: 1, z: 0 },
+    ],
+    specs: { vthV: 1.5, rdsOnMOhm: 22, maxCurrentA: 47 },
   },
   {
     name: 'cap-100nf',

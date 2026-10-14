@@ -3,6 +3,7 @@ import { flybackDiode, forwardDrop, reverseBlocking, zenerClamp } from '../lesso
 import { energyInACoil, flybackSpike, rlTimeConstant } from '../lessons/components/inductor'
 import { currentLimitingResistor, forwardVoltageAndColour, ledMatrix, rgbLed } from '../lessons/components/led'
 import { baseResistor, gainAndSaturation, npnAsASwitch } from '../lessons/components/transistor-bjt'
+import { gateDrive, gateThreshold, logicLevelMosfets, lowSideSwitching } from '../lessons/components/mosfet'
 import { powerRating, pullUpAndPullDown, valueAndTolerance } from '../lessons/components/resistor'
 import { frequencyAndPeriod, mainsVsBattery, sineAndRms } from '../lessons/electricity/ac-dc'
 import { ampsAndCoulomb, conventionalVsElectron, whatFlows } from '../lessons/electricity/current'
@@ -100,6 +101,10 @@ const READY: Record<string, Lesson> = {
   'components/transistor-bjt/npn-as-a-switch': npnAsASwitch,
   'components/transistor-bjt/gain-and-saturation': gainAndSaturation,
   'components/transistor-bjt/base-resistor': baseResistor,
+  'components/mosfet/gate-threshold': gateThreshold,
+  'components/mosfet/low-side-switching': lowSideSwitching,
+  'components/mosfet/logic-level-mosfets': logicLevelMosfets,
+  'components/mosfet/gate-drive': gateDrive,
   'semiconductors/silicon-doping/band-gap': bandGap,
   'semiconductors/silicon-doping/n-type-and-p-type': nAndPType,
   'semiconductors/silicon-doping/holes-and-electrons': holesAndElectrons,

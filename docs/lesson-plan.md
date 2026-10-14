@@ -6,7 +6,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 - One agent = one **topic** (all its entries, usually 3–4 lessons) in `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`).
 - Lesson id = entry id without the category, `/` → `-`; `curriculum.test.ts` enforces it.
-- Numbers shown come from tested pure fns in `core/` (`core/physics/<domain>.ts` + test; circuits: `Element[]` → `core/nodal.ts` `solveNodal`, `relaxSweep` to animate, `theveninAt`; diodes/LEDs: `DIODES`/`LEDS` + `diodeAmps`/`diodeNode` in `semiconductors`; fields: `core/fields.ts` tracers). Formatters (`volts`, `ohms`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
+- Numbers shown come from tested pure fns in `core/` (`core/physics/<domain>.ts` + test; circuits: `Element[]` → `core/nodal.ts` `solveNodal`, `relaxSweep` to animate, `theveninAt`; diodes/LEDs: `DIODES`/`LEDS` + `diodeAmps`/`diodeNode` (`ledStringAmps`: LED + resistor as a load) in `semiconductors`; fields: `core/fields.ts` tracers). Formatters (`volts`, `ohms`, `fitDigits`…) in `core/units.ts`; `e12`, `resistorSlider` in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/` where a draft exists. Shared visuals go in `lessons/fx/` (import `'../fx'`); grep it before writing a helper.
 - Framing: legend covers the top ~30 % (right), readout chips the bottom ~25 %; keep the scene in the middle band, wide over tall.
 - Visual rules: potential = `potentialColor` (blue 0 V → red); numbers in 3D = `segmentDisplay`/`pulseLabel` (no 3D text); charges ride at `LANE` in front of wires; flow speed ∝ that wire's current; ease toward targets with `ease(dt)`, morph parts with `presence`, not timelines.
@@ -26,8 +26,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `displays` — `segmentDisplay`, `pulseLabel`, `multimeter` (`ohms` dial)/`probe`, `scope` (`trace.scroll`/`draw`, `level`), `ivScreen` + `ticks`, `phasor`.
 - `plots` — `formulaTriangle`, `voltScale`, `areaPlot`, `voltStack`, `inOutBars`.
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `smoke`.
-- `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep` in `core/physics`.
-- `bjt` — `transistorPart` (TO-92 on its side, legs C/B/E to the left, die glow + heat), `bjtDie` (NPN slab: electrons E → C, holes from B); model `bjtSwitch`/`bjtCollector`/`baseResistorFor` (`BJTS`), `motorAmps`/`motorRpm` (`TT_MOTOR`) in `core/physics`.
+- `mosfet` — `mosfetDie` (n/p cross-section: wells, gate on oxide, depletion ions, channel ∝ `channelOverdrive`, carriers, heat), `fetPart` (real 2N7000 TO-92 / IRLZ44N TO-220, pins d/g/s); square-law model `mosfetDrain`/`cmosInverter`/`inverterStep`, parts `fetSwitch`/`thresholdAt`/`junctionTemp`/`gateDrivePeriod` (`MOSFETS`, `FET_PARTS`) in `core/physics`.
+- `bjt` — `transistorPart` (TO-92 on its side, legs C/B/E to the left, die glow + heat; `litEpoxy`, `partLetter`), `bjtDie` (NPN slab: electrons E → C, holes from B); model `bjtSwitch`/`bjtCollector`/`baseResistorFor` (`BJTS`), `motorAmps`/`motorRpm` (`TT_MOTOR`) in `core/physics`.
 - `story` — `storySlider` (Step 0 loops all, k holds step k), `storyClock` (per-step seconds, `done(k)`) for stepped anim lessons.
 - `fields` — `fieldLines`, `arrowGrid`, `chargeBall`, `compass`, `coil`, `inductorCoil` (cored, glows), `coilLines` (cached coil field lines + depth), `turnAboutX`/`dimField`, `barMagnet`.
 
@@ -69,7 +69,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - [x] Resistor
 - [x] Inductor
 - [x] Transistor (BJT)
-- [ ] MOSFET
+- [x] MOSFET
 - [ ] Relay
 - [ ] Switches & buttons
 - [ ] Potentiometer

@@ -9,17 +9,23 @@ import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
 import { clamp01, rand } from './util'
 
-const letter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = '#c9ced8') => {
+export const partLetter = (parent: THREE.Object3D, text: string, at: V3, height: number, color = '#c9ced8') => {
   const d = segmentDisplay(1, height, color, true)
   d.set(text)
   add(parent, d.group, at)
   return d
 }
 
+/** Lesson parts face the key light edge-on, so near-black epoxy reads as a hole; lift it to a glossy dark grey. */
+export function litEpoxy(body: THREE.MeshStandardMaterial) {
+  body.color.set('#4a4d57')
+  body.roughness = 0.3
+}
+
 /** The TO-92 (`buildTo92`) at `scale`, laid on its side: legs pointing −x, ending at C = `at` + (0, scale), B = `at`,
- *  E = `at` − (0, scale), so the base faces its drive and C/E run up/down; lettered right of the body. `set(f, heat)`:
+ *  E = `at` − (0, scale), so the base faces its drive and C/E run up/down; lettered (`letters`, top first) right of the body. `set(f, heat)`:
  *  f = collector current / full scale glows the die, heat 0..1 reddens the epoxy. */
-export function transistorPart(parent: THREE.Object3D, at: V3, { scale = 1.6 } = {}) {
+export function transistorPart(parent: THREE.Object3D, at: V3, { scale = 1.6, letters = ['C', 'B', 'E'] } = {}) {
   const group = add(parent, new THREE.Group(), [at[0] + 1.5 * scale, at[1], at[2]])
   group.rotation.z = -Math.PI / 2
   const flip = add(group, new THREE.Group())
@@ -27,12 +33,11 @@ export function transistorPart(parent: THREE.Object3D, at: V3, { scale = 1.6 } =
   const part = add(flip, buildTo92())
   part.scale.setScalar(scale)
   const body = part.userData.body as THREE.MeshStandardMaterial
-  body.color.set('#4a4d57')
-  body.roughness = 0.3
+  litEpoxy(body)
   const dieX = at[0] + (1.5 + TO92.base + TO92.h / 2) * scale
   const halo = glowHalo(flip, [0, (TO92.base + TO92.h / 2) * scale, -(TO92.r + 0.3) * scale], 0.8 * scale)
   const edge = at[0] + (1.5 + TO92.base + TO92.h + 0.45) * scale
-  ;(['C', 'B', 'E'] as const).forEach((t, i) => letter(parent, t, [edge, at[1] + (1 - i) * scale, at[2]], 0.5 * scale))
+  ;letters.forEach((t, i) => partLetter(parent, t, [edge, at[1] + (1 - i) * scale, at[2]], 0.5 * scale))
   return {
     group,
     pins: { c: [at[0], at[1] + scale, at[2]] as V3, b: at, e: [at[0], at[1] - scale, at[2]] as V3 },
@@ -78,12 +83,12 @@ export function bjtDie(parent: THREE.Object3D, at: V3, { width = 12, height = 3.
   box(group, [bW * 0.9, 0.5, depth * 0.8], metal, [xb + bW / 2, height / 2 + 0.25, 0])
   const front = depth / 2 + 0.06
   const lh = height * 0.22
-  letter(group, 'n', [x0 + eW / 2, -height / 2 + lh * 0.9, front], lh)
-  letter(group, 'P', [xb + bW / 2, -height / 2 + lh * 0.9, front], lh)
-  letter(group, 'n', [xc + cW / 2, -height / 2 + lh * 0.9, front], lh)
-  letter(group, 'E', [x0 - 1.2, 0, 0], 0.9)
-  letter(group, 'C', [width / 2 + 1.2, 0, 0], 0.9)
-  letter(group, 'B', [xb + bW / 2 + 1, height / 2 + 0.9, 0], 0.9)
+  partLetter(group, 'n', [x0 + eW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'P', [xb + bW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'n', [xc + cW / 2, -height / 2 + lh * 0.9, front], lh)
+  partLetter(group, 'E', [x0 - 1.2, 0, 0], 0.9)
+  partLetter(group, 'C', [width / 2 + 1.2, 0, 0], 0.9)
+  partLetter(group, 'B', [xb + bW / 2 + 1, height / 2 + 0.9, 0], 0.9)
 
   const electrons = new THREE.InstancedMesh(new THREE.SphereGeometry(0.2, 10, 8), glowMat(ELECTRON, 1.3), MAX_E)
   const holes = new THREE.InstancedMesh(new THREE.TorusGeometry(0.2, 0.07, 8, 16), glowMat(HOLE, 1.1), MAX_H)

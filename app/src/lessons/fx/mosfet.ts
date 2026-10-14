@@ -1,7 +1,10 @@
-// A MOSFET cut open: substrate, source/drain wells, gate on its oxide, carriers and the channel they form.
+// MOSFETs: the real part (TO-92 or TO-220) in a circuit, and one cut open: substrate, wells, gate on its oxide, carriers.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, mat } from '../../models/kit'
-import { ELECTRON, HIGH_V, HOLE, LOW_V, glowMat, potentialColor } from './colors'
+import { V3, add, box, cylinder, mat, STEEL } from '../../models/kit'
+import { TO220, buildTo220 } from '../../models/passives'
+import { litEpoxy, partLetter, transistorPart } from './bjt'
+import { glowHalo } from './circuit'
+import { CONVENTIONAL, ELECTRON, HIGH_V, HOLE, LOW_V, glowMat, potentialColor } from './colors'
 import { ACCEPTOR, DONOR } from './crystal'
 import { segmentDisplay } from './displays'
 import { heatGlow } from './heat'
@@ -172,6 +175,44 @@ export function mosfetDie(parent: THREE.Object3D, at: V3, { kind = 'n' as 'n' | 
       })
       for (const w of wells) w.crowd.walk(dt, (q, v) => inside(q, v, w.x - wellW / 2 + 0.4, w.x + wellW / 2 - 0.4, -WELL_D + 0.35, -0.3, dt))
       heatGlow(substrate, heat)
+    },
+  }
+}
+
+const TO220_LEGS = 1
+
+/** A discrete n-MOSFET with its gate lead ending at `at`, gate wire coming from −x. 'TO-92' (2N7000) lies on its side like
+ *  `transistorPart`: D at `at` + (0, scale), S at `at` − (0, scale). 'TO-220' stands upright at 0.75 × `scale`: legs G D S
+ *  pointing down, S two pitches right of G; the drain is taken off the tab's bolt hole, straight above the middle leg.
+ *  `set(f, heat)`: f = drain current / full scale glows the die, heat 0..1 reddens the epoxy. */
+export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220', { scale = 1.6 } = {}) {
+  if (pkg === 'TO-92') {
+    const t = transistorPart(parent, at, { scale, letters: ['d', 'G', 'S'] })
+    return { group: t.group, pins: { d: t.pins.c, g: t.pins.b, s: t.pins.e }, die: t.die, set: t.set }
+  }
+  const k = 0.75 * scale
+  const { h, t, tabUp, holeDown } = TO220
+  const group = add(parent, new THREE.Group(), [at[0] + k, at[1] + (TO220_LEGS - TO220.base) * k, at[2]])
+  const part = add(group, buildTo220({ legs: TO220_LEGS }))
+  part.scale.setScalar(k)
+  const body = part.userData.body as THREE.MeshStandardMaterial
+  litEpoxy(body)
+  const y0 = at[1] + TO220_LEGS * k
+  const d: V3 = [at[0] + k, y0 + (h + tabUp - holeDown) * k, at[2]]
+  cylinder(parent, 0.5 * k, 0.4 * k, STEEL(), [d[0], d[1], at[2] + (TO220.tab - t / 2 + 0.2) * k], 'z', 16)
+  const die: V3 = [at[0] + k, y0 + 0.5 * h * k, at[2]]
+  const halo = glowHalo(parent, [die[0], die[1], at[2] + t * k], 1.1 * k)
+  const tag = 0.4 * scale
+  partLetter(parent, 'G', [at[0] - 0.6 * k, at[1] - 0.9 * k, at[2]], tag)
+  partLetter(parent, 'S', [at[0] + 2.8 * k, at[1] + 0.6 * k, at[2]], tag)
+  partLetter(parent, 'd', [d[0] + 1.6 * k, d[1], at[2]], tag)
+  return {
+    group,
+    pins: { d, g: at, s: [at[0] + 2 * k, at[1], at[2]] as V3 },
+    die,
+    set(f: number, heat = 0) {
+      halo.set(0.45 * Math.sqrt(clamp01(f)), CONVENTIONAL)
+      heatGlow(body, heat)
     },
   }
 }
