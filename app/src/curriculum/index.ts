@@ -68,6 +68,7 @@ import { arbitration, differentialSignalling } from '../lessons/microcontrollers
 import { bleGatt, espNow, httpAndWebSocket, stationAndAp } from '../lessons/microcontrollers/wifi-bluetooth'
 import { batteryBudget, deepSleep, wakeSources } from '../lessons/microcontrollers/power-modes'
 import { flashLayout, littleFs, stackAndHeap } from '../lessons/microcontrollers/memory-storage'
+import { mutexes, queues, tasksAndPriorities } from '../lessons/microcontrollers/rtos-basics'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -301,6 +302,9 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/memory-storage/flash-layout': flashLayout,
   'microcontrollers/memory-storage/stack-and-heap': stackAndHeap,
   'microcontrollers/memory-storage/littlefs': littleFs,
+  'microcontrollers/rtos-basics/tasks-and-priorities': tasksAndPriorities,
+  'microcontrollers/rtos-basics/queues': queues,
+  'microcontrollers/rtos-basics/mutexes': mutexes,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
