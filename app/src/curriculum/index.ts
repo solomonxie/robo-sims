@@ -46,6 +46,7 @@ import { addUpTheLoads, peakVsAverage, runtimeEstimate } from '../lessons/power/
 import { connectorRatings, starGround, voltageDrop } from '../lessons/power/wiring-gauge'
 import { bulkCapacitors, motorNoise, separateRails } from '../lessons/power/noise-decoupling'
 import { currentSpikes, diagnosingResets } from '../lessons/power/brownouts'
+import { bodePlot, highPass, rcLowPass } from '../lessons/signals/filters'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -217,6 +218,9 @@ const READY: Record<string, Lesson> = {
   'power/noise-decoupling/separate-rails': separateRails,
   'power/brownouts/current-spikes': currentSpikes,
   'power/brownouts/diagnosing-resets': diagnosingResets,
+  'signals/filters/rc-low-pass': rcLowPass,
+  'signals/filters/high-pass': highPass,
+  'signals/filters/bode-plot': bodePlot,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

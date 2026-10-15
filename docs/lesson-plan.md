@@ -48,7 +48,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Digital ✓ 8/8
 - Power ✓ 8/8
 - Signals:
-  - [ ] Filters
+  - [x] Filters
   - [ ] Fourier intuition
   - [ ] Oscilloscope
   - [ ] Logic analyzer
