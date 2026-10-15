@@ -459,3 +459,41 @@ export function speaker(parent: THREE.Object3D, at: V3, r = 2.4) {
     },
   }
 }
+
+/** E-stop side-on, cut open, `k` × lesson size: yellow housing, red mushroom on a plunger, and an NC contact (a bridge
+ *  pushed up onto two fixed contacts). `pins` are the side terminals; `set(press 0..1, twist rad)` drops the plunger,
+ *  which pulls the bridge off the contacts, and turns the cap (twist-to-release). */
+export function estopButton(parent: THREE.Object3D, at: V3, k = 1) {
+  const group = add(parent, new THREE.Group(), at)
+  group.scale.setScalar(k)
+  const yellow = mat('#f2c230', { rough: 0.5 })
+  box(group, [4.4, 3.4, 0.4], yellow, [0, 0, -0.8])
+  box(group, [4.4, 0.35, 1.6], yellow, [0, 1.55, -0.2])
+  for (const s of [-1, 1]) box(group, [0.35, 3.4, 1.6], yellow, [s * 2.05, 0, -0.2])
+  for (const s of [-1, 1]) {
+    add(group, mesh(new THREE.SphereGeometry(0.3, 16, 12), STEEL()), [s * 1.1, 0.35, 0])
+    rod(group, [s * 1.1, 0.35, 0], [s * 1.1, 0.9, 0], 0.1, COPPER())
+    rod(group, [s * 1.1, 0.9, 0], [s * 2.5, 0.9, 0], 0.1, COPPER())
+    cylinder(group, 0.28, 0.5, TIN(), [s * 2.6, 0.9, 0], 'x', 16)
+  }
+  const plunger = add(group, new THREE.Group())
+  box(plunger, [3, 0.22, 0.5], STEEL(), [0, -0.06, 0])
+  rod(plunger, [0, 0, 0], [0, 2.5, 0], 0.22, mat('#2b2e36', { rough: 0.6 }))
+  const cap = add(plunger, new THREE.Group(), [0, 2.6, 0])
+  const red = mat('#d8322c', { rough: 0.45 })
+  cylinder(cap, 1.7, 0.45, red, [0, 0, 0], 'y', 40)
+  const dome = add(cap, mesh(new THREE.SphereGeometry(1.7, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2), red), [0, 0.2, 0])
+  dome.scale.y = 0.35
+  box(cap, [2.2, 0.1, 0.2], mat('#f2f2f2', { rough: 0.5 }), [0, 0.82, 0])
+  cylinder(group, 0.65, 0.4, mat('#2b2e36', { rough: 0.6 }), [0, 1.9, 0], 'y', 24)
+  const spring = new Helix(0.32, 1.3, 5)
+  add(group, mesh(new THREE.TubeGeometry(spring, 60, 0.05, 6), STEEL()), [0, -1.5, 0]).rotation.z = Math.PI / 2
+  return {
+    group,
+    pins: [-1, 1].map((s): V3 => [at[0] + s * 2.85 * k, at[1] + 0.9 * k, at[2]]) as [V3, V3],
+    set(press: number, twist = 0) {
+      plunger.position.y = -0.7 * clamp01(press)
+      cap.rotation.y = twist
+    },
+  }
+}

@@ -93,6 +93,7 @@ import { physicsEngine, simToRealGap } from '../lessons/software/simulation'
 import { blackboard, sequenceAndFallback } from '../lessons/software/behaviour-trees'
 import { plottingLiveData, replayLogs } from '../lessons/software/telemetry-logging'
 import { joystickOverBle, latency, webSocketControl } from '../lessons/software/remote-control'
+import { eStop, faultStates, watchdog } from '../lessons/software/safety-failsafes'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -390,6 +391,9 @@ const READY: Record<string, Lesson> = {
   'software/remote-control/joystick-over-ble': joystickOverBle,
   'software/remote-control/websocket-control': webSocketControl,
   'software/remote-control/latency': latency,
+  'software/safety-failsafes/watchdog': watchdog,
+  'software/safety-failsafes/e-stop': eStop,
+  'software/safety-failsafes/fault-states': faultStates,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

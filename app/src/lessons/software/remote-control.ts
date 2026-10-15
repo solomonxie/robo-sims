@@ -17,7 +17,7 @@ import {
   wsRun,
 } from '../../core/physics'
 import { hertz, hexByte, msText } from '../../core/units'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { V3, add, box, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -30,7 +30,9 @@ import {
   addLabel,
   arcAt,
   codeBlock,
+  cursorBar,
   flatBox,
+  floorMat,
   floorView,
   glowBox,
   glowMat,
@@ -69,24 +71,6 @@ function stickPhone(parent: THREE.Object3D, at: V3, k: number) {
       knob.position.set(c[0] + x * 0.45, c[1] + y * 0.45, c[2] + 0.1)
     },
   }
-}
-
-/** Glowing vertical bar on a plot; `at(u)` moves it, null hides it. */
-function cursorBar(plot: ReturnType<typeof scope>, color: string) {
-  const b = box(plot.group, [0.1, plot.height, 0.12], glowMat(color, 1.2), [0, 0, 0.3])
-  b.castShadow = false
-  return (u: number | null) => {
-    b.visible = u !== null && u >= 0 && u <= 1
-    if (u !== null) b.position.x = plot.xAt(u)
-  }
-}
-
-/** Floor mat in metres with 0.5 m tape lines. */
-function floorMat(g: THREE.Object3D, x: [number, number], y: [number, number]) {
-  flatBox(g, [x[1] - x[0], y[1] - y[0], 0.01], mat('#23262d', { rough: 0.85 }), [(x[0] + x[1]) / 2, (y[0] + y[1]) / 2, -0.005])
-  const tape = mat('#353a44', { rough: 0.8 })
-  for (let v = Math.ceil(x[0] * 2) / 2; v <= x[1]; v += 0.5) flatBox(g, [0.01, y[1] - y[0], 0.004], tape, [v, (y[0] + y[1]) / 2, 0.002])
-  for (let v = Math.ceil(y[0] * 2) / 2; v <= y[1]; v += 0.5) flatBox(g, [x[1] - x[0], 0.01, 0.004], tape, [(x[0] + x[1]) / 2, v, 0.002])
 }
 
 const worldOf = (o: THREE.Object3D, v = new THREE.Vector3()): V3 => {

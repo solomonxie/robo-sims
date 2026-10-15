@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu'
 import { CostGrid, INSCRIBED, LETHAL, Room, RoomSolid } from '../../core/physics'
 import { B_FIELD, potentialColor } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
+import { flatBox } from './shapes'
 
 const SOLID_LOOK = {
   glass: () => mat('#9fd8ff', { rough: 0.1, opacity: 0.35 }),
@@ -137,4 +138,12 @@ export function costField(parent: THREE.Object3D, g: CostGrid, maxH = 0.5) {
       im.instanceColor!.needsUpdate = true
     },
   }
+}
+
+/** Floor mat in metres with 0.5 m tape lines. */
+export function floorMat(g: THREE.Object3D, x: [number, number], y: [number, number]) {
+  flatBox(g, [x[1] - x[0], y[1] - y[0], 0.01], mat('#23262d', { rough: 0.85 }), [(x[0] + x[1]) / 2, (y[0] + y[1]) / 2, -0.005])
+  const tape = mat('#353a44', { rough: 0.8 })
+  for (let v = Math.ceil(x[0] * 2) / 2; v <= x[1]; v += 0.5) flatBox(g, [0.01, y[1] - y[0], 0.004], tape, [v, (y[0] + y[1]) / 2, 0.002])
+  for (let v = Math.ceil(y[0] * 2) / 2; v <= y[1]; v += 0.5) flatBox(g, [x[1] - x[0], 0.01, 0.004], tape, [(x[0] + x[1]) / 2, v, 0.002])
 }
