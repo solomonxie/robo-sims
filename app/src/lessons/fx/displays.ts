@@ -1,9 +1,10 @@
-// Readouts: seven-segment digits, multimeter and probes, phasor, clock face, USB logic analyser.
+// Readouts: seven-segment digits, bar meter, multimeter and probes, phasor, clock face, USB logic analyser.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
-import { GREY, HIGH_V, LABEL, RING, glowMat } from './colors'
+import { GREY, HIGH_V, LABEL, POWER, RING, glowMat } from './colors'
 import { cableRun } from './layout'
-import { label } from './text'
+import { partLetter } from './parts'
+import { label, liveLabel } from './text'
 
 const SEGMENTS: Record<string, string> = {
   '0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd',
@@ -208,4 +209,26 @@ export function usbAnalyzer(parent: THREE.Object3D, at: V3, leads: { color: stri
     cylinder(parent, 0.16, 0.9, mat(l.color, { rough: 0.5 }), [tx, ty - 0.45, tz], 'y', 12)
   })
   return [at[0], at[1] - 2.1, at[2]]
+}
+
+/** Horizontal bar meter from `at` (left end), `w` long for 0…`max`; `marks` are [value, text, colour]. `set(v, text, colour)`. */
+export function meterBar(parent: THREE.Object3D, at: V3, w: number, max: number, marks: [number, string, string][], caption: string) {
+  box(parent, [w + 0.4, 1.6, 0.6], mat('#1c1e24', { rough: 0.6 }), [at[0] + w / 2, at[1], -0.4])
+  const fill = add(parent, new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.5), glowMat(POWER, 0.8)), at)
+  for (const [v, text, color] of marks) {
+    const x = at[0] + (v / max) * w
+    box(parent, [0.14, 2.2, 0.7], glowMat(color, 0.6), [x, at[1], 0])
+    partLetter(parent, text, [x, at[1] + 1.7, 0], 0.55, color)
+  }
+  partLetter(parent, caption, [at[0] - 1, at[1], 0], 0.7, LABEL, 'right')
+  const value = liveLabel(parent, [at[0] + w + 1, at[1], 0], { size: 0.8, align: 'left' })
+  const m = fill.material as THREE.MeshStandardMaterial
+  return (v: number, text: string, color: string) => {
+    const k = Math.max(0.002, Math.min(1.02, v / max))
+    fill.scale.set(k * w, 1, 1)
+    fill.position.x = at[0] + (k * w) / 2
+    m.color.set(color)
+    m.emissive.set(color)
+    value.set(text, color)
+  }
 }

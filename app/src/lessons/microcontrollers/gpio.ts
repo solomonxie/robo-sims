@@ -29,24 +29,27 @@ import { amps, ohms, pct, secs, si, volts, watts } from '../../core/units'
 import { GOLD, V3, add, box, mat, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
+  CODE_LEGEND,
   GREY,
   HEAT,
   HIGH_V,
   LABEL,
-  LED_RED,
   LOW_V,
   POWER,
   RING,
   arrow,
+  codeBlock,
   esp32Board,
+  fetSymbol,
   glide,
   glowBox,
   glowMat,
   groundAt,
   icPackage,
   junction,
-  ledLamp,
+  ledLoad,
   liveLabel,
+  meterBar,
   motorCan,
   partLetter,
   potentialColor,
@@ -62,10 +65,7 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 const VDD = GPIO_VDD
 const WIRES = { color: HIGH_V, label: 'Wire colour: blue 0 V → red 3.3 V', shape: 'dot' } as const
-const ARDUINO = '#9fe0a0'
-const IDF = '#8ab8ff'
 const PIN_COLOR = '#5ad8e6'
-const CODE = { color: ARDUINO, label: 'Code: Arduino green, ESP-IDF blue', shape: 'dot' } as const
 const fixed = (v: number) => v.toFixed(2)
 const mA = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 
@@ -78,32 +78,6 @@ function chipCutaway(parent: THREE.Object3D, [x0, x1]: [number, number], [y0, y1
   box(parent, [1.4, 1.4, 1], GOLD(), [pad[0], pad[1], 0])
   partLetter(parent, 'PAD', [pad[0], pad[1] + 1.5, 0], 0.7, RING)
   partLetter(parent, 'inside the ESP32 pin', [x0 + 0.6, y0 - 1, 0], 0.7, GREY, 'left')
-}
-
-/** MOSFET as a 3D symbol from drain `a` down to `b` (vertical), gate plate and lead on its left, bubble on a P-FET.
- *  `set(on, heat)` lights the channel, tinting it from green to orange with heat 0..1. */
-function fetSymbol(parent: THREE.Object3D, a: V3, b: V3, kind: 'P' | 'N', name: string = kind) {
-  const x = a[0]
-  const mid = (a[1] + b[1]) / 2
-  const ch = 0.55 * Math.abs(a[1] - b[1])
-  const m = new THREE.MeshStandardMaterial({ color: '#4a505c', emissive: POWER, emissiveIntensity: 0, roughness: 0.5 })
-  wire(parent, [a, [x, mid + ch / 2, 0]], 0.2)
-  wire(parent, [[x, mid - ch / 2, 0], b], 0.2)
-  add(parent, new THREE.Mesh(new THREE.BoxGeometry(0.5, ch, 0.7), m), [x, mid, 0])
-  box(parent, [0.22, ch, 0.7], mat('#7f8590', { rough: 0.4 }), [x - 0.75, mid, 0])
-  const gate: V3 = [x - 2.4, mid, 0]
-  if (kind === 'P') add(parent, new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.08, 8, 20), mat('#c9ced8')), [x - 1.2, mid, 0])
-  wire(parent, [[kind === 'P' ? x - 1.45 : x - 0.86, mid, 0], gate], 0.14)
-  partLetter(parent, name, [x + 0.8, mid, 0], 0.75, LABEL, 'left')
-  const power = new THREE.Color(POWER)
-  const hot = new THREE.Color(HEAT)
-  return {
-    gate,
-    set(on: number, heat = 0) {
-      m.emissive.copy(power).lerp(hot, Math.min(1, heat))
-      m.emissiveIntensity = 1.3 * on
-    },
-  }
 }
 
 /** Buffer triangle at `at` pointing along `angle`, tinted by the level it outputs. */
@@ -131,33 +105,6 @@ function register(parent: THREE.Object3D, at: V3, caption: string) {
   return d
 }
 
-/** Up to three left-aligned code lines; `gpio_…` lines are ESP-IDF (blue), `//` comments grey, the rest Arduino; indented lines continue the one above. */
-function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72) {
-  const rows = [0, 1, 2].map((k) => liveLabel(parent, [at[0], at[1] - k * size * 2, at[2]], { size, align: 'left', glow: 0.7 }))
-  const tint = (l: string) => (l.startsWith('//') ? GREY : l.includes('gpio_') ? IDF : ARDUINO)
-  return (lines: string[]) => {
-    let color = ARDUINO
-    rows.forEach((r, k) => {
-      const l = lines[k] ?? ''
-      if (!l.startsWith(' ')) color = tint(l)
-      r.set(l, color)
-    })
-  }
-}
-
-/** LED + series resistor to ground in a group at `at`, fed from local x = −from. */
-function ledLoad(parent: THREE.Object3D, at: V3, from: number, r: number) {
-  const g = add(parent, new THREE.Group(), at)
-  if (r > 0) {
-    wire(g, [[-from, 0, 0], [-0.35, 0, 0]], 0.2)
-    resistorAlong(g, r, [-from + 0.4, 0, 0], [-1.1, 0, 0], 1.2)
-  } else wire(g, [[-from, 0, 0], [-0.35, 0, 0]], 0.2)
-  const lamp = ledLamp(g, LED_RED, [0, 0, 0], { scale: 0.8, anodeRight: false })
-  wire(g, [[0.4, 0, 0], [0.4, -3.4, 0]], 0.2)
-  groundAt(g, [0.4, -3.4, 0])
-  return { g, lamp }
-}
-
 // --- Output and input modes: inside the pad, a push-pull MOSFET pair drives it; an input buffer with hysteresis reads it. ---
 
 type IoMode = 'output' | 'input'
@@ -175,7 +122,7 @@ export const outputAndInputModes: Lesson = {
   legend: [
     { color: POWER, label: 'Lit channel = transistor on', shape: 'dot' },
     WIRES,
-    CODE,
+    CODE_LEGEND,
   ],
   points: [
     'Behind every GPIO pad sit two MOSFETs in a totem pole: a P-channel to 3.3 V and an N-channel to ground. That is push-pull output, the same pair as a CMOS inverter.',
@@ -318,7 +265,7 @@ export const pullUps: Lesson = {
   legend: [
     { color: POWER, label: 'Lit switch = pull or FET enabled', shape: 'dot' },
     WIRES,
-    CODE,
+    CODE_LEGEND,
   ],
   points: [
     'An input with nothing driving it floats: it picks up hum from your hand and reads random bits. A pull resistor gives it a default.',
@@ -461,28 +408,6 @@ const MA_TOP = 0.06
 const solveLoad = (p: Params) => drivenPin(n(p, 'cap'), LOADS[pick(LOADS, p.load, 'led')].load)
 const tone = (a: number) => (a >= PIN_MAX_A ? 'bad' : a > PIN_SAFE_A ? 'warn' : 'ok') as 'ok' | 'warn' | 'bad'
 
-/** Horizontal bar meter from `at` (left end), `w` long for 0…`max`; `marks` are [value, text, colour]. `set(v, text, colour)`. */
-function meterBar(parent: THREE.Object3D, at: V3, w: number, max: number, marks: [number, string, string][], caption: string) {
-  box(parent, [w + 0.4, 1.6, 0.6], mat('#1c1e24', { rough: 0.6 }), [at[0] + w / 2, at[1], -0.4])
-  const fill = add(parent, new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.5), glowMat(POWER, 0.8)), at)
-  for (const [v, text, color] of marks) {
-    const x = at[0] + (v / max) * w
-    box(parent, [0.14, 2.2, 0.7], glowMat(color, 0.6), [x, at[1], 0])
-    partLetter(parent, text, [x, at[1] + 1.7, 0], 0.55, color)
-  }
-  partLetter(parent, caption, [at[0] - 1, at[1], 0], 0.7, LABEL, 'right')
-  const value = liveLabel(parent, [at[0] + w + 1, at[1], 0], { size: 0.8, align: 'left' })
-  const m = fill.material as THREE.MeshStandardMaterial
-  return (v: number, text: string, color: string) => {
-    const k = Math.max(0.002, Math.min(1.02, v / max))
-    fill.scale.set(k * w, 1, 1)
-    fill.position.x = at[0] + (k * w) / 2
-    m.color.set(color)
-    m.emissive.set(color)
-    value.set(text, color)
-  }
-}
-
 export const driveStrength: Lesson = {
   id: 'gpio-drive-strength',
   title: 'Drive strength',
@@ -497,7 +422,7 @@ export const driveStrength: Lesson = {
   legend: [
     { color: POWER, label: 'Lit fingers = driver transistors enabled', shape: 'dot' },
     { color: HEAT, label: 'Orange = driver heating up', shape: 'dot' },
-    CODE,
+    CODE_LEGEND,
   ],
   points: [
     'An output pin is not a power supply. Its P-FET has an on-resistance, so the pad sags as current flows, and the chip’s datasheet caps each pin at 40 mA absolute maximum; about 20 mA is a comfortable limit.',
@@ -615,7 +540,7 @@ export const interrupts: Lesson = {
   legend: [
     { color: RING, label: 'Bead = loop() going round; flash = a read', shape: 'dot' },
     { color: HIGH_V, label: 'ISR: the edge itself counts', shape: 'arrow-right' },
-    CODE,
+    CODE_LEGEND,
   ],
   points: [
     'Polling means loop() reads the pin, does its other work, and reads it again. A press shorter than the gap between two reads happens entirely while the CPU is looking elsewhere, and is lost.',
