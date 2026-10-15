@@ -77,6 +77,7 @@ import { accelerometer, complementaryFilter, drift, gyroscope } from './sensors/
 import { hardIronCalibration, heading } from './sensors/magnetometer'
 import { fixAndAccuracy, rtk, trilateration } from './sensors/gps'
 import { exposure, lensDistortion, rollingVsGlobalShutter } from './sensors/camera'
+import { oneWireProtocol, thermistorCurve } from './sensors/temperature-humidity'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -87,5 +88,5 @@ export const UNITS: Unit[] = [
   { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits, inductorRipple, efficiency, choosingAModule, addUpTheLoads, runtimeEstimate, peakVsAverage, voltageDrop, connectorRatings, starGround, motorNoise, bulkCapacitors, separateRails, currentSpikes, diagnosingResets] },
   { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus, sampleRate, patternTrigger, captureI2c, captureSpi, reflections, termination, twoFourGhz, antennaTypes, lora, groundLoops, twistedPairs, cableShields, schematicCapture, layoutRules, tracesAndVias, manufacturing] },
   { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts, dutyCycle, frequencyChoice, servoPulses, averageVoltage, resolutionAndRange, sampling, noiseAndAveraging, esp32AdcQuirks, r2rLadder, audioOut, hardwareTimers, isrRules, millisWithoutDelay, framingAndBaud, levelAndNoise, gpsAndModules, addresses, pullUpResistors, readingAnImu, busScan, clockModes, chipSelect, sdCardsAndDisplays, differentialSignalling, arbitration, stationAndAp, httpAndWebSocket, bleGatt, espNow, deepSleep, wakeSources, batteryBudget, flashLayout, stackAndHeap, littleFs, tasksAndPriorities, queues, mutexes, bootModes, otaUpdates] },
-  { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion] },
+  { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion, thermistorCurve, oneWireProtocol] },
 ]

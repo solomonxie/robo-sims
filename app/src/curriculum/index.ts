@@ -79,6 +79,7 @@ import { accelerometer, complementaryFilter, drift, gyroscope } from '../lessons
 import { hardIronCalibration, heading } from '../lessons/sensors/magnetometer'
 import { fixAndAccuracy, rtk, trilateration } from '../lessons/sensors/gps'
 import { exposure, lensDistortion, rollingVsGlobalShutter } from '../lessons/sensors/camera'
+import { oneWireProtocol, thermistorCurve } from '../lessons/sensors/temperature-humidity'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -343,6 +344,8 @@ const READY: Record<string, Lesson> = {
   'sensors/camera/rolling-vs-global-shutter': rollingVsGlobalShutter,
   'sensors/camera/exposure': exposure,
   'sensors/camera/lens-distortion': lensDistortion,
+  'sensors/temperature-humidity/thermistor-curve': thermistorCurve,
+  'sensors/temperature-humidity/one-wire-protocol': oneWireProtocol,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

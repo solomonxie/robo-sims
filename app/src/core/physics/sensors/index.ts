@@ -1,4 +1,4 @@
-// Sensors: ultrasonic ranging, infrared reflection, laser time of flight, lidar, wheel encoders, IMU, magnetometer, GPS, camera.
+// Sensors: ultrasonic ranging, infrared reflection, laser time of flight, lidar, wheel encoders, IMU, magnetometer, GPS, camera, temperature.
 export * from './ultrasonic'
 export * from './infrared'
 export * from './tof'
@@ -8,3 +8,4 @@ export * from './imu'
 export * from './magnetometer'
 export * from './gps'
 export * from './camera'
+export * from './temperature'
