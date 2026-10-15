@@ -58,6 +58,7 @@ import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { driveStrength, interrupts, outputAndInputModes, pullUps } from '../lessons/microcontrollers/gpio'
 import { averageVoltage, dutyCycle, frequencyChoice, servoPulses } from '../lessons/microcontrollers/pwm'
+import { esp32AdcQuirks, noiseAndAveraging, resolutionAndRange, sampling } from '../lessons/microcontrollers/adc'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -260,6 +261,10 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/pwm/frequency-choice': frequencyChoice,
   'microcontrollers/pwm/servo-pulses': servoPulses,
   'microcontrollers/pwm/average-voltage': averageVoltage,
+  'microcontrollers/adc/resolution-and-range': resolutionAndRange,
+  'microcontrollers/adc/sampling': sampling,
+  'microcontrollers/adc/noise-and-averaging': noiseAndAveraging,
+  'microcontrollers/adc/esp32-adc-quirks': esp32AdcQuirks,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

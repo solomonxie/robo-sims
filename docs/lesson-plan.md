@@ -34,7 +34,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `pwm`: LEDC bits, ripple, switching loss, servo); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -57,7 +57,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Microcontrollers:
   - [x] GPIO
   - [x] PWM
-  - [ ] ADC
+  - [x] ADC
   - [ ] DAC
   - [ ] Timers & interrupts
   - [ ] UART serial
