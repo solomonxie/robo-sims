@@ -86,6 +86,7 @@ import { fixedRateControlLoop, hardwareAbstraction, superLoopVsRtos } from './so
 import { launchFiles, publishAndSubscribe, servicesAndActions } from './software/ros2-concepts'
 import { frameTree, writingAUrdf } from './software/tf-urdf'
 import { behaviourTrees, costmaps } from './software/nav2'
+import { agentAndClient, serialTransport } from './software/micro-ros'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -97,5 +98,5 @@ export const UNITS: Unit[] = [
   { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus, sampleRate, patternTrigger, captureI2c, captureSpi, reflections, termination, twoFourGhz, antennaTypes, lora, groundLoops, twistedPairs, cableShields, schematicCapture, layoutRules, tracesAndVias, manufacturing] },
   { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts, dutyCycle, frequencyChoice, servoPulses, averageVoltage, resolutionAndRange, sampling, noiseAndAveraging, esp32AdcQuirks, r2rLadder, audioOut, hardwareTimers, isrRules, millisWithoutDelay, framingAndBaud, levelAndNoise, gpsAndModules, addresses, pullUpResistors, readingAnImu, busScan, clockModes, chipSelect, sdCardsAndDisplays, differentialSignalling, arbitration, stationAndAp, httpAndWebSocket, bleGatt, espNow, deepSleep, wakeSources, batteryBudget, flashLayout, stackAndHeap, littleFs, tasksAndPriorities, queues, mutexes, bootModes, otaUpdates] },
   { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion, thermistorCurve, oneWireProtocol, shuntResistor, ina219, stateOfCharge, strainGauge, capacitiveTouch, memsMic, soundSourceDirection, whyFuse, complementaryHeading, kalmanIntuition] },
-  { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees] },
+  { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees, agentAndClient, serialTransport] },
 ]

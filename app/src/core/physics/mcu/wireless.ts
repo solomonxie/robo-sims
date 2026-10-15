@@ -168,6 +168,8 @@ export const espNowAirtime = (payload: number, mbps = 1) => PREAMBLE_S + ((Math.
 export const ackAirtime = (mbps = 1) => PREAMBLE_S + (14 * 8) / (mbps * 1e6)
 /** One attempt: wait DIFS + average backoff, send, SIFS, ACK. */
 export const espNowAttempt = (payload: number) => DIFS_S + (CW_MIN / 2) * SLOT_S + espNowAirtime(payload) + SIFS_S + ackAirtime()
+/** Same for any `bytes`-long 802.11 data frame at `mbps`, ACK at the same rate. */
+export const wifiAttempt = (bytes: number, mbps: number) => DIFS_S + (CW_MIN / 2) * SLOT_S + PREAMBLE_S + (bytes * 8) / (mbps * 1e6) + SIFS_S + ackAirtime(mbps)
 /** Frame error rate: ~0 well above sensitivity, 50 % at it, ~1 below. */
 export const frameLoss = (rssi: number, sens = ESPNOW_SENS_DBM) => 1 / (1 + Math.exp((rssi - sens) / 1.5))
 

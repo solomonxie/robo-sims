@@ -88,6 +88,7 @@ import { fixedRateControlLoop, hardwareAbstraction, superLoopVsRtos } from '../l
 import { launchFiles, publishAndSubscribe, servicesAndActions } from '../lessons/software/ros2-concepts'
 import { frameTree, writingAUrdf } from '../lessons/software/tf-urdf'
 import { behaviourTrees, costmaps } from '../lessons/software/nav2'
+import { agentAndClient, serialTransport } from '../lessons/software/micro-ros'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -374,6 +375,8 @@ const READY: Record<string, Lesson> = {
   'software/tf-urdf/writing-a-urdf': writingAUrdf,
   'software/nav2/costmaps': costmaps,
   'software/nav2/behaviour-trees': behaviourTrees,
+  'software/micro-ros/agent-and-client': agentAndClient,
+  'software/micro-ros/serial-transport': serialTransport,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

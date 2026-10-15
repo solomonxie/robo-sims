@@ -43,7 +43,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
-- `software/` — `messaging` (pub/sub QoS + queues, service vs action, launch respawn), `urdf` (4×4 `tf3`/`mul4`/`invert4`, `parseUrdf`, `urdfTree`, `linkFrames`, `ROVER`), `frames` (`compose2`/`invert2`, loop drive, drifting `odomPose`, `tfChain`), `costmap` (layers, `inflate`, A* `planGrid`, `costmapRun`), `btree` (`btTick`, Nav2 `NAV_TREE`, `btNavRun`).
+- `software/` — `messaging` (pub/sub QoS + queues, service vs action, launch respawn), `urdf` (4×4 `tf3`/`mul4`/`invert4`, `parseUrdf`, `urdfTree`, `linkFrames`, `ROVER`), `frames` (`compose2`/`invert2`, loop drive, drifting `odomPose`, `tfChain`), `costmap` (layers, `inflate`, A* `planGrid`, `costmapRun`), `btree` (`btTick`, Nav2 `NAV_TREE`, `btNavRun`), `microros` (agent reconnect `urosRun`, XRCE frames over UART/UDP `xrceLink`/`xrceRun`).
 - `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt` (sample of a fixed-step run).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
@@ -73,7 +73,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] ROS 2 concepts
   - [x] TF & URDF
   - [x] Nav2
-  - [ ] micro-ROS
+  - [x] micro-ROS
   - [ ] Simulation
   - [ ] Behaviour trees
   - [ ] Telemetry & logging
