@@ -86,6 +86,7 @@ import { memsMic, soundSourceDirection } from '../lessons/sensors/microphone-sou
 import { complementaryHeading, kalmanIntuition, whyFuse } from '../lessons/sensors/sensor-fusion'
 import { fixedRateControlLoop, hardwareAbstraction, superLoopVsRtos } from '../lessons/software/firmware-structure'
 import { launchFiles, publishAndSubscribe, servicesAndActions } from '../lessons/software/ros2-concepts'
+import { frameTree, writingAUrdf } from '../lessons/software/tf-urdf'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -368,6 +369,8 @@ const READY: Record<string, Lesson> = {
   'software/ros-2-concepts/publish-and-subscribe': publishAndSubscribe,
   'software/ros-2-concepts/services-and-actions': servicesAndActions,
   'software/ros-2-concepts/launch-files': launchFiles,
+  'software/tf-urdf/frame-tree': frameTree,
+  'software/tf-urdf/writing-a-urdf': writingAUrdf,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
