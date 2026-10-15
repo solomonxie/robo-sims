@@ -49,6 +49,7 @@ import { currentSpikes, diagnosingResets } from '../lessons/power/brownouts'
 import { bodePlot, highPass, rcLowPass } from '../lessons/signals/filters'
 import { aliasing, nyquistLimit, spectrum } from '../lessons/signals/fourier-intuition'
 import { decodingBus, probing, triggering } from '../lessons/signals/oscilloscope'
+import { captureI2c, captureSpi, patternTrigger, sampleRate } from '../lessons/signals/logic-analyzer'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -229,6 +230,10 @@ const READY: Record<string, Lesson> = {
   'signals/oscilloscope/triggering': triggering,
   'signals/oscilloscope/probing': probing,
   'signals/oscilloscope/decoding-a-bus': decodingBus,
+  'signals/logic-analyzer/sample-rate': sampleRate,
+  'signals/logic-analyzer/pattern-trigger': patternTrigger,
+  'signals/logic-analyzer/capture-i2c': captureI2c,
+  'signals/logic-analyzer/capture-spi': captureSpi,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

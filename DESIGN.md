@@ -15,7 +15,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 | Path | Role |
 |---|---|
-| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units, stroke font; digital: logic nets, numbers, FSMs, FPGA fabric. `physics/`: lesson formulas by domain (dc, ac, circuits, electromagnetism, electromechanical, semiconductors, protection, oscillators, opamps, regulators, fabrication, memory, timing, levels, filters, fourier; `power/`: batteries, packs, charging, converters, budget, wiring, noise, brownout). |
+| `app/src/core/` | Pure TS, no React/Three, unit-tested: breadboard + union-find nets, catalog, LED loop, nodal solver, field tracing, units, stroke font; digital: logic nets, numbers, FSMs, FPGA fabric. `physics/`: lesson formulas by domain (dc, ac, circuits, electromagnetism, electromechanical, semiconductors, protection, oscillators, opamps, regulators, fabrication, memory, timing, levels, filters, fourier, scope, buses; `power/`: batteries, packs, charging, converters, budget, wiring, noise, brownout). |
 | `app/src/models/` | Procedural Three.js model per part `type`; the look comes from specs (e.g. resistor bands from `ohms`). |
 | `app/src/scene/` | `Viewport` (WebGPU canvas, touch orbit/pinch/pan, tap-to-pick), stage lighting, demo bench. |
 | `app/src/lessons/` | Learn tab: one `Lesson` = text + formula + controls + `build()` → animated 3D stage. `<category>/<topic>.ts`; shared visuals in `fx/` (module map in `docs/lesson-plan.md`). |
@@ -32,7 +32,7 @@ Learning electronics and robotics hands-on means owning parts, and it's easy to 
 
 ## Learn
 
-- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (6 topics, 18 lessons: Silicon & doping → Memory cell), Digital (8 topics, 24 lessons: Binary & hex → FPGA basics), Power (8 topics, 23 lessons: Battery chemistry → Brownouts), Signals (Filters, Fourier intuition; 6 lessons so far). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
+- One topic at a time, polished before the next. Shipped: Electricity (12 topics, 37 lessons), Components (14 topics, 47 lessons: Resistor → Voltage regulators), Semiconductors (6 topics, 18 lessons: Silicon & doping → Memory cell), Digital (8 topics, 24 lessons: Binary & hex → FPGA basics), Power (8 topics, 23 lessons: Battery chemistry → Brownouts), Signals (Filters → Logic analyzer; 13 lessons so far). Drafts for the rest in `archive/lesson-drafts/` (backlog order in its README).
 - Visuals are exaggerated; every number shown comes from `core/physics/` (tested).
 - `make preview LESSON=<id>`: headless-Chrome render (WebGPU on Metal, same scene code, overlays mocked) for framing without a device. Not a simulator; the iPhone is the real check.
 - 3D text: vector stroke font (`core/strokeFont.ts`) built as one merged mesh per label (`fx/text.ts`); no font files or canvas, so device and preview match.

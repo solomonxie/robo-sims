@@ -49,6 +49,7 @@ import { currentSpikes, diagnosingResets } from './power/brownouts'
 import { bodePlot, highPass, rcLowPass } from './signals/filters'
 import { aliasing, nyquistLimit, spectrum } from './signals/fourier-intuition'
 import { decodingBus, probing, triggering } from './signals/oscilloscope'
+import { captureI2c, captureSpi, patternTrigger, sampleRate } from './signals/logic-analyzer'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -57,5 +58,5 @@ export const UNITS: Unit[] = [
   { title: 'Semiconductors', lessons: [bandGap, nAndPType, holesAndElectrons, depletionRegion, forwardAndReverseBias, breakdown, channelFormation, cmosInverterLesson, switchingEnergyLesson, nandFromTransistors, truthTables, adders, sramLatch, dramCapacitor, flashFloatingGate, lithographyMachine, waferToChip, what3nmMeans] },
   { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595, mooreVsMealy, trafficLight, robotBehaviour, propagationDelay, metastability, clockDividers, logicThresholds, dividerShifter, bidirectionalShifter, luts, blinkyInHardware] },
   { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits, inductorRipple, efficiency, choosingAModule, addUpTheLoads, runtimeEstimate, peakVsAverage, voltageDrop, connectorRatings, starGround, motorNoise, bulkCapacitors, separateRails, currentSpikes, diagnosingResets] },
-  { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus] },
+  { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus, sampleRate, patternTrigger, captureI2c, captureSpi] },
 ]

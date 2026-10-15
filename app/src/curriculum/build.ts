@@ -3,7 +3,7 @@ import { Category, Entry, Kind, Topic } from './types'
 type Spec = string | [title: string, kind?: Kind, min?: number]
 type TopicSpec = [title: string, tagline: string, entries: Spec[]]
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const slug = (s: string) => s.replace(/²/g, '2').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const entry = (topicId: string, s: Spec): Entry => {
   const [title, kind = 'sim', min = 3] = typeof s === 'string' ? [s] : s

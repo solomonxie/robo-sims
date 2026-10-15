@@ -1,9 +1,11 @@
 // Logic-analyser and state-diagram screens.
 import * as THREE from 'three/webgpu'
-import { V3, add, mesh, tube } from '../../models/kit'
+import { V3, add, box, cylinder, mat, mesh, tube } from '../../models/kit'
 import { glowHalo } from './circuit'
-import { GREY, RING, glowMat } from './colors'
+import { GREY, LABEL, RING, glowMat } from './colors'
 import { scope } from './displays'
+import { cableRun } from './layout'
+import { label, liveLabel } from './text'
 import { partLetter } from './parts'
 import { ease } from './util'
 
@@ -148,4 +150,81 @@ export function stateDiagram(parent: THREE.Object3D, at: V3, nodes: DiagramNode[
       })
     },
   }
+}
+
+/** Logic-analyser capture window facing +z: one row per channel (name on the left), plus an optional decoder strip at the bottom.
+ *  `channel(k)` adds a trace for row k: `draw(level(u) 0..1, headU)`; `annotate(segs)` fills the strip with labelled boxes. */
+export function captureScreen(
+  parent: THREE.Object3D,
+  at: V3,
+  rows: { label: string; color: string }[],
+  { width = 18, rowH = 2.2, decoder = false } = {},
+) {
+  const n = rows.length + (decoder ? 1 : 0)
+  const height = n * rowH
+  const sc = scope(parent, width, height, { divs: [10, n] })
+  sc.group.position.set(...at)
+  const mid = (k: number) => height / 2 - (k + 0.5) * rowH
+  const yOf = (k: number, v: number) => mid(k) + (v - 0.5) * rowH * 0.55
+  rows.forEach((r, k) => {
+    add(sc.group, label(r.label, { size: 0.6, color: r.color, align: 'right' }), [-width / 2 - 0.8, mid(k), 0]).castShadow = false
+  })
+  const boxGeo = new THREE.BoxGeometry(1, rowH * 0.62, 0.12)
+  const fills = new Map<string, THREE.Material>()
+  const fill = (c: string) => {
+    const dark = `#${new THREE.Color(c).multiplyScalar(0.04).getHexString()}`
+    return fills.get(c) ?? fills.set(c, mat(dark, { emissive: dark })).get(c)!
+  }
+  const slots = Array.from({ length: decoder ? 24 : 0 }, () => {
+    const m = add(sc.group, mesh(boxGeo, fill(GREY)), [0, mid(n - 1), 0.2])
+    m.castShadow = false
+    return { box: m, text: liveLabel(sc.group, [0, mid(n - 1), 0.4], { size: 0.5 }) }
+  })
+  return {
+    group: sc.group,
+    width,
+    height,
+    xAt: sc.xAt,
+    yOf,
+    channel(k: number, { color = rows[k].color, samples = 480, radius = 0.09 } = {}) {
+      const tr = sc.trace(color, { samples, radius })
+      return { ...tr, draw: (level: (u: number) => number, headU: number | null = null) => tr.draw((u) => yOf(k, level(u)), headU) }
+    },
+    /** Decoder boxes from u0 to u1 (0..1 across the window); boxes past the list are hidden. */
+    annotate(segs: { u0: number; u1: number; text: string; color: string }[]) {
+      slots.forEach((s, i) => {
+        const g = segs[i]
+        s.box.visible = !!g
+        s.text.set(g ? g.text : '', g?.color)
+        if (!g) return
+        const w = Math.max(0.2, (g.u1 - g.u0) * width - 0.12)
+        s.box.scale.x = w
+        s.box.material = fill(g.color)
+        s.box.position.x = sc.xAt((g.u0 + g.u1) / 2)
+        s.text.group.position.x = s.box.position.x
+      })
+    },
+  }
+}
+
+/** Cheap 8-channel USB logic analyser (24 MHz class) at `at`, header up: GND lead to `ground`, one lead per `leads` entry,
+ *  each ending in a grabber clip. Returns the USB socket point. */
+export function usbAnalyzer(parent: THREE.Object3D, at: V3, leads: { color: string; to: V3 }[], ground: V3): V3 {
+  const g = add(parent, new THREE.Group(), at)
+  box(g, [6, 3.2, 1.4], mat('#2f3440', { metal: 0.3, rough: 0.45 }), [0, 0, 0])
+  box(g, [5.6, 2.8, 0.05], mat('#1d2027', { rough: 0.6 }), [0, 0, 0.72])
+  for (const [s, y, size] of [['LOGIC', 0.55, 0.55], ['24MHZ 8CH', -0.45, 0.4]] as const) {
+    add(g, label(s, { size, color: LABEL, glow: 0.4 }), [0, y, 0.78]).castShadow = false
+  }
+  box(g, [5.4, 0.6, 0.9], mat('#141416', { rough: 0.8 }), [0, 1.9, 0])
+  box(g, [1.3, 0.5, 0.7], mat('#b9bec6', { metal: 0.4, rough: 0.4 }), [0, -1.85, 0])
+  const all = [{ color: '#1c1c1f', to: ground }, ...leads]
+  all.forEach((l, i) => {
+    const x = at[0] - 2.25 + i * 0.5
+    const from: V3 = [x, at[1] + 2.2, at[2]]
+    const [tx, ty, tz] = l.to
+    cableRun(parent, [from, [x, from[1] + 0.8, from[2] + 0.4 + i * 0.12], [tx, ty - 1.4, tz + 0.5], [tx, ty - 0.5, tz]], l.color, 0.09)
+    cylinder(parent, 0.16, 0.9, mat(l.color, { rough: 0.5 }), [tx, ty - 0.45, tz], 'y', 12)
+  })
+  return [at[0], at[1] - 2.1, at[2]]
 }

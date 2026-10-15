@@ -25,7 +25,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `electromech` — relay/SSR, switches, pot. `heat`, `flows`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 - `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `benchScope` (DSO: knobs, status, BNC) [`physics/scope`], `ivScreen`, `phasor`, `clockFace`.
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
-- `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
+- `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`], `captureScreen` (analyser rows + decoder strip), `usbAnalyzer` [`physics/buses`].
 - `core/physics/` by domain; `power/` = batteries, packs, charging, converters, budget, wiring, noise, brownout.
 
 ## Pacing
@@ -51,7 +51,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Filters
   - [x] Fourier intuition
   - [x] Oscilloscope
-  - [ ] Logic analyzer
+  - [x] Logic analyzer
   - [ ] Transmission lines
   - [ ] Radio basics
   - [ ] Grounding & shielding

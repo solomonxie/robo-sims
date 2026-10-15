@@ -96,7 +96,7 @@ export const electronics = [
     ['Filters', 'Keep the band you want', ['RC low-pass', 'High-pass', 'Bode plot']],
     ['Fourier intuition', 'Every signal is a sum of sines', ['Spectrum', 'Aliasing', 'Nyquist']],
     ['Oscilloscope', 'Seeing voltage over time', ['Triggering', 'Probing', 'Decoding a bus']],
-    ['Logic analyzer', 'Watching digital buses', ['Capture UART', 'Capture I²C']],
+    ['Logic analyzer', 'Watching digital buses', ['Sample rate', 'Pattern trigger', 'Capture I²C', 'Capture SPI']],
     ['Transmission lines', 'When wires act like antennas', ['Reflections', 'Termination']],
     ['Radio basics', 'Carrier, modulation, range', ['2.4 GHz', 'Antenna types', 'LoRa']],
     ['Grounding & shielding', 'Taming interference', ['Ground loops', 'Ferrite beads']],

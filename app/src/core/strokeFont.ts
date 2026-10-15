@@ -126,6 +126,7 @@ const GLYPHS: Record<string, Glyph> = {
   '°': g(2.2, ring(1.1, 5, 0.9, 0.9)),
 }
 GLYPHS['μ'] = GLYPHS['µ']
+GLYPHS['²'] = g(GLYPHS['2'].w * 0.55, ...GLYPHS['2'].lines.map((l) => l.map(([x, y]): Pt => [x * 0.55, 3.4 + y * 0.43])))
 
 export const hasGlyph = (ch: string) => ch in GLYPHS || OVERBARS.has(ch)
 
