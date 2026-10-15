@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡‘’“”'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓↔↕⇄✓✗⚡‘’“”'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -73,6 +73,14 @@ describe('strokeFont', () => {
     expect(down[1][1]).toBeLessThan(down[0][1])
     const [left] = layoutText('←').lines
     expect(left[1][0]).toBeLessThan(left[0][0])
+    const [h, l, r] = layoutText('↔').lines
+    expect(h[1][0]).toBeGreaterThan(h[0][0])
+    expect(l[1][0]).toBeLessThan(r[1][0])
+    const [, top, bottom] = layoutText('↕').lines
+    expect(top[1][1]).toBeGreaterThan(bottom[1][1])
+    const [fwd, , back] = layoutText('⇄').lines
+    expect(fwd[0][1]).toBeGreaterThan(back[0][1])
+    expect(back[1][0]).toBeLessThan(back[0][0])
     expect(layoutText('✓').lines.length).toBe(1)
     expect(layoutText('✗').lines.length).toBe(2)
     expect(layoutText('⚡').lines[0].length).toBe(4)

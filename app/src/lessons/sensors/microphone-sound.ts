@@ -457,7 +457,7 @@ export const soundSourceDirection: Lesson = {
           bounds.forEach((b, i) => (b.position.x = corrScope.xAt((L + (i ? 1 : -1) * valid) / (2 * L))))
           lagL.set(`−${L}`)
           lagR.set(`+${L}`)
-          corrTitle.set(`Cross-correlation: L-R peak ${R.lagLR >= 0 ? '+' : ''}${R.lagLR.toFixed(1)}${R.fb ? `, F-B ${R.lagFB >= 0 ? '+' : ''}${R.lagFB.toFixed(1)}` : ''}`, B_FIELD)
+          corrTitle.set(`Cross-correlation: L↔R peak ${R.lagLR >= 0 ? '+' : ''}${R.lagLR.toFixed(1)}${R.fb ? `, F↕B ${R.lagFB >= 0 ? '+' : ''}${R.lagFB.toFixed(1)}` : ''}`, B_FIELD)
           srcTag.set(D.kind === 'clap' ? 'clap' : `${TONE_HZ / 1000} kHz`)
         }
         s.t += dt
