@@ -325,7 +325,7 @@ export function benchScope(parent: THREE.Object3D, w = 12.5, h = 10, opts: { div
     m.castShadow = false
     return m
   }
-  caption('DSO 1102', [(ka + kb) / 2, top - 0.8, 0], '#e8e8e8', 0.5)
+  caption('DSO 1102', [(ka + kb) / 2, top - 0.6, 0], '#e8e8e8', 0.42)
   const knob = (x: number, y: number, r: number, name: string, ring?: string) => {
     const g = add(group, new THREE.Group(), [x, y, -0.5])
     if (ring) cylinder(g, r + 0.25, 0.15, glowMat(ring, 0.5), [0, 0, 0], 'z', 40)
@@ -336,23 +336,26 @@ export function benchScope(parent: THREE.Object3D, w = 12.5, h = 10, opts: { div
     caption(name, [x, y - r - 0.55, 0])
     return { group: g, set: (angle: number) => (dial.rotation.z = -angle) }
   }
+  const yBnc = -h / 2 + 0.3
+  const yBtn = yBnc + 1.55
+  const y1 = top - 2.5
+  const y2 = (y1 + yBtn - 0.625) / 2
   const knobs = {
-    volts: knob(ka, h / 2 - 1.6, 1.05, 'VOLTS/DIV', '#ffd84d'),
-    pos: knob(kb, h / 2 - 1.6, 0.6, 'POSITION'),
-    time: knob(ka, -0.4, 1.25, 'TIME/DIV'),
-    level: knob(kb, -0.4, 0.75, 'LEVEL'),
+    volts: knob(ka, y1, 1.05, 'VOLTS/DIV', '#ffd84d'),
+    pos: knob(kb, y1, 0.6, 'POSITION'),
+    time: knob(ka, y2, 1, 'TIME/DIV'),
+    level: knob(kb, y2, 0.75, 'TRIG LVL'),
   }
-  caption('TRIGGER', [kb, 1.3, 0], '#9aa0aa')
   const lampMat = glowMat(GREY, 0.2)
-  add(group, mesh(new THREE.SphereGeometry(0.22, 12, 8), lampMat), [kb + 1.75, 1.3, -0.3])
-  const button = (x: number, y: number, color: string, name: string) => {
-    box(group, [1.5, 0.75, 0.35], mat(color, { rough: 0.5, emissive: color }), [x, y, -0.4]).castShadow = false
-    caption(name, [x, y - 0.75, 0])
+  add(group, mesh(new THREE.SphereGeometry(0.22, 12, 8), lampMat), [kb + 1.4, y2, -0.3])
+  const button = (x: number, color: string, name: string) => {
+    box(group, [2.3, 0.75, 0.35], mat(color, { rough: 0.5, emissive: color }), [x, yBtn, -0.4]).castShadow = false
+    caption(name, [x, yBtn, -0.15], '#f2f2f2', 0.32)
   }
-  button(ka, -h / 2 + 2.5, '#3c8a4c', 'RUN/STOP')
-  button(kb, -h / 2 + 2.5, '#45484f', 'AUTO')
+  button(ka, '#3c8a4c', 'RUN/STOP')
+  button(kb, '#45484f', 'AUTO')
   const bnc = (x: number, color: string, name: string): V3 => {
-    const y = -h / 2 + 0.3
+    const y = yBnc
     cylinder(group, 0.75, 0.15, glowMat(color, 0.5), [x, y, -0.5], 'z', 32)
     cylinder(group, 0.55, 0.9, STEEL(), [x, y, -0.1], 'z', 24)
     cylinder(group, 0.25, 0.95, mat('#111'), [x, y, -0.05], 'z', 16)
