@@ -59,6 +59,7 @@ import { electronics } from './electronics'
 import { driveStrength, interrupts, outputAndInputModes, pullUps } from '../lessons/microcontrollers/gpio'
 import { averageVoltage, dutyCycle, frequencyChoice, servoPulses } from '../lessons/microcontrollers/pwm'
 import { esp32AdcQuirks, noiseAndAveraging, resolutionAndRange, sampling } from '../lessons/microcontrollers/adc'
+import { audioOut, r2rLadder } from '../lessons/microcontrollers/dac'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -265,6 +266,8 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/adc/sampling': sampling,
   'microcontrollers/adc/noise-and-averaging': noiseAndAveraging,
   'microcontrollers/adc/esp32-adc-quirks': esp32AdcQuirks,
+  'microcontrollers/dac/r-2r-ladder': r2rLadder,
+  'microcontrollers/dac/audio-out': audioOut,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

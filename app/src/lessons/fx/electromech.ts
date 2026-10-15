@@ -1,6 +1,6 @@
 // Moving-contact parts, cut open: relay and SSR, tact and toggle switches, rotary pot.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, cylinder, mat, mesh, rod, STEEL, TIN } from '../../models/kit'
+import { V3, add, box, cylinder, lathe, mat, mesh, rod, STEEL, TIN } from '../../models/kit'
 import { Helix } from '../../models/power'
 import { glowHalo } from './circuit'
 import { CONVENTIONAL, COPPER, HIGH_V, LOW_V, RING, glowMat, potentialColor } from './colors'
@@ -419,6 +419,43 @@ export function rotaryPot(parent: THREE.Object3D, at: V3, { scale = 1.6 } = {}) 
       const [x, y] = onTrack(u)
       halo.group.position.set(x, y, 0.5)
       halo.set(0.6, color)
+    },
+  }
+}
+
+/** Loudspeaker facing +z, centre `at`: frame, paper cone, dust cap, magnet behind and two solder tabs below.
+ *  `set(x, loud)` pushes the cone out by x (−1…1) and ripples sound rings scaled by `loud` (0…1). */
+export function speaker(parent: THREE.Object3D, at: V3, r = 2.4) {
+  const g = add(parent, new THREE.Group(), at)
+  cylinder(g, r * 0.5, r * 0.7, mat('#3a3d44', { metal: 0.3, rough: 0.5 }), [0, 0, -r * 0.75], 'z')
+  add(g, mesh(new THREE.TorusGeometry(r, r * 0.07, 10, 48), STEEL()))
+  const cone = add(g, new THREE.Group())
+  const paper = new THREE.MeshStandardMaterial({ color: '#2b2c31', roughness: 0.85, side: THREE.DoubleSide })
+  lathe(cone, [[r * 0.3, -r * 0.45], [r * 0.6, -r * 0.25], [r * 0.95, 0]], paper, [0, 0, 0], 'z', 40)
+  lathe(cone, [[0, -r * 0.2], [r * 0.18, -r * 0.27], [r * 0.3, -r * 0.42]], mat('#3c3e44', { rough: 0.6 }), [0, 0, 0], 'z', 24)
+  const tabs: V3[] = [-0.5, 0.5].map((s): V3 => [at[0] + s * r * 0.6, at[1] - r * 1.05, at[2]])
+  for (const t of tabs) box(parent, [0.35, 0.5, 0.15], TIN(), t)
+  const rings = Array.from({ length: 3 }, (_, i) => {
+    const m = new THREE.MeshBasicMaterial({ color: RING, transparent: true, opacity: 0, depthWrite: false })
+    const o = add(g, mesh(new THREE.TorusGeometry(r, 0.06, 6, 48, Math.PI * 0.6), m), [0, 0, 0.2])
+    o.rotation.z = -Math.PI * 0.3
+    o.castShadow = false
+    return { o, m, phase: i / 3 }
+  })
+  let s = 0
+  return {
+    group: g,
+    plus: tabs[1],
+    minus: tabs[0],
+    set(x: number, loud: number, dt = 0) {
+      cone.position.z = 0.18 * r * x
+      s = (s + dt * 0.8) % 1
+      for (const ring of rings) {
+        const ph = (s + ring.phase) % 1
+        ring.o.scale.setScalar(1.05 + 1.2 * ph)
+        ring.o.position.x = r * 0.6 * ph
+        ring.m.opacity = 0.75 * (1 - ph) * loud
+      }
     },
   }
 }
