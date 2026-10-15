@@ -56,7 +56,7 @@ import {
   wavePool,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const deg = (r: number) => (r * 180) / Math.PI
 const degText = (r: number) => `${Math.round(deg(r))}°`.replace("-", "−")
@@ -330,7 +330,7 @@ export const soundSourceDirection: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'bearing', label: 'Source bearing', min: -180, max: 180, initial: 30, step: 5, format: (v) => `${v}°` },
-    { kind: 'choice', key: 'mics', options: (Object.keys(MIC_SETS) as MicSet[]).map((k) => ({ value: k, label: MIC_SETS[k] })), initial: 'two' },
+    { kind: 'choice', key: 'mics', options: opts(MIC_SETS), initial: 'two' },
     { kind: 'slider', key: 'spacing', label: 'Mic spacing', min: 2, max: 40, initial: 10, step: 1, format: (v) => `${v} cm` },
     { kind: 'choice', key: 'sound', options: Object.entries(DIR_SOUNDS).map(([value, label]) => ({ value, label })), initial: 'clap' },
   ],

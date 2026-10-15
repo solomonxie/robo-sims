@@ -43,7 +43,7 @@ import {
   simClock,
   stateDiagram,
 } from '../fx'
-import { Lesson, Stage, pick } from '../types'
+import { Lesson, Stage, opts, pick } from '../types'
 
 const solid = (name: string, x: [number, number], y: [number, number], h: number): RoomSolid => ({ kind: 'box', name, x, y, h, refl: 0.5 })
 const FURNITURE = [solid('shelf', [4.7, 5.7], [3.55, 3.95], 0.8), solid('table', [0.5, 1.5], [3.55, 3.95], 0.6)]
@@ -128,9 +128,9 @@ export const sequenceAndFallback: Lesson = {
     'Behaviour trees on robots are usually BehaviorTree.CPP (what Nav2 uses) or py_trees; trees are XML, and Groot draws them live like this.',
   ],
   controls: [
-    { kind: 'choice', key: 'seq', options: (Object.keys(SEQ) as (keyof typeof SEQ)[]).map((k) => ({ value: k, label: SEQ[k] })), initial: 'reactive' },
-    { kind: 'choice', key: 'battery', options: (Object.keys(BATT) as (keyof typeof BATT)[]).map((k) => ({ value: k, label: BATT[k] })), initial: 'b35' },
-    { kind: 'choice', key: 'grip', options: (Object.keys(GRIP) as Grip[]).map((k) => ({ value: k, label: GRIP[k] })), initial: 'ok' },
+    { kind: 'choice', key: 'seq', options: opts(SEQ), initial: 'reactive' },
+    { kind: 'choice', key: 'battery', options: opts(BATT), initial: 'b35' },
+    { kind: 'choice', key: 'grip', options: opts(GRIP), initial: 'ok' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -261,7 +261,7 @@ export const blackboard: Lesson = {
     'With max_age 2 s, PoseFresh fails once the pose is 2 s old, the Fallback re-runs DetectCup, and because Approach is a ReactiveSequence, GoTo reads the new goal on its next tick and turns toward the moved cup.',
     'Habits that avoid stale data: stamp values with a time and check it, re-detect near the goal, clear keys a branch no longer owns, and keep remapping explicit so two subtrees do not fight over one key.',
   ],
-  controls: [{ kind: 'choice', key: 'case', options: (Object.keys(CASE) as (keyof typeof CASE)[]).map((k) => ({ value: k, label: CASE[k] })), initial: 'stale' }],
+  controls: [{ kind: 'choice', key: 'case', options: opts(CASE), initial: 'stale' }],
   build(): Stage {
     const scene = createStage({ span: 40 })
     const tree = btDiagram(scene, BB_TREE, BT, PORT_TAG)

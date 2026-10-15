@@ -61,7 +61,7 @@ import {
   trayMat,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
 const PERIPH = '#7fa8ff'
 const OFF = '#23262d'
@@ -219,7 +219,7 @@ export const deepSleep: Lesson = {
     'Deep sleep: everything outside the RTC domain is switched off: ~10 µA. RAM is gone, so waking is a reset: setup() runs again. Only variables marked RTC_DATA_ATTR survive.',
     'Those µA are the chip alone. A DevKit’s USB-UART bridge, AMS1117 regulator and power LED add ~8 mA, which swamps deep sleep: battery projects use a bare module and a low-quiescent regulator.',
   ],
-  controls: [{ kind: 'choice', key: 'mode', options: (Object.keys(MODES) as PowerMode[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'deep' }],
+  controls: [{ kind: 'choice', key: 'mode', options: opts(MODES), initial: 'deep' }],
   build(): Stage {
     const scene = createStage({ span: 36 })
     const chip = chipView(scene, [3.5, 0, 0])
@@ -344,8 +344,8 @@ export const wakeSources: Lesson = {
     'That boot costs as much charge as many minutes of sleep. Skipping the image check after deep sleep and turning off boot logs (Fast boot) cuts it ~3×; waking every few seconds is cheaper in light sleep.',
   ],
   controls: [
-    { kind: 'choice', key: 'src', options: (Object.keys(SOURCES) as WakeSource[]).map((k) => ({ value: k, label: SOURCES[k] })), initial: 'timer' },
-    { kind: 'choice', key: 'boot', options: (Object.keys(BOOTS) as (keyof typeof BOOTS)[]).map((k) => ({ value: k, label: BOOTS[k] })), initial: 'full' },
+    { kind: 'choice', key: 'src', options: opts(SOURCES), initial: 'timer' },
+    { kind: 'choice', key: 'boot', options: opts(BOOTS), initial: 'full' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })
@@ -533,8 +533,8 @@ export const batteryBudget: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'every', options: (Object.keys(EVERY) as (keyof typeof EVERY)[]).map((k) => ({ value: k, label: EVERY_TEXT[k] })), initial: '600' },
-    { kind: 'choice', key: 'radio', options: (Object.keys(RADIOS) as NodeRadio[]).map((k) => ({ value: k, label: RADIOS[k] })), initial: 'wifi' },
-    { kind: 'choice', key: 'cell', options: (Object.keys(CELLS) as CellId[]).map((k) => ({ value: k, label: CELLS[k] })), initial: 'li18650' },
+    { kind: 'choice', key: 'radio', options: opts(RADIOS), initial: 'wifi' },
+    { kind: 'choice', key: 'cell', options: opts(CELLS), initial: 'li18650' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })

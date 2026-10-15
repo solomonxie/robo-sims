@@ -1,9 +1,11 @@
 // Rooms for mobile-robot lessons, drawn in metres (x, y floor, z up) inside a group the caller scales and turns: solids, a robot with a lidar head, point clouds and ray fans.
 import * as THREE from 'three/webgpu'
 import { CostGrid, INSCRIBED, LETHAL, Room, RoomSolid } from '../../core/physics'
-import { B_FIELD, potentialColor } from './colors'
+import { B_FIELD, GREY, HIGH_V, glowMat, potentialColor, setGlow } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
+import { IDLE } from './mcu'
 import { flatBox } from './shapes'
+import { addLabel } from './text'
 
 const SOLID_LOOK = {
   glass: () => mat('#9fd8ff', { rough: 0.1, opacity: 0.35 }),
@@ -146,4 +148,12 @@ export function floorMat(g: THREE.Object3D, x: [number, number], y: [number, num
   const tape = mat('#353a44', { rough: 0.8 })
   for (let v = Math.ceil(x[0] * 2) / 2; v <= x[1]; v += 0.5) flatBox(g, [0.01, y[1] - y[0], 0.004], tape, [v, (y[0] + y[1]) / 2, 0.002])
   for (let v = Math.ceil(y[0] * 2) / 2; v <= y[1]; v += 0.5) flatBox(g, [x[1] - x[0], 0.01, 0.004], tape, [(x[0] + x[1]) / 2, v, 0.002])
+}
+
+/** Wall across the floor at `x`; `hit(crashed)` lights it red. */
+export function crashWall(g: THREE.Object3D, x: number, size = 0.12) {
+  const m = glowMat(IDLE, 0.2)
+  box(g, [0.06, 0.7, 0.3], m, [x + 0.03, 0, 0.15])
+  addLabel(g, 'wall', [x + 0.03, -0.5, 0.02], GREY, size)
+  return (crashed: boolean) => setGlow(m, crashed ? HIGH_V : IDLE, crashed ? 1 : 0.2)
 }

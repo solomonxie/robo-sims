@@ -45,14 +45,13 @@ import {
   storyClock,
   storySlider,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 type P2 = [number, number]
 const fade = (color: string, opacity = 1, emissive = 0) =>
   new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: emissive, transparent: true, opacity, depthWrite: false, roughness: 0.5 })
 const nH = (h: number) => `${+(h * 1e9).toFixed(1)} nH`
 const mm = (v: number, d = 2) => `${+v.toFixed(d)} mm`
-const opts = <R extends Record<string, string>>(rec: R) => Object.keys(rec).map((k) => ({ value: k, label: rec[k] }))
 
 // --- Schematic capture: symbols → footprints → ratsnest → copper; placement decides how tangled the ratsnest is. ---
 

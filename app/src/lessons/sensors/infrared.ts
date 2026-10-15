@@ -53,7 +53,7 @@ import {
   sineHash,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 
 /** 5 mm LED lying in the screen plane, dome toward `dir` (±1 on x); → its tip and glow. */
@@ -282,7 +282,7 @@ export const lineFollower: Lesson = {
   controls: [
     { kind: 'slider', key: 'speed', label: 'Base speed', min: 0.1, max: 0.8, step: 0.05, initial: 0.35, format: (v) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'kp', label: 'Kp (per metre)', min: 5, max: 120, step: 5, initial: 40, format: (v) => `${v}` },
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as (keyof typeof MODES)[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'analog' },
+    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'analog' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -466,7 +466,7 @@ export const sunlightInterference: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'klux', label: 'Sunlight', min: 0, max: 100, step: 1, initial: 20, format: (v) => (v < 1 ? 'dark room' : `${v} klux`) },
-    { kind: 'choice', key: 'rx', options: (Object.keys(RX) as Rx[]).map((k) => ({ value: k, label: RX[k] })), initial: 'plain' },
+    { kind: 'choice', key: 'rx', options: opts(RX), initial: 'plain' },
     { kind: 'slider', key: 'm', label: 'Remote distance', min: 0.1, max: 8, step: 0.1, initial: 0.2, format: (v) => `${v.toFixed(1)} m` },
   ],
   build(): Stage {

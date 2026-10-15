@@ -1,14 +1,9 @@
 // Timers & interrupts: hardware timer alarms, one-at-a-time ISR servicing, shared-counter races, millis() scheduling.
+import { hash01 } from '../common'
 import { nextLoopRead } from './gpio'
 
 export const APB_HZ = 80e6
 export const ISR_LATENCY_S = 2e-6
-
-/** Repeatable 0…1 for integer `i` (sine hash). */
-export const hash01 = (i: number) => {
-  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453
-  return x - Math.floor(x)
-}
 
 export const timerTickHz = (prescaler: number, clk = APB_HZ) => clk / prescaler
 /** Alarm value for a period: whole ticks, at least one. */

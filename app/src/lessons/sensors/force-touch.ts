@@ -34,7 +34,7 @@ import {
   textLines,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 
 // --- Strain gauge: a bar load cell bends, its foil gauges stretch, a Wheatstone bridge turns milliohms into microvolts, the HX711 counts them, tare + one known weight give grams. ---
@@ -112,7 +112,7 @@ export const strainGauge: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'grams', label: 'Weight', min: 0, max: 1000, initial: 200, step: 10, format: (v) => `${v} g` },
-    { kind: 'choice', key: 'bridge', options: (Object.keys(BRIDGES) as Bridge[]).map((k) => ({ value: k, label: BRIDGES[k] })), initial: 'full' },
+    { kind: 'choice', key: 'bridge', options: opts(BRIDGES), initial: 'full' },
     { kind: 'choice', key: 'step', options: Object.entries(STEPS).map(([value, label]) => ({ value, label })), initial: 'cal' },
   ],
   build(): Stage {
@@ -408,10 +408,10 @@ export const capacitiveTouch: Lesson = {
     'Water also adds capacitance. A droplet floating on the cover barely changes it, but a puddle that bridges the pad to the ground copper around it looks just like a finger. ESP32-S2/S3 drive a shield electrode to ignore water; on the ESP32, ignore slow changes and reject touches that never lift.',
   ],
   controls: [
-    { kind: 'choice', key: 'cover', options: (Object.keys(COVERS) as Overlay[]).map((k) => ({ value: k, label: COVERS[k] })), initial: 'bare' },
+    { kind: 'choice', key: 'cover', options: opts(COVERS), initial: 'bare' },
     { kind: 'slider', key: 'thr', label: 'Threshold', min: 50, max: 98, initial: 80, step: 1, format: (v) => `${v} % of idle` },
     { kind: 'choice', key: 'hyst', options: Object.entries(HYST).map(([value, label]) => ({ value, label })), initial: 'on' },
-    { kind: 'choice', key: 'water', options: (Object.keys(WATERS) as Water[]).map((k) => ({ value: k, label: WATERS[k] })), initial: 'none' },
+    { kind: 'choice', key: 'water', options: opts(WATERS), initial: 'none' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })

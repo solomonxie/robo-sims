@@ -40,7 +40,7 @@ import {
   shadowlessRod,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
 const rssiColor = (r: number) => (r > -67 ? POWER : r > -77 ? RING : r > -82 ? HEAT : HIGH_V)
 const rssiTone = (r: number) => (r > -67 ? 'ok' : r > -82 ? 'warn' : 'bad')
@@ -122,7 +122,7 @@ export const stationAndAp: Lesson = {
     'RSSI falls with distance as in Radio basics → 2.4 GHz; here walls and furniture near the floor are folded into a steeper n = 3.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as (keyof typeof MODES)[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'sta' },
+    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'sta' },
     { kind: 'choice', key: 'dist', options: Object.keys(SA_DISTS).map((k) => ({ value: k, label: `${k} m` })), initial: '25' },
   ],
   build(): Stage {
@@ -289,7 +289,7 @@ export const httpAndWebSocket: Lesson = {
     `At ${Math.round(RTT * 1000)} ms round trip (typical for an ESP32 on Wi-Fi with modem sleep) polling tops out at 20–40 Hz; a WebSocket keeps up at 50 Hz with a fraction of the bytes. Use HTTP for pages and commands, a WebSocket for live telemetry and joysticks.`,
   ],
   controls: [
-    { kind: 'choice', key: 'proto', options: (Object.keys(PROTOS) as (keyof typeof PROTOS)[]).map((k) => ({ value: k, label: PROTOS[k] })), initial: 'http' },
+    { kind: 'choice', key: 'proto', options: opts(PROTOS), initial: 'http' },
     { kind: 'choice', key: 'rate', options: Object.keys(RATES).map((k) => ({ value: k, label: `${k} Hz` })), initial: '20' },
   ],
   build(): Stage {
@@ -430,7 +430,7 @@ export const bleGatt: Lesson = {
     'Notify: the phone writes 01 00 to the characteristic’s CCCD (0x2902) once, then the ESP32 sends each new value at the next event by itself. One packet, half the delay, and nothing sent when nothing changed.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: (Object.keys(BLE_MODES) as (keyof typeof BLE_MODES)[]).map((k) => ({ value: k, label: BLE_MODES[k] })), initial: 'notify' },
+    { kind: 'choice', key: 'mode', options: opts(BLE_MODES), initial: 'notify' },
     { kind: 'choice', key: 'ci', options: Object.keys(CIS).map((k) => ({ value: k, label: `CI ${k} ms` })), initial: '30' },
   ],
   build(): Stage {

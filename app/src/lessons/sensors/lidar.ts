@@ -49,7 +49,7 @@ import {
   roomModel,
   scope,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const DIM = new THREE.Color(RING).multiplyScalar(0.35)
 const BRIGHT = new THREE.Color(RING)
@@ -132,9 +132,9 @@ export const scan2d: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'hz', label: 'Scan rate', min: 2, max: 10, step: 0.5, initial: 5.5, format: (v) => `${v} Hz` },
-    { kind: 'choice', key: 'rate', options: (Object.keys(SAMPLE) as (keyof typeof SAMPLE)[]).map((k) => ({ value: k, label: SAMPLE[k] })), initial: 's8k' },
-    { kind: 'choice', key: 'motion', options: (Object.keys(MOTION) as (keyof typeof MOTION)[]).map((k) => ({ value: k, label: MOTION[k] })), initial: 'drive' },
-    { kind: 'choice', key: 'deskew', options: (Object.keys(DESKEW) as (keyof typeof DESKEW)[]).map((k) => ({ value: k, label: DESKEW[k] })), initial: 'off' },
+    { kind: 'choice', key: 'rate', options: opts(SAMPLE), initial: 's8k' },
+    { kind: 'choice', key: 'motion', options: opts(MOTION), initial: 'drive' },
+    { kind: 'choice', key: 'deskew', options: opts(DESKEW), initial: 'off' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -311,8 +311,8 @@ export const pointClouds: Lesson = {
     'Clouds are heavy: 16 × 1800 points × 10 Hz is ~300 000 points/s over Ethernet, too much for an ESP32; a Raspberry Pi or Jetson runs it, often with ROS. Drawn here every 2°, real heads step 0.2°.',
   ],
   controls: [
-    { kind: 'choice', key: 'layers', options: (Object.keys(LAYERS) as (keyof typeof LAYERS)[]).map((k) => ({ value: k, label: LAYERS[k] })), initial: 'l16' },
-    { kind: 'choice', key: 'color', options: (Object.keys(COLOR_BY) as (keyof typeof COLOR_BY)[]).map((k) => ({ value: k, label: COLOR_BY[k] })), initial: 'height' },
+    { kind: 'choice', key: 'layers', options: opts(LAYERS), initial: 'l16' },
+    { kind: 'choice', key: 'color', options: opts(COLOR_BY), initial: 'height' },
     { kind: 'slider', key: 'person', label: 'Person ahead', min: 0.8, max: 4, step: 0.1, initial: 1.8, format: (v) => `${v.toFixed(1)} m` },
   ],
   build(): Stage {
@@ -480,7 +480,7 @@ export const rangeAndResolution: Lesson = {
   controls: [
     { kind: 'slider', key: 'res', label: 'Angular step', min: 0.25, max: 2, step: 0.05, initial: 1, format: (v) => `${v.toFixed(2)}° (${Math.floor(360 / v)} pts)` },
     { kind: 'slider', key: 'leg', label: 'Chair leg distance', min: 1, max: 10, step: 0.1, initial: 4, format: (v) => `${v.toFixed(1)} m` },
-    { kind: 'choice', key: 'surf', options: (Object.keys(SURF) as (keyof typeof SURF)[]).map((k) => ({ value: k, label: SURF[k] })), initial: 'black' },
+    { kind: 'choice', key: 'surf', options: opts(SURF), initial: 'black' },
     { kind: 'slider', key: 'panel', label: 'Panel distance', min: 1.5, max: 10, step: 0.5, initial: 5, format: (v) => `${v} m` },
   ],
   build(): Stage {

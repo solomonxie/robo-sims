@@ -23,7 +23,7 @@ import {
   walledRoom,
 } from '../../core/physics'
 import { bytesText, hertz } from '../../core/units'
-import { V3, add, box, cylinder, mat } from '../../models/kit'
+import { V3, add, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -34,6 +34,7 @@ import {
   POWER,
   RING,
   addLabel,
+  cursorBar,
   floorView,
   glowMat,
   lidarRobot,
@@ -48,21 +49,7 @@ import {
   simClock,
   topicPipe,
 } from '../fx'
-import { Lesson, Stage, pick } from '../types'
-
-const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(rec) as (keyof R & string)[]).map((k) => ({ value: k, label: rec[k] }))
-type Plot = ReturnType<typeof scope>
-
-/** Glowing vertical bar on a plot; `at(u)` moves it, null hides it. */
-function cursorBar(plot: Plot, color: string, w = 0.12) {
-  const m = glowMat(color, 1.2)
-  const b = box(plot.group, [w, plot.height, 0.12], m, [0, 0, 0.3])
-  b.castShadow = false
-  return (u: number | null) => {
-    b.visible = u !== null && u >= 0 && u <= 1
-    if (u !== null) b.position.x = plot.xAt(u)
-  }
-}
+import { Lesson, Stage, opts, pick } from '../types'
 
 // --- Plotting live data: a 200 Hz speed loop streamed over a 57.6 kbaud radio into a PlotJuggler-style plot. ---
 
@@ -281,7 +268,7 @@ export const replayLogs: Lesson = {
     const aY = (v: number) => (v / AMP_MAX - 0.5) * amps.height
     const N = 700
     const tr = { gz: gyro.trace(B_FIELD, { samples: N, radius: 0.05 }), enc: gyro.trace(LABEL, { samples: N, radius: 0.08 }), amps: amps.trace(HEAT, { samples: N, radius: 0.07 }) }
-    const cur = [cursorBar(gyro, RING), cursorBar(amps, RING)]
+    const cur = [cursorBar(gyro, RING, 0.12), cursorBar(amps, RING, 0.12)]
     const mark = liveLabel(scene, [0, 0.5, 0.3], { size: 0.4 })
     addLabel(scene, `yaw rate ${GZ.lo} … ${GZ.hi} rad/s`, [11, 6.6, 0.3], GREY, 0.4, 'right')
     addLabel(scene, `motor current 0 … ${AMP_MAX} A`, [11, -1.2, 0.3], GREY, 0.4, 'right')

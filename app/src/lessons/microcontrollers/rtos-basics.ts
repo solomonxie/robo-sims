@@ -58,7 +58,7 @@ import {
   stretchRod,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const SLOW_S = 0.15
 const SLOWDOWN = Math.round(SLOW_S / 1e-3)
@@ -154,8 +154,8 @@ export const tasksAndPriorities: Lesson = {
     'The second core is a separate CPU running its own ready list: pin telemetry to core 0 and both run truly in parallel. Unlike a millis() scheduler (Timers & interrupts → Millis without delay), a slow job can’t hold up the urgent one.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as PrioMode[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'preempt' },
-    { kind: 'choice', key: 'cores', options: (Object.keys(CORES) as (keyof typeof CORES)[]).map((k) => ({ value: k, label: CORES[k] })), initial: 'one' },
+    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'preempt' },
+    { kind: 'choice', key: 'cores', options: opts(CORES), initial: 'one' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })
@@ -295,7 +295,7 @@ export const queues: Lesson = {
     'A queue only absorbs bursts: on average the consumer must keep up. A queue of length 1 overwritten each time (xQueueOverwrite) is the “latest value only” mailbox, good for sensor readings where old data is useless.',
   ],
   controls: [
-    { kind: 'choice', key: 'producer', options: (Object.keys(PRODUCERS) as Producer[]).map((k) => ({ value: k, label: PRODUCERS[k] })), initial: 'isr' },
+    { kind: 'choice', key: 'producer', options: opts(PRODUCERS), initial: 'isr' },
     { kind: 'slider', key: 'period', label: 'Reading every', min: 2, max: 10, step: 1, initial: 4, format: (v) => `${v} ms` },
     { kind: 'slider', key: 'work', label: 'Control work', min: 1, max: 10, step: 1, initial: 3, format: (v) => `${v} ms` },
   ],
@@ -496,8 +496,8 @@ export const mutexes: Lesson = {
     'Keep the locked part short, take locks in the same order everywhere (or two tasks can wait on each other forever: a deadlock), never take a mutex in an ISR, and use a timeout instead of portMAX_DELAY when a stuck bus must not hang the robot.',
   ],
   controls: [
-    { kind: 'choice', key: 'bus', options: (Object.keys(BUSES) as Bus[]).map((k) => ({ value: k, label: BUSES[k] })), initial: 'serial' },
-    { kind: 'choice', key: 'lock', options: (Object.keys(LOCKS) as Locking[]).map((k) => ({ value: k, label: LOCKS[k] })), initial: 'none' },
+    { kind: 'choice', key: 'bus', options: opts(BUSES), initial: 'serial' },
+    { kind: 'choice', key: 'lock', options: opts(LOCKS), initial: 'none' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })

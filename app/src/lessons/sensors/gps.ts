@@ -49,7 +49,7 @@ import {
   smoothstep,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const SAT_COLORS = [RING, B_FIELD, FORCE, DATA_COLOR]
 /** Local (east, north, up) → stage: east +x, up +y, north −z (away from the camera). */
@@ -192,7 +192,7 @@ export const trilateration: Lesson = {
     'A 4th satellite adds the 4th equation: solve x, y, z and the clock bias b together. Only one b makes all four spheres meet, so every GPS fix also sets the receiver clock to within ~20 ns.',
   ],
   controls: [
-    { kind: 'choice', key: 'count', options: (Object.keys(COUNTS) as (keyof typeof COUNTS)[]).map((k) => ({ value: k, label: COUNTS[k] })), initial: '4' },
+    { kind: 'choice', key: 'count', options: opts(COUNTS), initial: '4' },
     { kind: 'slider', key: 'clock', label: 'Receiver clock error', min: 0, max: 10, step: 0.5, initial: 4, format: (v) => `${v.toFixed(1)} µs` },
   ],
   build(): Stage {
@@ -393,7 +393,7 @@ export const fixAndAccuracy: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'sats', label: 'Satellites above the horizon', min: 2, max: 10, step: 1, initial: 7, format: (v) => `${v.toFixed(0)}` },
-    { kind: 'choice', key: 'sky', options: (Object.keys(SKIES) as Sky[]).map((k) => ({ value: k, label: SKIES[k] })), initial: 'open' },
+    { kind: 'choice', key: 'sky', options: opts(SKIES), initial: 'open' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -608,7 +608,7 @@ export const rtk: Lesson = {
     'As epochs pile up the decimals tighten until rounding to whole numbers is clearly right (the ratio test). Then the fix snaps to ~1 cm. Past ~15 km the base’s sky differs too much, the residual blurs the cycles and it stays float.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as Mode[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'rtk' },
+    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'rtk' },
     { kind: 'slider', key: 'km', label: 'Base to rover', min: 1, max: 30, step: 1, initial: 5, format: (v) => `${v.toFixed(0)} km` },
   ],
   build(): Stage {

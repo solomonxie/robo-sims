@@ -65,7 +65,7 @@ import {
   topicPipe,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const NODE: V3 = [7, 2.8, 1.4]
 const sec = (ms: number) => `${(ms / 1000).toFixed(1)} s`
@@ -123,7 +123,7 @@ export const publishAndSubscribe: Lesson = {
     'The other pipes are the same idea: teleop publishes /cmd_vel (geometry_msgs/Twist) to the motor driver, which publishes /odom back for slam.',
   ],
   controls: [
-    { kind: 'choice', key: 'qos', options: (Object.keys(QOS) as Qos[]).map((k) => ({ value: k, label: QOS[k] })), initial: 'best_effort' },
+    { kind: 'choice', key: 'qos', options: opts(QOS), initial: 'best_effort' },
     { kind: 'slider', key: 'hz', label: 'Publish rate', min: 5, max: 20, initial: 10, step: 5, format: (v) => `${v} Hz` },
     { kind: 'slider', key: 'depth', label: 'Queue depth', min: 1, max: 8, initial: 3, step: 1, format: (v) => `${v}` },
   ],
@@ -314,7 +314,7 @@ export const servicesAndActions: Lesson = {
     'Rule of thumb: topic for continuous data, service for a fast request/response (well under a second), action for anything that takes time, reports progress or might be pre-empted.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODE) as CallMode[]).map((k) => ({ value: k, label: MODE[k] })), initial: 'service' },
+    { kind: 'choice', key: 'mode', options: opts(MODE), initial: 'service' },
     { kind: 'slider', key: 'dist', label: 'Goal distance', min: 1, max: 3, initial: 2, step: 0.5, format: (v) => `${v} m` },
   ],
   build(): Stage {
@@ -494,7 +494,7 @@ export const launchFiles: Lesson = {
     'Without respawn the node stays dead and everything downstream starves: no /odom, and the wheels keep the last command unless the driver has a timeout (Safety & failsafes → Watchdog). For a node the robot can’t live without, on_exit=Shutdown() takes the whole launch down instead.',
   ],
   controls: [
-    { kind: 'choice', key: 'respawn', options: (Object.keys(RESPAWN) as (keyof typeof RESPAWN)[]).map((k) => ({ value: k, label: RESPAWN[k] })), initial: 'on' },
+    { kind: 'choice', key: 'respawn', options: opts(RESPAWN), initial: 'on' },
     { kind: 'slider', key: 'delay', label: 'respawn_delay', min: 0.5, max: 4, initial: 2, step: 0.5, format: (v) => `${v} s` },
   ],
   build(): Stage {

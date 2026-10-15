@@ -48,3 +48,7 @@ export const flatBox = (parent: THREE.Object3D, size: V3, m: THREE.Material, at:
   o.castShadow = false
   return o
 }
+
+/** See-through housing material. */
+export const shellMat = (color: string, opacity: number, roughness = 0.1) =>
+  new THREE.MeshStandardMaterial({ color, transparent: true, opacity, roughness, depthWrite: false })

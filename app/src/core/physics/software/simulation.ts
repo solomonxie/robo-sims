@@ -1,6 +1,5 @@
 // Simulation: a tiny 2D rigid-body engine (boxes, penalty contacts) and a sim-vs-real differential-drive twin.
-import { gaussAt } from '../mcu/adc'
-import { clamp } from '../common'
+import { clamp, gaussAt } from '../common'
 
 export type Integrator = 'euler' | 'semi'
 

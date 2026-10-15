@@ -69,7 +69,7 @@ import {
   stretchRod,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const ms = (t: number) => `${+t.toFixed(1)} ms`
 
@@ -140,7 +140,7 @@ export const superLoopVsRtos: Lesson = {
     'Rule of thumb: a super-loop for one job with short, non-blocking steps; tasks once anything can block (Wi-Fi, SD card, a slow I²C sensor) or needs a guaranteed rate.',
   ],
   controls: [
-    { kind: 'choice', key: 'arch', options: (Object.keys(ARCH) as (keyof typeof ARCH)[]).map((k) => ({ value: k, label: ARCH[k] })), initial: 'loop' },
+    { kind: 'choice', key: 'arch', options: opts(ARCH), initial: 'loop' },
     { kind: 'slider', key: 'stall', label: 'Wi-Fi stall', min: 0, max: 30, initial: 15, step: 5, format: (v) => `${v} ms` },
   ],
   build(): Stage {
@@ -337,8 +337,8 @@ export const hardwareAbstraction: Lesson = {
     'Keep the interface narrow and in the robot’s units (speed −1…1, millimetres), not the chip’s (duty counts, echo µs).',
   ],
   controls: [
-    { kind: 'choice', key: 'motor', options: (Object.keys(MOTORS) as MotorChip[]).map((k) => ({ value: k, label: MOTORS[k] })), initial: 'l298n' },
-    { kind: 'choice', key: 'range', options: (Object.keys(RANGES) as RangeChip[]).map((k) => ({ value: k, label: RANGES[k] })), initial: 'vl53' },
+    { kind: 'choice', key: 'motor', options: opts(MOTORS), initial: 'l298n' },
+    { kind: 'choice', key: 'range', options: opts(RANGES), initial: 'vl53' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })
@@ -498,7 +498,7 @@ export const fixedRateControlLoop: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'spike', label: 'SD log write', min: 0, max: 50, initial: 20, step: 5, format: (v) => `${v} ms` },
-    { kind: 'choice', key: 'dt', options: (Object.keys(DT_MODES) as (keyof typeof DT_MODES)[]).map((k) => ({ value: k, label: DT_MODES[k] })), initial: 'measured' },
+    { kind: 'choice', key: 'dt', options: opts(DT_MODES), initial: 'measured' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })

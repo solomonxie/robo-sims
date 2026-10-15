@@ -59,7 +59,7 @@ import {
   toneColor,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const LI = CHEMISTRIES.liion
 const ampsText = (a: number) => (Math.abs(a) < 1 ? `${(a * 1000).toFixed(Math.abs(a) < 0.01 ? 2 : 1)} mA` : `${a.toFixed(3)} A`)
@@ -147,9 +147,9 @@ export const shuntResistor: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'amps', label: 'Motor current', min: 0.05, max: I_MAX, initial: 1, step: 0.05, format: (v) => `${v.toFixed(2)} A` },
-    { kind: 'choice', key: 'shunt', options: (Object.keys(SHUNTS) as (keyof typeof SHUNTS)[]).map((k) => ({ value: k, label: SHUNTS[k] })), initial: '0.1' },
+    { kind: 'choice', key: 'shunt', options: opts(SHUNTS), initial: '0.1' },
     { kind: 'choice', key: 'gain', options: Object.entries(GAINS).map(([value, label]) => ({ value, label })), initial: '10' },
-    { kind: 'choice', key: 'side', options: (Object.keys(SIDES) as ShuntSide[]).map((k) => ({ value: k, label: SIDES[k] })), initial: 'low' },
+    { kind: 'choice', key: 'side', options: opts(SIDES), initial: 'low' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })

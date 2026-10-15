@@ -1,6 +1,5 @@
 // Camera: pinhole projection, rolling vs global shutter readout, exposure (signal, shot + read noise, gain, clipping), radial lens distortion.
-import { DEG } from '../common'
-import { gaussAt } from '../mcu/adc'
+import { DEG, gaussAt } from '../common'
 
 
 /** OV2640 (ESP32-CAM): 2.2 µm pixels, 1600 × 1200; SVGA mode 800 × 600 at 30 fps with 672 line times per frame. */

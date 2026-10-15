@@ -60,7 +60,7 @@ import {
   topicPipe,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const RCLC_LEGEND = { color: IDF, label: 'Code: rclc (C) blue, $ agent CLI green', shape: 'dot' } as const
 const sec = (ms: number) => `${(ms / 1000).toFixed(1)} s`
@@ -123,7 +123,7 @@ export const agentAndClient: Lesson = {
     'Between the unplug and the missed ping, /imu goes nowhere and no /cmd_vel arrives, so the motor code needs its own timeout. Firmware that only calls rclc init once in setup() stays dead until it is reset; the state machine heals by itself when the agent comes back.',
   ],
   controls: [
-    { kind: 'choice', key: 'agent', options: (Object.keys(AGENT) as AgentScenario[]).map((k) => ({ value: k, label: AGENT[k] })), initial: 'unplug' },
+    { kind: 'choice', key: 'agent', options: opts(AGENT), initial: 'unplug' },
     { kind: 'slider', key: 'pubs', label: 'Publishers', min: 1, max: 6, initial: 2, step: 1, format: (v) => `${v}` },
   ],
   build(): Stage {
@@ -369,8 +369,8 @@ export const serialTransport: Lesson = {
     'Best-effort streams just send; a lost frame is gone, which suits /imu at 100 Hz (the next one is 10 ms away). Reliable streams number every message: the agent NACKs a gap, the client re-sends from its history (RMW_UXRCE_MAX_HISTORY slots), and later messages wait so they arrive in order. Nothing lost, but latency jumps, and on a link that is already full the history fills and publishing stalls.',
   ],
   controls: [
-    { kind: 'choice', key: 'link', options: (Object.keys(LINK) as XrceLink[]).map((k) => ({ value: k, label: LINK[k] })), initial: 'uart115' },
-    { kind: 'choice', key: 'stream', options: (Object.keys(STREAM) as (keyof typeof STREAM)[]).map((k) => ({ value: k, label: STREAM[k] })), initial: 'best_effort' },
+    { kind: 'choice', key: 'link', options: opts(LINK), initial: 'uart115' },
+    { kind: 'choice', key: 'stream', options: opts(STREAM), initial: 'best_effort' },
     { kind: 'slider', key: 'loss', label: 'Frames lost', min: 0, max: 20, initial: 5, step: 5, format: (v) => `${v} %` },
   ],
   build(): Stage {

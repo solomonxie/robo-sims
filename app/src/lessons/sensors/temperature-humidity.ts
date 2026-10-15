@@ -57,7 +57,7 @@ import {
   transistorPart,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const degC = (t: number, d = 1) => `${t < 0 ? '−' : ''}${Math.abs(t).toFixed(d)} °C`
 const signed = (t: number, d = 2) => `${t < 0 ? '−' : '+'}${Math.abs(t).toFixed(d)} °C`
@@ -133,9 +133,9 @@ export const thermistorCurve: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'temp', label: 'Temperature', min: RANGE.lo, max: RANGE.hi, initial: 60, step: 1, format: (v) => degC(v, 0) },
-    { kind: 'choice', key: 'method', options: (Object.keys(METHODS) as NtcMethod[]).map((k) => ({ value: k, label: METHODS[k] })), initial: 'beta' },
+    { kind: 'choice', key: 'method', options: opts(METHODS), initial: 'beta' },
     { kind: 'choice', key: 'rfix', options: (Object.keys(FIXED) as (keyof typeof FIXED)[]).map((k) => ({ value: k, label: `Fixed ${ohms(FIXED[k])}` })), initial: '10k' },
-    { kind: 'choice', key: 'medium', options: (Object.keys(MEDIA) as Medium[]).map((k) => ({ value: k, label: MEDIA[k] })), initial: 'still' },
+    { kind: 'choice', key: 'medium', options: opts(MEDIA), initial: 'still' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })

@@ -1,10 +1,9 @@
 // Magnetometer: Earth's field on three axes, atan2 heading, tilt compensation, declination, hard/soft-iron calibration.
-import { DEG } from '../common'
+import { DEG, gaussAt, wrap2pi, wrapPi } from '../common'
 import { Vec3 } from '../../fields'
 import { gaussSolve } from '../../nodal'
 import { MU_0 } from '../electromagnetism'
 import { accelPitch } from '../mcu/i2c'
-import { gaussAt } from '../mcu/adc'
 
 const TAU = 2 * Math.PI
 
@@ -36,8 +35,6 @@ export function toLevel([x, y, z]: Vec3, pitch: number, roll = 0): Vec3 {
   return [x * Math.cos(pitch) - zp * Math.sin(pitch), yl, x * Math.sin(pitch) + zp * Math.cos(pitch)]
 }
 
-export const wrap2pi = (a: number) => ((a % TAU) + TAU) % TAU
-export const wrapPi = (a: number) => wrap2pi(a + Math.PI) - Math.PI
 /** Heading clockwise from magnetic north for a level sensor (X forward, Y left): atan2(y, x). */
 export const magHeading = ([x, y]: Vec3) => wrap2pi(Math.atan2(y, x))
 /** Left-side-up roll from an accel reading. */

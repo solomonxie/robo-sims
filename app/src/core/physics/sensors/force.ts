@@ -1,7 +1,7 @@
 // Force & touch: bar load cell strain, foil gauge ΔR, Wheatstone bridge, HX711 counts with tare and calibration; ESP32 touch pad charge timing, finger and water capacitance, threshold + hysteresis.
+import { gaussAt } from '../common'
 import { solveNodal } from '../../nodal'
 import { EPSILON_0 } from '../electromagnetism'
-import { gaussAt } from '../mcu/adc'
 
 const G = 9.81
 

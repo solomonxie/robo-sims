@@ -52,7 +52,7 @@ import {
   addRod,
   urdfModel,
 } from '../fx'
-import { Lesson, Stage, n, pick } from '../types'
+import { Lesson, Stage, n, opts, pick } from '../types'
 
 const AXES_LEGEND = { color: AXIS_RGB[0], label: 'Axes: x red, y green, z blue', shape: 'dot' } as const
 const MAP_C = '#e8e8e8'
@@ -128,7 +128,7 @@ export const frameTree: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'dist', label: 'Driven', min: 0, max: 15, initial: 9, step: 1, format: (v) => `${v} m` },
-    { kind: 'choice', key: 'corr', options: (Object.keys(CORR) as (keyof typeof CORR)[]).map((k) => ({ value: k, label: CORR[k] })), initial: 'on' },
+    { kind: 'choice', key: 'corr', options: opts(CORR), initial: 'on' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })

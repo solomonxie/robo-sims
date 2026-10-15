@@ -1,9 +1,7 @@
 // Sensor fusion: three error characters on one robot, odometry + magnetometer complementary heading, 1D Kalman filter.
-import { DEG } from '../common'
-import { gaussAt } from '../mcu/adc'
+import { DEG, gaussAt, wrap2pi, wrapPi } from '../common'
 import { compAlpha } from './imu'
 import { headingDrift, TT_TRACK_M } from './encoder'
-import { wrap2pi, wrapPi } from './magnetometer'
 
 
 // --- 1D Kalman filter: a mean and a variance per estimate. ---

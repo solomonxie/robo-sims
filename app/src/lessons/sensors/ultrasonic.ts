@@ -46,7 +46,7 @@ import {
   stretchRod,
   wavePool,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const HALF = (HCSR04.halfDeg * Math.PI) / 180
 const HOLD_S = 1.2
@@ -117,7 +117,7 @@ export const timeOfFlight: Lesson = {
   controls: [
     { kind: 'slider', key: 'cm', label: 'Distance', min: 5, max: 400, step: 5, initial: 100, format: (v) => `${v} cm` },
     { kind: 'slider', key: 'temp', label: 'Air temperature', min: -10, max: 40, step: 1, initial: 20, format: (v) => `${v} °C` },
-    { kind: 'choice', key: 'math', options: (Object.keys(MATH) as (keyof typeof MATH)[]).map((k) => ({ value: k, label: MATH[k] })), initial: 'fixed' },
+    { kind: 'choice', key: 'math', options: opts(MATH), initial: 'fixed' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -307,9 +307,9 @@ export const beamAngle: Lesson = {
     'For a robot: mount the sensor level and high enough that the cone misses the floor, and use several sensors in a fan, triggered one after another. The obstacle avoider in State machines → Robot behaviour reacts to exactly this range.',
   ],
   controls: [
-    { kind: 'choice', key: 'scene', options: (Object.keys(SCENES) as BeamScene[]).map((k) => ({ value: k, label: SCENES[k] })), initial: 'box' },
+    { kind: 'choice', key: 'scene', options: opts(SCENES), initial: 'box' },
     { kind: 'slider', key: 'angle', label: 'Box angle / wall tilt', min: 0, max: 40, step: 1, initial: 8, format: (v) => `${v}°` },
-    { kind: 'choice', key: 'fire', options: (Object.keys(FIRE) as (keyof typeof FIRE)[]).map((k) => ({ value: k, label: FIRE[k] })), initial: 'together' },
+    { kind: 'choice', key: 'fire', options: opts(FIRE), initial: 'together' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -514,9 +514,9 @@ export const softTargetErrors: Lesson = {
     'So treat 0 as “no reading”, not as a distance: keep the last good value, slow down, or check with another sensor (an IR or ToF sensor sees foam fine). The 25 ms timeout also caps the range at ~4.3 m.',
   ],
   controls: [
-    { kind: 'choice', key: 'target', options: (Object.keys(TARGET_TEXT) as Target[]).map((k) => ({ value: k, label: TARGET_TEXT[k] })), initial: 'foam' },
+    { kind: 'choice', key: 'target', options: opts(TARGET_TEXT), initial: 'foam' },
     { kind: 'slider', key: 'm', label: 'Distance', min: 0.2, max: 5, step: 0.05, initial: 1.5, format: (v) => `${Math.round(v * 100)} cm` },
-    { kind: 'choice', key: 'handle', options: (Object.keys(HANDLE) as Handle[]).map((k) => ({ value: k, label: HANDLE[k] })), initial: 'zero' },
+    { kind: 'choice', key: 'handle', options: opts(HANDLE), initial: 'zero' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })

@@ -49,7 +49,7 @@ import {
   shadowlessRod,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 import { signed } from '../../core/units'
 
 const hdg = (r: number) => `${String(Math.round(toDeg(wrap2pi(r))) % 360).padStart(3, '0')}°`
@@ -173,7 +173,7 @@ export const heading: Lesson = {
     { kind: 'slider', key: 'heading', label: 'Nose heading', min: 0, max: 355, step: 5, initial: 60, format: (v) => `${v.toFixed(0)}°` },
     { kind: 'slider', key: 'tilt', label: 'Pitch', min: -30, max: 30, step: 1, initial: 15, format: (v) => `${v.toFixed(0)}°` },
     { kind: 'choice', key: 'site', options: SITE_KEYS.map((k) => ({ value: k, label: MAG_SITES[k].name })), initial: 'london' },
-    { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as Mode[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'raw' },
+    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'raw' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -376,7 +376,7 @@ export const hardIronCalibration: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'dist', label: 'Motor to sensor', min: 6, max: 30, step: 1, initial: 10, format: (v) => `${v.toFixed(0)} cm` },
-    { kind: 'choice', key: 'motion', options: (Object.keys(MOTIONS) as CalMotion[]).map((k) => ({ value: k, label: MOTIONS[k] })), initial: 'flat' },
+    { kind: 'choice', key: 'motion', options: opts(MOTIONS), initial: 'flat' },
     { kind: 'slider', key: 'soft', label: 'Soft iron', min: 0, max: 30, step: 5, initial: 0, format: (v) => `${v.toFixed(0)} %` },
   ],
   build(): Stage {

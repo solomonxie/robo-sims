@@ -33,7 +33,7 @@ import {
   scope,
   setGlow,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
 const TAU = 2 * Math.PI
 const vText = (v: number) => si(Math.abs(v), 'V', 2)
@@ -366,7 +366,7 @@ export const cableShields: Lesson = {
     'At radio frequencies it flips: ground both ends, 360° at the connectors, so the shield also blocks magnetic fields. Twisted pair inside a grounded shield covers both.',
     `Scope at 1 mV/div clips anything over 2 mV. Slowed ${SLOW}×.`,
   ],
-  controls: [{ kind: 'choice', key: 'shield', options: (Object.keys(SHIELDS) as Shield[]).map((k) => ({ value: k, label: SHIELDS[k] })), initial: 'none' }],
+  controls: [{ kind: 'choice', key: 'shield', options: opts(SHIELDS), initial: 'none' }],
   build(): Stage {
     const scene = createStage({ span: 22 })
     cableRun(scene, [[-SX - 4, MY, 0], [SX + 4, MY, 0]], '#7a4a2a', 0.4)

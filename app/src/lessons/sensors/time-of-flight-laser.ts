@@ -47,7 +47,7 @@ import {
   sineHash,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 /** Standard normal from two hashes (Box–Muller). */
 const gauss = (k: number) => Math.sqrt(-2 * Math.log(Math.max(1e-6, sineHash(k)))) * Math.cos(2 * Math.PI * sineHash(k + 0.5))
@@ -336,7 +336,7 @@ export const multiZoneRanging: Lesson = {
     'At start-up the ESP32 uploads ~84 KB of firmware to the sensor over I²C (see Microcontrollers › I²C), which takes a few seconds at 400 kHz; 1 MHz Fast-mode Plus helps. Then each frame is 64 distances plus a status per zone.',
   ],
   controls: [
-    { kind: 'choice', key: 'res', options: (Object.keys(RES) as (keyof typeof RES)[]).map((k) => ({ value: k, label: RES[k] })), initial: 'x8' },
+    { kind: 'choice', key: 'res', options: opts(RES), initial: 'x8' },
     { kind: 'slider', key: 'm', label: 'Box distance', min: 0.15, max: 1.3, step: 0.05, initial: 0.6, format: (v) => `${Math.round(v * 100)} cm` },
     { kind: 'slider', key: 'side', label: 'Box left ↔ right', min: -0.5, max: 0.5, step: 0.05, initial: 0.15, format: (v) => (Math.abs(v) < 0.01 ? 'centre' : `${Math.round(Math.abs(v) * 100)} cm ${v > 0 ? 'left' : 'right'}`) },
     { kind: 'slider', key: 'tilt', label: 'Sensor tilt up', min: 0, max: 20, step: 1, initial: 5, format: (v) => `${v}°` },

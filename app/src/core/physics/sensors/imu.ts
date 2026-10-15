@@ -1,7 +1,6 @@
 // IMU: MEMS accelerometer proof mass, Coriolis gyro, complementary filter, gyro bias drift.
-import { DEG } from '../common'
+import { DEG, gaussAt } from '../common'
 import { Vec3 } from '../../fields'
-import { gaussAt } from '../mcu/adc'
 
 const G = 9.81
 

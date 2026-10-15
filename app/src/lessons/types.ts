@@ -68,6 +68,8 @@ export const initialParams = (l: Lesson): Params =>
 export const n = (p: Params, k: string) => Number(p[k])
 /** `v` if it is a key of `rec`, else the default `d`. */
 export const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
+/** Choice options from a `{ value: label }` record. */
+export const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(rec) as (keyof R & string)[]).map((k) => ({ value: k, label: rec[k] }))
 
 /** Param `k` snapped to the nearest E12 resistor value. */
 export const e12 = (p: Params, k: string) => nearestE12(n(p, k))

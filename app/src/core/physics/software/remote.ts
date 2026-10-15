@@ -1,6 +1,5 @@
-import { clamp } from '../common'
+import { clamp, hash01 } from '../common'
 import { Pose } from '../room'
-import { hash01 } from '../mcu/timers'
 import { BLE_L2CAP_BYTES, BLE_LL_BYTES, TCP_IP_BYTES, WS_HDR_BYTES, gattLink } from '../mcu/wireless'
 import { odoStep } from '../sensors/encoder'
 

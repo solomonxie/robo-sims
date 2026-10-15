@@ -1,6 +1,5 @@
 // Telemetry & logging: a speed loop streamed over a slow radio (decimation, queueing, stamps vs arrival) and a run logged then replayed.
-import { gaussAt } from '../mcu/adc'
-import { clamp } from '../common'
+import { clamp, gaussAt } from '../common'
 
 // --- Live plot: a 200 Hz speed loop streamed over a 57.6 kbaud telemetry radio ---
 

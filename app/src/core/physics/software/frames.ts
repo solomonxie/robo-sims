@@ -1,6 +1,6 @@
 // TF frame tree: 2D pose algebra, a loop drive with drifting odometry, and a lidar point chained lidar_link → base_link → odom → map.
+import { wrapPi } from '../common'
 import { Pose, P3, toRoom } from '../room'
-import { wrapPi } from '../sensors/magnetometer'
 import { Mat4, ROVER, apply4, invert4, linkFrames, mul4, tf3 } from './urdf'
 
 /** a ∘ b: pose b given in frame a, expressed in a's parent. */

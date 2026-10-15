@@ -1,3 +1,4 @@
+import { gaussAt } from '../common'
 import {
   ADC_MAX,
   adcReadable,
@@ -6,7 +7,6 @@ import {
   calibratedVolts,
   effectiveBits,
   esp32Raw,
-  gaussAt,
   heldAt,
   lsb,
   naiveVolts,

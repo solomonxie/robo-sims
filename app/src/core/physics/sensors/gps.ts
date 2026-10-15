@@ -1,8 +1,7 @@
 // GPS: pseudoranges, least-squares position + clock bias, DOP, urban canyon, RTK carrier phase and integer fixing.
-import { DEG, LIGHT_C } from '../common'
+import { DEG, LIGHT_C, gaussAt } from '../common'
 import { Vec3 } from '../../fields'
 import { gaussSolve } from '../../nodal'
-import { gaussAt } from '../mcu/adc'
 import { wavelength } from '../signals/radio'
 
 export const EARTH_R = 6_371e3

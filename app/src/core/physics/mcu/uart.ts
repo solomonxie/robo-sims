@@ -1,6 +1,6 @@
 // UART: framing with parity/stop bits, a 16× oversampling receiver, line standards (TTL, RS-232, RS-485) and NMEA sentences.
+import { hash01 } from '../common'
 import { uartFrame } from '../signals/scope'
-import { hash01 } from './timers'
 
 export type Parity = 'none' | 'even' | 'odd'
 export type BitRole = 'start' | 'data' | 'parity' | 'stop'

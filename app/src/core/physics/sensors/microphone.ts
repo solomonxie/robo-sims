@@ -1,8 +1,7 @@
 // MEMS microphone (INMP441 → I²S → ESP32) and sound direction from time differences between mics.
-import { SOUND_C } from '../common'
+import { SOUND_C, wrapPi } from '../common'
 import { EPSILON_0 } from '../electromagnetism'
 import { dftAmplitudes } from '../signals/fourier'
-import { wrapPi } from './magnetometer'
 
 export const INMP441 = { sensDbfs: -26, refDb: 94, snrDb: 61, aopDb: 120, bits: 24, slot: 32, highHz: 15000 }
 /** MEMS capsule: diaphragm radius, gap to the backplate, compliance, bias. */

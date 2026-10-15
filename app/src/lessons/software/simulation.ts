@@ -51,12 +51,12 @@ import {
   rodBetween,
   simClock,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
 const choice = <R extends Record<string, string>>(key: string, rec: R, initial: keyof R & string) => ({
   kind: 'choice' as const,
   key,
-  options: Object.keys(rec).map((k) => ({ value: k, label: rec[k] })),
+  options: opts(rec),
   initial,
 })
 

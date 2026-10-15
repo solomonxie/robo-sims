@@ -57,7 +57,7 @@ import {
   stateDiagram,
   timingDiagram,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const ENC = { hall: 'Hall, 11 PPR on motor', slot: 'Optical, 20 slots on wheel' }
 const MODES = { x1: '×1 decoding', x2: '×2', x4: '×4' }
@@ -68,8 +68,8 @@ const A_COLOR = CLK_COLOR
 const B_COLOR = DATA_COLOR
 const AB = (i: number) => QUAD_STATES[i]
 const us = (s: number) => (s >= 1e-3 ? `${(s * 1e3).toFixed(s >= 0.01 ? 0 : 1)} ms` : `${Math.round(s * 1e6)} µs`)
-const encChoice = { kind: 'choice', key: 'enc', options: (Object.keys(ENC) as EncoderKind[]).map((k) => ({ value: k, label: ENC[k] })), initial: 'hall' } as const
-const modeChoice = { kind: 'choice', key: 'mode', options: (Object.keys(MODES) as (keyof typeof MODES)[]).map((k) => ({ value: k, label: MODES[k] })), initial: 'x4' } as const
+const encChoice = { kind: 'choice', key: 'enc', options: opts(ENC), initial: 'hall' } as const
+const modeChoice = { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'x4' } as const
 
 /** Encoder disc (faces +z, spins in `disc`) with A/B sensors at the rim, placed so A leads B by a quarter pulse going forward. */
 function encoderUnit(parent: THREE.Object3D, kind: EncoderKind, ppr: number, r: number) {
@@ -330,7 +330,7 @@ export const countsPerRevolution: Lesson = {
   ],
   controls: [
     encChoice,
-    { kind: 'choice', key: 'gear', options: (Object.keys(GEARS) as (keyof typeof GEARS)[]).map((k) => ({ value: k, label: GEARS[k] })), initial: 'g48' },
+    { kind: 'choice', key: 'gear', options: opts(GEARS), initial: 'g48' },
     modeChoice,
     { kind: 'slider', key: 'tyre', label: 'Real tyre', min: 62, max: 68, step: 0.5, initial: 65, format: (v) => `${v.toFixed(1)} mm` },
   ],
@@ -478,7 +478,7 @@ export const speedFromTicks: Lesson = {
   ],
   controls: [
     encChoice,
-    { kind: 'choice', key: 'method', options: (Object.keys(METHOD) as (keyof typeof METHOD)[]).map((k) => ({ value: k, label: METHOD[k] })), initial: 'w20' },
+    { kind: 'choice', key: 'method', options: opts(METHOD), initial: 'w20' },
     { kind: 'slider', key: 'speed', label: 'Speed', min: 20, max: 600, step: 10, initial: 150, format: (v) => `${v} mm/s` },
     { kind: 'slider', key: 'mis', label: 'Right motor', min: -10, max: 10, step: 1, initial: 4, format: (v) => `${v > 0 ? '+' : ''}${v} %` },
   ],

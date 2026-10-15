@@ -1,5 +1,5 @@
 // SAR ADC on an ESP32: quantisation vs bits and range, the binary search, noise vs averaging, the real chip's attenuation curves.
-import { clamp } from '../common'
+import { clamp, gaussAt } from '../common'
 
 export const ADC_BITS = 12
 
@@ -31,15 +31,6 @@ export function sarSteps(held: number, full: number, bits: number): SarStep[] {
     steps.push({ bit, trial, dac, keep, code })
   }
   return steps
-}
-
-/** Deterministic standard normal for index `k` (sine hash + Box–Muller), so noise looks random but tests are stable. */
-export function gaussAt(k: number) {
-  const u = (i: number) => {
-    const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453
-    return Math.min(1 - 1e-12, Math.max(1e-12, x - Math.floor(x)))
-  }
-  return Math.sqrt(-2 * Math.log(u(2 * k + 1))) * Math.cos(2 * Math.PI * u(2 * k + 2))
 }
 
 /** Reading number `k` of a steady `v` with `sigma` V rms of noise on the pin. */

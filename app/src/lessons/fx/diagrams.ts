@@ -258,7 +258,7 @@ export function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1:
   }
 }
 
-export const BT_STATUS_C = { idle: GREY, running: RING, success: POWER, failure: HIGH_V }
+const BT_STATUS_C = { idle: GREY, running: RING, success: POWER, failure: HIGH_V }
 const BT_KIND: Record<BtNode['kind'], string> = {
   recovery: 'Recovery',
   pipeline: 'PipelineSequence',

@@ -1,6 +1,6 @@
 // micro-ROS: an rclc client on the ESP32 reaches the ROS 2 graph through the micro-ROS agent (XRCE-DDS ↔ DDS).
+import { hash01 } from '../common'
 import { frameLength, FORMAT_8N1 } from '../mcu/uart'
-import { hash01 } from '../mcu/timers'
 import { linkRssi, wifiAttempt, wifiRate } from '../mcu/wireless'
 
 // --- Agent and client: the reconnect state machine from the micro-ROS examples. ---

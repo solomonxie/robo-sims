@@ -282,8 +282,8 @@ export const I2C_TEXT: Record<I2cEvent['kind'], (e: I2cEvent) => [string, string
 }
 
 /** Glowing vertical bar on a plot; `at(u)` moves it, null hides it. */
-export function cursorBar(plot: ReturnType<typeof scope>, color: string) {
-  const b = box(plot.group, [0.1, plot.height, 0.12], glowMat(color, 1.2), [0, 0, 0.3])
+export function cursorBar(plot: ReturnType<typeof scope>, color: string, w = 0.1) {
+  const b = box(plot.group, [w, plot.height, 0.12], glowMat(color, 1.2), [0, 0, 0.3])
   b.castShadow = false
   return (u: number | null) => {
     b.visible = u !== null && u >= 0 && u <= 1

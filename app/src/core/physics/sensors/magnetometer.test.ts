@@ -1,3 +1,4 @@
+import { wrapPi } from '../common'
 import { tiltAccel } from '../mcu/i2c'
 import {
   MAG_SITES,
@@ -16,7 +17,6 @@ import {
   toLevel,
   trueHeading,
   worstHeadingError,
-  wrapPi,
 } from './magnetometer'
 
 const DEG = Math.PI / 180

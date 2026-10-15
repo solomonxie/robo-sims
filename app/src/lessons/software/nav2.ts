@@ -47,7 +47,7 @@ import {
   roomModel,
   simClock,
 } from '../fx'
-import { Lesson, Stage, n, pick } from '../types'
+import { Lesson, Stage, n, opts, pick } from '../types'
 
 const segs = (p: XY[], z: (q: XY) => number): [V3, V3][] => p.slice(1).map((q, i) => [[p[i][0], p[i][1], z(p[i])], [q[0], q[1], z(q)]])
 
@@ -92,7 +92,7 @@ export const costmaps: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'radius', label: 'Inflation radius', min: 0.3, max: 1, initial: 0.55, step: 0.05, format: (v) => `${v.toFixed(2)} m` },
-    { kind: 'choice', key: 'drop', options: (Object.keys(DROP) as (keyof typeof DROP)[]).map((k) => ({ value: k, label: DROP[k] })), initial: 'on' },
+    { kind: 'choice', key: 'drop', options: opts(DROP), initial: 'on' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -218,7 +218,7 @@ export const behaviourTrees: Lesson = {
     'Here someone steps in front of the robot at 4 s. FollowPath fails, ComputePathToPose fails, and the recoveries take turns. Pick how long the person stays: once they move, the next retry plans and drives on. If they never move, the sixth retry fails too and the navigate action is aborted: the caller gets a failure and decides what to do.',
     'Swap behaviours by editing the XML, not the code: default_nav_to_pose_bt_xml in nav2_params.yaml. Groot shows the tree live, lighting nodes the same way.',
   ],
-  controls: [{ kind: 'choice', key: 'block', options: (Object.keys(BLOCK) as (keyof typeof BLOCK)[]).map((k) => ({ value: k, label: BLOCK[k] })), initial: 's9' }],
+  controls: [{ kind: 'choice', key: 'block', options: opts(BLOCK), initial: 's9' }],
   build(): Stage {
     const scene = createStage({ span: 40 })
     const outer = floorView(scene, COR.at, COR.k, -0.3)

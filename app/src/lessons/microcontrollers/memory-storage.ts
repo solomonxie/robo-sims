@@ -65,7 +65,7 @@ import {
   stretchRod,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const DARK = '#23262d'
 const FILL = '#b5f6ff'
@@ -179,9 +179,9 @@ export const flashLayout: Lesson = {
     'WROVER modules add 4–8 MB of PSRAM on the same SPI bus and cache, for camera frames and big buffers: roomy but slower than internal RAM. Why flash keeps data with the power off: Semiconductors → Memory cell → Flash floating gate.',
   ],
   controls: [
-    { kind: 'choice', key: 'scheme', options: (Object.keys(SCHEMES) as Scheme[]).map((k) => ({ value: k, label: SCHEMES[k] })), initial: 'default' },
+    { kind: 'choice', key: 'scheme', options: opts(SCHEMES), initial: 'default' },
     { kind: 'slider', key: 'sketch', label: 'Sketch', min: 200, max: 3200, step: 50, initial: 900, format: (v) => bytesText(v * KB) },
-    { kind: 'choice', key: 'item', options: (Object.keys(ITEMS) as Item[]).map((k) => ({ value: k, label: ITEMS[k] })), initial: 'code' },
+    { kind: 'choice', key: 'item', options: opts(ITEMS), initial: 'code' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })
@@ -378,8 +378,8 @@ export const stackAndHeap: Lesson = {
     'Fragmentation: plenty of free bytes in total but no single hole big enough, so malloc returns NULL. Allocate long-lived buffers once at start-up and reuse them; ESP.getMaxAllocHeap() reports the largest hole. The SRAM cell itself: Semiconductors → Memory cell → SRAM latch.',
   ],
   controls: [
-    { kind: 'choice', key: 'stack', options: (Object.keys(STACK_RUNS) as StackRun[]).map((k) => ({ value: k, label: STACK_RUNS[k] })), initial: 'recursion' },
-    { kind: 'choice', key: 'heap', options: (Object.keys(HEAP_RUNS) as HeapRun[]).map((k) => ({ value: k, label: HEAP_RUNS[k] })), initial: 'churn' },
+    { kind: 'choice', key: 'stack', options: opts(STACK_RUNS), initial: 'recursion' },
+    { kind: 'choice', key: 'heap', options: opts(HEAP_RUNS), initial: 'churn' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })
@@ -575,9 +575,9 @@ export const littleFs: Lesson = {
     'NVS (Preferences in Arduino) is for small settings: each put appends a 32-byte key-value entry to a 4 KB page, marked writing → written, and the old entry is marked erased. A sector is erased only when a page is full, every 126 writes, so it wears slowest of all.',
   ],
   controls: [
-    { kind: 'choice', key: 'store', options: (Object.keys(STORES) as Store[]).map((k) => ({ value: k, label: STORES[k] })), initial: 'littlefs' },
+    { kind: 'choice', key: 'store', options: opts(STORES), initial: 'littlefs' },
     { kind: 'choice', key: 'rate', options: (Object.keys(RATES) as (keyof typeof RATES)[]).map((k) => ({ value: k, label: RATE_TEXT[k] })), initial: 'sec' },
-    { kind: 'choice', key: 'cut', options: (Object.keys(CUTS) as (keyof typeof CUTS)[]).map((k) => ({ value: k, label: CUTS[k] })), initial: 'no' },
+    { kind: 'choice', key: 'cut', options: opts(CUTS), initial: 'no' },
   ],
   build(): Stage {
     const scene = createStage({ span: 36 })

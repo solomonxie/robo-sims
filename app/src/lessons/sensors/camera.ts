@@ -42,7 +42,7 @@ import {
   shadowlessRod,
   stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const SUBJECT: V3 = [-12.5, 1, 0]
 const CAM_AT: V3 = [-2.6, 0.6, 1.2]
@@ -142,7 +142,7 @@ export const rollingVsGlobalShutter: Lesson = {
     'A global shutter exposes every pixel at the same instant and then reads them out (each pixel has its own storage node). Costlier, but straight blades and right angles; pick one for fast robots or visual odometry.',
   ],
   controls: [
-    { kind: 'choice', key: 'shutter', options: (Object.keys(SHUTTERS) as (keyof typeof SHUTTERS)[]).map((k) => ({ value: k, label: SHUTTERS[k] })), initial: 'rolling' },
+    { kind: 'choice', key: 'shutter', options: opts(SHUTTERS), initial: 'rolling' },
     { kind: 'slider', key: 'rpm', label: 'Propeller speed', min: 0, max: 3000, step: 100, initial: 600, format: (v) => `${v.toFixed(0)} rpm` },
   ],
   build(): Stage {
@@ -348,7 +348,7 @@ export const exposure: Lesson = {
   controls: [
     { kind: 'slider', key: 'shutter', label: 'Shutter time', min: 0.5, max: 125, initial: 16, log: true, format: (v) => `1/${Math.round(1000 / v)} s` },
     { kind: 'slider', key: 'gain', label: 'Gain', min: 1, max: 64, initial: 12, log: true, format: (v) => `${v.toFixed(v < 10 ? 1 : 0)}×` },
-    { kind: 'choice', key: 'aperture', options: (Object.keys(APERTURES) as (keyof typeof APERTURES)[]).map((k) => ({ value: k, label: APERTURES[k] })), initial: '2' },
+    { kind: 'choice', key: 'aperture', options: opts(APERTURES), initial: '2' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -500,7 +500,7 @@ export const lensDistortion: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'lens', options: LENS_KEYS.map((k) => ({ value: k, label: LENSES[k].name.replace(' lens', '') })), initial: 'wide' },
-    { kind: 'choice', key: 'view', options: (Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((k) => ({ value: k, label: VIEWS[k] })), initial: 'raw' },
+    { kind: 'choice', key: 'view', options: opts(VIEWS), initial: 'raw' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })

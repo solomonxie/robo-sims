@@ -30,6 +30,7 @@ import {
   addLabel,
   arcAt,
   codeBlock,
+  crashWall,
   cursorBar,
   flatBox,
   floorMat,
@@ -49,9 +50,8 @@ import {
   setGlow,
   simClock,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
-const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(rec) as (keyof R & string)[]).map((k) => ({ value: k, label: rec[k] }))
 const pctText = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)} %`
 const hexRow = (b: number[]) => b.map((x) => hexByte(x).slice(2)).join(' ')
 
@@ -286,9 +286,7 @@ export const webSocketControl: Lesson = {
     const rip = ripples(scene, routerTop, { count: 2, reach: 1, period: 0.8 })
     const g = floorView(scene, [-12, -1.4, 0], 6.5, -0.5)
     floorMat(g, [-0.3, WS.wallX], [-0.35, 0.35])
-    const wallM = glowMat('#3a3e47', 0.2)
-    box(g, [0.06, 0.7, 0.3], wallM, [WS.wallX + 0.03, 0, 0.15])
-    addLabel(g, 'wall', [WS.wallX + 0.03, -0.5, 0.02], GREY, 0.12)
+    const wall = crashWall(g, WS.wallX)
     const robot = lidarRobot(g, 1, 0.24)
     const stopMark = flatBox(g, [0.02, 0.5, 0.006], glowMat(HIGH_V, 1), [0, 0, 0.006])
     const packets = packetPool(scene, 24, 0.4)
@@ -348,7 +346,7 @@ export const webSocketControl: Lesson = {
         robot.head.rotation.z += dt * 30 * f.v
         stopMark.visible = f.v === 0 && f.t > 1
         stopMark.position.x = f.x + 0.13
-        setGlow(wallM, f.crashed ? HIGH_V : '#3a3e47', f.crashed ? 1 : 0.2)
+        wall(f.crashed)
         for (let k = 0; k < 4; k++) router.led(k, down ? HIGH_V : POWER, down ? 0.3 + 0.7 * (Math.floor(now * 4) % 2) : 0.8)
         rip(now, down ? HIGH_V : B_FIELD, down ? 0 : 0.5)
 

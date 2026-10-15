@@ -31,6 +31,7 @@ import {
   addLabel,
   cell,
   codeBlock,
+  crashWall,
   cursorBar,
   esp32Board,
   estopButton,
@@ -57,10 +58,8 @@ import {
   stateDiagram,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage, pick } from '../types'
+import { Lesson, Params, Stage, opts, pick } from '../types'
 
-const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(rec) as (keyof R & string)[]).map((k) => ({ value: k, label: rec[k] }))
-const WALL_IDLE = '#3a3e47'
 const lit = (c: string) => new THREE.Color(c)
 
 // --- Watchdog: the loop feeds the task WDT; an I²C read that never returns stops the feeding and the WDT resets the chip. ---
@@ -122,9 +121,7 @@ export const watchdog: Lesson = {
 
     const g = floorView(scene, [-9.2, 3, 0], 4.6, -0.35)
     floorMat(g, [-0.3, WDT.wallX], [-0.35, 0.35])
-    const wallM = glowMat(WALL_IDLE, 0.2)
-    box(g, [0.06, 0.7, 0.3], wallM, [WDT.wallX + 0.03, 0, 0.15])
-    addLabel(g, 'wall', [WDT.wallX + 0.03, -0.5, 0.02], GREY, 0.14)
+    const wall = crashWall(g, WDT.wallX, 0.14)
     const robot = lidarRobot(g, 1, 0.24)
     const stopMark = flatBox(g, [0.02, 0.5, 0.006], glowMat(POWER, 1), [0, 0, 0.006])
     const hangMark = flatBox(g, [0.02, 0.6, 0.006], glowMat(HIGH_V, 1), [0, 0, 0.006])
@@ -190,7 +187,7 @@ export const watchdog: Lesson = {
 
         robot.group.position.set(f.x - 0.06 + 0.12, 0, 0)
         robot.head.rotation.z += dt * 30 * f.v
-        setGlow(wallM, f.crashed ? HIGH_V : WALL_IDLE, f.crashed ? 1 : 0.2)
+        wall(f.crashed)
         const hx = hangX(frames)
         hangMark.visible = hangTag.group.visible = frames.some((h) => h.phase === 'hung' && h.t <= now)
         hangMark.position.x = hangTag.group.position.x = hx + WDT.halfLen

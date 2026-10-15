@@ -12,3 +12,18 @@ export const clamp01 = (x: number) => clamp(x, 0, 1)
 
 /** Sample of a fixed-step run (`dt` apart) at time `t`, held at the ends. */
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]
+
+const TAU = 2 * Math.PI
+export const wrap2pi = (a: number) => ((a % TAU) + TAU) % TAU
+export const wrapPi = (a: number) => wrap2pi(a + Math.PI) - Math.PI
+
+/** Repeatable 0…1 for integer `i` (sine hash). */
+export const hash01 = (i: number) => {
+  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453
+  return x - Math.floor(x)
+}
+/** Deterministic standard normal for index `k` (sine hash + Box–Muller), so noise looks random but tests are stable. */
+export function gaussAt(k: number) {
+  const u = (i: number) => clamp(hash01(i), 1e-12, 1 - 1e-12)
+  return Math.sqrt(-2 * Math.log(u(2 * k + 1))) * Math.cos(2 * Math.PI * u(2 * k + 2))
+}

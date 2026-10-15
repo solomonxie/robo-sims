@@ -52,7 +52,7 @@ import {
   stretchRod,
   trayMat,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const HOLD_S = 2.5
 const hex8 = (b: number) => `0x${b.toString(16).padStart(8, '0')}`
@@ -169,7 +169,7 @@ export const bootModes: Lesson = {
     'Strapping pins are a wiring trap: a sensor that pulls GPIO12 high at reset selects 1.8 V flash (“flash read err, 1000”, endless resets); GPIO0, 2, 15 and 5 also matter. Keep pull-ups and loads off them, or only use them as outputs.',
   ],
   controls: [
-    { kind: 'choice', key: 'start', options: (Object.keys(STARTS) as BootStart[]).map((k) => ({ value: k, label: STARTS[k] })), initial: 'esptool' },
+    { kind: 'choice', key: 'start', options: opts(STARTS), initial: 'esptool' },
     { kind: 'choice', key: 'baud', options: (Object.keys(BAUDS) as (keyof typeof BAUDS)[]).map((k) => ({ value: k, label: BAUD_TEXT[k] })), initial: 'b921' },
     { kind: 'slider', key: 'size', label: 'Sketch size', min: 200, max: 1280, step: 20, initial: 900, format: (v) => `${v} KB` },
   ],
@@ -467,8 +467,8 @@ export const otaUpdates: Lesson = {
     'Without rollback a crashing image is booted again and again: a boot loop that needs a USB cable. Sign or at least serve images over HTTPS, and never mark valid before the robot has proved it can still be updated.',
   ],
   controls: [
-    { kind: 'choice', key: 'image', options: (Object.keys(IMAGES) as OtaImage[]).map((k) => ({ value: k, label: IMAGES[k] })), initial: 'good' },
-    { kind: 'choice', key: 'rollback', options: (Object.keys(ROLLBACK) as (keyof typeof ROLLBACK)[]).map((k) => ({ value: k, label: ROLLBACK[k] })), initial: 'on' },
+    { kind: 'choice', key: 'image', options: opts(IMAGES), initial: 'good' },
+    { kind: 'choice', key: 'rollback', options: opts(ROLLBACK), initial: 'on' },
     { kind: 'slider', key: 'rate', label: 'Download rate', min: 50, max: 800, step: 50, initial: 250, format: (v) => `${v} KB/s` },
   ],
   build(): Stage {

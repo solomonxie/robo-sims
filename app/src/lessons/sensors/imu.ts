@@ -48,7 +48,7 @@ import {
   stretchRod,
   ticks,
 } from '../fx'
-import { Lesson, Params, Stage, n, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick } from '../types'
 import { signed } from '../../core/units'
 
 const MPU_F0 = 2500
@@ -161,7 +161,7 @@ export const accelerometer: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'slope', label: 'Slope', min: 0, max: 30, step: 1, initial: 15, format: (v) => `${v.toFixed(0)}°` },
-    { kind: 'choice', key: 'move', options: (Object.keys(MOVES) as Move[]).map((k) => ({ value: k, label: MOVES[k] })), initial: 'brake' },
+    { kind: 'choice', key: 'move', options: opts(MOVES), initial: 'brake' },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -513,7 +513,7 @@ export const drift: Lesson = {
     'The bias moves with temperature (here 0.045 °/s per °C), so a chip that warms up after calibration drifts again. Re-zero whenever the robot stops, or model the tempco.',
   ],
   controls: [
-    { kind: 'choice', key: 'cal', options: (Object.keys(CAL) as CalMode[]).map((k) => ({ value: k, label: CAL[k] })), initial: 'rest' },
+    { kind: 'choice', key: 'cal', options: opts(CAL), initial: 'rest' },
     { kind: 'slider', key: 'temp', label: 'Chip now (cal. at 25 °C)', min: 5, max: 60, step: 1, initial: 45, format: (v) => `${v.toFixed(0)} °C` },
   ],
   build(): Stage {
