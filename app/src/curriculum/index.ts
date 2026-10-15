@@ -70,6 +70,7 @@ import { batteryBudget, deepSleep, wakeSources } from '../lessons/microcontrolle
 import { flashLayout, littleFs, stackAndHeap } from '../lessons/microcontrollers/memory-storage'
 import { mutexes, queues, tasksAndPriorities } from '../lessons/microcontrollers/rtos-basics'
 import { bootModes, otaUpdates } from '../lessons/microcontrollers/bootloader-flashing'
+import { beamAngle, softTargetErrors, timeOfFlight } from '../lessons/sensors/ultrasonic'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -308,6 +309,9 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/rtos-basics/mutexes': mutexes,
   'microcontrollers/bootloader-flashing/boot-modes': bootModes,
   'microcontrollers/bootloader-flashing/ota-updates': otaUpdates,
+  'sensors/ultrasonic/time-of-flight': timeOfFlight,
+  'sensors/ultrasonic/beam-angle': beamAngle,
+  'sensors/ultrasonic/soft-target-errors': softTargetErrors,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
