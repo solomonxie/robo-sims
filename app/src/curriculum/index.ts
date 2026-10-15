@@ -89,6 +89,7 @@ import { launchFiles, publishAndSubscribe, servicesAndActions } from '../lessons
 import { frameTree, writingAUrdf } from '../lessons/software/tf-urdf'
 import { behaviourTrees, costmaps } from '../lessons/software/nav2'
 import { agentAndClient, serialTransport } from '../lessons/software/micro-ros'
+import { physicsEngine, simToRealGap } from '../lessons/software/simulation'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -377,6 +378,8 @@ const READY: Record<string, Lesson> = {
   'software/nav2/behaviour-trees': behaviourTrees,
   'software/micro-ros/agent-and-client': agentAndClient,
   'software/micro-ros/serial-transport': serialTransport,
+  'software/simulation/physics-engine': physicsEngine,
+  'software/simulation/sim-to-real-gap': simToRealGap,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
