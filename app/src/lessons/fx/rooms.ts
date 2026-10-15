@@ -38,6 +38,14 @@ export function roomModel(parent: THREE.Object3D, hScale = 1, opacity = 1) {
   }
 }
 
+/** Tilted top view: a group in metres (z up) whose far edge leans back. */
+export function floorView(parent: THREE.Object3D, at: V3, k: number, tilt = -0.55) {
+  const g = add(parent, new THREE.Group(), at)
+  g.rotation.x = tilt
+  g.scale.setScalar(k)
+  return g
+}
+
 /** Robot base seen in metres, x forward, with an RPLIDAR-style head on top; `k` exaggerates its size. Spin `head`. */
 export function lidarRobot(parent: THREE.Object3D, k = 1, bodyM = 0.36) {
   const g = add(parent, new THREE.Group())

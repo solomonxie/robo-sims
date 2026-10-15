@@ -1,7 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
   BtFrame,
-  BtNode,
   CORRIDOR,
   INSCRIBED,
   NAV,
@@ -12,7 +11,6 @@ import {
   NavFrame,
   XY,
   btNavRun,
-  btRows,
   costAt,
   costmapRun,
   maxLayers,
@@ -33,13 +31,15 @@ import {
   POWER,
   RING,
   addLabel,
+  btDiagram,
+  btKindText,
   costField,
+  floorView,
   glide,
   glowMat,
   lidarRobot,
   liveLabel,
   memoBy,
-  moduleBlock,
   pointCloud,
   presence,
   rayFan,
@@ -48,14 +48,6 @@ import {
   simClock,
 } from '../fx'
 import { Lesson, Stage, n, pick } from '../types'
-
-/** Tilted top view: a group in metres (z up) whose far edge leans back. */
-function floorView(parent: THREE.Object3D, at: V3, k: number, tilt = -0.55) {
-  const g = add(parent, new THREE.Group(), at)
-  g.rotation.x = tilt
-  g.scale.setScalar(k)
-  return g
-}
 
 const segs = (p: XY[], z: (q: XY) => number): [V3, V3][] => p.slice(1).map((q, i) => [[p[i][0], p[i][1], z(p[i])], [q[0], q[1], z(q)]])
 
@@ -198,19 +190,6 @@ const BLOCK = { s1: 'Steps aside after 1 s', s4: 'Moves after 4 s', s9: 'Moves a
 const BLOCK_S: Record<keyof typeof BLOCK, number> = { s1: 1, s4: 4, s9: 9, stay: Infinity }
 const btRun = memoBy((b: number) => `${b}`, btNavRun)
 const blockOf = (p: Record<string, number | string>) => BLOCK_S[pick(BLOCK, p.block, 's9')]
-const ROWS = btRows(NAV_TREE)
-const STATUS_C = { idle: GREY, running: RING, success: POWER, failure: HIGH_V }
-const KIND: Record<BtNode['kind'], string> = {
-  recovery: 'Recovery',
-  pipeline: 'PipelineSequence',
-  rate: 'RateController 1 Hz',
-  reactiveFallback: 'ReactiveFallback',
-  roundRobin: 'RoundRobin',
-  sequence: 'Sequence',
-  action: 'action',
-  condition: 'condition',
-}
-const kindText = (nd: BtNode) => (nd.kind === 'recovery' ? `Recovery ×${nd.retries}` : KIND[nd.kind])
 const TREE = { x: -15, y: 11.2, dx: 2, dy: 1.32, w: 9.4, h: 1.12 }
 const CORR_ROOM = walledRoom(CORRIDOR.len, CORRIDOR.wid, 0.5, [])
 const COR = { at: [-18.4, -8.6, 0] as V3, k: 2.4 }
@@ -258,22 +237,8 @@ export const behaviourTrees: Lesson = {
     const corrNote = liveLabel(scene, [-23, -11.2, 0.3], { size: 0.5, align: 'left' })
     const result = liveLabel(scene, [-23, -12.5, 0.3], { size: 0.5, align: 'left' })
 
-    const edgeM = glowMat(GREY, 0.3)
-    const rowAt = (k: number, depth: number): V3 => [TREE.x + depth * TREE.dx + TREE.w / 2, TREE.y - k * TREE.dy, 0]
-    const nodes = ROWS.map((r, k) => {
-      const at = rowAt(k, r.depth)
-      const label = 'act' in r.node ? r.node.act : r.node.id
-      const block = moduleBlock(scene, at, [TREE.w, TREE.h, 0.4], label)
-      if (k) addLabel(scene, kindText(r.node), [at[0] + TREE.w / 2 + 0.3, at[1], 0.3], GREY, 0.42, 'left')
-      if (r.parent) {
-        const pk = ROWS.findIndex((q) => q.node.id === r.parent)
-        const px = rowAt(pk, ROWS[pk].depth)[0] - TREE.w / 2 + 0.5
-        rodBetween(scene, [px, rowAt(pk, 0)[1] - TREE.h / 2, -0.2], [px, at[1], -0.2], edgeM, 0.05)
-        rodBetween(scene, [px, at[1], -0.2], [at[0] - TREE.w / 2, at[1], -0.2], edgeM, 0.05)
-      }
-      return { id: r.node.id, block, label }
-    })
-    const retryText = liveLabel(scene, [rowAt(0, 0)[0] + TREE.w / 2 + 0.3, TREE.y, 0.3], { size: 0.42, align: 'left' })
+    const tree = btDiagram(scene, NAV_TREE, TREE)
+    const retryText = liveLabel(scene, [TREE.x + TREE.w + 0.3, TREE.y, 0.3], { size: 0.42, align: 'left' })
 
     const clock = simClock(CORRIDOR.dt, 3)
     const st = { f: null as BtFrame | null, gone: 0, th: 0 }
@@ -296,13 +261,8 @@ export const behaviourTrees: Lesson = {
         blob.visible = here && f.t - f.clearedAt > 0.35
         blob.position.set(f.person ?? 0, CORRIDOR.wid / 2, 0.015)
         pathMat.emissiveIntensity = f.root === 'failure' ? 0.1 : 0.8
-        for (const nd of nodes) {
-          const l = f.lit[nd.id]
-          const age = l ? f.t - l.at : Infinity
-          const on = !l ? 0.08 : l.s === 'running' && age < 0.15 ? 1 : Math.max(0.18, 1 - age / 1.5)
-          nd.block(dt, !l || (l.s === 'running' && age > 0.15) ? GREY : STATUS_C[l.s], on)
-        }
-        retryText.set(`${kindText(NAV_TREE)} · retry ${f.retries}`, f.retries ? HEAT : GREY)
+        tree.frame(dt, f.lit, f.t)
+        retryText.set(`${btKindText(NAV_TREE)} · retry ${f.retries}`, f.retries ? HEAT : GREY)
         const cleared = here && f.t - f.clearedAt <= 0.35
         corrNote.set(
           f.root === 'running' ? (cleared ? 'Costmap cleared · the person is seen again on the next scan' : f.note || 'Ticking the tree at 10 Hz') : '',

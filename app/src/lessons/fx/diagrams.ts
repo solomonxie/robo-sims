@@ -1,13 +1,14 @@
 // Timing and state diagrams.
 import * as THREE from 'three/webgpu'
+import { BtMemory, BtNode, btRows } from '../../core/physics'
 import { V3, add, box, mesh, tube } from '../../models/kit'
 import { glowHalo } from './circuit'
-import { GREY, INK, LABEL, RING, glowMat } from './colors'
-import { shadowlessRod, stretchRod } from './layout'
+import { GREY, HIGH_V, INK, LABEL, POWER, RING, glowMat } from './colors'
+import { rodBetween, shadowlessRod, stretchRod } from './layout'
 import { partLetter } from './parts'
 import { scope } from './screens'
 import { flatBox, trayMat } from './shapes'
-import { liveLabel } from './text'
+import { label, liveLabel } from './text'
 import { ease, emptyGroup, glide } from './util'
 
 const DIM = new THREE.Color('#2c2f36')
@@ -253,6 +254,63 @@ export function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1:
       stretchRod(cursor, [x, bottom - 0.2, 0.35], [x, top + 0.2, 0.35], 0.06)
       flash.position.x = tx(Math.floor(now))
       flash.scale.y = 1 - (now % 1) * 0.8
+    },
+  }
+}
+
+export const BT_STATUS_C = { idle: GREY, running: RING, success: POWER, failure: HIGH_V }
+const BT_KIND: Record<BtNode['kind'], string> = {
+  recovery: 'Recovery',
+  pipeline: 'PipelineSequence',
+  rate: 'RateController',
+  sequence: 'Sequence',
+  fallback: 'Fallback',
+  reactiveSequence: 'ReactiveSequence',
+  reactiveFallback: 'ReactiveFallback',
+  roundRobin: 'RoundRobin',
+  inverter: 'Inverter',
+  retry: 'Retry',
+  timeout: 'Timeout',
+  action: 'action',
+  condition: 'condition',
+}
+export const btKindText = (nd: BtNode) =>
+  nd.kind === 'recovery' ? `Recovery ×${nd.retries}` : nd.kind === 'retry' ? `Retry ×${nd.tries}` : nd.kind === 'timeout' ? `Timeout ${nd.sec} s` : nd.kind === 'rate' ? `RateController ${nd.hz} Hz` : BT_KIND[nd.kind]
+
+/** Behaviour tree as an indented list of slabs (depth-first), kind captions to the right; `frame(dt, lit, t)` lights each
+ *  node by its latest result, fading with time since it was ticked. `tags` replace a node's caption; `end` = caption's right edge. */
+export function btDiagram(parent: THREE.Object3D, root: BtNode, L: { x: number; y: number; dx: number; dy: number; w: number; h: number }, tags: Record<string, string> = {}) {
+  const rows = btRows(root)
+  const edgeM = glowMat(GREY, 0.3)
+  const rowAt = (k: number, depth: number): V3 => [L.x + depth * L.dx + L.w / 2, L.y - k * L.dy, 0]
+  const nodes = rows.map((r, k) => {
+    const at = rowAt(k, r.depth)
+    const block = moduleBlock(parent, at, [L.w, L.h, 0.4], 'act' in r.node ? r.node.act : r.node.id)
+    const cap = tags[r.node.id] ?? (k ? btKindText(r.node) : '')
+    let end = at[0] + L.w / 2
+    if (cap) {
+      const t = add(parent, label(cap, { size: 0.42, color: GREY, align: 'left' }), [end + 0.3, at[1], 0.3])
+      t.castShadow = false
+      end = at[0] + L.w / 2 + 0.3 + new THREE.Box3().setFromObject(t).getSize(new THREE.Vector3()).x
+    }
+    if (r.parent) {
+      const pk = rows.findIndex((q) => q.node.id === r.parent)
+      const px = rowAt(pk, rows[pk].depth)[0] - L.w / 2 + 0.5
+      rodBetween(parent, [px, rowAt(pk, 0)[1] - L.h / 2, -0.2], [px, at[1], -0.2], edgeM, 0.05)
+      rodBetween(parent, [px, at[1], -0.2], [at[0] - L.w / 2, at[1], -0.2], edgeM, 0.05)
+    }
+    return { id: r.node.id, block, at, end }
+  })
+  return {
+    nodes,
+    node: (id: string) => nodes.find((nd) => nd.id === id)!,
+    frame(dt: number, lit: BtMemory['lit'], t: number) {
+      for (const nd of nodes) {
+        const l = lit[nd.id]
+        const age = l ? t - l.at : Infinity
+        const on = !l ? 0.08 : l.s === 'running' && age < 0.15 ? 1 : Math.max(0.18, 1 - age / 1.5)
+        nd.block(dt, !l || (l.s === 'running' && age > 0.15) ? GREY : BT_STATUS_C[l.s], on)
+      }
     },
   }
 }
