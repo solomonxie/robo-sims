@@ -5,29 +5,35 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`hoursText`, `millivolts`, …); control helpers (`e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
-- Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (import `'../fx'`); grep before writing a helper.
+- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `hoursText`, …); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
+- Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
 - Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts, state the slow-down factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
 - Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; params/frames: `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}' frames=N`.
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
-`lessons/fx/` (model in brackets):
-- `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`.
-- `colors` — palette (`HEAT`, …), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label`, `liveLabel` (changing text) [`core/strokeFont`].
-- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`.
+`lessons/fx/` (import `'../fx'`; model in brackets):
+- `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`, `peakToPeak`.
+- `colors` — palette (`HEAT`, …), `glowMat`, `setGlow`, `potentialColor`.
+- `shapes` — `arrow`, `plusGeometry`, `glowBox`.
+- `text` — `label`, `addLabel` (shadowless, at a point), `liveLabel` (changing text) [`core/strokeFont`].
+- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`stretchRod`.
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
-- `modules` — `tp4056Module`, `dcdcModule` (LM2596/MT3608/XL6009), `sg90Servo` [`physics/power`].
-- `boards` — `pcbStack` (explodable layer stack, `via`), `flatTrace`, `flatText` [`physics/pcb`]. `flows` — `loopBeads`.
+- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo` [`physics/power`].
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
-- `electromech` — relay/SSR, switches, pot. `heat`, `flows`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
-- `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `benchScope` (DSO: knobs, status, BNC) [`physics/scope`], `ivScreen`, `phasor`, `clockFace`.
+- `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
+- `electromech` — relay/SSR, switches, pot.
+- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
+- `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder) [`physics/signals/buses`].
+- `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
-- `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`], `captureScreen` (analyser rows + decoder strip), `usbAnalyzer` [`physics/buses`].
-- `core/physics/` by domain; `power/` = batteries, packs, charging, converters, budget, wiring, noise, brownout.
+- `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
+- `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
+
+`core/physics/` by domain; subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -44,22 +50,52 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 - Wave 1 Electricity ✓ 12/12
 - Wave 2 Components & semiconductors ✓ 20/20
+- Wave 3 Digital, Power, Signals ✓ 24/24
 
-### Wave 3 — Digital, Power, Signals
-- Digital ✓ 8/8
-- Power ✓ 8/8
-- Signals:
-  - [x] Filters
-  - [x] Fourier intuition
-  - [x] Oscilloscope
-  - [x] Logic analyzer
-  - [x] Transmission lines
-  - [x] Radio basics
-  - [x] Grounding & shielding
-  - [x] PCB design
+### Wave 4 — Microcontrollers, Sensors, Software
+- Microcontrollers:
+  - [ ] GPIO
+  - [ ] PWM
+  - [ ] ADC
+  - [ ] DAC
+  - [ ] Timers & interrupts
+  - [ ] UART serial
+  - [ ] I²C
+  - [ ] SPI
+  - [ ] CAN bus
+  - [ ] Wi-Fi & Bluetooth
+  - [ ] Power modes
+  - [ ] Memory & storage
+  - [ ] RTOS basics
+  - [ ] Bootloader & flashing
+- Sensors:
+  - [ ] Ultrasonic
+  - [ ] Infrared
+  - [ ] Time-of-flight laser
+  - [ ] LiDAR
+  - [ ] Encoder
+  - [ ] IMU
+  - [ ] Magnetometer
+  - [ ] GPS
+  - [ ] Camera
+  - [ ] Temperature & humidity
+  - [ ] Current & voltage sensing
+  - [ ] Force & touch
+  - [ ] Microphone & sound
+  - [ ] Sensor fusion
+- Software:
+  - [ ] Firmware structure
+  - [ ] ROS 2 concepts
+  - [ ] TF & URDF
+  - [ ] Nav2
+  - [ ] micro-ROS
+  - [ ] Simulation
+  - [ ] Behaviour trees
+  - [ ] Telemetry & logging
+  - [ ] Remote control
+  - [ ] Safety & failsafes
 
 ### Later waves (file order within each)
-- Wave 4: Microcontrollers, Sensors, Software
 - Wave 5: Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
 - Wave 6: Mechanics, Waves, Math, Materials, Printing
 - Wave 7: Practice (projects, challenges, debugging, workshop)
