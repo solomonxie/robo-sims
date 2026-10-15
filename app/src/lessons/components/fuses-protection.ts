@@ -19,6 +19,7 @@ import {
   CELL_H,
   CONVENTIONAL,
   GREY,
+  HEAT,
   HIGH_V,
   RING,
   arcSpark,
@@ -238,7 +239,7 @@ export const reversePolarity: Lesson = {
   legend: [
     { color: RING, label: 'Voltage at the circuit, V', shape: 'dot' },
     { color: '#e8e8e8', label: 'Drop across the guard, V', shape: 'dot' },
-    { color: '#ff9a4d', label: 'Heat in the guard', shape: 'dot' },
+    { color: HEAT, label: 'Heat in the guard', shape: 'dot' },
     { color: HIGH_V, label: 'Wires by potential (blue = negative)', shape: 'dot' },
   ],
   points: [

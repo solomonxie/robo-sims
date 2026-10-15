@@ -11,7 +11,7 @@ import {
   terminalVolts,
   usableFraction,
 } from '../../core/physics'
-import { amps, fitDigits, ohms, pct, volts, watts } from '../../core/units'
+import { amps, fitDigits, hoursText, ohms, pct, volts, watts } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { buildBattery18650 } from '../../models/power'
 import { createStage } from '../../scene/stage'
@@ -56,7 +56,7 @@ const chemChoice = (ids: ChemistryId[], initial: ChemistryId) => ({
   initial,
 })
 const ALL: ChemistryId[] = ['alkaline', 'nimh', 'liion', 'lfp']
-const hours = (h: number) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(2)} h`)
+const hours = (h: number) => hoursText(h, 2)
 
 // --- Cell voltage curve: ions shuttle across the separator; the OCV follows state of charge. ---
 

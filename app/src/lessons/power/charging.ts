@@ -14,12 +14,13 @@ import {
   tp4056Amps,
   tp4056Point,
 } from '../../core/physics'
-import { amps, fitDigits, pct, volts, watts } from '../../core/units'
+import { amps, fitDigits, hoursText, pct, volts, watts } from '../../core/units'
 import { V3, add, box, mat, mesh, rod, tube } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   LOW_V,
@@ -47,7 +48,6 @@ import { Lesson, Params, Stage, n } from '../types'
 
 const LI = CHEMISTRIES.liion
 const EMPTY_SOC = -0.01
-const hours = (h: number) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(1)} h`)
 const PHASE_TEXT: Record<ChargePhase | 'paused', string> = { pre: 'PRE-CHARGE', cc: 'CC', cv: 'CV', done: 'FULL', cut: 'BMS CUT', paused: 'PAUSED' }
 const kOhm = (r: number) => `${+(r / 1000).toFixed(1)}k`
 
@@ -200,7 +200,7 @@ export const tp4056: Lesson = {
           { label: 'Charge current', value: k.phase === 'done' ? 'off' : `${amps(k.amps)} (${PHASE_TEXT[k.phase]})` },
           { label: 'Cell voltage · charge', value: `${volts(k.volts)} · ${pct(clamp01(k.soc))}` },
           { label: 'Chip heat (5 V − Vbat) × I', value: watts(w), tone: w > 1.4 ? 'warn' : undefined },
-          { label: `Time (${st.s.speedup}× fast)`, value: hours(k.hours) },
+          { label: `Time (${st.s.speedup}× fast)`, value: hoursText(k.hours) },
         ]
       },
     }
@@ -344,7 +344,7 @@ export const chargeCurveLesson: Lesson = {
           { label: 'Stage', value: k.phase === 'cut' ? 'BMS cut: over-charge' : PHASE_TEXT[k.phase], tone: k.phase === 'cut' ? 'bad' : k.phase === 'done' ? 'ok' : undefined },
           { label: 'Cell voltage', value: volts(k.volts), tone: over ? 'bad' : undefined },
           { label: 'Current · charge', value: `${amps(k.amps)} · ${pct(clamp01(k.soc))}` },
-          { label: `Time (${st.s.speedup}× fast)`, value: hours(k.hours) },
+          { label: `Time (${st.s.speedup}× fast)`, value: hoursText(k.hours) },
         ]
       },
     }
@@ -387,7 +387,7 @@ export const thermalLimits: Lesson = {
     { color: POWER, label: 'Safe to charge 0 … 45 °C', shape: 'dot' },
     { color: LOW_V, label: 'Too cold: lithium plating', shape: 'dot' },
     { color: HIGH_V, label: 'Too hot: fast ageing, venting', shape: 'dot' },
-    { color: '#ff9a4d', label: 'Heat from the charger chip', shape: 'dot' },
+    { color: HEAT, label: 'Heat from the charger chip', shape: 'dot' },
   ],
   points: [
     'Below 0 °C lithium cannot slip into the graphite fast enough and plates out as metal. It never comes back and can grow into a short.',
@@ -438,7 +438,7 @@ export const thermalLimits: Lesson = {
     const cellHeat = heatWaves(scene, x1 - x0 - 1, { count: 4, rise: 3 })
     cellHeat.group.position.set(CELL3[0], CELL3[1] + 1.4, 1.2)
     const dieAt: V3 = [BOARD3[0] - 10.6, BOARD3[1] - 8.6, 0]
-    const dieLabel = pulseLabel(scene, 3, '#ff9a4d', dieAt, 1.1)
+    const dieLabel = pulseLabel(scene, 3, HEAT, dieAt, 1.1)
     add(scene, label('CHIP °C', { size: 0.45, color: GREY }), [dieAt[0], dieAt[1] - 1.5, 0])
     const statusTag = add(scene, new THREE.Group(), [rig.under[0], rig.under[1] - 0.3, 0])
     const st = { key: '', h: 0, soc: SOC3, die: AMBIENT_C, status: '', k: tp4056Point(LI, SOC3, RPROG3, AMBIENT_C, true) }
@@ -494,7 +494,7 @@ export const thermalLimits: Lesson = {
           { label: 'Charger', value: s.text.toLowerCase(), tone: s.tone },
           { label: 'Charge current (set 1 A)', value: k.amps > 0 ? amps(k.amps) : 'off', tone: k.throttled ? 'warn' : undefined },
           { label: 'Chip die · heat', value: `${Math.round(k.dieC)} °C · ${watts(chargerWatts(k.volts, k.amps))}`, tone: k.dieC >= TP4056.dieLimitC - 0.5 ? 'warn' : undefined },
-          { label: `Time (${SPEED3}× fast) · charge`, value: `${hours(st.h)} · ${pct(clamp01(st.soc))}` },
+          { label: `Time (${SPEED3}× fast) · charge`, value: `${hoursText(st.h)} · ${pct(clamp01(st.soc))}` },
         ]
       },
     }

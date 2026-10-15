@@ -1,7 +1,7 @@
 // Power budget of a small robot car: loads per rail, pack-side draw with converter and driver losses, duty cycles and runtime.
 import { Chemistry, deliveredWh } from './batteries'
 import { DcdcModule, DcdcPoint, LM2596, dcdcPoint } from './converters'
-import { TT_MOTOR } from './electromechanical'
+import { TT_MOTOR } from '../electromechanical'
 
 export type RobotState = 'cut' | 'sleep' | 'idle' | 'scan' | 'cruise' | 'stall'
 export type LoadId = 'esp32' | 'sonar' | 'servo' | 'driver' | 'motors'

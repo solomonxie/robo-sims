@@ -1,6 +1,6 @@
 // Multi-cell packs: ratings, BMS cutoffs, and cells drifting apart over many cycles.
 import { Chemistry, openCircuitVolts } from './batteries'
-import { cellPack } from './circuits'
+import { cellPack } from '../circuits'
 
 /** Volts per unit of state of charge beyond the curve ends: overcharge climbs, over-discharge collapses. */
 const OVER_SLOPE = 2

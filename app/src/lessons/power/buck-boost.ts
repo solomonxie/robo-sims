@@ -18,13 +18,14 @@ import {
   runAt,
   runDown,
 } from '../../core/physics'
-import { amps, fitDigits, pct, volts, watts } from '../../core/units'
+import { amps, fitDigits, hoursText, millivolts, pct, volts, watts } from '../../core/units'
 import { V3, add, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
   DcdcKind,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -33,6 +34,7 @@ import {
   clamp01,
   dcdcModule,
   emptyGroup,
+  frac,
   glide,
   glowMat,
   heatWaves,
@@ -49,10 +51,6 @@ import {
 import { Lesson, Params, Stage, n } from '../types'
 
 const LI = CHEMISTRIES.liion
-const HEAT = '#ff9a4d'
-const frac = (x: number) => x - Math.floor(x)
-const hours = (h: number) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(1)} h`)
-const mV = (v: number) => `${Math.round(v * 1000)} mV`
 const uH = (h: number) => `${Math.round(h * 1e6)} µH`
 const kOhm = (r: number) => (r < 1000 ? `${Math.round(r)} Ω` : `${+(r / 1000).toFixed(1)} kΩ`)
 
@@ -158,7 +156,7 @@ export const inductorRipple: Lesson = {
         return [
           { label: 'Coil ripple ΔI (p-p)', value: amps(s.dI) },
           { label: 'Peak vs saturation', value: `${amps(s.r.iMax)} / ${amps(s.coil.isat)}`, tone: s.saturating ? 'bad' : s.r.iMax > 0.85 * s.coil.isat ? 'warn' : 'ok' },
-          { label: 'Output ripple (220 µF)', value: mV(s.vRipple) },
+          { label: 'Output ripple (220 µF)', value: millivolts(s.vRipple) },
           { label: `Mode (${R_SLOW.toLocaleString('en-US')}× slower)`, value: s.r.ccm ? 'continuous' : 'discontinuous' },
         ]
       },
@@ -319,7 +317,7 @@ export const efficiency: Lesson = {
           { label: 'Pack · current in', value: `${volts(k.vpack)} · ${amps(k.point.iin)}` },
           { label: `Efficiency (${E_OUT} V × ${amps(st.s.iout)} out)`, value: pct(k.point.efficiency), tone: k.point.regulating ? undefined : 'bad' },
           { label: 'Lost as heat', value: watts(k.point.loss), tone: k.point.loss > 2 ? 'warn' : undefined },
-          { label: `Time (${st.s.speedup}× fast) · charge`, value: `${hours(k.hours)} · ${pct(k.soc)}` },
+          { label: `Time (${st.s.speedup}× fast) · charge`, value: `${hoursText(k.hours)} · ${pct(k.soc)}` },
         ]
       },
     }

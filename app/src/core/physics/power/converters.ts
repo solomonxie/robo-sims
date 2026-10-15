@@ -1,7 +1,7 @@
 // DC-DC modules as bought: LM2596 buck, MT3608 boost, XL6009 SEPIC buck-boost. Trim-pot set point, losses, limits.
 import { Chemistry } from './batteries'
 import { cellVolts } from './packs'
-import { Switcher } from './regulators'
+import { Switcher } from '../regulators'
 
 export type Topology = 'buck' | 'boost' | 'sepic'
 

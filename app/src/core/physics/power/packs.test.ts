@@ -1,4 +1,4 @@
-import { BMS_LIMITS, CHEMISTRIES, bmsFault, bmsTrip, cellVolts, driftWeeks, loadedCellVolts, packRating } from '.'
+import { BMS_LIMITS, CHEMISTRIES, bmsFault, bmsTrip, cellVolts, driftWeeks, loadedCellVolts, packRating } from '..'
 
 const { liion } = CHEMISTRIES
 const CAPS = [3000, 2950, 2900]

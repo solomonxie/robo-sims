@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { CAPS, Cap, Rail, bankOhms, decibels, lcCutoff, lcGain, noiseCounts, peakBins, pwmCurrent, railTrace } from '../../core/physics'
-import { si, volts } from '../../core/units'
+import { millivolts, si, volts } from '../../core/units'
 import { buildEsp32, buildL298n } from '../../models/modules'
 import { buildCeramicCap, buildElectrolyticCap } from '../../models/passives'
 import { V3, add, mesh } from '../../models/kit'
@@ -8,6 +8,7 @@ import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -42,9 +43,7 @@ const BROWNOUT = 3.5
 const EVERY = 10e-9
 const BINS = 260
 const PLAY_S = 6
-const HEAT = '#ff9a4d'
 const SPARK = '#cfe3ff'
-const mV = (v: number) => `${Math.round(v * 1000)} mV`
 
 const wireRail = (caps: Cap[]): Rail => ({ vs: V_RAIL, ohms: 0.05, henries: 0.5e-6, stray: 47e-9, caps })
 const motorAmps = (t: number, amps: number) => pwmCurrent(t - PWM_AT, amps, PERIOD, 0.5, RISE)
@@ -164,8 +163,8 @@ export const motorNoise: Lesson = {
   formula: (p) => {
     const s = solveMotor(p)
     return s.cap === 'none'
-      ? `Brush arc: ≈ ${ARC_K} × I = ${si(ARC_K * s.amps, 'A', 2)} for 40 ns, straight into the shared rail → ${mV(s.arcDip)} spike`
-      : `Cap across the motor: |Zc| / |jωL_lead + Zc| at 10 MHz = ${decibels(s.gain).toFixed(0)} dB, the arc is ÷ ${Math.round(1 / s.gain)} → ${mV(s.arcDip)}`
+      ? `Brush arc: ≈ ${ARC_K} × I = ${si(ARC_K * s.amps, 'A', 2)} for 40 ns, straight into the shared rail → ${millivolts(s.arcDip)} spike`
+      : `Cap across the motor: |Zc| / |jωL_lead + Zc| at 10 MHz = ${decibels(s.gain).toFixed(0)} dB, the arc is ÷ ${Math.round(1 / s.gain)} → ${millivolts(s.arcDip)}`
   },
   legend: [
     { color: B_FIELD, label: 'Rail at the ESP32 (scope)', shape: 'dot' },
@@ -236,7 +235,7 @@ export const motorNoise: Lesson = {
         const s = st.s
         return [
           { label: 'Rail at the ESP32, lowest', value: `${volts(s.min)}${s.min < BROWNOUT ? ' · resets' : ''}`, tone: s.min < BROWNOUT ? 'bad' : s.min < 4.5 ? 'warn' : 'ok' },
-          { label: 'Brush-arc spike on the rail', value: mV(s.arcDip), tone: s.arcDip > 0.5 ? 'bad' : s.arcDip > 0.1 ? 'warn' : 'ok' },
+          { label: 'Brush-arc spike on the rail', value: millivolts(s.arcDip), tone: s.arcDip > 0.5 ? 'bad' : s.arcDip > 0.1 ? 'warn' : 'ok' },
           { label: 'Cap across the motor, 10 MHz', value: s.cap === 'none' ? '0 dB · nothing there' : `${decibels(s.gain).toFixed(0)} dB` },
           { label: 'ADC jitter (5 V sensor ÷ 2)', value: `${jitter(s.pp)} counts p-p`, tone: jitter(s.pp) > 200 ? 'bad' : jitter(s.pp) > 40 ? 'warn' : undefined },
         ]
@@ -331,7 +330,7 @@ export const bulkCapacitors: Lesson = {
         const s = st.s
         return [
           { label: 'Rail, lowest', value: `${volts(s.min)}${s.min < BROWNOUT ? ' · resets' : ''}`, tone: s.min < BROWNOUT ? 'bad' : s.min < 4.5 ? 'warn' : 'ok' },
-          { label: 'Switching spike (first 400 ns)', value: mV(s.spike), tone: s.spike > 0.5 ? 'bad' : s.spike > 0.15 ? 'warn' : 'ok' },
+          { label: 'Switching spike (first 400 ns)', value: millivolts(s.spike), tone: s.spike > 0.5 ? 'bad' : s.spike > 0.15 ? 'warn' : 'ok' },
           { label: '|Z| at 20 kHz · 10 MHz', value: `${zText(s.zLow)} · ${zText(s.zHigh)}` },
           { label: 'ADC jitter (5 V sensor ÷ 2)', value: `${jitter(s.pp)} counts p-p`, tone: jitter(s.pp) > 200 ? 'bad' : jitter(s.pp) > 40 ? 'warn' : undefined },
         ]
@@ -383,7 +382,7 @@ export const separateRails: Lesson = {
     const s = solveRails(p)
     if (s.mode === 'lc') return `LC filter: f₀ = 1 / 2π√(LC) = ${si(lcCutoff(L_FILTER, CAPS.bulk100u.farads), 'Hz', 2)}; at 20 kHz it passes ${decibels(s.gain).toFixed(0)} dB, ×${s.gain.toFixed(3)}`
     if (s.mode === 'separate') return `Own regulator from the pack: the ESP32 rail only sees its own ${si(LOGIC_A, 'A', 2)}; motor and logic grounds meet at the pack − (star)`
-    return `Shared: the ESP32 sits on the motor’s node, so it gets all ${mV(s.motorPp)} p-p of the PWM ripple and spikes`
+    return `Shared: the ESP32 sits on the motor’s node, so it gets all ${millivolts(s.motorPp)} p-p of the PWM ripple and spikes`
   },
   legend: [
     { color: HEAT, label: 'Motor rail', shape: 'dot' },
@@ -497,8 +496,8 @@ export const separateRails: Lesson = {
         const s = st.s
         const counts = jitter(s.logicPp)
         return [
-          { label: 'Motor rail ripple', value: `${mV(s.motorPp)} p-p` },
-          { label: 'ESP32 rail ripple', value: `${mV(s.logicPp)} p-p`, tone: s.logicPp > 0.3 ? 'bad' : s.logicPp > 0.05 ? 'warn' : 'ok' },
+          { label: 'Motor rail ripple', value: `${millivolts(s.motorPp)} p-p` },
+          { label: 'ESP32 rail ripple', value: `${millivolts(s.logicPp)} p-p`, tone: s.logicPp > 0.3 ? 'bad' : s.logicPp > 0.05 ? 'warn' : 'ok' },
           { label: 'Path to the ESP32 at 20 kHz', value: s.mode === 'separate' ? 'own regulator' : `${decibels(s.gain).toFixed(0)} dB` },
           { label: 'ADC jitter (5 V sensor ÷ 2)', value: `${counts} counts p-p`, tone: counts > 200 ? 'bad' : counts > 40 ? 'warn' : 'ok' },
         ]

@@ -1,4 +1,4 @@
-import { AMS1117_33, CHEMISTRIES, ESP32_BOD, ESP32_MIN_V, ESP32_TIMELINE as TL, BrownoutRig, brownoutRun, logicAmps, minInputVolts, openCircuitVolts, rideThroughS } from '.'
+import { AMS1117_33, CHEMISTRIES, ESP32_BOD, ESP32_MIN_V, ESP32_TIMELINE as TL, BrownoutRig, brownoutRun, logicAmps, minInputVolts, openCircuitVolts, rideThroughS } from '..'
 
 const aa = (soc: number) => 4 * openCircuitVolts(CHEMISTRIES.nimh, soc)
 const rig = (soc: number, more: Partial<BrownoutRig> = {}): BrownoutRig => ({

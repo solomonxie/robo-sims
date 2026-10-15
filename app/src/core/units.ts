@@ -56,5 +56,8 @@ export const joules = (j: number) => si(j, 'J', 3)
 export const mA = (a: number) => a * 1000
 export const secs = (s: number) => si(s, 's', 3)
 export const pct = (f: number) => `${Math.round(f * 100)} %`
+export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
+/** Minutes under an hour, else hours to `digits` decimals. */
+export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)
 /** 0 when |x| < eps, so readouts don't show −0 or float dust. */
 export const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)

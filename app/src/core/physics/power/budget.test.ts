@@ -16,7 +16,7 @@ import {
   startAmps,
   stateAmps,
   ttStallAmps,
-} from '.'
+} from '..'
 
 const LI = CHEMISTRIES.liion
 

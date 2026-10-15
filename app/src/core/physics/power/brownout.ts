@@ -1,7 +1,7 @@
 // Brownouts: a load step sags the pack, the LDO drops out, the MCU rail falls below spec and the brownout detector resets it.
 
 import { startAmps } from './budget'
-import { LinearReg, dropoutVolts, linearReg } from './regulators'
+import { LinearReg, dropoutVolts, linearReg } from '../regulators'
 
 /** ESP32 brownout detector thresholds on the 3.3 V rail, by menuconfig level 0–7. */
 export const ESP32_BOD = [2.43, 2.48, 2.58, 2.62, 2.67, 2.7, 2.77, 2.8]

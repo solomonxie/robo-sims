@@ -16,7 +16,7 @@ import {
   packRuntime,
   stateAmps,
 } from '../../core/physics'
-import { amps, fitDigits, pct, volts, watts } from '../../core/units'
+import { amps, fitDigits, hoursText, pct, volts, watts } from '../../core/units'
 import { buildTtMotor, buildWheel } from '../../models/motion'
 import { buildEsp32, buildHcSr04, buildL298n } from '../../models/modules'
 import { V3, add, mat, mesh } from '../../models/kit'
@@ -24,6 +24,7 @@ import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -38,6 +39,7 @@ import {
   inOutBars,
   label,
   lane,
+  memoBy,
   plusFlow,
   pulseLabel,
   scope,
@@ -49,12 +51,11 @@ import { Lesson, Params, Stage, n } from '../types'
 
 const LI = CHEMISTRIES.liion
 const ALK = CHEMISTRIES.alkaline
-const HEAT = '#ff9a4d'
 const COLOR: Record<ItemId, string> = { esp32: B_FIELD, sonar: '#4d8dff', servo: '#b0f2ff', motors: POWER, buck: HIGH_V, l298n: HEAT }
 const NAME: Record<ItemId, string> = { esp32: 'ESP32', sonar: 'HC-SR04', servo: 'SG90', motors: '2× TT', buck: 'LM2596', l298n: 'L298N' }
 const ITEMS: ItemId[] = ['esp32', 'sonar', 'servo', 'motors', 'l298n', 'buck']
 const mAh = (a: number) => String(Math.round(a * 1000))
-const hours = (h: number) => (h < 1 ? `${Math.round(h * 60)} min` : h < 48 ? `${+h.toFixed(1)} h` : `${+(h / 24).toFixed(1)} days`)
+const hours = (h: number) => (h < 48 ? hoursText(h) : `${+(h / 24).toFixed(1)} days`)
 const LOAD_LEGEND = [
   { color: B_FIELD, label: 'Logic on the 5 V rail (blues)', shape: 'dot' as const },
   { color: POWER, label: 'Motors, straight off the pack', shape: 'dot' as const },
@@ -466,13 +467,6 @@ const I_TOP = 2.5
 const BROWNOUT_V = 4.4
 const DIP_V = 4.75
 
-const peakCache = { key: '', s: null as ReturnType<typeof computePeak> | null }
-const solvePeak = (p: Params) => {
-  const key = `${p.pack}|${p.start}|${p.charge}`
-  if (key !== peakCache.key || !peakCache.s) Object.assign(peakCache, { key, s: computePeak(p) })
-  return peakCache.s!
-}
-
 const computePeak = (p: Params) => {
   const kind = p.pack === 'aa' ? 'aa' : 'li'
   const pk = PACKS3[kind]
@@ -489,6 +483,8 @@ const computePeak = (p: Params) => {
   const low = samples.reduce((m, x) => (x.b.conv.vout < m.b.conv.vout ? x : m))
   return { kind, ramp, soc, ocv, ohms: pk.ohms, samples, avg, peak, low, browns: low.b.conv.vout < BROWNOUT_V }
 }
+
+const solvePeak = memoBy((p: Params) => `${p.pack}|${p.start}|${p.charge}`, computePeak)
 
 export const peakVsAverage: Lesson = {
   id: 'power-budget-peak-vs-average',

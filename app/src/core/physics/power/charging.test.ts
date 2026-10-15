@@ -1,4 +1,4 @@
-import { BMS_LIMITS, CHEMISTRIES, TP4056, cellTemp, chargeCurve, chargePoint, dieC, liionCharger, sampleAt, throttledAmps, tp4056Amps, tp4056Point } from '.'
+import { BMS_LIMITS, CHEMISTRIES, TP4056, cellTemp, chargeCurve, chargePoint, dieC, liionCharger, sampleAt, throttledAmps, tp4056Amps, tp4056Point } from '..'
 
 const { liion } = CHEMISTRIES
 

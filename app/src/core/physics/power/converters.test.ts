@@ -1,4 +1,4 @@
-import { BUCK_COILS, CHEMISTRIES, LM2596, MT3608, XL6009, buckRipple, dcdcPoint, outputRipple, potFor, potVolts, regulatedShare, rippleAmps, runAt, runDown } from '.'
+import { BUCK_COILS, CHEMISTRIES, LM2596, MT3608, XL6009, buckRipple, dcdcPoint, outputRipple, potFor, potVolts, regulatedShare, rippleAmps, runAt, runDown } from '..'
 
 const LI = CHEMISTRIES.liion
 

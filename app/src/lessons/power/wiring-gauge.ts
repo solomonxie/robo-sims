@@ -25,6 +25,7 @@ import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -51,7 +52,6 @@ import {
 import { Lesson, Params, Stage, n } from '../types'
 
 const PACK_V = 7.4
-const HEAT = '#ff9a4d'
 const RED_INS = '#d8322c'
 const BLACK_INS = '#2a2b30'
 const celsius = (c: number) => (c > 999 ? '> 999 °C' : `${Math.round(c)} °C`)

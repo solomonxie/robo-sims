@@ -1,10 +1,11 @@
 import * as THREE from 'three/webgpu'
 import { BMS_LIMITS, CHEMISTRIES, BmsFault, bmsTrip, cellVolts, driftWeeks, loadedCellVolts, packRating, powerI2R } from '../../core/physics'
-import { amps, fitDigits, volts, watts } from '../../core/units'
+import { amps, fitDigits, hoursText, volts, watts } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -30,7 +31,6 @@ import { Lesson, Params, Stage, n } from '../types'
 
 const LI = CHEMISTRIES.liion
 const CELL_MAX_A = 10
-const hours = (h: number) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(1)} h`)
 const mAh = (x: number) => `${Math.round(x)} mAh`
 
 // --- 1S to 4S: weld cells into a pack; series stacks volts, parallel stacks capacity and current. ---
@@ -348,7 +348,7 @@ export const bmsProtection: Lesson = {
             tone: !s.guarded ? 'bad' : st.cut ? 'warn' : 'ok',
           },
           { label: 'Heat per cell I² × R', value: watts(flowing ? s.heatW : 0), tone: flowing && s.load > CELL_MAX_A ? 'bad' : undefined },
-          { label: `Time (${s.speedup}× fast)`, value: hours(st.drawn / 1000 / s.load) },
+          { label: `Time (${s.speedup}× fast)`, value: hoursText(st.drawn / 1000 / s.load) },
         ]
       },
     }
@@ -385,7 +385,7 @@ export const balancing: Lesson = {
     { color: POWER, label: 'Charge in each cell', shape: 'dot' },
     { color: RING, label: 'Usable pack mAh, this mode', shape: 'dot' },
     { color: GREY, label: 'The other mode', shape: 'dot' },
-    { color: '#ff9a4d', label: 'Bleed resistor burning off excess', shape: 'dot' },
+    { color: HEAT, label: 'Bleed resistor burning off excess', shape: 'dot' },
   ],
   points: [
     'Cells in series carry the same current, so charging and driving move them together. Anything that differs between them doesn’t.',

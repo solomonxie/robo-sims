@@ -1,4 +1,4 @@
-import { CAPS, bankOhms, capOhms, decibels, lcCutoff, lcGain, noiseCounts, peakBins, pwmCurrent, railTrace, selfResonance } from '.'
+import { CAPS, bankOhms, capOhms, decibels, lcCutoff, lcGain, noiseCounts, peakBins, pwmCurrent, railTrace, selfResonance } from '..'
 
 const rail = (caps = [CAPS.bulk470u]) => ({ vs: 5, ohms: 0.05, henries: 0.5e-6, stray: 100e-9, caps })
 

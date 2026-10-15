@@ -1,6 +1,6 @@
 // Wiring a robot: copper runs (drop, I²R heat vs insulation), connector contacts, and shared ground returns.
-import { Element, solveNodal } from '../nodal'
-import { RESISTIVITY, ROOM_C, TEMP_COEFF, awgDiameter, wireArea } from './dc'
+import { Element, solveNodal } from '../../nodal'
+import { RESISTIVITY, ROOM_C, TEMP_COEFF, awgDiameter, wireArea } from '../dc'
 
 /** Hook-up wire insulation wall (m) and the free-air heat transfer (convection + radiation, W/m²·K). */
 export const INSULATION_WALL = 0.4e-3

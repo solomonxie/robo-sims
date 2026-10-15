@@ -1,4 +1,4 @@
-import { CHEMISTRIES, cRateAmps, shortCircuitAmps, cRateHours, cutoffSoc, deliveredWh, openCircuitVolts, terminalVolts, usableFraction } from '.'
+import { CHEMISTRIES, cRateAmps, shortCircuitAmps, cRateHours, cutoffSoc, deliveredWh, openCircuitVolts, terminalVolts, usableFraction } from '..'
 
 const { alkaline, nimh, liion, lfp } = CHEMISTRIES
 

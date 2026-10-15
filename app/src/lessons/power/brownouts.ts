@@ -23,6 +23,7 @@ import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
   GREY,
+  HEAT,
   HIGH_V,
   LABEL,
   POWER,
@@ -37,6 +38,7 @@ import {
   label,
   lane,
   lieFlat,
+  memoBy,
   motorCan,
   plusFlow,
   presence,
@@ -48,7 +50,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const HEAT = '#ff9a4d'
 const PACK_OHMS = 0.52
 const STALL_A = 2
 const CRUISE_A = 0.4
@@ -204,13 +205,6 @@ const AT1 = 0.1
 const PLAY1 = 6
 const FIXES1: Record<string, string> = { none: 'No fix', cap: 'Diode + 10 mF', soft: 'Soft start' }
 
-const spikeCache = { key: '', s: null as ReturnType<typeof computeSpikes> | null }
-const solveSpikes = (p: Params) => {
-  const key = `${p.fix}|${p.charge}`
-  if (key !== spikeCache.key || !spikeCache.s) Object.assign(spikeCache, { key, s: computeSpikes(p) })
-  return spikeCache.s!
-}
-
 const computeSpikes = (p: Params) => {
   const fix = (p.fix as string) in FIXES1 ? (p.fix as string) : 'none'
   const charge = n(p, 'charge')
@@ -221,6 +215,8 @@ const computeSpikes = (p: Params) => {
   const restIn = r.vin[0]
   return { fix, charge, rig, r, peakA, restIn, minPack: minOf(r.pack), minIn: minOf(r.vin), minRail: minOf(r.rail), first: r.resets[0] }
 }
+
+const solveSpikes = memoBy((p: Params) => `${p.fix}|${p.charge}`, computeSpikes)
 
 export const currentSpikes: Lesson = {
   id: 'brownouts-current-spikes',
@@ -299,13 +295,6 @@ const LOG_LINES = 8
 const FIXES2: Record<string, string> = { none: 'Shared pack', soft: 'Soft start', own: 'Own 5 V rail' }
 const REASON: Record<ResetKind, string> = { poweron: 'ESP_RST_POWERON', brownout: 'ESP_RST_BROWNOUT', panic: 'ESP_RST_PANIC' }
 
-const loopCache = { key: '', s: null as ReturnType<typeof computeLoop> | null }
-const solveLoop = (p: Params) => {
-  const key = `${p.fix}|${p.charge}|${p.bod}`
-  if (key !== loopCache.key || !loopCache.s) Object.assign(loopCache, { key, s: computeLoop(p) })
-  return loopCache.s!
-}
-
 /** Serial-monitor lines with their times, from the run's resets and phase changes. */
 function serialLog(r: ReturnType<typeof brownoutRun>, dt: number) {
   const lines: [number, string][] = []
@@ -333,6 +322,8 @@ const computeLoop = (p: Params) => {
   const restIn = rig.own ? rig.own.volts : rig.ocv - rig.ohms * (TL.runA + AMS1117_33.iq)
   return { fix, charge, level, rig, r, resets, log: serialLog(r, DT2), minRail: Math.min(...r.rail), headroom: restIn - minInputVolts(AMS1117_33, TL.runA) }
 }
+
+const solveLoop = memoBy((p: Params) => `${p.fix}|${p.charge}|${p.bod}`, computeLoop)
 
 export const diagnosingResets: Lesson = {
   id: 'brownouts-diagnosing-resets',

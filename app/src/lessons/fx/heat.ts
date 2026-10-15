@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { add, box, mat, mesh } from '../../models/kit'
-import { HIGH_V, glowMat } from './colors'
+import { HEAT, HIGH_V, glowMat } from './colors'
 import { clamp01, rand } from './util'
 
 /** Red-hot glow for a material: 0 = off, 1 = bright orange. */
@@ -38,7 +38,7 @@ export function heatWaves(parent: THREE.Object3D, width: number, { count = 5, ri
   const curve = new THREE.CatmullRomCurve3(Array.from({ length: 9 }, (_, k) => new THREE.Vector3(0.35 * Math.sin(k * 1.6), (k / 8) * 2.4, 0)))
   const geometry = new THREE.TubeGeometry(curve, 48, 0.09, 6)
   const lines = Array.from({ length: count }, (_, i) => {
-    const material = new THREE.MeshBasicMaterial({ color: '#ff9a4d', transparent: true, opacity: 0, depthWrite: false })
+    const material = new THREE.MeshBasicMaterial({ color: HEAT, transparent: true, opacity: 0, depthWrite: false })
     const m = add(group, mesh(geometry, material), [count === 1 ? 0 : -width / 2 + (i / (count - 1)) * width, 0, 0])
     m.castShadow = false
     return { m, material, phase: i / count + rand(0, 0.15) }

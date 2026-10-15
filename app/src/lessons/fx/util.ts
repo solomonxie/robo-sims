@@ -44,3 +44,14 @@ export function presence(o: THREE.Object3D, p: number) {
 
 /** One eased step from `from` toward `to`. */
 export const glide = (dt: number, from: number, to: number, k = 14) => from + (to - from) * ease(dt, k)
+export const frac = (x: number) => x - Math.floor(x)
+
+/** Caches `compute(p)` until `key(p)` changes. */
+export function memoBy<P, T>(key: (p: P) => string, compute: (p: P) => T) {
+  let last: { key: string; value: T } | null = null
+  return (p: P) => {
+    const k = key(p)
+    if (last?.key !== k) last = { key: k, value: compute(p) }
+    return last.value
+  }
+}

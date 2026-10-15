@@ -32,6 +32,7 @@ import {
   diodeAlong,
   dropAlong,
   ease,
+  frac,
   groundAt,
   lane,
   heatWaves,
@@ -53,7 +54,6 @@ import { Lesson, Params, Stage, e12, n } from '../types'
 const REG = AMS1117_33
 const VIS_HZ = 0.5
 const onLane = (p: V3): V3 => [p[0], p[1], LANE]
-const frac = (x: number) => x - Math.floor(x)
 const mA = (a: number) => `${Math.round(a * 1000)} mA`
 const view = (cx: number, radius: number) => ({ center: [cx, -1, 0] as V3, radius, polar: 1.42, azimuth: 0.12 })
 

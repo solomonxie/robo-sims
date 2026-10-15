@@ -12,7 +12,7 @@ import {
   wireRiseC,
   wireTauS,
   wireTempAt,
-} from '.'
+} from '..'
 
 describe('wiring', () => {
   it('22 AWG copper is ~52 mΩ/m and the loop counts both conductors', () => {
