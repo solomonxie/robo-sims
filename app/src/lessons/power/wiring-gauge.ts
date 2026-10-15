@@ -573,7 +573,7 @@ export const starGround: Lesson = {
     const plot = scope(scene, SC_W, SC_H, { divs: [6, 5], zeroAt: 0 })
     plot.group.position.set(...SC)
     const yOf = (v: number) => (v / LIFT_TOP) * SC_H - SC_H / 2
-    ticks(plot, [], [0, 0.25, 0.5].map((v): [number, string] => [v / LIFT_TOP, String(Math.round(v * 1000))]))
+    ticks(plot, [], [0, 0.25, 0.5].map((v): [number, string] => [v / LIFT_TOP, String(Math.round(v * 1000))]), 0.5)
     add(plot.group, label('MCU GND  MV', { size: 0.42, color: RING }), [0, SC_H / 2 + 1, 0])
     add(plot.group, label('PWM 1000× SLOW', { size: 0.4, color: GREY }), [0, -SC_H / 2 - 1, 0])
     const trace = plot.trace(RING, { samples: 200, radius: 0.08 })

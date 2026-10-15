@@ -217,14 +217,14 @@ export function scope(
 type Plot = ReturnType<typeof scope>
 
 /** Grey tick numbers: under the screen at x fractions, right of it at y fractions. */
-export function ticks(plot: Plot, x: [number, string][], y: [number, string][]) {
+export function ticks(plot: Plot, x: [number, string][], y: [number, string][], size = 0.8) {
   const label = (text: string, at: V3) => {
-    const d = segmentDisplay(text.replace('.', '').length, 0.8, GREY, true)
+    const d = segmentDisplay(text.replace('.', '').length, size, GREY, true)
     d.set(text)
     add(plot.group, d.group, at)
   }
-  for (const [u, s] of x) label(s, [plot.xAt(u), -plot.height / 2 - 1.1, 0])
-  for (const [v, s] of y) label(s, [plot.width / 2 + 1.5, v * plot.height - plot.height / 2, 0])
+  for (const [u, s] of x) label(s, [plot.xAt(u), -plot.height / 2 - 0.3 - size, 0])
+  for (const [v, s] of y) label(s, [plot.width / 2 + 0.7 + size, v * plot.height - plot.height / 2, 0])
 }
 
 /** A plot screen at `at` with zero at the bottom and a glowing operating-point dot; `y(f)` maps 0..1 of full scale. */
