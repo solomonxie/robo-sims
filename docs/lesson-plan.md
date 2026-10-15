@@ -29,7 +29,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `electromech` — relay/SSR, switches, pot, `speaker`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
 - `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `pixelGrid` (instanced sensor pixels, sRGB `set`), `IR_TINT`, `SUN_TINT` [`physics/sensors`].
-- `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder), `I2C_TEXT` [`physics/signals/buses`].
+- `screens` — `scope` (`trace.points` = polyline in any order), `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder), `I2C_TEXT` [`physics/signals/buses`].
 - `rooms` — `floorView` (tilted top-view group), `roomModel` (solids from `Room`, metres, caller scales/turns), `lidarRobot` (spinning head), `pointCloud` (instanced dots), `rayFan` (instanced rods), `costField` (costmap height bars) [`physics/room`, `software/costmap`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`], `gantt` (per-tick rows, `rebuild`/`show(now)`), `simClock` (looping time-lapse clock), `moduleBlock` (glowing node/code slab), `btDiagram` (behaviour tree lit by status) [`software/btree`].
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines; `rosTint` + `ROS_CODE_LEGEND` for rclpy/rclcpp/CLI), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
@@ -43,7 +43,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
-- `software/` — `messaging` (pub/sub QoS + queues, service vs action, launch respawn), `urdf` (4×4 `tf3`/`mul4`/`invert4`, `parseUrdf`, `urdfTree`, `linkFrames`, `ROVER`), `frames` (`compose2`/`invert2`, loop drive, drifting `odomPose`, `tfChain`), `costmap` (layers, `inflate`, A* `planGrid`, `costmapRun`), `btree` (`btTick` incl. decorators, Nav2 `NAV_TREE`/`btNavRun`, fetch robot `fetchRun` vs `FETCH_FSM`, blackboard ports `bbRun`), `microros` (agent reconnect `urosRun`, XRCE frames over UART/UDP `xrceLink`/`xrceRun`), `simulation` (2D box engine `physStep` = `findContacts`→`contactForces`→`integrate`, `physRun`, `stableDt`; sim-vs-real `twinRun`, `tuneTwin` with domain randomisation).
+- `software/` — `messaging` (pub/sub QoS + queues, service vs action, launch respawn), `urdf` (4×4 `tf3`/`mul4`/`invert4`, `parseUrdf`, `urdfTree`, `linkFrames`, `ROVER`), `frames` (`compose2`/`invert2`, loop drive, drifting `odomPose`, `tfChain`), `costmap` (layers, `inflate`, A* `planGrid`, `costmapRun`), `btree` (`btTick` incl. decorators, Nav2 `NAV_TREE`/`btNavRun`, fetch robot `fetchRun` vs `FETCH_FSM`, blackboard ports `bbRun`), `microros` (agent reconnect `urosRun`, XRCE frames over UART/UDP `xrceLink`/`xrceRun`), `telemetry` (speed loop over a slow radio `speedRun`/`streamRun`, fault run `faultRun` logged `logAt`, scrubbed `replayAt`, `logBytesPerS`), `simulation` (2D box engine `physStep` = `findContacts`→`contactForces`→`integrate`, `physRun`, `stableDt`; sim-vs-real `twinRun`, `tuneTwin` with domain randomisation).
 - `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt` (sample of a fixed-step run).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
@@ -76,7 +76,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] micro-ROS
   - [x] Simulation
   - [x] Behaviour trees
-  - [ ] Telemetry & logging
+  - [x] Telemetry & logging
   - [ ] Remote control
   - [ ] Safety & failsafes
 

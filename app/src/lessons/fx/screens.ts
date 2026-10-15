@@ -54,24 +54,41 @@ export function scope(
     const d = new THREE.Vector3()
     const mid = new THREE.Vector3()
     const sc = new THREE.Vector3()
-    /** Draws y(u) for u = 0 (left) … 1 (right); the head dot sits at `headU` (null hides it). */
-    const draw = (y: (u: number) => number, headU: number | null = 1) => {
-      pts.forEach((p, i) => p.set(xAt(i / (samples - 1)), clip(y(i / (samples - 1))), SCREEN_Z))
+    const hidden = new THREE.Matrix4().makeScale(0, 0, 0)
+    const lay = (k: number) => {
       for (let i = 0; i < samples - 1; i++) {
+        if (i + 1 >= k) {
+          segs.setMatrixAt(i, hidden)
+          continue
+        }
         d.subVectors(pts[i + 1], pts[i])
         const len = d.length()
         q.setFromUnitVectors(UP, d.divideScalar(len || 1))
         segs.setMatrixAt(i, m.compose(mid.addVectors(pts[i], pts[i + 1]).multiplyScalar(0.5), q, sc.set(1, len, 1)))
       }
-      pts.forEach((p, i) => joints.setMatrixAt(i, m.makeTranslation(p)))
+      pts.forEach((p, i) => joints.setMatrixAt(i, i < k ? m.makeTranslation(p) : hidden))
       segs.instanceMatrix.needsUpdate = joints.instanceMatrix.needsUpdate = true
+    }
+    /** Draws y(u) for u = 0 (left) … 1 (right); the head dot sits at `headU` (null hides it). */
+    const draw = (y: (u: number) => number, headU: number | null = 1) => {
+      pts.forEach((p, i) => p.set(xAt(i / (samples - 1)), clip(y(i / (samples - 1))), SCREEN_Z))
+      lay(samples)
       head.visible = headU !== null
       if (headU !== null) head.position.set(xAt(headU), clip(y(headU)), SCREEN_Z)
+    }
+    /** Polyline through (us[i], ys[i]) in the given order, up to `samples` points; the head dot sits on the last. */
+    const points = (us: readonly number[], ys: readonly number[]) => {
+      const k = Math.min(samples, us.length)
+      for (let i = 0; i < k; i++) pts[i].set(xAt(us[i]), clip(ys[i]), SCREEN_Z)
+      lay(k)
+      head.visible = k > 0
+      if (k) head.position.copy(pts[k - 1])
     }
     return {
       group: line,
       material,
       draw,
+      points,
       /** The last `window` seconds of `signal(t)` up to `now`, newest at the right (or left) edge, so it scrolls. */
       scroll(signal: (t: number) => number, now: number, window: number, newest: 'right' | 'left' = 'right') {
         const r = newest === 'right'

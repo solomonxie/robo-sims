@@ -91,6 +91,7 @@ import { behaviourTrees, costmaps } from '../lessons/software/nav2'
 import { agentAndClient, serialTransport } from '../lessons/software/micro-ros'
 import { physicsEngine, simToRealGap } from '../lessons/software/simulation'
 import { blackboard, sequenceAndFallback } from '../lessons/software/behaviour-trees'
+import { plottingLiveData, replayLogs } from '../lessons/software/telemetry-logging'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -383,6 +384,8 @@ const READY: Record<string, Lesson> = {
   'software/simulation/sim-to-real-gap': simToRealGap,
   'software/behaviour-trees/sequence-and-fallback': sequenceAndFallback,
   'software/behaviour-trees/blackboard': blackboard,
+  'software/telemetry-logging/plotting-live-data': plottingLiveData,
+  'software/telemetry-logging/replay-logs': replayLogs,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
