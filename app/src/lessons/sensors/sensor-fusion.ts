@@ -356,7 +356,9 @@ const kRun = memoBy(
   (p: Params) => {
     const sq = n(p, 'q')
     const sr = n(p, 'r')
-    return { sq, sr, run: kalmanRun(sq, sr, KF.steps, KF.u), steady: kfSteady(sq * sq, sr * sr) }
+    const run = kalmanRun(sq, sr, KF.steps, KF.u)
+    const top = Math.min(KF.sigmaTop, sr, ...run.flatMap((st) => [st.prior.P, st.post.P]).map(Math.sqrt))
+    return { sq, sr, run, top, steady: kfSteady(sq * sq, sr * sr) }
   },
 )
 const PHASES = ['predict', 'measure', 'update', 'update'] as const
@@ -397,8 +399,9 @@ export const kalmanIntuition: Lesson = {
     const plot = scope(scene, KF.W, KF.H, { divs: [12, 4], zeroAt: 0 })
     plot.group.position.set(0, KF.Y, 0)
     const xm = (m: number) => plot.xAt(m / KF.spanM)
-    const A = 0.95 * (KF.H - 0.2) * KF.sigmaTop * Math.sqrt(2 * Math.PI)
-    const bell = (mu: number, v: number, k = 1) => (u: number) => -KF.H / 2 + 0.1 + k * A * gaussPdf(u * KF.spanM, mu, Math.sqrt(v))
+    const A = 0.95 * (KF.H - 0.2) * Math.sqrt(2 * Math.PI)
+    let top = KF.sigmaTop
+    const bell = (mu: number, v: number, k = 1) => (u: number) => -KF.H / 2 + 0.1 + k * A * top * gaussPdf(u * KF.spanM, mu, Math.sqrt(v))
     const [priorTr, measTr, postTr] = [CLK_COLOR, HIGH_V, POWER].map((c) => plot.trace(c, { samples: 320, radius: 0.08 }))
     const truthRod = add(plot.group, shadowlessRod(glowMat(GREY, 0.7)))
     ticks(plot, Array.from({ length: 9 }, (_, i) => [i / 8, `${i}`] as [number, string]), [], 0.4)
@@ -422,6 +425,7 @@ export const kalmanIntuition: Lesson = {
       view: { center: [0, 1.2, 0], radius: 66, polar: 1.35, azimuth: 0 },
       frame(dt, p) {
         const R = kRun(p)
+        top = R.top
         const key = `${p.q}|${p.r}`
         if (key !== s.key) Object.assign(s, { key, t: 0 })
         s.t = (s.t + dt) % (KF.steps * KF.step)

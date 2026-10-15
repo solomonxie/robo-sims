@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓↔↕⇄✓✗⚡‘’“”'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓↔↕⇄✓✗⚡‘’“”√∑∫∞∂≠∝∠∆'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -54,6 +54,14 @@ describe('strokeFont', () => {
     const le = layoutText('≤').lines[0]
     expect(ge[1][0]).toBeGreaterThan(ge[0][0])
     expect(le[1][0]).toBeLessThan(le[0][0])
+    const same = (a: string, b: string) => JSON.stringify(layoutText(a)) === JSON.stringify(layoutText(b))
+    expect(same('∆', 'Δ')).toBe(true)
+    expect(same('∑', 'Σ')).toBe(false)
+    expect(layoutText('≠').lines.length).toBe(3)
+    expect(layoutText('∞').lines.length).toBe(2)
+    const ys = (ch: string) => layoutText(ch).lines.flat().map(([, y]) => y)
+    for (const ch of '∑∫') expect(Math.min(...ys(ch))).toBeLessThan(0)
+    expect(Math.max(...ys('√'))).toBeGreaterThan(1)
   })
 
   it('curls opening and closing quotes opposite ways', () => {
