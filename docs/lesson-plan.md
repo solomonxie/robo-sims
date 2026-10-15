@@ -30,11 +30,12 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder) [`physics/signals/buses`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines), `CODE_LEGEND`, `fetSymbol` (in-pin FET), `ledLoad`.
+- `net` — `phoneModel`, `routerModel`, `robotCar` (ESP32 on the flank), `ripples`, `arcAt`, `packetPool` (header + payload blocks in flight) [`physics/wireless`].
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); `wireless`: Wi-Fi STA/AP hops + rates, HTTP vs WebSocket cost, BLE GATT read/notify, ESP-NOW airtime/retries; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -64,7 +65,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] I²C
   - [x] SPI
   - [x] CAN bus
-  - [ ] Wi-Fi & Bluetooth
+  - [x] Wi-Fi & Bluetooth
   - [ ] Power modes
   - [ ] Memory & storage
   - [ ] RTOS basics

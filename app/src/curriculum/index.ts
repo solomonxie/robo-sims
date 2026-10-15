@@ -65,6 +65,7 @@ import { framingAndBaud, gpsAndModules, levelAndNoise } from '../lessons/microco
 import { addresses, busScan, pullUpResistors, readingAnImu } from '../lessons/microcontrollers/i2c'
 import { chipSelect, clockModes, sdCardsAndDisplays } from '../lessons/microcontrollers/spi'
 import { arbitration, differentialSignalling } from '../lessons/microcontrollers/can-bus'
+import { bleGatt, espNow, httpAndWebSocket, stationAndAp } from '../lessons/microcontrollers/wifi-bluetooth'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -288,6 +289,10 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/spi/sd-cards-and-displays': sdCardsAndDisplays,
   'microcontrollers/can-bus/differential-signalling': differentialSignalling,
   'microcontrollers/can-bus/arbitration': arbitration,
+  'microcontrollers/wi-fi-bluetooth/station-and-ap': stationAndAp,
+  'microcontrollers/wi-fi-bluetooth/http-and-websocket': httpAndWebSocket,
+  'microcontrollers/wi-fi-bluetooth/ble-gatt': bleGatt,
+  'microcontrollers/wi-fi-bluetooth/esp-now': espNow,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
