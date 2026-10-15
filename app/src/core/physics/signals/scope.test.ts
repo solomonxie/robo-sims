@@ -19,7 +19,7 @@ import {
   uartDecode,
   uartFrame,
   uartLevel,
-} from '.'
+} from '..'
 
 describe('scope', () => {
   it('dials step 1-2-5 and volts map to divisions', () => {

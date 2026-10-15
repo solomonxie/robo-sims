@@ -1,4 +1,4 @@
-import { Bit } from '../logic'
+import { Bit } from '../../logic'
 import {
   catchOdds,
   findPattern,

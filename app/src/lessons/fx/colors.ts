@@ -30,3 +30,9 @@ export function potentialColor(f: number, out = new THREE.Color()): THREE.Color 
 }
 export const CLK_COLOR = '#5ad8e6'
 export const DATA_COLOR = '#b48cff'
+
+export function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number) {
+  m.color.set(color)
+  m.emissive.set(color)
+  m.emissiveIntensity = k
+}

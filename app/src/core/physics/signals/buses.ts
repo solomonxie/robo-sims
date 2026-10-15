@@ -1,5 +1,5 @@
 // Logic-analyser maths: sampling digital lines, pattern triggers, I²C and SPI frames and their decoders.
-import { Bit, bit } from '../logic'
+import { Bit, bit } from '../../logic'
 
 /** A digital line: level 0/1 at time t (s). */
 export type Line = (t: number) => Bit

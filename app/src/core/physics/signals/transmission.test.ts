@@ -12,7 +12,7 @@ import {
   settledVolts,
   twinZ0,
   velocityFactor,
-} from '.'
+} from '..'
 
 describe('transmission', () => {
   it('cable geometry sets Z0 and speed', () => {

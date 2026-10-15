@@ -23,28 +23,20 @@ import {
   LOW_V,
   POWER,
   RING,
+  addLabel,
   cableRun,
   emptyGroup,
   glowMat,
   groundAt,
-  label,
   liveLabel,
   loopBeads,
   scope,
+  setGlow,
 } from '../fx'
-import { Lesson, Params, Stage } from '../types'
+import { Lesson, Params, Stage, pick } from '../types'
 
 const TAU = 2 * Math.PI
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
-const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' | 'right' = 'center') =>
-  (add(parent, label(s, { size, color, align }), at).castShadow = false)
 const vText = (v: number) => si(Math.abs(v), 'V', 2)
-
-function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number) {
-  m.color.set(color)
-  m.emissive.set(color)
-  m.emissiveIntensity = k
-}
 
 // --- Ground loops: two earthed boxes joined by a signal cable close a loop; a mains field threads it and drives hum. ---
 
@@ -80,7 +72,7 @@ function rackBox(parent: THREE.Object3D, at: V3, name: string) {
   box(g, [6, 4.2, 3], mat('#3a3d45', { rough: 0.5 }), [0, 0, -1.5])
   box(g, [5.6, 3.8, 0.1], mat('#1e2024', { rough: 0.6 }), [0, 0, 0.02])
   for (const x of [-1.6, 0, 1.6]) cylinder(g, 0.45, 0.4, mat('#c9cdd4', { metal: 0.3, rough: 0.35 }), [x, -0.7, 0.2], 'z', 24)
-  text(g, name, [0, 1.1, 0.2], LABEL, 0.55)
+  addLabel(g, name, [0, 1.1, 0.2], LABEL, 0.55)
   return g
 }
 
@@ -118,11 +110,11 @@ export const groundLoops: Lesson = {
     rackBox(scene, [BX, CY + 1.2, 0], 'AMP')
     cableRun(scene, [[-BX + 3, CY + 0.45, 0.4], [BX - 3, CY + 0.45, 0.4]], '#c9a227', 0.14)
     cableRun(scene, [[-BX + 3, CY, 0.4], [BX - 3, CY, 0.4]], '#6c7079', 0.2)
-    text(scene, `AUDIO CABLE · GROUND ${CABLE_OHMS} Ω`, [-5.6, CY + 1.3, 0.4], LABEL, 0.42)
+    addLabel(scene, `AUDIO CABLE · GROUND ${CABLE_OHMS} Ω`, [-5.6, CY + 1.3, 0.4], LABEL, 0.42)
     const iso = add(scene, new THREE.Group(), [5, CY + 0.2, 0.4])
     box(iso, [2.2, 1.8, 1.2], mat('#2b2e35', { rough: 0.5 }), [0, 0, 0])
     for (const x of [-0.45, 0.45]) cylinder(iso, 0.4, 0.5, mat('#b87333', { metal: 0.35, rough: 0.4 }), [x, 0, 0.6], 'z', 20)
-    text(iso, 'ISOLATOR', [0, 1.4, 0.3], RING, 0.42)
+    addLabel(iso, 'ISOLATOR', [0, 1.4, 0.3], RING, 0.42)
 
     const holder = add(scene, new THREE.Group())
     const fieldMat = glowMat(B_FIELD, 0)
@@ -133,7 +125,7 @@ export const groundLoops: Lesson = {
     plot.group.position.set(-4, GY, 0)
     const hum = plot.trace(B_FIELD, { samples: 200, radius: 0.05 })
     const sig = plot.trace(RING, { samples: 420, radius: 0.07 })
-    text(plot.group, 'AMP INPUT · 5 mV/DIV · 4 ms/DIV', [-GW / 2, GH / 2 + 0.9, 0], LABEL, 0.42, 'left')
+    addLabel(plot.group, 'AMP INPUT · 5 mV/DIV · 4 ms/DIV', [-GW / 2, GH / 2 + 0.9, 0], LABEL, 0.42, 'left')
 
     const st = { key: '', t: 0 }
     return {
@@ -150,7 +142,7 @@ export const groundLoops: Lesson = {
           for (const sx of [-1, 1]) cableRun(holder, [[sx * LX, CY - 0.9, 0], [sx * LX, yb, 0], [sx * 4.2, yb, 0]], '#2a2b30', 0.24)
           box(holder, [9, 1.3, 1.6], mat('#e6e3dc', { rough: 0.7 }), [0, yb, -0.3])
           for (const x of [-2.8, 2.8]) box(holder, [1.3, 0.8, 0.1], mat('#3a3d45'), [x, yb, 0.55])
-          text(holder, 'MAINS STRIP · SHARED EARTH', [0, yb - 1.3, 0], GREY, 0.42)
+          addLabel(holder, 'MAINS STRIP · SHARED EARTH', [0, yb - 1.3, 0], GREY, 0.42)
           for (let y = CY - 1.3; y > yb + 0.9; y -= 1.4)
             for (let x = -8.4; x <= 8.4; x += 1.4) dots.push(add(holder, mesh(new THREE.SphereGeometry(0.16, 8, 6), fieldMat), [x, y, -0.2]))
           beads.setPath([[-LX, CY, 1.2], [LX, CY, 1.2], [LX, yb, 1.2], [-LX, yb, 1.2]])
@@ -245,7 +237,7 @@ export const twistedPairs: Lesson = {
     const x1 = (PAIR_M / 2) * U
     for (const [x, name] of [[x0 - 2, 'SENSOR'], [x1 + 2, 'MCU']] as [number, string][]) {
       box(scene, [3, 3, 1.4], mat('#2e7d4f', { rough: 0.5 }), [x, 0, -0.4])
-      text(scene, name, [x, 2.1, 0], LABEL, 0.45)
+      addLabel(scene, name, [x, 2.1, 0], LABEL, 0.45)
     }
     const wires = add(scene, new THREE.Group())
     const slices = Array.from({ length: SLICES }, (_, i) => {
@@ -270,7 +262,7 @@ export const twistedPairs: Lesson = {
     plot.group.position.set(-2, TY, 0)
     const ref = plot.trace(GREY, { samples: 200, radius: 0.06 })
     const tr = plot.trace(RING, { samples: 200, radius: 0.09 })
-    text(plot.group, 'PICKUP AT THE MCU · 5 mV/DIV · 12.5 µs/DIV', [-TW / 2, TH / 2 + 0.9, 0], LABEL, 0.42, 'left')
+    addLabel(plot.group, 'PICKUP AT THE MCU · 5 mV/DIV · 12.5 µs/DIV', [-TW / 2, TH / 2 + 0.9, 0], LABEL, 0.42, 'left')
 
     const st = { key: '', t: 0 }
     return {
@@ -380,12 +372,12 @@ export const cableShields: Lesson = {
     cableRun(scene, [[-SX - 4, MY, 0], [SX + 4, MY, 0]], '#7a4a2a', 0.4)
     const mainsMat = glowMat(HIGH_V, 0)
     rod(scene, [-SX - 4, MY, 0.38], [SX + 4, MY, 0.38], 0.08, mainsMat)
-    text(scene, `${MAINS_V} V MAINS CORD · ${HUM_HZ} Hz`, [SX + 4, MY + 1.1, 0], LABEL, 0.48, 'right')
+    addLabel(scene, `${MAINS_V} V MAINS CORD · ${HUM_HZ} Hz`, [SX + 4, MY + 1.1, 0], LABEL, 0.48, 'right')
 
     box(scene, [3, 3, 1.6], mat('#4a6fa5', { rough: 0.5 }), [-SX - 2.3, 0, -0.3])
-    text(scene, 'SENSOR', [-SX - 2.3, 2.1, 0], LABEL, 0.42)
+    addLabel(scene, 'SENSOR', [-SX - 2.3, 2.1, 0], LABEL, 0.42)
     box(scene, [3.4, 3.4, 1.6], mat('#2e7d4f', { rough: 0.5 }), [SX + 2.5, 0, -0.3])
-    text(scene, '1 MΩ IN', [SX + 2.5, 2.3, 0], LABEL, 0.42)
+    addLabel(scene, '1 MΩ IN', [SX + 2.5, 2.3, 0], LABEL, 0.42)
 
     const coreMat = glowMat(HIGH_V, 0)
     coreMat.color.set('#c8803f')
@@ -407,7 +399,7 @@ export const cableShields: Lesson = {
     })
     const earth = add(scene, new THREE.Group())
     cableRun(earth, [[-SX + 0.4, EY - 0.8, 0], [SX - 0.4, EY - 0.8, 0]], '#4f8a3c', 0.14)
-    text(earth, 'EARTH WIRING · CLOSES THE LOOP', [0, EY - 1.8, 0], GREY, 0.4)
+    addLabel(earth, 'EARTH WIRING · CLOSES THE LOOP', [0, EY - 1.8, 0], GREY, 0.4)
     const beads = loopBeads(scene, 22, CONVENTIONAL)
     beads.setPath([[-SX + 0.4, SR + 0.3, 1], [SX - 0.4, SR + 0.3, 1], [SX - 0.4, EY - 0.8, 1], [-SX + 0.4, EY - 0.8, 1]])
 
@@ -428,7 +420,7 @@ export const cableShields: Lesson = {
     plot.group.position.set(-5, SY, 0)
     const tr = plot.trace(HIGH_V, { samples: 240, radius: 0.08 })
     const clipTag = liveLabel(plot.group, [SW / 2, SH / 2 + 0.9, 0], { size: 0.42, align: 'right' })
-    text(plot.group, 'INPUT · 1 mV/DIV · 5 ms/DIV', [-SW / 2, SH / 2 + 0.9, 0], LABEL, 0.42, 'left')
+    addLabel(plot.group, 'INPUT · 1 mV/DIV · 5 ms/DIV', [-SW / 2, SH / 2 + 0.9, 0], LABEL, 0.42, 'left')
 
     const st = { key: '', t: 0 }
     return {

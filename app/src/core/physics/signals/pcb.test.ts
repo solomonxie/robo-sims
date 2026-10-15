@@ -15,7 +15,7 @@ import {
   stackMm,
   traceAreaMil2,
   viaAreaMil2,
-} from '.'
+} from '..'
 
 describe('pcb', () => {
   it('both stackups build a 1.6 mm board', () => {

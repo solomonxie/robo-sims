@@ -1,4 +1,4 @@
-import { decibels, emaAlpha, rcAsymptote, rcCutoff, rcFilter, rcGain, rcPhase, rcSteadyCycle } from '.'
+import { decibels, emaAlpha, rcAsymptote, rcCutoff, rcFilter, rcGain, rcPhase, rcSteadyCycle } from '..'
 
 const sine = (c: number) => Math.sin(2 * Math.PI * c)
 const span = (v: number[]) => Math.max(...v) - Math.min(...v)

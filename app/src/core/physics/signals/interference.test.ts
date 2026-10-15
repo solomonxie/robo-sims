@@ -1,4 +1,4 @@
-import { capPickup, motorField, emfPeak, groundLoop, loopEmf, pairFlux, shieldPickup, pairFacing } from '.'
+import { capPickup, motorField, emfPeak, groundLoop, loopEmf, pairFlux, shieldPickup, pairFacing } from '..'
 
 describe('interference', () => {
   it('loop EMF is 2π·f·B·A', () => {

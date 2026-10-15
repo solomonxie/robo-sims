@@ -100,4 +100,3 @@ export function pcbStack(parent: THREE.Object3D, stack: BoardLayer[], { w = 20, 
   }
 }
 
-export type PcbStack = ReturnType<typeof pcbStack>

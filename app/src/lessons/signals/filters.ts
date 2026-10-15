@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { FilterKind, decibels, rcAsymptote, rcCutoff, rcGain, rcPhase, rcSteadyCycle, rcTau } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { fitDigits, millivolts, ohms, pct, si, tiny, volts } from '../../core/units'
+import { fitDigits, hertz, millivolts, ohms, pct, si, tiny, volts } from '../../core/units'
 import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -19,6 +19,7 @@ import {
   groundAt,
   junction,
   label,
+  peakToPeak,
   presence,
   pulseLabel,
   resistorAlong,
@@ -31,14 +32,12 @@ const FARADS = 1e-6
 const VDD = 3.3
 const CYCLE_S = 1.2
 const SAMPLES = 1024
-const hz = (f: number) => si(f, 'Hz', 3)
 const deg = (rad: number) => `${Math.round((rad * 180) / Math.PI)}°`
-const span = (v: number[]) => Math.max(...v) - Math.min(...v)
 const mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length
 const sin = (c: number) => Math.sin(2 * Math.PI * c)
 
 const rSlider: Control = { kind: 'slider', key: 'r', label: 'Resistor R (C = 1 µF)', min: 1e3, max: 1e5, initial: 1e4, log: true, format: (v) => ohms(nearestE12(v)) }
-const fSlider = (max: number, initial: number): Control => ({ kind: 'slider', key: 'f', label: 'Signal frequency f', min: 1, max, initial, step: 0.01, log: true, format: hz })
+const fSlider = (max: number, initial: number): Control => ({ kind: 'slider', key: 'f', label: 'Signal frequency f', min: 1, max, initial, step: 0.01, log: true, format: hertz })
 
 /** Reads a settled cycle (sample k at cycle (k + 1) / N) at any `cycles`, interpolated. */
 function cycleAt(v: number[], cycles: number) {
@@ -91,7 +90,7 @@ function solve(kind: FilterKind, mode: string, f: number, r: number) {
   const { input, output } = rcSteadyCycle(kind, m.wave, f, tau, SAMPLES)
   const kept = m.parts?.waves.map((w) => {
     const c = rcSteadyCycle(kind, w, f, tau, SAMPLES)
-    return span(c.output) / span(c.input)
+    return peakToPeak(c.output) / peakToPeak(c.input)
   })
   return { kind, mode, m, f, r, fc, tau, input, output, kept, gain: rcGain(kind, f, fc), phase: rcPhase(kind, f, fc) }
 }
@@ -165,7 +164,7 @@ function filterLesson(kind: FilterKind, meta: Omit<Lesson, 'build' | 'controls' 
       ]
     }
     if (s.mode === 'pwm') {
-      const ripple = span(s.output)
+      const ripple = peakToPeak(s.output)
       return [
         { label: 'Average out', value: volts(mean(s.output)), tone: 'ok' as const },
         { label: 'Ripple p-p', value: millivolts(ripple), tone: ripple < 0.1 ? ('ok' as const) : ('warn' as const) },
@@ -192,7 +191,7 @@ function filterLesson(kind: FilterKind, meta: Omit<Lesson, 'build' | 'controls' 
     formula: (p) => {
       const s = solveParams(kind, p)
       const h = low ? '1 / √(1 + (f/fc)²)' : '(f/fc) / √(1 + (f/fc)²)'
-      return `fc = 1 / 2πRC = 1 / (2π × ${ohms(s.r)} × 1 µF) = ${hz(s.fc)} · at ${hz(s.f)}: |H| = ${h} = ${s.gain.toFixed(2)}`
+      return `fc = 1 / 2πRC = 1 / (2π × ${ohms(s.r)} × 1 µF) = ${hertz(s.fc)} · at ${hertz(s.f)}: |H| = ${h} = ${s.gain.toFixed(2)}`
     },
     legend: [
       { color: HIGH_V, label: 'Input from the source', shape: 'dot' },
@@ -254,7 +253,7 @@ function filterLesson(kind: FilterKind, meta: Omit<Lesson, 'build' | 'controls' 
         readouts: (p) => {
           const s = solveParams(kind, p)
           return [
-            { label: 'Cutoff fc', value: `${hz(s.fc)} · f = ${+(s.f / s.fc).toPrecision(2)} fc` },
+            { label: 'Cutoff fc', value: `${hertz(s.fc)} · f = ${+(s.f / s.fc).toPrecision(2)} fc` },
             ...extras(s),
             { label: 'Time slowed', value: `${+(s.f * CYCLE_S).toPrecision(2)}×` },
           ]
@@ -334,7 +333,7 @@ export const bodePlot: Lesson = {
   tagline: 'The whole filter on one chart',
   formula: (p) => {
     const s = solveBode(p)
-    return `Gain = 20 log₁₀|H| = 20 log₁₀(${s.gain.toFixed(3)}) = ${s.db.toFixed(1)} dB at ${hz(s.f)}; fc = ${hz(s.fc)}, phase ${deg(s.phase)}`
+    return `Gain = 20 log₁₀|H| = 20 log₁₀(${s.gain.toFixed(3)}) = ${s.db.toFixed(1)} dB at ${hertz(s.f)}; fc = ${hertz(s.fc)}, phase ${deg(s.phase)}`
   },
   legend: [
     { color: B_FIELD, label: 'Gain, dB; output on the scope', shape: 'dot' },
@@ -443,7 +442,7 @@ export const bodePlot: Lesson = {
         const s = solveBode(p)
         const where = s.x < 0.5 ? (s.kind === 'low' ? 'passband' : 'stopband') : s.x > 2 ? (s.kind === 'low' ? 'stopband' : 'passband') : 'near the corner'
         return [
-          { label: 'Cutoff fc', value: hz(s.fc) },
+          { label: 'Cutoff fc', value: hertz(s.fc) },
           { label: 'Gain at f', value: `${s.db.toFixed(1)} dB · × ${+s.gain.toPrecision(2)}`, tone: s.gain > 0.7 ? 'ok' : undefined },
           { label: 'Phase', value: deg(s.phase) },
           { label: 'f / fc', value: `${+s.x.toPrecision(2)} · ${where}` },

@@ -1,4 +1,4 @@
-import { aliasFrequency, dftAmplitudes, fourierTerms, harmonicAmp, nyquist, periodicAt, seriesAt, seriesPeak, seriesRmsError } from '.'
+import { aliasFrequency, dftAmplitudes, fourierTerms, harmonicAmp, nyquist, periodicAt, seriesAt, seriesPeak, seriesRmsError } from '..'
 
 describe('fourier', () => {
   it('a square wave is odd harmonics at 4/πk; a triangle falls as 1/k²', () => {

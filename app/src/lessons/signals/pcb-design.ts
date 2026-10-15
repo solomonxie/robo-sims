@@ -23,22 +23,21 @@ import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
   COPPER,
-  GREY,
   HIGH_V,
   LABEL,
   LOW_V,
   PCB_GREEN,
   POWER,
   RING,
+  addLabel,
   ease,
   emptyGroup,
   flatText,
-  glowMat,
   flatTrace,
   glide,
+  glowMat,
   heatGlow,
   heatWaves,
-  label,
   liveLabel,
   loopBeads,
   pcbStack,
@@ -46,12 +45,9 @@ import {
   storyClock,
   storySlider,
 } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, n, pick } from '../types'
 
 type P2 = [number, number]
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
-const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' | 'right' = 'center') =>
-  (add(parent, label(s, { size, color, align }), at).castShadow = false)
 const fade = (color: string, opacity = 1, emissive = 0) =>
   new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: emissive, transparent: true, opacity, depthWrite: false, roughness: 0.5 })
 const nH = (h: number) => `${+(h * 1e9).toFixed(1)} nH`
@@ -531,8 +527,8 @@ export const tracesAndVias: Lesson = {
     for (const z of [-0.7, 0.7]) cylinder(supply, 0.45, 0.2, STEEL(), [0, 1.85, z], 'y', 16)
     const load = add(top.group, new THREE.Group(), [TX + 0.6, top.thick / 2, 0])
     box(load, [2.2, 1.8, 3.2], mat('#2a2b30', { rough: 0.5 }), [0, 0.9, 0])
-    text(scene, 'SUPPLY', [-TX - 0.6, yT + 3, 0], LABEL, 0.55)
-    text(scene, 'LOAD', [TX + 0.6, yT + 3, 0], LABEL, 0.55)
+    addLabel(scene, 'SUPPLY', [-TX - 0.6, yT + 3, 0], LABEL, 0.55)
+    addLabel(scene, 'LOAD', [TX + 0.6, yT + 3, 0], LABEL, 0.55)
     const waves = heatWaves(scene, 2 * TX - 4, { count: 7, rise: 3.5 })
     waves.group.position.set(-TX / 2 - 0.5, yT, 0)
     const beads = loopBeads(scene, 22, CONVENTIONAL, { r: 0.2, closed: false })

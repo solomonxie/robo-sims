@@ -17,7 +17,7 @@ import {
   streamRate,
 } from '../../core/physics'
 import { Bit, bit } from '../../core/logic'
-import { pct, si } from '../../core/units'
+import { hertz, hexByte, pct, secs, si } from '../../core/units'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -31,24 +31,18 @@ import {
   LABEL,
   POWER,
   RING,
+  addLabel,
   cableRun,
   captureScreen,
   frac,
   glowMat,
-  label,
   lieFlat,
   liveLabel,
   usbAnalyzer,
 } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, n, pick } from '../types'
 
-const sec = (s: number) => si(s, 's', 3)
-const hz = (f: number) => si(f, 'Hz', 3)
-const hex = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 const hx = (b: number) => b.toString(16).toUpperCase().padStart(2, '0')
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
-const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6) =>
-  (add(parent, label(s, { size, color }), at).castShadow = false)
 
 const SX = 5
 const SY = 0.5
@@ -66,7 +60,7 @@ function rig(
   { rowH = 2.2, decoder = false, caption = '' } = {},
 ) {
   add(scene, lieFlat(buildEsp32(), K), ESP)
-  text(scene, caption || 'ESP32', [ESP[0], ESP[1] + 3.2, 0], LABEL, 0.55)
+  addLabel(scene, caption || 'ESP32', [ESP[0], ESP[1] + 3.2, 0], LABEL, 0.55)
   const usb = usbAnalyzer(
     scene,
     [ESP[0], ESP[1] - 9.2, 0.6],
@@ -94,7 +88,7 @@ const BOARD: V3 = [ESP[0] + 6.6, ESP[1] - 8.2, 0]
 function breakout(scene: THREE.Object3D, rows: { color: string }[], pins: number[], name: string, color: string) {
   const g = add(scene, new THREE.Group(), BOARD)
   box(g, [3.6, 3.6, 0.3], mat(color, { rough: 0.6 }), [0, 0, 0])
-  text(g, name, [0, -2.4, 0], LABEL, 0.45)
+  addLabel(g, name, [0, -2.4, 0], LABEL, 0.45)
   rows.forEach((r, k) => {
     const a = espPin(pins[k])
     const x = BOARD[0] + (k - (rows.length - 1) / 2) * 0.5
@@ -183,7 +177,7 @@ export const sampleRate: Lesson = {
   tagline: 'It only sees the line when it samples: too slow and glitches vanish',
   formula: (p) => {
     const fs = rateOf(p)
-    return `one sample every 1/fs = 1 / ${hz(fs)} = ${sec(1 / fs)} · a ${sec(GLITCH)} glitch is caught with odds width × fs = ${pct(catchOdds(GLITCH, fs))}`
+    return `one sample every 1/fs = 1 / ${hertz(fs)} = ${secs(1 / fs)} · a ${secs(GLITCH)} glitch is caught with odds width × fs = ${pct(catchOdds(GLITCH, fs))}`
   },
   legend: [
     { color: GREY, label: 'Faint: what the pins really did', shape: 'dot' },
@@ -199,7 +193,7 @@ export const sampleRate: Lesson = {
     'Why 24 MHz? 8 channels × 24 MHz is 24 MB/s, about all USB 2.0 can stream. Faster analysers keep the capture in on-board memory instead.',
     `Slowed ${Math.round(REVEAL1 / W1).toLocaleString('en')}×: each 100 µs capture is drawn over ${REVEAL1} s.`,
   ],
-  controls: [{ kind: 'choice', key: 'fs', options: RATES.map((f) => ({ value: String(f), label: hz(f).replace(' ', '') })), initial: '1000000' }],
+  controls: [{ kind: 'choice', key: 'fs', options: RATES.map((f) => ({ value: String(f), label: hertz(f).replace(' ', '') })), initial: '1000000' }],
   build(): Stage {
     const scene = createStage({ span: 22 })
     const { screen, status } = rig(scene, SR_ROWS, [-5, -4, -3, -2], { caption: 'ESP32 GPIO' })
@@ -263,7 +257,7 @@ export const sampleRate: Lesson = {
         const caught = highRuns(st.cur[3] ?? []).length > 0
         tag.group.position.x = screen.xAt(gu) + 0.4
         tag.set(c.prog >= gu ? (caught ? 'CAUGHT' : 'MISSED') : '', caught ? POWER : HIGH_V)
-        status[0].set(`${hz(fs).replace(' ', '')} · ${Math.ceil(W1 * fs) + 1} SAMPLES`, LABEL)
+        status[0].set(`${hertz(fs).replace(' ', '')} · ${Math.ceil(W1 * fs) + 1} SAMPLES`, LABEL)
         status[1].set(`CAUGHT ${st.caught}/${c.count}`, st.caught === c.count ? POWER : HEAT)
       },
       readouts: (p) => {
@@ -271,7 +265,7 @@ export const sampleRate: Lesson = {
         const odds = catchOdds(GLITCH, fs)
         return [
           { label: 'Glitch odds', value: `${pct(odds)} per capture`, tone: odds >= 1 ? 'ok' : odds > 0.3 ? 'warn' : 'bad' },
-          { label: 'Edges land', value: `up to ${sec(1 / fs)} late` },
+          { label: 'Edges land', value: `up to ${secs(1 / fs)} late` },
           { label: 'Samples / clock', value: `${+(fs / 1e5).toPrecision(3)} · want ≥ 4`, tone: fs >= 4e5 ? 'ok' : 'bad' },
           { label: 'USB stream', value: `${si(streamRate(fs, 8), 'B/s', 3)} for 8 ch` },
         ]
@@ -399,9 +393,9 @@ export const patternTrigger: Lesson = {
           s.mode === 'edge'
             ? { label: 'Fires on', value: 'any state · moves', tone: 'warn' }
             : { label: 'Fires on', value: matches.map((w) => `${binary(w)}`).join(' or '), tone: 'ok' },
-          s.mode === 'edge' ? { label: 'D0 rises', value: `every ${sec(2 * STEP)}` } : { label: 'States that match', value: `${matches.length} of 16` },
+          s.mode === 'edge' ? { label: 'D0 rises', value: `every ${secs(2 * STEP)}` } : { label: 'States that match', value: `${matches.length} of 16` },
           { label: 'Pre-trigger', value: `${PRE} µs kept` },
-          { label: 'Counter', value: `1 step / ${sec(STEP)}` },
+          { label: 'Counter', value: `1 step / ${secs(STEP)}` },
         ]
       },
     }
@@ -443,7 +437,7 @@ export const captureI2c: Lesson = {
   tagline: 'Two wires, one conversation: start, address, ACK, data, stop',
   formula: (p) => {
     const s = solveI2c(p)
-    return `100 kHz → 10 µs per bit · 9 bits per byte (8 + ACK) · first byte = address ${hex(s.addr)} shifted left + W(0) = ${hex(s.addr * 2)}`
+    return `100 kHz → 10 µs per bit · 9 bits per byte (8 + ACK) · first byte = address ${hexByte(s.addr)} shifted left + W(0) = ${hexByte(s.addr * 2)}`
   },
   legend: [
     { color: CLK_COLOR, label: 'SCL: clock from the ESP32', shape: 'dot' },
@@ -460,7 +454,7 @@ export const captureI2c: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'addr', options: Object.entries(ADDRS).map(([value, a]) => ({ value, label: a.label })), initial: '3c' },
-    { kind: 'slider', key: 'value', label: 'Contrast byte', min: 0, max: 255, initial: 127, step: 1, format: (v) => hex(Math.round(v)) },
+    { kind: 'slider', key: 'value', label: 'Contrast byte', min: 0, max: 255, initial: 127, step: 1, format: (v) => hexByte(Math.round(v)) },
   ],
   build(): Stage {
     const scene = createStage({ span: 22 })
@@ -505,17 +499,17 @@ export const captureI2c: Lesson = {
         for (let i = 1; i < s.count; i++) if (!s.scl[i - 1] && s.scl[i]) rises.push({ u: uOf(i), y: screen.yOf(1, s.sda[i]) })
         sampled(rises, c.prog)
         const acked = s.frame.ack
-        status[0].set(`2 MHZ · SCL ${hz(I2C_HZ).replace(' ', '')}`, LABEL)
-        status[1].set(c.prog >= 1 ? (acked ? `WRITE ${hex(s.addr)} · ACK` : `${hex(s.addr)} · NACK`) : 'CAPTURING', c.prog < 1 ? HEAT : acked ? POWER : HIGH_V)
+        status[0].set(`2 MHZ · SCL ${hertz(I2C_HZ).replace(' ', '')}`, LABEL)
+        status[1].set(c.prog >= 1 ? (acked ? `WRITE ${hexByte(s.addr)} · ACK` : `${hexByte(s.addr)} · NACK`) : 'CAPTURING', c.prog < 1 ? HEAT : acked ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const s = solveI2c(p)
         const data = s.ev.filter((e) => e.kind === 'data').map((e) => hx(e.value))
         return [
-          { label: 'Address', value: `${hex(s.addr)} write · ${s.frame.ack ? 'ACK' : 'NACK'}`, tone: s.frame.ack ? 'ok' : 'bad' },
+          { label: 'Address', value: `${hexByte(s.addr)} write · ${s.frame.ack ? 'ACK' : 'NACK'}`, tone: s.frame.ack ? 'ok' : 'bad' },
           { label: 'Decoded data', value: data.length ? data.join(' ') : 'none · stopped', tone: data.length ? 'ok' : 'bad' },
-          { label: 'Bit time', value: `${sec(1 / I2C_HZ)} · ${FS3 / I2C_HZ} samples` },
-          { label: 'Transfer', value: sec(i2cLines(s.frame, I2C_HZ).duration) },
+          { label: 'Bit time', value: `${secs(1 / I2C_HZ)} · ${FS3 / I2C_HZ} samples` },
+          { label: 'Transfer', value: secs(i2cLines(s.frame, I2C_HZ).duration) },
         ]
       },
     }
@@ -615,14 +609,14 @@ export const captureSpi: Lesson = {
           .filter((g) => g.u1 <= c.prog)
         screen.annotate(segs)
         status[0].set(`24 MHZ · DECODE MODE ${s.mode}`, LABEL)
-        status[1].set(c.prog >= 1 ? `READ ${hex(s.dec.miso[1] ?? 0)} ${s.ok ? 'OK' : 'BAD'}` : 'CAPTURING', c.prog < 1 ? HEAT : s.ok ? POWER : HIGH_V)
+        status[1].set(c.prog >= 1 ? `READ ${hexByte(s.dec.miso[1] ?? 0)} ${s.ok ? 'OK' : 'BAD'}` : 'CAPTURING', c.prog < 1 ? HEAT : s.ok ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const s = solveSpi(p)
         return [
-          { label: 'Sent', value: `${hex(readCmd(s.r.reg))} 0x00 (read ${hex(s.r.reg)})` },
-          { label: 'Sensor replied', value: hex(s.r.reply) },
-          { label: 'Decoded', value: `${hex(s.dec.mosi[0] ?? 0)} / ${hex(s.dec.miso[1] ?? 0)}`, tone: s.ok ? 'ok' : 'bad' },
+          { label: 'Sent', value: `${hexByte(readCmd(s.r.reg))} 0x00 (read ${hexByte(s.r.reg)})` },
+          { label: 'Sensor replied', value: hexByte(s.r.reply) },
+          { label: 'Decoded', value: `${hexByte(s.dec.mosi[0] ?? 0)} / ${hexByte(s.dec.miso[1] ?? 0)}`, tone: s.ok ? 'ok' : 'bad' },
           { label: 'Mode', value: s.mode === DEV_MODE ? 'matches device' : s.ok ? 'other mode, same edge' : 'wrong edge · shifted', tone: s.mode === DEV_MODE ? 'ok' : s.ok ? 'warn' : 'bad' },
         ]
       },

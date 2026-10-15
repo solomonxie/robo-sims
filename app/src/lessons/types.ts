@@ -66,6 +66,8 @@ export const initialParams = (l: Lesson): Params =>
   Object.fromEntries(l.controls.map((c) => [c.key, c.initial]))
 
 export const n = (p: Params, k: string) => Number(p[k])
+/** `v` if it is a key of `rec`, else the default `d`. */
+export const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
 
 /** Param `k` snapped to the nearest E12 resistor value. */
 export const e12 = (p: Params, k: string) => nearestE12(n(p, k))

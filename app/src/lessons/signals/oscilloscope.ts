@@ -19,18 +19,16 @@ import {
   uartLevel,
 } from '../../core/physics'
 import { hasGlyph } from '../../core/strokeFont'
-import { pct, si } from '../../core/units'
+import { hexByte, pct, secs, si, volts } from '../../core/units'
 import { STEEL, V3, add, box, mat, mesh, rod, tube } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
 import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, benchScope, cableRun, frac, glowMat, label, lieFlat, liveLabel, memoBy, probe } from '../fx'
-import { Lesson, Params, Stage, n } from '../types'
+import { Lesson, Params, Stage, n, pick } from '../types'
 
 const TAU = 2 * Math.PI
 const CH1 = RING
 const DIVS: [number, number] = [10, 8]
-const sec = (s: number) => si(s, 's', 3)
-const volts = (v: number) => si(v, 'V', 3)
 const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' | 'right' = 'center') =>
   add(parent, label(s, { size, color, align }), at)
 
@@ -118,8 +116,8 @@ export const triggering: Lesson = {
     const trig = trigOf(p)
     const w = 10 * tdivOf(p)
     return trig === 'free'
-      ? `Free run: each ${sec(w)} sweep starts whenever the last one ended, so every pass lands at a new phase`
-      : `Trigger: first ${trig === 'rise' ? 'rising' : 'falling'} crossing of ${volts(n(p, 'level'))} → screen centre; window = 10 div × ${sec(tdivOf(p))} = ${sec(w)}`
+      ? `Free run: each ${secs(w)} sweep starts whenever the last one ended, so every pass lands at a new phase`
+      : `Trigger: first ${trig === 'rise' ? 'rising' : 'falling'} crossing of ${volts(n(p, 'level'))} → screen centre; window = 10 div × ${secs(tdivOf(p))} = ${secs(w)}`
   },
   legend: [
     { color: CH1, label: 'CH1: newest sweep, older ones fading', shape: 'dot' },
@@ -137,7 +135,7 @@ export const triggering: Lesson = {
   controls: [
     { kind: 'choice', key: 'trig', options: Object.entries(TRIGS).map(([value, l]) => ({ value, label: l })), initial: 'free' },
     { kind: 'slider', key: 'level', label: 'Trigger level', min: -0.5, max: 4, initial: 1.6, step: 0.05, format: (v) => volts(v) },
-    { kind: 'slider', key: 'tdiv', label: 'Time / div', min: 0, max: 5, initial: 2, step: 1, format: (i) => sec(oneTwoFive(i, 50e-6)) },
+    { kind: 'slider', key: 'tdiv', label: 'Time / div', min: 0, max: 5, initial: 2, step: 1, format: (i) => secs(oneTwoFive(i, 50e-6)) },
     { kind: 'slider', key: 'vdiv', label: 'Volts / div', min: 0, max: 3, initial: 1, step: 1, format: (i) => volts(oneTwoFive(i, 0.2)) },
   ],
   build(): Stage {
@@ -189,7 +187,7 @@ export const triggering: Lesson = {
         level.set(trig === 'free' ? 1e3 : toDivs(lv, vdiv, GROUND) * div)
         tMark.visible = trig !== 'free'
         bench.status[0].set(`CH1 ${volts(vdiv).replace(' ', '')}`, CH1)
-        bench.status[1].set(sec(tdiv).replace(' ', ''), LABEL)
+        bench.status[1].set(secs(tdiv).replace(' ', ''), LABEL)
       },
       readouts: (p) => {
         const trig = trigOf(p)
@@ -202,7 +200,7 @@ export const triggering: Lesson = {
             : inRange
               ? { label: 'Trigger', value: 'locked', tone: 'ok' }
               : { label: 'Trigger', value: 'misses · free-runs', tone: 'bad' },
-          { label: 'Window', value: `${sec(w)} · ${+(w * F_DAC).toPrecision(2)} cycles` },
+          { label: 'Window', value: `${secs(w)} · ${+(w * F_DAC).toPrecision(2)} cycles` },
           { label: 'Measured', value: `${si(MEASURED.hz, 'Hz', 3)} · ${MEASURED.vpp.toFixed(2)} Vpp` },
           { label: 'Slowed', value: `${1 / SWEEP_S} sweeps/s` },
         ]
@@ -230,7 +228,6 @@ const GROUNDS: Record<Ground, { label: string; mm: number }> = {
   none: { label: 'No ground', mm: 150 },
 }
 const PROBES = { x1: PROBE_X1, x10: PROBE_X10 }
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
 const probeParams = (p: Params) => ({
   probe: pick(PROBES, p.probe, 'x10'),
   menu: pick(PROBES, p.menu, 'x10'),
@@ -390,7 +387,7 @@ export const probing: Lesson = {
             : { label: 'Scope reads', value: `${s.vpp.toFixed(2)} Vpp · avg ${s.mean.toFixed(2)} V`, tone: !s.ok ? 'bad' : s.edge.overshoot > 0.15 ? 'warn' : 'ok' },
           {
             label: 'Edge',
-            value: `${Number.isFinite(rise) ? sec(rise) : '—'} rise · ${pct(s.edge.overshoot)} ring`,
+            value: `${Number.isFinite(rise) ? secs(rise) : '—'} rise · ${pct(s.edge.overshoot)} ring`,
             tone: s.edge.overshoot > 0.15 || rise > 30e-9 ? 'warn' : 'ok',
           },
           { label: 'Probe load', value: `${si(s.pr.ohms, 'Ω', 2)} ‖ ${si(s.pr.farads, 'F', 2)}` },
@@ -413,7 +410,6 @@ const BAUDS = [9600, 57600, 115200, 230400]
 const charOf = (b: number) => (b > 32 && b < 127 ? `'${String.fromCharCode(b)}'` : '--')
 /** Bytes the stroke font can't draw show as --. */
 const glyphOf = (b: number) => (hasGlyph(String.fromCharCode(b)) ? charOf(b) : '--')
-const hex = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 
 const solveBus = (p: Params) => {
   const byte = Math.round(n(p, 'byte'))
@@ -429,7 +425,7 @@ export const decodingBus: Lesson = {
   tagline: 'Trigger on the start bit, read each bit at its centre',
   formula: (p) => {
     const s = solveBus(p)
-    return `bit = 1 / baud = 1 / ${TX_BAUD} = ${sec(1 / TX_BAUD)} · 8N1: start 0, 8 data bits LSB first, stop 1 → ${hex(s.byte)} = ${s.byte.toString(2).padStart(8, '0')}`
+    return `bit = 1 / baud = 1 / ${TX_BAUD} = ${secs(1 / TX_BAUD)} · 8N1: start 0, 8 data bits LSB first, stop 1 → ${hexByte(s.byte)} = ${s.byte.toString(2).padStart(8, '0')}`
   },
   legend: [
     { color: CH1, label: 'CH1: the ESP32 TX line', shape: 'dot' },
@@ -445,7 +441,7 @@ export const decodingBus: Lesson = {
     `Slowed ${+(REVEAL_S / D_WIN).toPrecision(2)}×: the 100 µs sweep is drawn over ${REVEAL_S} s.`,
   ],
   controls: [
-    { kind: 'slider', key: 'byte', label: 'Byte sent', min: 33, max: 126, initial: 72, step: 1, format: (v) => `${charOf(Math.round(v))} ${hex(Math.round(v))}` },
+    { kind: 'slider', key: 'byte', label: 'Byte sent', min: 33, max: 126, initial: 72, step: 1, format: (v) => `${charOf(Math.round(v))} ${hexByte(Math.round(v))}` },
     { kind: 'choice', key: 'baud', options: BAUDS.map((b) => ({ value: String(b), label: `Decode ${b / 1000}k` })), initial: String(TX_BAUD) },
   ],
   build(): Stage {
@@ -495,7 +491,7 @@ export const decodingBus: Lesson = {
         if (key !== st.key) {
           st.key = key
           st.clock = Math.min(st.clock, SEND_S - 0.05)
-          sent.set(`SENDS ${glyphOf(s.byte)} ${hex(s.byte)}`, LABEL)
+          sent.set(`SENDS ${glyphOf(s.byte)} ${hexByte(s.byte)}`, LABEL)
         }
         st.clock += dt
         if (st.clock >= SEND_S) {
@@ -522,20 +518,20 @@ export const decodingBus: Lesson = {
         })
         const done = prog >= uOf(s.dec.at[9]) || prog >= 1
         decoded.set(
-          done ? `${hex(s.dec.byte)} ${glyphOf(s.dec.byte)}${s.dec.framingOk ? '' : ' FRAME ERR'}` : '',
+          done ? `${hexByte(s.dec.byte)} ${glyphOf(s.dec.byte)}${s.dec.framingOk ? '' : ' FRAME ERR'}` : '',
           s.ok ? POWER : HIGH_V,
         )
       },
       readouts: (p) => {
         const s = solveBus(p)
         return [
-          { label: 'Sent', value: `${charOf(s.byte)} ${hex(s.byte)}` },
+          { label: 'Sent', value: `${charOf(s.byte)} ${hexByte(s.byte)}` },
           {
             label: 'Decoded',
-            value: `${charOf(s.dec.byte)} ${hex(s.dec.byte)}${s.dec.framingOk ? '' : ' · framing'}`,
+            value: `${charOf(s.dec.byte)} ${hexByte(s.dec.byte)}${s.dec.framingOk ? '' : ' · framing'}`,
             tone: s.ok ? 'ok' : 'bad',
           },
-          { label: 'Bit time', value: `${sec(1 / TX_BAUD)} · read ${sec(1 / s.baud)}`, tone: s.baud === TX_BAUD ? 'ok' : 'warn' },
+          { label: 'Bit time', value: `${secs(1 / TX_BAUD)} · read ${secs(1 / s.baud)}`, tone: s.baud === TX_BAUD ? 'ok' : 'warn' },
           { label: 'Slowed', value: `${Math.round(REVEAL_S / D_WIN).toLocaleString('en')}×` },
         ]
       },

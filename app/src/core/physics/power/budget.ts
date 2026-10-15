@@ -120,8 +120,6 @@ export function packRuntime(c: Chemistry, series: number, parallel: number, watt
 /** A looping 8 s errand: park, drive, stop and scan, drive on. WiFi publishes a burst once a second. */
 export const MISSION_S = 8
 const LEGS: [number, RobotState][] = [[0, 'idle'], [1, 'cruise'], [4, 'scan'], [5.5, 'cruise'], [7.5, 'idle']]
-export const MISSION_STARTS = LEGS.filter(([, s]) => s === 'cruise').map(([t]) => t)
-
 export function missionState(t: number): { state: RobotState; since: number } {
   const u = ((t % MISSION_S) + MISSION_S) % MISSION_S
   let leg = LEGS[0]

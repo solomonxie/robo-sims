@@ -12,7 +12,7 @@ import {
   seriesPeak,
   seriesRmsError,
 } from '../../core/physics'
-import { fitDigits, pct, si } from '../../core/units'
+import { fitDigits, hertz, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -37,7 +37,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const hz = (f: number) => si(f, 'Hz', 3)
 const TAU = 2 * Math.PI
 const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' | 'right' = 'center') =>
   add(parent, label(s, { size, color, align }), at)
@@ -120,7 +119,7 @@ export const spectrum: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'shape', options: Object.entries(SHAPES).map(([value, l]) => ({ value, label: l })), initial: 'square' },
-    { kind: 'slider', key: 'k', label: 'Highest harmonic', min: 1, max: MAX_K, initial: 7, step: 1, format: (v) => `${Math.round(v)} · ${hz(Math.round(v) * F0)}` },
+    { kind: 'slider', key: 'k', label: 'Highest harmonic', min: 1, max: MAX_K, initial: 7, step: 1, format: (v) => `${Math.round(v)} · ${hertz(Math.round(v) * F0)}` },
   ],
   build(): Stage {
     const scene = createStage({ span: 22 })
@@ -221,14 +220,14 @@ export const spectrum: Lesson = {
       readouts: (p) => {
         const s = solveSeries(p)
         return [
-          { label: 'Sines added', value: `${s.terms.length} · up to ${hz(s.maxK * F0)}` },
+          { label: 'Sines added', value: `${s.terms.length} · up to ${hertz(s.maxK * F0)}` },
           {
             label: 'Overshoot at jump',
             value: s.shape === 'triangle' ? 'none, no jumps' : `${pct(s.overshoot)} of the step`,
             tone: s.shape === 'triangle' ? 'ok' : s.overshoot > 0.07 ? 'warn' : undefined,
           },
           { label: 'RMS error', value: pct(s.err), tone: s.err < 0.1 ? 'ok' : undefined },
-          { label: 'Time slowed', value: `${F0 * CYCLE_S}× · f = ${hz(F0)}` },
+          { label: 'Time slowed', value: `${F0 * CYCLE_S}× · f = ${hertz(F0)}` },
         ]
       },
     }
@@ -278,8 +277,8 @@ export const aliasing: Lesson = {
     `Time slowed so each sample takes ${SAMPLE_S} s.`,
   ],
   controls: [
-    { kind: 'slider', key: 'f', label: 'Signal frequency f', min: 1, max: AL_F_MAX, initial: 48, step: 0.5, format: hz },
-    { kind: 'slider', key: 'fs', label: 'Sample rate fs', min: 20, max: 100, initial: 50, step: 1, format: hz },
+    { kind: 'slider', key: 'f', label: 'Signal frequency f', min: 1, max: AL_F_MAX, initial: 48, step: 0.5, format: hertz },
+    { kind: 'slider', key: 'fs', label: 'Sample rate fs', min: 20, max: 100, initial: 50, step: 1, format: hertz },
   ],
   build(): Stage {
     const scene = createStage({ span: 22 })
@@ -382,8 +381,8 @@ export const aliasing: Lesson = {
         const ok = s.perCycle > 2
         return [
           { label: 'Samples per cycle', value: `${+s.perCycle.toPrecision(3)} · need > 2`, tone: ok ? 'ok' : 'bad' },
-          { label: 'Looks like', value: `${hz(Math.abs(s.fa))} ${s.dir}`, tone: ok ? 'ok' : 'warn' },
-          { label: 'Nyquist fs/2', value: hz(nyquist(s.fs)) },
+          { label: 'Looks like', value: `${hertz(Math.abs(s.fa))} ${s.dir}`, tone: ok ? 'ok' : 'warn' },
+          { label: 'Nyquist fs/2', value: hertz(nyquist(s.fs)) },
           { label: 'Time slowed', value: `${+(s.fs * SAMPLE_S).toPrecision(2)}×` },
         ]
       },
@@ -451,7 +450,7 @@ export const nyquistLimit: Lesson = {
   tagline: 'Sample above twice the fastest tone, or filter first',
   formula: (p) => {
     const s = solveNyquist(p)
-    return `fs > 2 × f_max: fs/2 = ${hz(nyquist(s.fs))}; the 600 Hz motor hum lands at |600 − ${s.fs} × ${Math.round(600 / s.fs)}| = ${hz(s.humAt)}`
+    return `fs > 2 × f_max: fs/2 = ${hertz(nyquist(s.fs))}; the 600 Hz motor hum lands at |600 − ${s.fs} × ${Math.round(600 / s.fs)}| = ${hertz(s.humAt)}`
   },
   legend: [
     { color: HIGH_V, label: 'Voltage at the ADC pin', shape: 'dot' },
@@ -468,7 +467,7 @@ export const nyquistLimit: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'guard', options: Object.entries(GUARDS).map(([value, l]) => ({ value, label: l })), initial: 'none' },
-    { kind: 'slider', key: 'fs', label: 'Sample rate fs', min: 100, max: 4000, initial: 620, log: true, format: (v) => hz(Math.round(v)) },
+    { kind: 'slider', key: 'fs', label: 'Sample rate fs', min: 100, max: 4000, initial: 620, log: true, format: (v) => hertz(Math.round(v)) },
   ],
   build(): Stage {
     const scene = createStage({ span: 22 })
@@ -572,8 +571,8 @@ export const nyquistLimit: Lesson = {
         const s = solveNyquist(p)
         const inBand = s.humAt < 25
         return [
-          { label: 'Nyquist fs/2', value: `${hz(nyquist(s.fs))}${s.aliased ? ' · hash folds' : ' · all clear'}`, tone: s.aliased ? 'warn' : 'ok' },
-          { label: '600 Hz hum shows at', value: hz(s.humAt), tone: inBand && s.guard !== 'rc' ? 'bad' : undefined },
+          { label: 'Nyquist fs/2', value: `${hertz(nyquist(s.fs))}${s.aliased ? ' · hash folds' : ' · all clear'}`, tone: s.aliased ? 'warn' : 'ok' },
+          { label: '600 Hz hum shows at', value: hertz(s.humAt), tone: inBand && s.guard !== 'rc' ? 'bad' : undefined },
           { label: 'Noise in readings', value: `${pct(s.noise)} of signal`, tone: s.noise < 0.05 ? 'ok' : s.noise > 0.2 ? 'bad' : 'warn' },
           { label: 'Time slowed', value: `${SLOW}×` },
         ]

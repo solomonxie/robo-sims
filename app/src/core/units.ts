@@ -55,6 +55,8 @@ export const watts = (w: number) => si(w, 'W', 3)
 export const joules = (j: number) => si(j, 'J', 3)
 export const mA = (a: number) => a * 1000
 export const secs = (s: number) => si(s, 's', 3)
+export const hertz = (f: number) => si(f, 'Hz', 3)
+export const hexByte = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 export const pct = (f: number) => `${Math.round(f * 100)} %`
 export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 /** Minutes under an hour, else hours to `digits` decimals. */

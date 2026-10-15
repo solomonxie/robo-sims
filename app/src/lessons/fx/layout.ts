@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu'
 import { V3, add, lead, mesh, tube } from '../../models/kit'
 import { COPPER } from './colors'
-import { clamp01 } from './util'
+import { UP, clamp01 } from './util'
 
 /** Copper wire through `points`. */
 export function wire(parent: THREE.Object3D, points: V3[], r = 0.28) {
@@ -53,4 +53,18 @@ export function standUp(parent: THREE.Object3D, part: THREE.Group, at: V3, k: nu
   g.rotation.z = hang ? Math.PI : 0
   add(g, part, [0, 1.5 * k, 0]).scale.setScalar(k)
   return g
+}
+
+export const UNIT_ROD = new THREE.CylinderGeometry(1, 1, 1, 8)
+const rodDir = new THREE.Vector3()
+
+/** Stretches a `UNIT_ROD` mesh of radius `r` from a to b; hidden when a = b. */
+export function stretchRod(m: THREE.Object3D, a: V3, b: V3, r = 0.09) {
+  rodDir.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+  const len = rodDir.length()
+  m.visible = len > 1e-3
+  if (!m.visible) return
+  m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+  m.quaternion.setFromUnitVectors(UP, rodDir.divideScalar(len))
+  m.scale.set(r, len, r)
 }

@@ -16,7 +16,7 @@ import {
   twinZ0,
   velocityFactor,
 } from '../../core/physics'
-import { ohms, pct, si, volts } from '../../core/units'
+import { ohms, pct, secs, si, volts } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh, rod, tube } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -28,29 +28,26 @@ import {
   LOW_V,
   POWER,
   RING,
-  UP,
+  UNIT_ROD,
+  addLabel,
   benchScope,
   cableRun,
   emptyGroup,
   glowMat,
   junction,
-  label,
   lieFlat,
   liveLabel,
   potentialColor,
   resistorAlong,
   scope,
   sg90Servo,
+  stretchRod,
   wire,
 } from '../fx'
-import { Lesson, Params, Stage } from '../types'
+import { Lesson, Params, Stage, pick } from '../types'
 
-const sec = (s: number) => si(s, 's', 3)
 const signed = (g: number) => (Math.abs(g) < 0.005 ? '0.00' : `${g >= 0 ? '+' : '−'}${Math.abs(g).toFixed(2)}`)
 const zText = (z: number) => (z === Infinity ? '∞' : ohms(z))
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
-const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' = 'center') =>
-  (add(parent, label(s, { size, color, align }), at).castShadow = false)
 
 const CABLES = {
   coax: { name: 'Coax RG-58', short: 'Coax', z0: coaxZ0(2.84, 0.81, 2.25), vf: velocityFactor(2.25) },
@@ -60,20 +57,6 @@ const CABLES = {
 type CableKind = keyof typeof CABLES
 
 const BINS = 48
-const ROD = new THREE.CylinderGeometry(1, 1, 1, 8)
-const dir = new THREE.Vector3()
-
-/** Stretches a unit `ROD` mesh of radius `r` from a to b. */
-function stretch(m: THREE.Object3D, a: V3, b: V3, r = 0.09) {
-  dir.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
-  const len = dir.length()
-  m.visible = len > 1e-3
-  if (!m.visible) return
-  m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
-  m.quaternion.setFromUnitVectors(UP, dir.divideScalar(len))
-  m.scale.set(r, len, r)
-}
-
 /** A long cable from x0 to x1 at height y, cut into bins whose glow shows the line voltage there; `glow(v, vmax)` takes v(u), u = 0 … 1. */
 function cableBody(parent: THREE.Object3D, kind: CableKind, x0: number, x1: number, y: number) {
   const group = add(parent, new THREE.Group())
@@ -201,13 +184,13 @@ export const reflections: Lesson = {
     const gen = add(scene, new THREE.Group(), [X0 - 4.6, CY, 0])
     box(gen, [5, 4.4, 3], mat('#2b2e35', { rough: 0.55 }), [0, 0, -0.6])
     box(gen, [4.2, 1.2, 0.2], mat('#0b1013', { emissive: '#050a0a' }), [0, 1.1, 0.95])
-    text(gen, 'PULSE', [0, 1.1, 1.1], RING, 0.5)
-    text(gen, 'Rs 50 Ω', [0, -0.4, 1], LABEL, 0.45)
+    addLabel(gen, 'PULSE', [0, 1.1, 1.1], RING, 0.5)
+    addLabel(gen, 'Rs 50 Ω', [0, -0.4, 1], LABEL, 0.45)
     const lampMat = glowMat(GREY, 0.2)
     add(gen, mesh(new THREE.SphereGeometry(0.3, 12, 8), lampMat), [-1.4, -1.5, 1])
     const out: V3 = [X0 - 1.6, CY, 0.4]
     cylinder(scene, 0.7, 1.2, mat('#b9bec6', { metal: 0.4, rough: 0.4 }), [X0 - 1.6, CY, 0], 'x', 20)
-    text(scene, 'GEN', [X0 - 4.6, CY + 3.1, 0], LABEL, 0.55)
+    addLabel(scene, 'GEN', [X0 - 4.6, CY + 3.1, 0], LABEL, 0.55)
     const cableName = liveLabel(scene, [0, CY - 1.15, 0.8], { size: 0.42 })
     const loadName = liveLabel(scene, [X1 + 2.2, CY + 3.1, 0], { size: 0.5 })
     for (const { body } of bodies) {
@@ -221,7 +204,7 @@ export const reflections: Lesson = {
     const plot = scope(scene, W1, PLOT_H, { divs: [10, 8] })
     plot.group.position.set((X0 + X1) / 2, PLOT_Y, 0)
     const trace = plot.trace(HIGH_V, { samples: 200, radius: 0.09 })
-    text(scene, 'VOLTS ALONG THE CABLE · 2.5 V/DIV', [X0 - 0.6, PLOT_Y + PLOT_H / 2 + 1, 0], LABEL, 0.45, 'left')
+    addLabel(scene, 'VOLTS ALONG THE CABLE · 2.5 V/DIV', [X0 - 0.6, PLOT_Y + PLOT_H / 2 + 1, 0], LABEL, 0.45, 'left')
 
     const latMid = LAT_TOP - LAT_H / 2
     box(scene, [W1 + 1.2, LAT_H + 1.2, 0.3], mat('#14171b', { rough: 0.6 }), [(X0 + X1) / 2, latMid, -0.6])
@@ -229,7 +212,7 @@ export const reflections: Lesson = {
     const yAt = (t: number) => LAT_TOP - (t / LEGS) * LAT_H
     const xAt = (u: number) => X0 + u * W1
     const legs = Array.from({ length: LEGS }, () => {
-      const m = add(scene, mesh(ROD, glowMat(HIGH_V, 1)))
+      const m = add(scene, mesh(UNIT_ROD, glowMat(HIGH_V, 1)))
       m.castShadow = false
       return { m, tag: liveLabel(scene, [0, 0, 0.3], { size: 0.42 }) }
     })
@@ -254,7 +237,7 @@ export const reflections: Lesson = {
           farEnd(holder, s.load, s.zl, ends)
           cableName.set(`${LEN1} M ${CABLES[s.kind].name.toUpperCase()} · Z0 ${ohms(s.c.z0)} · v ${s.c.vf.toFixed(2)}c`, LABEL)
           loadName.set(`${LOAD_NAMES[s.load].toUpperCase()} · Γ ${signed(s.gl)}`, Math.abs(s.gl) < 0.05 ? POWER : HEAT)
-          ticks.forEach((l, i) => l.set(i ? sec(i * 2 * s.td) : '0', GREY))
+          ticks.forEach((l, i) => l.set(i ? secs(i * 2 * s.td) : '0', GREY))
         }
         st.t += dt / PER_TD
         if (st.t > end + 1.2 / PER_TD) st.t = 0
@@ -275,7 +258,7 @@ export const reflections: Lesson = {
           const u0 = b.forward ? 0 : 1
           const f = Math.min(1, t - b.k)
           const u1 = u0 + (b.forward ? f : -f)
-          stretch(leg.m, [xAt(u0), yAt(b.k), 0], [xAt(u1), yAt(b.k + f), 0], 0.1)
+          stretchRod(leg.m, [xAt(u0), yAt(b.k), 0], [xAt(u1), yAt(b.k + f), 0], 0.1)
           const m = leg.m.material as THREE.MeshStandardMaterial
           const c = b.amp >= 0 ? HIGH_V : LOW_V
           m.color.set(c)
@@ -285,7 +268,7 @@ export const reflections: Lesson = {
         })
         cursor.position.set((X0 + X1) / 2, yAt(t), 0.1)
         now.group.position.y = yAt(t)
-        now.set(`t ${sec(t * s.td)}`, RING)
+        now.set(`t ${secs(t * s.td)}`, RING)
       },
       readouts: (p) => {
         const s = reflOf(p)
@@ -294,7 +277,7 @@ export const reflections: Lesson = {
           { label: 'Cable', value: `Z0 ${ohms(s.c.z0)} · v = ${s.c.vf.toFixed(2)} c` },
           { label: 'Far end Γ', value: `${signed(s.gl)} (${zText(s.zl)})`, tone: tone(s.gl) },
           { label: 'Source end Γ', value: `${signed(s.gs)} (50 Ω gen)`, tone: tone(s.gs) },
-          { label: 'One-way delay', value: `${sec(s.td)} for ${LEN1} m` },
+          { label: 'One-way delay', value: `${secs(s.td)} for ${LEN1} m` },
         ]
       },
     }
@@ -376,10 +359,10 @@ export const termination: Lesson = {
     const yOf = (v: number) => (ZERO + v / 8) * SH - SH / 2
     const trace = screen.trace(RING, { samples: 240, radius: 0.1 })
     screen.level(POWER).set(yOf(VDD))
-    text(screen.group, '3.3 V', [SW / 2 - 1, yOf(VDD) + 0.5, 0.3], POWER, 0.4)
+    addLabel(screen.group, '3.3 V', [SW / 2 - 1, yOf(VDD) + 0.5, 0.3], POWER, 0.4)
 
     add(scene, lieFlat(buildEsp32(), K), ESP)
-    text(scene, 'ESP32 GPIO · 30 Ω', [ESP[0], ESP[1] + 4.6, 0], LABEL, 0.5)
+    addLabel(scene, 'ESP32 GPIO · 30 Ω', [ESP[0], ESP[1] + 4.6, 0], LABEL, 0.5)
     const body = cableBody(scene, 'jumper', WX0, WX1, WY)
     const [sig0, gnd0] = body.ends(0)
     const [sig1, gnd1] = body.ends(1)
@@ -396,7 +379,7 @@ export const termination: Lesson = {
 
     const servoAt: V3 = [WX1 + 4.2, WY, 0]
     sg90Servo(scene, servoAt)
-    text(scene, 'SERVO IN', [servoAt[0], servoAt[1] + 2, 0], LABEL, 0.45)
+    addLabel(scene, 'SERVO IN', [servoAt[0], servoAt[1] + 2, 0], LABEL, 0.45)
     const sIn: V3 = [servoAt[0] - 2.4, WY + 0.4, 0.4]
     cableRun(scene, [sig1, [sig1[0] + 0.8, sig1[1], 0.4], sIn], '#c8322c', 0.14)
     cableRun(scene, [gnd1, [gnd1[0] + 0.8, gnd1[1], 0.4], [sIn[0], sIn[1] - 0.8, 0.4]], '#1f2024', 0.14)
@@ -420,9 +403,9 @@ export const termination: Lesson = {
           if (s.rs) resistorAlong(holder, s.rs, rA, rB, 0.95)
           else wire(holder, [rA, rB], 0.12)
           rTag.set(`R ${s.rs} Ω`, Math.abs(s.gs) < 0.1 ? POWER : s.gs > 0 ? RING : HEAT)
-          wireTag.set(`${LENGTH_NAMES[s.len].toUpperCase()} JUMPER PAIR · Z0 ${ohms(JUMP.z0)} · ${sec(s.td)} EACH WAY`, LABEL)
+          wireTag.set(`${LENGTH_NAMES[s.len].toUpperCase()} JUMPER PAIR · Z0 ${ohms(JUMP.z0)} · ${secs(s.td)} EACH WAY`, LABEL)
           bench.status[0].set('CH1 1V', RING)
-          bench.status[1].set(sec(s.tdiv).replace(' ', ''), LABEL)
+          bench.status[1].set(secs(s.tdiv).replace(' ', ''), LABEL)
           bench.knobs.time.set(Math.log10(s.tdiv / 1e-9) * 1.2 - 1.2)
           bench.knobs.volts.set(0)
         }
@@ -449,7 +432,7 @@ export const termination: Lesson = {
           { label: 'Dips to', value: volts(s.dip), tone: s.dip > 2 ? 'ok' : s.dip > 0.8 ? 'warn' : 'bad' },
           {
             label: 'Settles (±5 %)',
-            value: s.settle > 0.95 * s.window ? `> ${sec(s.window)}` : `${sec(s.settle)} · ${volts(settledVolts(VDD, RDRV + s.rs, Infinity))}`,
+            value: s.settle > 0.95 * s.window ? `> ${secs(s.window)}` : `${secs(s.settle)} · ${volts(settledVolts(VDD, RDRV + s.rs, Infinity))}`,
             tone: s.settle < 6 * s.td + RISE ? 'ok' : 'warn',
           },
         ]

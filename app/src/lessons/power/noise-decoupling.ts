@@ -25,6 +25,7 @@ import {
   lane,
   lieFlat,
   motorCan,
+  peakToPeak,
   plusFlow,
   presence,
   pulseLabel,
@@ -53,7 +54,6 @@ const edgeSpike = (t: number, amps: number) => {
   const u = ((((t - PWM_AT) % PERIOD) + PERIOD) % PERIOD) / SPIKE_S
   return u < 1 ? amps * (1 - Math.abs(2 * u - 1)) : 0
 }
-const span = (v: number[]) => Math.max(...v) - Math.min(...v)
 /** ADC jitter for a 5 V sensor divided by 2 into the 3.3 V, 12-bit ADC: the rail's p-p rides on its output. */
 const jitter = (pp: number) => noiseCounts(pp / 2, 3.3, 12)
 
@@ -153,7 +153,7 @@ const solveMotor = (p: Params) => {
   const at = (t: number) => Math.round(t / EVERY)
   const near = v.slice(at(ARC_AT - 0.2e-6), at(ARC_AT + 1.5e-6))
   const before = v[at(ARC_AT - 0.2e-6)]
-  return { cap, amps, gain, v, min: Math.min(...v), arcDip: Math.max(...near.map((x) => Math.abs(x - before))), pp: span(v) }
+  return { cap, amps, gain, v, min: Math.min(...v), arcDip: Math.max(...near.map((x) => Math.abs(x - before))), pp: peakToPeak(v) }
 }
 
 export const motorNoise: Lesson = {
@@ -262,7 +262,7 @@ const solveBulk = (p: Params) => {
   const at = (t: number) => Math.round(t / EVERY)
   const base = v[at(PWM_AT - 0.1e-6)]
   const spike = Math.max(...v.slice(at(PWM_AT), at(PWM_AT + 0.4e-6)).map((x) => Math.abs(x - base)))
-  return { bank, amps, caps, v, min: Math.min(...v), spike, pp: span(v), zLow: bankOhms(caps, 20e3), zHigh: bankOhms(caps, 10e6) }
+  return { bank, amps, caps, v, min: Math.min(...v), spike, pp: peakToPeak(v), zLow: bankOhms(caps, 20e3), zHigh: bankOhms(caps, 10e6) }
 }
 
 const zText = (z: number) => (z === Infinity ? '∞' : si(z, 'Ω', 2))
@@ -368,8 +368,8 @@ const solveRails = (p: Params) => {
     amps,
     motorV,
     logicV,
-    motorPp: span(motorV),
-    logicPp: span(logicV),
+    motorPp: peakToPeak(motorV),
+    logicPp: peakToPeak(logicV),
     gain: mode === 'lc' ? lcGain(20e3, L_FILTER, 0.05, FILTER_CAPS) : 1,
   }
 }

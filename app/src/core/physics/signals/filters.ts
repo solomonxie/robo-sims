@@ -1,5 +1,5 @@
 // First-order RC filters: low-pass (R in series, C to ground) and high-pass (C in series, R to ground).
-import { rcStep } from './circuits'
+import { rcStep } from '../circuits'
 
 export type FilterKind = 'low' | 'high'
 

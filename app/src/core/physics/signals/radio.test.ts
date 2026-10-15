@@ -16,7 +16,7 @@ import {
   sensitivityDbm,
   wattsToDbm,
   wavelength,
-} from '.'
+} from '..'
 
 describe('radio', () => {
   it('wavelength and whip length', () => {

@@ -55,3 +55,4 @@ export function memoBy<P, T>(key: (p: P) => string, compute: (p: P) => T) {
     return last.value
   }
 }
+export const peakToPeak = (v: number[]) => Math.max(...v) - Math.min(...v)

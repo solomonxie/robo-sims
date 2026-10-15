@@ -1,8 +1,8 @@
 // 3D text from the stroke font in core/strokeFont: one merged mesh per label, no fonts or textures.
 import * as THREE from 'three/webgpu'
-import { mat, mesh } from '../../models/kit'
+import { add, mat, mesh } from '../../models/kit'
 import { layoutText } from '../../core/strokeFont'
-import { LABEL, glowMat } from './colors'
+import { GREY, LABEL, glowMat } from './colors'
 
 export interface LabelOpts {
   /** Cap height in world units. */
@@ -89,3 +89,7 @@ export function liveLabel(parent: THREE.Object3D, at: [number, number, number], 
     },
   }
 }
+
+/** A shadowless `label` added to `parent` at `at`. */
+export const addLabel = (parent: THREE.Object3D, s: string, at: [number, number, number], color = GREY, size = 0.6, align: LabelOpts['align'] = 'center') =>
+  (add(parent, label(s, { size, color, align }), at).castShadow = false)

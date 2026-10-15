@@ -27,45 +27,25 @@ import {
   LABEL,
   POWER,
   RING,
-  UP,
+  UNIT_ROD,
+  addLabel,
   benchScope,
   emptyGroup,
   glide,
   glowMat,
-  label,
   lieFlat,
   liveLabel,
   scope,
+  setGlow,
+  stretchRod,
 } from '../fx'
-import { Lesson, Params, Stage } from '../types'
+import { Lesson, Params, Stage, pick } from '../types'
 
 const dbm = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 const db = (x: number) => `${Math.round(x)} dB`
 const cm = (m: number) => `${+(m * 100).toFixed(m < 0.2 ? 1 : 0)} cm`
 const dist = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${+(m / 1000).toFixed(1)} km`)
 const mhz = (hz: number) => (hz >= 1e9 ? `${+(hz / 1e9).toFixed(2)} GHz` : `${Math.round(hz / 1e6)} MHz`)
-const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
-const text = (parent: THREE.Object3D, s: string, at: V3, color = GREY, size = 0.6, align: 'left' | 'center' | 'right' = 'center') =>
-  (add(parent, label(s, { size, color, align }), at).castShadow = false)
-
-const ROD = new THREE.CylinderGeometry(1, 1, 1, 8)
-const dir = new THREE.Vector3()
-
-function stretch(m: THREE.Object3D, a: V3, b: V3, r: number) {
-  dir.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
-  const len = dir.length()
-  m.visible = len > 1e-3
-  if (!m.visible) return
-  m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
-  m.quaternion.setFromUnitVectors(UP, dir.divideScalar(len))
-  m.scale.set(r, len, r)
-}
-
-function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number) {
-  m.color.set(color)
-  m.emissive.set(color)
-  m.emissiveIntensity = k
-}
 
 // --- 2.4 GHz: an ESP32 radiates; the wave thins out with the square of distance and every wall takes a bite. ---
 
@@ -137,7 +117,7 @@ export const twoFourGhz: Lesson = {
     const esp = add(scene, new THREE.Group(), ESP1)
     esp.rotation.z = Math.PI
     add(esp, lieFlat(buildEsp32(), K1))
-    text(scene, 'ESP32 · +20 dBm', [ESP1[0], ESP1[1] - 3.4, 0], LABEL, 0.5)
+    addLabel(scene, 'ESP32 · +20 dBm', [ESP1[0], ESP1[1] - 3.4, 0], LABEL, 0.5)
 
     const rings = Array.from({ length: RINGS }, (_, i) => {
       const r = 0.9 + (i * (SPAN - 0.9)) / (RINGS - 1)
@@ -152,7 +132,7 @@ export const twoFourGhz: Lesson = {
       const g = add(scene, new THREE.Group(), [SRC[0] + sOf(d), SRC[1], 0])
       box(g, [0.7, 10, 4], mat('#8a5a44', { rough: 0.85 }), [0, 0, -0.4])
       for (let k = -4; k <= 4; k += 1.3) box(g, [0.74, 0.08, 4.04], mat('#c9b8a4', { rough: 0.9 }), [0, k, -0.4])
-      if (!i) text(g, `−${WALL_DB} dB EACH`, [0, 5.7, 0], HEAT, 0.42)
+      if (!i) addLabel(g, `−${WALL_DB} dB EACH`, [0, 5.7, 0], HEAT, 0.42)
       return g
     })
 
@@ -173,9 +153,9 @@ export const twoFourGhz: Lesson = {
     const yOf = (r: number) => ((r - DB_BOT) / (DB_TOP - DB_BOT) - 0.5) * PH
     plot.level(HEAT).set(yOf(SENS))
     plot.level(POWER).set(yOf(GOOD))
-    text(plot.group, 'RSSI VS DISTANCE · 10 dB/DIV · LOG DISTANCE', [-PW / 2, PH / 2 + 1, 0], LABEL, 0.45, 'left')
-    for (const r of [-10, -50, -90]) text(plot.group, `${r}`.replace('-', '−'), [-PW / 2 - 0.9, yOf(r), 0], GREY, 0.38, 'right')
-    for (const d of [1, 10, 100]) text(plot.group, `${d} m`, [plot.xAt(sOf(d) / SPAN), -PH / 2 - 0.9, 0], GREY, 0.38)
+    addLabel(plot.group, 'RSSI VS DISTANCE · 10 dB/DIV · LOG DISTANCE', [-PW / 2, PH / 2 + 1, 0], LABEL, 0.45, 'left')
+    for (const r of [-10, -50, -90]) addLabel(plot.group, `${r}`.replace('-', '−'), [-PW / 2 - 0.9, yOf(r), 0], GREY, 0.38, 'right')
+    for (const d of [1, 10, 100]) addLabel(plot.group, `${d} m`, [plot.xAt(sOf(d) / SPAN), -PH / 2 - 0.9, 0], GREY, 0.38)
 
     const st = { key: '', t: 0, x: SRC[0] + sOf(10) }
     return {
@@ -326,12 +306,12 @@ export const antennaTypes: Lesson = {
     const holder = add(scene, new THREE.Group(), [AX, 0, 0])
     const antTag = liveLabel(scene, [AX, -5.2, 0], { size: 0.5 })
     rod(scene, [WX0, 0, 0], [WX1, 0, 0], 0.05, mat('#46645a', { emissive: '#1a2a24' }))
-    const e = Array.from({ length: ARROWS }, () => add(scene, mesh(ROD, glowMat(HIGH_V, 0.9))))
-    const b = Array.from({ length: ARROWS }, () => add(scene, mesh(ROD, glowMat(B_FIELD, 0.8))))
+    const e = Array.from({ length: ARROWS }, () => add(scene, mesh(UNIT_ROD, glowMat(HIGH_V, 0.9))))
+    const b = Array.from({ length: ARROWS }, () => add(scene, mesh(UNIT_ROD, glowMat(B_FIELD, 0.8))))
     for (const m of [...e, ...b]) m.castShadow = false
     const eTip = Array.from({ length: ARROWS }, () => add(scene, mesh(new THREE.SphereGeometry(0.12, 8, 6), glowMat(HIGH_V, 1.2))))
-    text(scene, 'E', [WX1 + 0.8, AMP * 0.7, 0], HIGH_V, 0.7, 'left')
-    text(scene, 'B', [WX1 + 0.8, -0.4, AMP * 0.8], B_FIELD, 0.7, 'left')
+    addLabel(scene, 'E', [WX1 + 0.8, AMP * 0.7, 0], HIGH_V, 0.7, 'left')
+    addLabel(scene, 'B', [WX1 + 0.8, -0.4, AMP * 0.8], B_FIELD, 0.7, 'left')
 
     const lam = add(scene, new THREE.Group(), [WX0, -AMP - 3.4, 0])
     const lamBar = add(lam, mesh(new THREE.BoxGeometry(1, 0.08, 0.08), glowMat(RING, 0.8)))
@@ -341,12 +321,12 @@ export const antennaTypes: Lesson = {
     const ruler = add(scene, new THREE.Group(), [AX - 8, -6.8, 0])
     box(ruler, [0.1 / UNIT, 0.35, 0.2], mat('#d9d4c6', { rough: 0.6 }), [0.05 / UNIT, 0, 0])
     for (let k = 0; k <= 10; k++) box(ruler, [0.05, k % 5 ? 0.25 : 0.45, 0.25], mat('#202226'), [(k * 0.01) / UNIT, 0.15, 0.05])
-    text(ruler, '10 CM', [0.05 / UNIT, -0.8, 0], GREY, 0.4)
+    addLabel(ruler, '10 CM', [0.05 / UNIT, -0.8, 0], GREY, 0.4)
 
     box(scene, [2 * PAT_R + 1.6, 2 * PAT_R + 2.6, 0.3], mat('#14171b', { rough: 0.6 }), [PAT[0], PAT[1] + 0.4, -0.3])
     rod(scene, [PAT[0], PAT[1] - PAT_R, 0.05], [PAT[0], PAT[1] + PAT_R, 0.05], 0.03, mat('#46645a', { emissive: '#1a2a24' }))
     rod(scene, [PAT[0] - PAT_R, PAT[1], 0.05], [PAT[0] + PAT_R, PAT[1], 0.05], 0.03, mat('#46645a', { emissive: '#1a2a24' }))
-    text(scene, 'PATTERN', [PAT[0], PAT[1] + PAT_R + 0.9, 0.2], LABEL, 0.4)
+    addLabel(scene, 'PATTERN', [PAT[0], PAT[1] + PAT_R + 0.9, 0.2], LABEL, 0.4)
     const pat = add(scene, new THREE.Group(), PAT)
 
     const st = { key: '', t: 0, segs: [] as { m: THREE.MeshStandardMaterial; w: number }[] }
@@ -378,8 +358,8 @@ export const antennaTypes: Lesson = {
           const x = WX0 + ((i + 0.5) / ARROWS) * (WX1 - WX0)
           const fade = Math.min(1, (x - WX0) / 2.5)
           const v = amp * fade * Math.sin(2 * Math.PI * ((x - WX0) / lu - ph))
-          stretch(e[i], [x, 0, 0], [x, v, 0], 0.05)
-          stretch(b[i], [x, 0, 0], [x, 0, v * 0.8], 0.045)
+          stretchRod(e[i], [x, 0, 0], [x, v, 0], 0.05)
+          stretchRod(b[i], [x, 0, 0], [x, 0, v * 0.8], 0.045)
           eTip[i].position.set(x, v, 0)
           eTip[i].visible = Math.abs(v) > 0.15
         }
@@ -496,7 +476,7 @@ export const lora: Lesson = {
     const fplot = scope(scene, FW, FH, { divs: [8, 4], zeroAt: 0 })
     fplot.group.position.set(...FC)
     const ftr = fplot.trace(HIGH_V, { samples: 260, radius: 0.08 })
-    text(fplot.group, 'FREQUENCY VS TIME', [-FW / 2, FH / 2 + 0.9, 0], LABEL, 0.42, 'left')
+    addLabel(fplot.group, 'FREQUENCY VS TIME', [-FW / 2, FH / 2 + 0.9, 0], LABEL, 0.42, 'left')
     const fTag = liveLabel(fplot.group, [0, -FH / 2 - 0.9, 0], { size: 0.38 })
 
     const mod = radioModule(scene, [RX0 - 3.6, RY + 0.4, 0])
@@ -505,8 +485,8 @@ export const lora: Lesson = {
     for (const [m, name] of [[10, ''], [100, 'STREET'], [1000, 'DISTRICT'], [10000, 'TOWN']] as [number, string][]) {
       const x = xOfRange(m)
       box(scene, [0.08, 0.9, 0.08], mat('#46645a', { emissive: '#1a2a24' }), [x, RY, 0.5])
-      text(scene, dist(m), [x, RY - 1.1, 0.5], GREY, 0.38)
-      if (name) text(scene, name, [x, RY + 1.1, 0.5], GREY, 0.34)
+      addLabel(scene, dist(m), [x, RY - 1.1, 0.5], GREY, 0.38)
+      if (name) addLabel(scene, name, [x, RY + 1.1, 0.5], GREY, 0.34)
     }
     const barMat = glowMat(POWER, 0.9)
     const bar = add(scene, mesh(new THREE.BoxGeometry(1, 0.35, 0.35), barMat), [RX0, RY, 0.3])
