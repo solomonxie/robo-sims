@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡‘’“”'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -46,6 +46,16 @@ describe('strokeFont', () => {
     const le = layoutText('≤').lines[0]
     expect(ge[1][0]).toBeGreaterThan(ge[0][0])
     expect(le[1][0]).toBeLessThan(le[0][0])
+  })
+
+  it('curls opening and closing quotes opposite ways', () => {
+    const [open] = layoutText('‘').lines
+    const [close] = layoutText('’').lines
+    expect(open[open.length - 1][1]).toBeLessThan(open[0][1])
+    expect(open[1][0]).toBeLessThan(open[0][0])
+    expect(close[1][0]).toBeGreaterThan(close[0][0])
+    expect(layoutText('“').lines.length).toBe(2)
+    expect(layoutText('”').lines.length).toBe(2)
   })
 
   it('points arrows the right way and tells ✓ from ✗', () => {
