@@ -41,11 +41,12 @@ import {
   IDLE,
   INK,
   LABEL,
+  Mark,
   POWER,
   RING,
   codeBlock,
-  emptyGroup,
   flatBox,
+  gantt,
   glide,
   glowMat,
   liveLabel,
@@ -53,6 +54,7 @@ import {
   partLetter,
   setGlow,
   shadowlessRod,
+  simClock,
   stretchRod,
   trayMat,
 } from '../fx'
@@ -60,92 +62,7 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 const SLOW_S = 0.15
 const SLOWDOWN = Math.round(SLOW_S / 1e-3)
-const HOLD_S = 2.5
 const ms = (t: number) => (Number.isFinite(t) ? `${+t.toFixed(1)} ms` : '∞')
-
-/** Sim clock: `tick(dt, key, ticks)` → current sim time in ms, looping with a hold at the end. */
-function simClock() {
-  const s = { key: '', t: 0 }
-  return (dt: number, key: string, ticks: number) => {
-    if (key !== s.key) Object.assign(s, { key, t: 0 })
-    s.t += dt
-    if (s.t > ticks * SLOW_S + HOLD_S) s.t = 0
-    return Math.min(ticks, s.t / SLOW_S)
-  }
-}
-
-interface Cell {
-  color: string
-  dim?: boolean
-  text?: string
-}
-interface Mark {
-  t: number
-  row: number
-  text: string
-  color: string
-}
-
-/** Time chart: one row per core or task, revealed up to `now`; `rebuild` once per run, `show(now)` per frame. */
-function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1: number; y: number; rowH: number; ticks: number; axis?: boolean }) {
-  const px = (G.x1 - G.x0) / G.ticks
-  const tx = (t: number) => G.x0 + t * px
-  const rowY = (k: number) => G.y - k * (G.rowH + 0.4)
-  const bottom = rowY(rows - 1) - G.rowH / 2
-  const top = G.y + G.rowH / 2
-  for (let k = 0; k < rows; k++) box(parent, [G.x1 - G.x0 + 0.4, G.rowH + 0.2, 0.4], trayMat(), [(G.x0 + G.x1) / 2, rowY(k), -0.45])
-  const names = Array.from({ length: rows }, (_, k) => liveLabel(parent, [G.x0 - 0.6, rowY(k), 0], { size: Math.min(0.42, G.rowH * 0.38), align: 'right' }))
-  if (G.axis) {
-    for (let t = 0; t <= G.ticks; t += 10) partLetter(parent, `${t}`, [tx(t), bottom - 0.7, 0], 0.34, GREY)
-    partLetter(parent, 'ms', [G.x1 + 0.9, bottom - 0.7, 0], 0.34, GREY, 'left')
-  }
-  const tickMat = glowMat(GREY, 0.2)
-  for (let t = 0; t < G.ticks; t++) flatBox(parent, [0.06, 0.35, 0.2], tickMat, [tx(t), top + 0.3, 0])
-  const flash = flatBox(parent, [0.14, 0.6, 0.25], glowMat(RING, 1.2), [0, top + 0.4, 0.05])
-  const cursor = add(parent, shadowlessRod(glowMat(LABEL, 1)))
-  const g = add(parent, new THREE.Group())
-  let segs: { t0: number; t1: number; o: THREE.Object3D; text?: THREE.Object3D }[] = []
-  let marks: { t: number; o: THREE.Object3D }[] = []
-  return {
-    rowY,
-    name: (k: number, text: string, color = LABEL) => names[k].set(text, color),
-    rebuild(cell: (row: number, t: number) => Cell | null, markList: Mark[]) {
-      emptyGroup(g)
-      segs = []
-      for (let k = 0; k < rows; k++) {
-        let t0 = 0
-        for (let t = 1; t <= G.ticks; t++) {
-          const a = cell(k, t0)
-          const b = t < G.ticks ? cell(k, t) : null
-          if (t < G.ticks && JSON.stringify(a) === JSON.stringify(b)) continue
-          if (a) {
-            const o = flatBox(g, [1, G.rowH * (a.dim ? 0.45 : 0.8), 0.3], glowMat(a.color, a.dim ? 0.15 : 0.7), [0, rowY(k), 0])
-            const w = (t - t0) * px
-            const size = Math.min(0.4, G.rowH * 0.36)
-            const text = a.text && w > a.text.length * size * 0.85 + 0.3 ? partLetter(g, a.text, [tx(t0) + w / 2, rowY(k), 0.3], size, a.dim ? a.color : INK) : undefined
-            segs.push({ t0, t1: t, o, text })
-          }
-          t0 = t
-        }
-      }
-      marks = markList.map((m) => ({ t: m.t, o: partLetter(g, m.text, [tx(m.t) + 0.3, rowY(m.row) + G.rowH / 2 + 0.55, 0.3], 0.5, m.color) }))
-    },
-    show(now: number) {
-      for (const s of segs) {
-        const w = Math.min(Math.max(now - s.t0, 0), s.t1 - s.t0)
-        s.o.visible = w > 0.01
-        s.o.scale.x = Math.max(0.01, w * px - 0.05)
-        s.o.position.x = tx(s.t0) + (w * px) / 2
-        if (s.text) s.text.visible = now >= s.t0 + (s.t1 - s.t0) * 0.7
-      }
-      for (const m of marks) m.o.visible = now >= m.t
-      const x = tx(now)
-      stretchRod(cursor, [x, bottom - 0.2, 0.35], [x, top + 0.2, 0.35], 0.06)
-      flash.position.x = tx(Math.floor(now))
-      flash.scale.y = 1 - (now % 1) * 0.8
-    },
-  }
-}
 
 /** Task card: box that glows with its state, plus a live caption. */
 function taskCard(root: THREE.Object3D, at: V3, w = 7, h = 1.8) {
@@ -249,7 +166,7 @@ export const tasksAndPriorities: Lesson = {
     const chip = coreChip(scene, -20, [cores.rowY(0), cores.rowY(1)])
     const status = liveLabel(scene, [-24, -7.2, 0.3], { size: 0.46, align: 'left' })
     const code = codeBlock(scene, [-24.5, 12.4, 0], 0.38, 4)
-    const clock = simClock()
+    const clock = simClock(SLOW_S)
     let key = ''
     return {
       scene,
@@ -410,7 +327,7 @@ export const queues: Lesson = {
     })
     const status = liveLabel(scene, [-24, -8.8, 0.3], { size: 0.46, align: 'left' })
     const code = codeBlock(scene, [-24.5, 12.4, 0], 0.38, 5)
-    const clock = simClock()
+    const clock = simClock(SLOW_S)
     let key = ''
     return {
       scene,
@@ -620,7 +537,7 @@ export const mutexes: Lesson = {
     const status = liveLabel(scene, [-24, -8.6, 0.3], { size: 0.46, align: 'left' })
     const resName = liveLabel(scene, [BUS_X, RES.y + 2.3, 0], { size: 0.4 })
     const code = codeBlock(scene, [-24.5, 12.4, 0], 0.38, 4)
-    const clock = simClock()
+    const clock = simClock(SLOW_S)
     const s = { key: '', lx: BUS_X, ly: RES.y }
     return {
       scene,

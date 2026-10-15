@@ -1,4 +1,4 @@
-// Microcontrollers (ESP32): GPIO, PWM, ADC, DAC, timers, UART, I²C, SPI, CAN, wireless, sleep, memory, RTOS, boot.
+// Microcontrollers (ESP32): GPIO, PWM, ADC, DAC, timers, UART, I²C, SPI, CAN, wireless, sleep, memory, RTOS, boot, firmware structure.
 export * from './gpio'
 export * from './pwm'
 export * from './adc'
@@ -13,3 +13,4 @@ export * from './sleep'
 export * from './memory'
 export * from './rtos'
 export * from './boot'
+export * from './firmware'
