@@ -52,7 +52,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Fourier intuition
   - [x] Oscilloscope
   - [x] Logic analyzer
-  - [ ] Transmission lines
+  - [x] Transmission lines
   - [ ] Radio basics
   - [ ] Grounding & shielding
   - [ ] PCB design
