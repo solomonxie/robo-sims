@@ -38,39 +38,30 @@ import {
   GREY,
   HEAT,
   HIGH_V,
+  IDLE,
+  INK,
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   codeBlock,
   emptyGroup,
+  flatBox,
   glide,
   glowMat,
   liveLabel,
   memoBy,
   partLetter,
   setGlow,
+  shadowlessRod,
   stretchRod,
+  trayMat,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
 const SLOW_S = 0.15
 const SLOWDOWN = Math.round(SLOW_S / 1e-3)
 const HOLD_S = 2.5
-const INK = '#14161b'
-const IDLE = '#3a3e47'
 const ms = (t: number) => (Number.isFinite(t) ? `${+t.toFixed(1)} ms` : '∞')
-const lit = (m: THREE.Material) => {
-  const o = mesh(UNIT_ROD, m)
-  o.castShadow = false
-  return o
-}
-const tray = () => mat('#1b1d22', { rough: 0.7 })
-const flat = (parent: THREE.Object3D, size: V3, m: THREE.Material, at: V3) => {
-  const o = add(parent, mesh(new THREE.BoxGeometry(...size), m), at)
-  o.castShadow = false
-  return o
-}
 
 /** Sim clock: `tick(dt, key, ticks)` → current sim time in ms, looping with a hold at the end. */
 function simClock() {
@@ -102,16 +93,16 @@ function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1: number
   const rowY = (k: number) => G.y - k * (G.rowH + 0.4)
   const bottom = rowY(rows - 1) - G.rowH / 2
   const top = G.y + G.rowH / 2
-  for (let k = 0; k < rows; k++) box(parent, [G.x1 - G.x0 + 0.4, G.rowH + 0.2, 0.4], tray(), [(G.x0 + G.x1) / 2, rowY(k), -0.45])
+  for (let k = 0; k < rows; k++) box(parent, [G.x1 - G.x0 + 0.4, G.rowH + 0.2, 0.4], trayMat(), [(G.x0 + G.x1) / 2, rowY(k), -0.45])
   const names = Array.from({ length: rows }, (_, k) => liveLabel(parent, [G.x0 - 0.6, rowY(k), 0], { size: Math.min(0.42, G.rowH * 0.38), align: 'right' }))
   if (G.axis) {
     for (let t = 0; t <= G.ticks; t += 10) partLetter(parent, `${t}`, [tx(t), bottom - 0.7, 0], 0.34, GREY)
     partLetter(parent, 'ms', [G.x1 + 0.9, bottom - 0.7, 0], 0.34, GREY, 'left')
   }
   const tickMat = glowMat(GREY, 0.2)
-  for (let t = 0; t < G.ticks; t++) flat(parent, [0.06, 0.35, 0.2], tickMat, [tx(t), top + 0.3, 0])
-  const flash = flat(parent, [0.14, 0.6, 0.25], glowMat(RING, 1.2), [0, top + 0.4, 0.05])
-  const cursor = add(parent, lit(glowMat(LABEL, 1)))
+  for (let t = 0; t < G.ticks; t++) flatBox(parent, [0.06, 0.35, 0.2], tickMat, [tx(t), top + 0.3, 0])
+  const flash = flatBox(parent, [0.14, 0.6, 0.25], glowMat(RING, 1.2), [0, top + 0.4, 0.05])
+  const cursor = add(parent, shadowlessRod(glowMat(LABEL, 1)))
   const g = add(parent, new THREE.Group())
   let segs: { t0: number; t1: number; o: THREE.Object3D; text?: THREE.Object3D }[] = []
   let marks: { t: number; o: THREE.Object3D }[] = []
@@ -128,7 +119,7 @@ function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1: number
           const b = t < G.ticks ? cell(k, t) : null
           if (t < G.ticks && JSON.stringify(a) === JSON.stringify(b)) continue
           if (a) {
-            const o = flat(g, [1, G.rowH * (a.dim ? 0.45 : 0.8), 0.3], glowMat(a.color, a.dim ? 0.15 : 0.7), [0, rowY(k), 0])
+            const o = flatBox(g, [1, G.rowH * (a.dim ? 0.45 : 0.8), 0.3], glowMat(a.color, a.dim ? 0.15 : 0.7), [0, rowY(k), 0])
             const w = (t - t0) * px
             const size = Math.min(0.4, G.rowH * 0.36)
             const text = a.text && w > a.text.length * size * 0.85 + 0.3 ? partLetter(g, a.text, [tx(t0) + w / 2, rowY(k), 0.3], size, a.dim ? a.color : INK) : undefined
@@ -159,9 +150,9 @@ function gantt(parent: THREE.Object3D, rows: number, G: { x0: number; x1: number
 /** Task card: box that glows with its state, plus a live caption. */
 function taskCard(root: THREE.Object3D, at: V3, w = 7, h = 1.8) {
   const parent = add(root, new THREE.Group())
-  box(parent, [w + 0.4, h + 0.4, 0.4], tray(), [at[0], at[1], -0.45])
+  box(parent, [w + 0.4, h + 0.4, 0.4], trayMat(), [at[0], at[1], -0.45])
   const m = glowMat(GREY, 0.2)
-  flat(parent, [w, h, 0.3], m, at)
+  flatBox(parent, [w, h, 0.3], m, at)
   const title = liveLabel(parent, [at[0], at[1] + 0.3, 0.3], { size: 0.42 })
   const sub = liveLabel(parent, [at[0], at[1] - 0.45, 0.3], { size: 0.32 })
   let k = 0.2
@@ -185,7 +176,7 @@ function coreChip(parent: THREE.Object3D, x: number, ys: number[]) {
   partLetter(parent, 'tick', [x + 2.9, top + 0.7, 0], 0.32, GREY, 'right')
   const tiles = ys.map((y, k) => {
     const m = glowMat(IDLE, 0.2)
-    flat(parent, [6.6, 2, 0.3], m, [x, y - 0.25, 0])
+    flatBox(parent, [6.6, 2, 0.3], m, [x, y - 0.25, 0])
     partLetter(parent, k === 0 ? 'Core 0 · PRO' : 'Core 1 · APP', [x - 3.3, y + 1.2, 0], 0.3, GREY, 'left')
     return { m, text: liveLabel(parent, [x, y - 0.25, 0.3], { size: 0.45 }) }
   })
@@ -400,20 +391,20 @@ export const queues: Lesson = {
     const prod = taskCard(scene, [PROD_X, QX.y, 0], 8)
     const cons = taskCard(scene, [CONS_X, QX.y, 0], 8)
     const qx = (k: number) => QX.x0 + (QUEUE_LEN - k - 0.5) * SLOT_W
-    box(scene, [QUEUE_LEN * SLOT_W + 0.6, 2.6, 0.4], tray(), [QX.x0 + (QUEUE_LEN * SLOT_W) / 2, QX.y, -0.45])
+    box(scene, [QUEUE_LEN * SLOT_W + 0.6, 2.6, 0.4], trayMat(), [QX.x0 + (QUEUE_LEN * SLOT_W) / 2, QX.y, -0.45])
     const slotMats = Array.from({ length: QUEUE_LEN }, (_, k) => {
       const m = glowMat(GREY, 0.1)
-      flat(scene, [SLOT_W - 0.3, 2.2, 0.1], m, [qx(k), QX.y, -0.2])
+      flatBox(scene, [SLOT_W - 0.3, 2.2, 0.1], m, [qx(k), QX.y, -0.2])
       return m
     })
     partLetter(scene, 'xQueue: 4 slots · back ← → front', [QX.x0 + (QUEUE_LEN * SLOT_W) / 2, QX.y + 2, 0], 0.38, LABEL)
     const pipe = glowMat(GREY, 0.3)
-    stretchRod(add(scene, lit(pipe)), [PROD_X + 4.2, QX.y, -0.1], [QX.x0 - 0.3, QX.y, -0.1], 0.08)
-    stretchRod(add(scene, lit(pipe)), [QX.x0 + QUEUE_LEN * SLOT_W + 0.3, QX.y, -0.1], [CONS_X - 4.2, QX.y, -0.1], 0.08)
+    stretchRod(add(scene, shadowlessRod(pipe)), [PROD_X + 4.2, QX.y, -0.1], [QX.x0 - 0.3, QX.y, -0.1], 0.08)
+    stretchRod(add(scene, shadowlessRod(pipe)), [QX.x0 + QUEUE_LEN * SLOT_W + 0.3, QX.y, -0.1], [CONS_X - 4.2, QX.y, -0.1], 0.08)
     const qLabel = liveLabel(scene, [QX.x0 + (QUEUE_LEN * SLOT_W) / 2, QX.y - 1.9, 0], { size: 0.38 })
     const items = Array.from({ length: POOL }, () => {
       const m = glowMat(RING, 0.9)
-      const o = flat(scene, [1.5, 1.5, 0.6], m, [0, 0, 0.3])
+      const o = flatBox(scene, [1.5, 1.5, 0.6], m, [0, 0, 0.3])
       const text = liveLabel(o, [0, 0, 0.35], { size: 0.36 })
       return { o, m, text, id: -1, x: 0, y: 0 }
     })
@@ -603,27 +594,27 @@ export const mutexes: Lesson = {
     const cards = cardYs.map((y) => taskCard(scene, [-19, y, 0], 9, 1.7))
     const wireMats = cardYs.map(() => glowMat(GREY, 0.2))
     const wires = cardYs.map((y, k) => {
-      const o = add(scene, lit(wireMats[k]))
+      const o = add(scene, shadowlessRod(wireMats[k]))
       stretchRod(o, [-14.3, y, -0.1], [BUS_X - 1.6, RES.y, -0.1], 0.07)
       return o
     })
-    box(scene, [3.6, 3.6, 0.4], tray(), [BUS_X, RES.y, -0.45])
+    box(scene, [3.6, 3.6, 0.4], trayMat(), [BUS_X, RES.y, -0.45])
     const lockMat = glowMat(RING, 0.8)
     const lockG = add(scene, new THREE.Group())
-    flat(lockG, [1.2, 1, 0.5], lockMat, [0, -0.2, 0])
+    flatBox(lockG, [1.2, 1, 0.5], lockMat, [0, -0.2, 0])
     const shackle = add(lockG, mesh(new THREE.TorusGeometry(0.42, 0.11, 8, 20, Math.PI), lockMat), [0, 0.3, 0])
     shackle.castShadow = false
     const portLabel = liveLabel(scene, [BUS_X, RES.y - 2.4, 0], { size: 0.36 })
     const busMat = glowMat(GREY, 0.3)
-    stretchRod(add(scene, lit(busMat)), [BUS_X + 1.9, RES.y, -0.1], [RES.x - 9.3, RES.y, -0.1], 0.1)
+    stretchRod(add(scene, shadowlessRod(busMat)), [BUS_X + 1.9, RES.y, -0.1], [RES.x - 9.3, RES.y, -0.1], 0.1)
     const busLabel = liveLabel(scene, [(BUS_X + RES.x - 7.4) / 2, RES.y + 0.6, 0], { size: 0.36 })
-    box(serialG, [18, 6.4, 0.4], tray(), [RES.x, RES.y, -0.45])
-    flat(serialG, [17.4, 5.8, 0.1], glowMat('#0c0e12', 0.05), [RES.x, RES.y, -0.2])
+    box(serialG, [18, 6.4, 0.4], trayMat(), [RES.x, RES.y, -0.45])
+    flatBox(serialG, [17.4, 5.8, 0.1], glowMat('#0c0e12', 0.05), [RES.x, RES.y, -0.2])
     partLetter(serialG, 'Serial Monitor · 115200 baud', [RES.x - 8.5, RES.y + 3.8, 0], 0.36, GREY, 'left')
     const screen = Array.from({ length: 5 }, (_, k) => liveLabel(serialG, [RES.x - 8.3, RES.y + 2.2 - k * 1.05, 0.1], { size: 0.42, align: 'left' }))
     box(i2cG, [9, 4.4, 0.6], mat('#1d5a3a', { rough: 0.6 }), [RES.x, RES.y, -0.45])
     const chipMat = glowMat(GREY, 0.2)
-    flat(i2cG, [3, 3, 0.4], chipMat, [RES.x, RES.y, 0])
+    flatBox(i2cG, [3, 3, 0.4], chipMat, [RES.x, RES.y, 0])
     partLetter(i2cG, 'MPU-6050 · 0x68', [RES.x, RES.y + 2.7, 0], 0.38, LABEL)
     const sensorLabel = liveLabel(i2cG, [RES.x, RES.y - 2.8, 0], { size: 0.38 })
     const status = liveLabel(scene, [-24, -8.6, 0.3], { size: 0.46, align: 'left' })

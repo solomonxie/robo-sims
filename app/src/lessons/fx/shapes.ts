@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { V3, add, mesh } from '../../models/kit'
+import { V3, add, mat, mesh } from '../../models/kit'
 import { CONVENTIONAL, glowMat } from './colors'
 import { UP } from './util'
 
@@ -37,4 +37,14 @@ export function glowBox(parent: THREE.Object3D, size: V3, at: V3, color: string,
   const box = add(parent, new THREE.Mesh(new THREE.BoxGeometry(...size), m), at)
   box.castShadow = false
   return { mesh: box, m }
+}
+
+/** Dark backing plate behind lit panels. */
+export const trayMat = () => mat('#1b1d22', { rough: 0.7 })
+
+/** Box that casts no shadow. */
+export const flatBox = (parent: THREE.Object3D, size: V3, m: THREE.Material, at: V3) => {
+  const o = add(parent, mesh(new THREE.BoxGeometry(...size), m), at)
+  o.castShadow = false
+  return o
 }

@@ -1,5 +1,5 @@
 // ESP32 boot: strapping pins, USB-serial auto-reset, esptool upload over UART, OTA slots with rollback.
-import { KB } from './storage'
+import { KB } from './memory'
 import { FORMAT_8N1, frameLength } from './uart'
 
 // --- Boot modes: straps sampled as EN rises, then ROM → 2nd-stage bootloader → app, or ROM download mode. ---

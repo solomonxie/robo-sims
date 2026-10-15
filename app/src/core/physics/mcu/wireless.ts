@@ -1,4 +1,4 @@
-import { rssiDbm } from './signals/radio'
+import { rssiDbm } from '../signals/radio'
 
 export const WIFI_CH6_HZ = 2.437e9
 /** Path-loss exponent for robots near the floor or ground, among furniture and people. */
@@ -110,7 +110,6 @@ export function webTelemetry(proto: WebProto, hz: number, payload: number, rttS:
 export const BLE_LL_BYTES = 10
 export const BLE_L2CAP_BYTES = 4
 export const BLE_US_PER_BYTE = 8
-export const CI_STEP_S = 1.25e-3
 
 /** Temperature characteristic 0x2A6E: sint16 in 0.01 °C, little-endian. */
 export function tempBytes(c: number): [number, number] {

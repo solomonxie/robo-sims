@@ -15,6 +15,7 @@ import {
   sqnrDb,
 } from '../../core/physics'
 import { amps, hertz, hexByte, secs, volts } from '../../core/units'
+import { binary } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -24,6 +25,7 @@ import {
   HEAT,
   HIGH_V,
   LABEL,
+  PIN_COLOR,
   POWER,
   RING,
   ceramicAlong,
@@ -49,10 +51,8 @@ import {
 import { Lesson, Params, Stage, n, pick } from '../types'
 
 const VDD = GPIO_VDD
-const PIN_COLOR = '#5ad8e6'
 const VIEW = { center: [-1, -3.6, 0] as V3, radius: 79, polar: 1.47, azimuth: 0.06 }
 const AUDIO_VIEW = { ...VIEW, center: [-0.5, -4.6, 0] as V3, radius: 72 }
-const binary = (code: number, bits: number) => code.toString(2).padStart(bits, '0')
 
 // --- R-2R ladder: each bit switches a 2R leg between Vref and ground; the ladder halves every bit's share on its way to the output. ---
 

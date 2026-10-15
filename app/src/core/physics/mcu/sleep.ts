@@ -1,6 +1,6 @@
 // ESP32 power modes: which domains stay powered, wake sources and boot cost, duty-cycled sensor-node battery life.
 
-import { runtimeHours } from './dc'
+import { runtimeHours } from '../dc'
 
 export type PowerMode = 'active' | 'modem' | 'light' | 'deep'
 export type Domain = 'cpu' | 'radio' | 'ram' | 'periph' | 'rtc' | 'rtcMem' | 'ulp'

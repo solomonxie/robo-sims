@@ -1,7 +1,5 @@
 // FreeRTOS on the ESP32: a tick-by-tick, fixed-priority preemptive scheduler on two cores, with queues and mutexes.
 
-export const TICK_MS = 1
-
 export type Op =
   | { op: 'run'; ticks: number; out?: string[]; res?: string }
   | { op: 'delay'; ticks: number }

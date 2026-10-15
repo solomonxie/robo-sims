@@ -25,7 +25,7 @@ import {
   pullPad,
   pullRiseTime,
 } from '../../core/physics'
-import { amps, ohms, pct, secs, si, volts, watts } from '../../core/units'
+import { amps, mAText, ohms, pct, secs, si, volts, watts } from '../../core/units'
 import { GOLD, V3, add, box, mat, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -35,6 +35,7 @@ import {
   HIGH_V,
   LABEL,
   LOW_V,
+  PIN_COLOR,
   POWER,
   RING,
   arrow,
@@ -65,9 +66,7 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 const VDD = GPIO_VDD
 const WIRES = { color: HIGH_V, label: 'Wire colour: blue 0 V → red 3.3 V', shape: 'dot' } as const
-const PIN_COLOR = '#5ad8e6'
 const fixed = (v: number) => v.toFixed(2)
-const mA = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 
 /** Translucent cutaway of the chip, x0…x1 × y0…y1, with the gold pad on its right edge at `pad`. */
 function chipCutaway(parent: THREE.Object3D, [x0, x1]: [number, number], [y0, y1]: [number, number], pad: V3) {
@@ -415,9 +414,9 @@ export const driveStrength: Lesson = {
   formula: (p) => {
     const k = pick(LOADS, p.load, 'led')
     const r = solveLoad(p)
-    if (k === 'motor') return `I = 3.3 V / (R_on + 5 Ω) = 3.3 / (${ohms(r.rOn)} + 5 Ω) = ${mA(r.amps)} · pin sags to ${volts(r.pinV)} · driver heat I²R_on = ${watts(r.heatW)}`
+    if (k === 'motor') return `I = 3.3 V / (R_on + 5 Ω) = 3.3 / (${ohms(r.rOn)} + 5 Ω) = ${mAText(r.amps)} · pin sags to ${volts(r.pinV)} · driver heat I²R_on = ${watts(r.heatW)}`
     const vled = r.pinV - r.amps * LOADS[k].load.ohms
-    return `I = (3.3 V − V_LED) / (R_on + R) = (3.3 − ${fixed(vled)}) / (${ohms(r.rOn)} + ${ohms(LOADS[k].load.ohms)}) = ${mA(r.amps)} · limit 40 mA`
+    return `I = (3.3 V − V_LED) / (R_on + R) = (3.3 − ${fixed(vled)}) / (${ohms(r.rOn)} + ${ohms(LOADS[k].load.ohms)}) = ${mAText(r.amps)} · limit 40 mA`
   },
   legend: [
     { color: POWER, label: 'Lit fingers = driver transistors enabled', shape: 'dot' },
@@ -499,7 +498,7 @@ export const driveStrength: Lesson = {
           l.lamp.step(dt)
         }
         motor.spin(dt, motorRpm(s.a * TT_MOTOR.ohms))
-        ma(s.a, mA(s.a), s.a >= PIN_MAX_A ? HIGH_V : s.a > PIN_SAFE_A ? RING : POWER)
+        ma(s.a, mAText(s.a), s.a >= PIN_MAX_A ? HIGH_V : s.a > PIN_SAFE_A ? RING : POWER)
         pv(s.v, `${fixed(s.v)} V`, s.v >= 0.75 * VDD ? POWER : HIGH_V)
         code([`gpio_set_drive_capability(GPIO_NUM_2,`, `  GPIO_DRIVE_CAP_${cap});`, 'digitalWrite(2, HIGH);'])
       },
@@ -508,7 +507,7 @@ export const driveStrength: Lesson = {
         const k = pick(LOADS, p.load, 'led')
         const verdict = r.amps >= PIN_MAX_A ? 'over 40 mA!' : k === 'motor' ? 'motor stalls' : r.amps > PIN_SAFE_A ? 'hot pin' : 'fine'
         return [
-          { label: 'Current', value: mA(r.amps), tone: tone(r.amps) },
+          { label: 'Current', value: mAText(r.amps), tone: tone(r.amps) },
           { label: 'Pin HIGH', value: volts(r.pinV), tone: r.pinV >= 0.75 * VDD ? 'ok' : 'warn' },
           { label: 'Driver heat', value: watts(r.heatW) },
           { label: 'Verdict', value: verdict, tone: verdict === 'fine' ? 'ok' : 'bad' },

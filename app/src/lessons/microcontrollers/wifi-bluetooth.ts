@@ -12,7 +12,7 @@ import {
   webTelemetry,
   wifiTopology,
 } from '../../core/physics'
-import { hexByte, pct, secs } from '../../core/units'
+import { dbmText, hexByte, msText, pct, secs } from '../../core/units'
 import { V3, add, mat, mesh, rod, box } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -25,7 +25,6 @@ import {
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   arcAt,
   codeBlock,
   glowMat,
@@ -38,23 +37,17 @@ import {
   robotCar,
   routerModel,
   setGlow,
+  shadowlessRod,
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, pick } from '../types'
 
-const dbm = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
-const ms = (s: number) => `${+(s * 1000).toFixed(s < 0.01 ? 1 : 0)} ms`
 const rssiColor = (r: number) => (r > -67 ? POWER : r > -77 ? RING : r > -82 ? HEAT : HIGH_V)
 const rssiTone = (r: number) => (r > -67 ? 'ok' : r > -82 ? 'warn' : 'bad')
 const loopT = (s: { key: string; t: number }, key: string, dt: number) => {
   if (key !== s.key) Object.assign(s, { key, t: 0 })
   s.t += dt
   return s.t
-}
-const lit = (m: THREE.MeshStandardMaterial) => {
-  const o = mesh(UNIT_ROD, m)
-  o.castShadow = false
-  return o
 }
 
 // --- Station and AP: the robot joins the home router, or hosts its own network for the phone, or both. ---
@@ -141,7 +134,7 @@ export const stationAndAp: Lesson = {
     for (const [x, y, r] of [[-19.7, 6.2, 1], [-18.1, 6.7, 1.3], [-16.5, 6.2, 0.9]]) add(scene, mesh(new THREE.SphereGeometry(r, 18, 12), cloud), [x, y, -1])
     partLetter(scene, 'internet', [-18.1, 6.4, 0.6], 0.42, LABEL)
     const upMat = glowMat(POWER, 0)
-    const upRod = add(scene, lit(upMat))
+    const upRod = add(scene, shadowlessRod(upMat))
     stretchRod(upRod, [-18.1, 2, -0.5], [-18.1, 5, -0.5], 0.1)
     rod(scene, [-9.5, -5.6, 0], [6.5, -5.6, 0], 0.05, mat('#46645a'))
     for (const k of Object.keys(SA_DISTS)) {
@@ -164,7 +157,7 @@ export const stationAndAp: Lesson = {
     ]
     const links = pairs.map(() => {
       const m = glowMat(GREY, 0)
-      return { m, o: add(scene, lit(m)), tag: liveLabel(scene, [0, 0, 0.4], { size: 0.36 }) }
+      return { m, o: add(scene, shadowlessRod(m)), tag: liveLabel(scene, [0, 0, 0.4], { size: 0.36 }) }
     })
     const pk = packetPool(scene, 2, 0.55)
     const code = codeBlock(scene, [-22.8, -4.6, 0], 0.34, 4)
@@ -194,7 +187,7 @@ export const stationAndAp: Lesson = {
           const lift = a === 'phone' && b === 'robot' ? 1.2 : i === 0 ? 0.6 : -0.9
           const f = i === 0 ? 0.2 : 0.5
           L.tag.group.position.set(pos[a][0] + (pos[b][0] - pos[a][0]) * f, pos[a][1] + (pos[b][1] - pos[a][1]) * f + lift, 0.4)
-          L.tag.set(h.mbps ? `${dbm(h.rssi)} · ${h.mbps} Mbit/s` : `${dbm(h.rssi)} · out of range`, rssiColor(h.rssi))
+          L.tag.set(h.mbps ? `${dbmText(h.rssi)} · ${h.mbps} Mbit/s` : `${dbmText(h.rssi)} · out of range`, rssiColor(h.rssi))
         })
         const shown = S.fail >= 0 ? S.fail + 1 : S.steps.length
         const total = shown * STEP + SA_HOLD
@@ -242,7 +235,7 @@ export const stationAndAp: Lesson = {
         return [
           { label: 'Robot IP', value: S.mode === 'sta' && !S.top.ok ? 'none, not joined' : `${S.top.robotIp} (${S.top.dhcp === 'router' ? 'router DHCP' : 'its own DHCP'})`, tone: S.mode === 'sta' && !S.top.ok ? 'bad' : undefined },
           { label: 'Phone ↔ robot', value: S.top.ok ? `${S.top.path.length} hop${S.top.path.length > 1 ? 's' : ''} · ${+S.top.mbps.toFixed(1)} Mbit/s` : 'no link', tone: S.top.ok ? 'ok' : 'bad' },
-          { label: 'Robot ↔ router', value: up ? dbm(up.rssi) : 'not used', tone: up ? rssiTone(up.rssi) : undefined },
+          { label: 'Robot ↔ router', value: up ? dbmText(up.rssi) : 'not used', tone: up ? rssiTone(up.rssi) : undefined },
           { label: 'Robot internet', value: S.top.internet ? 'yes, via router' : 'no', tone: S.top.internet ? 'ok' : 'warn' },
         ]
       },
@@ -279,7 +272,7 @@ export const httpAndWebSocket: Lesson = {
   formula: (p) => {
     const { proto, hz, T } = webSetup(p)
     const rounds = webRounds(proto)
-    return `${T.packets.length} TCP segments × 40 B headers + ${proto === 'ws' ? '2 B frame header' : 'HTTP headers'} + ${PAYLOAD} B JSON = ${T.bytes} B per reading (${pct(T.overhead)} overhead) · ${rounds ? `max rate = 1 / (${rounds} × RTT ${ms(RTT)}) = ${Math.round(T.maxHz)} Hz` : 'no round trip per reading'} · age = ½ / ${Math.round(T.rate)} Hz + ½ RTT = ${ms(T.ageS)}${T.keepsUp ? '' : ` (wanted ${hz} Hz)`} · slowed ${WEB_SLOW}×`
+    return `${T.packets.length} TCP segments × 40 B headers + ${proto === 'ws' ? '2 B frame header' : 'HTTP headers'} + ${PAYLOAD} B JSON = ${T.bytes} B per reading (${pct(T.overhead)} overhead) · ${rounds ? `max rate = 1 / (${rounds} × RTT ${msText(RTT)}) = ${Math.round(T.maxHz)} Hz` : 'no round trip per reading'} · age = ½ / ${Math.round(T.rate)} Hz + ½ RTT = ${msText(T.ageS)}${T.keepsUp ? '' : ` (wanted ${hz} Hz)`} · slowed ${WEB_SLOW}×`
   },
   legend: [
     { color: DATA_COLOR, label: 'Telemetry JSON (the payload)', shape: 'dot' },
@@ -308,12 +301,12 @@ export const httpAndWebSocket: Lesson = {
     const a = car.antenna
     const b: V3 = [11, 0.2, 1]
     const pathMat = glowMat('#3a3f4a', 0.2)
-    const pipe = add(scene, lit(pathMat))
+    const pipe = add(scene, shadowlessRod(pathMat))
     stretchRod(pipe, a, b, 0.05)
     const pipeMat = glowMat(RING, 0)
     pipeMat.transparent = true
     pipeMat.depthWrite = false
-    const wsPipe = add(scene, lit(pipeMat))
+    const wsPipe = add(scene, shadowlessRod(pipeMat))
     stretchRod(wsPipe, a, b, 0.22)
     const pk = packetPool(scene, 28, 0.7)
     const conn = liveLabel(scene, [(a[0] + b[0]) / 2, 5.6, 0], { size: 0.45 })
@@ -357,7 +350,7 @@ export const httpAndWebSocket: Lesson = {
         conn.set(S.proto === 'ws' ? 'one TCP connection, open the whole time' : S.proto === 'keepalive' ? 'connection reused, one GET per reading' : 'new TCP connection per reading', S.proto === 'ws' ? RING : GREY)
         phone.lines[0].set(`rpm ${s.value}`, DATA_COLOR)
         phone.lines[1].set(`${Math.round(S.T.rate)} / s`, S.T.keepsUp ? POWER : HIGH_V)
-        phone.lines[2].set(`age ${ms(S.T.ageS)}`, LABEL)
+        phone.lines[2].set(`age ${msText(S.T.ageS)}`, LABEL)
         phone.screen('#141a2a', 0.5)
         code(
           S.proto === 'ws'
@@ -376,7 +369,7 @@ export const httpAndWebSocket: Lesson = {
           { label: 'Per reading', value: `${S.T.packets.length} segments · ${S.T.bytes} B` },
           { label: 'Overhead', value: pct(S.T.overhead), tone: S.T.overhead > 0.9 ? 'bad' : S.T.overhead > 0.6 ? 'warn' : 'ok' },
           { label: 'Readings', value: `${Math.round(S.T.rate)} of ${S.hz} / s · ${(S.T.bytesPerS / 1000).toFixed(1)} kB/s`, tone: S.T.keepsUp ? 'ok' : 'bad' },
-          { label: 'Reading age', value: ms(S.T.ageS) },
+          { label: 'Reading age', value: msText(S.T.ageS) },
         ]
       },
     }
@@ -420,7 +413,7 @@ export const bleGatt: Lesson = {
   tagline: 'Services, characteristics, and who speaks first',
   formula: (p) => {
     const { mode, ci, G } = bleSetup(p)
-    return `Radio meets every CI = ${ms(ci)} (n × 1.25 ms) · ${mode === 'read' ? `read = request in one event + response in the next: max ${Math.round(G.maxHz)} Hz · age ≈ ½ / ${Math.round(G.rate)} Hz + 1.5 × CI` : `notify = next event: max ${Math.round(G.maxHz)} Hz · age ≈ ½ / ${Math.round(G.rate)} Hz + ½ × CI`} = ${ms(G.ageS)} · ${G.bytes} B on air = ${G.airUs} µs at 1 Mbit/s · slowed ${BLE_SLOW}×`
+    return `Radio meets every CI = ${msText(ci)} (n × 1.25 ms) · ${mode === 'read' ? `read = request in one event + response in the next: max ${Math.round(G.maxHz)} Hz · age ≈ ½ / ${Math.round(G.rate)} Hz + 1.5 × CI` : `notify = next event: max ${Math.round(G.maxHz)} Hz · age ≈ ½ / ${Math.round(G.rate)} Hz + ½ × CI`} = ${msText(G.ageS)} · ${G.bytes} B on air = ${G.airUs} µs at 1 Mbit/s · slowed ${BLE_SLOW}×`
   },
   legend: [
     { color: RING, label: 'Service (a group, 16-bit UUID)', shape: 'dot' },
@@ -545,7 +538,7 @@ export const bleGatt: Lesson = {
         rowMats.forEach((r, i) => setGlow(r.m, i === 1 || i === 2 ? '#3b2f66' : '#20242c', i === 1 || i === 2 ? 0.15 + 0.6 * hot : 0.15))
         phone.lines[0].set('Temperature', LABEL)
         phone.lines[1].set(Number.isNaN(temp) ? '—' : `${temp.toFixed(2)} °C`, DATA_COLOR)
-        phone.lines[2].set(`${Math.round(rate)} / s · age ${ms(S.G.ageS)}`, S.G.keepsUp ? GREY : HIGH_V)
+        phone.lines[2].set(`${Math.round(rate)} / s · age ${msText(S.G.ageS)}`, S.G.keepsUp ? GREY : HIGH_V)
         phone.screen('#141a2a', 0.5)
         code(
           S.mode === 'notify'
@@ -559,7 +552,7 @@ export const bleGatt: Lesson = {
           { label: 'Per reading', value: `${S.G.pdus.length} packet${S.G.pdus.length > 1 ? 's' : ''} · ${S.G.bytes} B · ${S.G.airUs} µs` },
           { label: 'Events per reading', value: String(S.G.events) },
           { label: 'Updates', value: `${Math.round(S.G.rate)} of ${POLL_HZ} / s`, tone: S.G.keepsUp ? 'ok' : 'bad' },
-          { label: 'Reading age', value: ms(S.G.ageS), tone: S.G.ageS < 0.1 ? 'ok' : 'warn' },
+          { label: 'Reading age', value: msText(S.G.ageS), tone: S.G.ageS < 0.1 ? 'ok' : 'warn' },
         ]
       },
     }
@@ -596,7 +589,7 @@ export const espNow: Lesson = {
   tagline: 'Robot to robot in a millisecond, no router',
   formula: (p) => {
     const S = nowSetup(p)
-    return `Frame = 192 µs preamble + (${S.bytes} + ${ESPNOW_FRAME_BYTES} B) × 8 µs at 1 Mbit/s = ${secs(S.L.air)} · attempt = wait + frame + SIFS + ACK ${secs(ackAirtime())} = ${secs(S.L.attempt)} · RSSI ${dbm(S.L.rssi)} → ${pct(S.L.per)} lost per try → ${S.L.tries.toFixed(2)} tries = ${secs(S.L.latencyS)} · slowed ${NOW_SLOW}×, gaps between 50 Hz sends skipped`
+    return `Frame = 192 µs preamble + (${S.bytes} + ${ESPNOW_FRAME_BYTES} B) × 8 µs at 1 Mbit/s = ${secs(S.L.air)} · attempt = wait + frame + SIFS + ACK ${secs(ackAirtime())} = ${secs(S.L.attempt)} · RSSI ${dbmText(S.L.rssi)} → ${pct(S.L.per)} lost per try → ${S.L.tries.toFixed(2)} tries = ${secs(S.L.latencyS)} · slowed ${NOW_SLOW}×, gaps between 50 Hz sends skipped`
   },
   legend: [
     { color: DATA_COLOR, label: 'Command: steer and speed (payload)', shape: 'dot' },
@@ -696,7 +689,7 @@ export const espNow: Lesson = {
       readouts: (p) => {
         const S = nowSetup(p)
         return [
-          { label: 'RSSI', value: dbm(S.L.rssi), tone: rssiTone(S.L.rssi + 16) },
+          { label: 'RSSI', value: dbmText(S.L.rssi), tone: rssiTone(S.L.rssi + 16) },
           { label: 'Airtime per try', value: `${secs(S.L.air)} frame · ${secs(S.L.attempt)} with ACK` },
           { label: 'Delivered', value: `${pct(S.L.delivered)} · ${S.L.tries.toFixed(2)} tries`, tone: S.L.delivered > 0.999 ? 'ok' : S.L.delivered > 0.9 ? 'warn' : 'bad' },
           { label: 'Latency', value: secs(S.L.latencyS), tone: S.L.latencyS < 3e-3 ? 'ok' : 'warn' },

@@ -1,7 +1,7 @@
 // ESP32 GPIO pin: push-pull and open-drain drivers, internal pulls, drive strength, polling vs interrupts.
-import { Pull, pulledPin, rcTau } from './circuits'
-import { LOGIC_INPUTS, riseTime, thresholds } from './levels'
-import { Diode, diodeNode } from './semiconductors'
+import { Pull, pulledPin, rcTau } from '../circuits'
+import { LOGIC_INPUTS, riseTime, thresholds } from '../levels'
+import { Diode, diodeNode } from '../semiconductors'
 
 export const GPIO_VDD = 3.3
 /** ESP32 internal pull-up / pull-down resistors, typically ~45 kΩ. */

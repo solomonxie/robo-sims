@@ -57,14 +57,18 @@ export const mA = (a: number) => a * 1000
 export const secs = (s: number) => si(s, 's', 3)
 export const hertz = (f: number) => si(f, 'Hz', 3)
 export const hexByte = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
+/** Whole ms from 10 ms up, `digits` decimals below. */
+export const msText = (s: number, digits = 1) => `${+(s * 1000).toFixed(s < 0.01 ? digits : 0)} ms`
+export const mAText = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
+export const dbmText = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 export const pct = (f: number) => `${Math.round(f * 100)} %`
 export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 /** Minutes under an hour, else hours to `digits` decimals. */
 export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)
-/** 0 when |x| < eps, so readouts don't show −0 or float dust. */
 /** Battery-life style span: hours, then days, then years. */
 export const spanText = (h: number) => (h < 48 ? hoursText(h) : h < 24 * 365 ? `${Math.round(h / 24)} days` : `${+(h / 8766).toFixed(1)} years`)
 
+/** 0 when |x| < eps, so readouts don't show −0 or float dust. */
 export const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
 /** Binary sizes: 512 B, 20 KB, 1.25 MB. */
 export const bytesText = (b: number) => (b >= 1048576 ? `${+(b / 1048576).toFixed(3)} MB` : b >= 1024 ? `${+(b / 1024).toFixed(1)} KB` : `${Math.round(b)} B`)

@@ -12,7 +12,7 @@ import {
   servoStep,
   switchingLoss,
 } from './pwm'
-import { rcSteadyCycle } from './signals/filters'
+import { rcSteadyCycle } from '../signals/filters'
 
 describe('pwm', () => {
   it('trades LEDC resolution for frequency', () => {

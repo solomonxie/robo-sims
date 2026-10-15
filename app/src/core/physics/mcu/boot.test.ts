@@ -14,7 +14,7 @@ import {
   strapByte,
   uploadPlan,
 } from './boot'
-import { KB, MB } from './storage'
+import { KB, MB } from './memory'
 
 describe('ESP32 strapping pins', () => {
   it('prints the ROM boot byte for flash, download and GPIO12-high', () => {

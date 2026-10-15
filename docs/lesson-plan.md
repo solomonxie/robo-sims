@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `hoursText`, `spanText`, `bytesText`, …); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
+- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `msText`, `mAText`, `dbmText`, `hoursText`, `spanText`, `bytesText`, …) and `core/numbers.ts` (`binary`, `hex`); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -15,10 +15,10 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 `lessons/fx/` (import `'../fx'`; model in brackets):
 - `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`, `peakToPeak`.
-- `colors` — palette (`HEAT`, …), `glowMat`, `setGlow`, `potentialColor`.
-- `shapes` — `arrow`, `plusGeometry`, `glowBox`.
+- `colors` — palette (`HEAT`, `INK`, …), `glowMat`, `setGlow`, `potentialColor`.
+- `shapes` — `arrow`, `plusGeometry`, `glowBox`, `flatBox` (shadowless), `trayMat`.
 - `text` — `label`, `addLabel` (shadowless, at a point), `liveLabel` (changing text) [`core/strokeFont`].
-- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`stretchRod`.
+- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`shadowlessRod`/`stretchRod`.
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
@@ -27,15 +27,18 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot, `speaker`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
-- `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder) [`physics/signals/buses`].
+- `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder), `I2C_TEXT` [`physics/signals/buses`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
-- `mcu` — `codeBlock` (Arduino/ESP-IDF lines), `CODE_LEGEND`, `fetSymbol` (in-pin FET), `ledLoad`.
-- `net` — `phoneModel`, `routerModel`, `robotCar` (ESP32 on the flank), `ripples`, `arcAt`, `packetPool` (header + payload blocks in flight) [`physics/wireless`].
+- `mcu` — `codeBlock` (Arduino/ESP-IDF lines), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
+- `net` — `phoneModel`, `routerModel`, `robotCar` (ESP32 on the flank), `ripples`, `arcAt`, `packetPool` (header + payload blocks in flight) [`physics/mcu/wireless`].
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); `wireless`: Wi-Fi STA/AP hops + rates, HTTP vs WebSocket cost, BLE GATT read/notify, ESP-NOW airtime/retries; `sleep`: ESP32 power domains per mode, wake sources + boot cost, sensor-node duty cycle → battery years; `storage`: partition schemes, cache-miss time, stack frames + canary, first-fit heap/fragmentation, flash wear (LittleFS/NVS), power-cut outcome; `rtos`: tick scheduler sim on two cores (priorities, time slicing, queues, semaphore/mutex + inheritance), lesson scenes; `boot`: strapping pins, DTR/RTS auto-reset, esptool block upload, boot script, otadata select/rollback, OTA story; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` (flat files: dc, ac, circuits, semiconductors, … timing, levels) + subfolders:
+- `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
+- `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
+- `mcu/` (ESP32) — `gpio` pads/pulls/polling; `pwm` LEDC/ripple/servo; `adc` SAR/noise/attenuation; `dac` R-2R/tones/reconstruction; `timers` alarms/ISRs/millis; `uart` framing/links/NMEA; `i2c` addresses/pull-ups/MPU-6050; `spi` shift ring/MISO/TFT+SD; `can` link/arbitration/frames; `wireless` Wi-Fi/HTTP vs WS/BLE/ESP-NOW; `sleep` domains/wake/battery years; `memory` partitions/stack+heap/flash wear; `rtos` two-core tick scheduler; `boot` straps/esptool/OTA.
 
 ## Pacing
 
@@ -55,21 +58,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Wave 3 Digital, Power, Signals ✓ 24/24
 
 ### Wave 4 — Microcontrollers, Sensors, Software
-- Microcontrollers:
-  - [x] GPIO
-  - [x] PWM
-  - [x] ADC
-  - [x] DAC
-  - [x] Timers & interrupts
-  - [x] UART serial
-  - [x] I²C
-  - [x] SPI
-  - [x] CAN bus
-  - [x] Wi-Fi & Bluetooth
-  - [x] Power modes
-  - [x] Memory & storage
-  - [x] RTOS basics
-  - [x] Bootloader & flashing
+- Microcontrollers ✓ 14/14
 - Sensors:
   - [ ] Ultrasonic
   - [ ] Infrared

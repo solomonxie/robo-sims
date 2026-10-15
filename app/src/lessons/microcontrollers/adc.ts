@@ -29,6 +29,7 @@ import {
   HEAT,
   HIGH_V,
   LABEL,
+  PIN_COLOR,
   POWER,
   RING,
   acSource,
@@ -56,7 +57,6 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 const VDD = GPIO_VDD
 const PIN = 34
-const PIN_COLOR = '#5ad8e6'
 const BOARD: V3 = [-14, 5.5, 0]
 const VIEW = { center: [-1, -3.4, 0] as V3, radius: 80, polar: 1.47, azimuth: 0.06 }
 const mV = (v: number) => `${Math.round(v * 1000)} mV`

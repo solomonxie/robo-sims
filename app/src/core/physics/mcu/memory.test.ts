@@ -22,7 +22,7 @@ import {
   stackScript,
   stackUsed,
   wearLifeS,
-} from './storage'
+} from './memory'
 
 describe('ESP32 partition schemes', () => {
   it.each(['default', 'huge', 'minfs'] as const)('%s tiles 4 MB with 64 KB-aligned apps', (s) => {

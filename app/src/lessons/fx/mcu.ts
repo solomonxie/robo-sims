@@ -8,6 +8,8 @@ import { partLetter } from './parts'
 import { groundAt } from './symbols'
 import { liveLabel } from './text'
 
+export const PIN_COLOR = '#5ad8e6'
+export const IDLE = '#3a3e47'
 export const ARDUINO = '#9fe0a0'
 export const IDF = '#8ab8ff'
 export const CODE_LEGEND = { color: ARDUINO, label: 'Code: Arduino green, ESP-IDF blue', shape: 'dot' } as const

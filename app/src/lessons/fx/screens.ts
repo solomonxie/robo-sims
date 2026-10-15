@@ -1,7 +1,9 @@
 // Plot screens: oscilloscope (bare and benchtop), I–V plot, logic-analyser capture.
 import * as THREE from 'three/webgpu'
+import { hex } from '../../core/numbers'
+import { I2cEvent } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
-import { GREY, glowMat } from './colors'
+import { CLK_COLOR, DATA_COLOR, GREY, HIGH_V, POWER, glowMat } from './colors'
 import { segmentDisplay } from './displays'
 import { liveLabel, label } from './text'
 import { UP } from './util'
@@ -250,4 +252,14 @@ export function captureScreen(
       })
     },
   }
+}
+
+/** Decoder text + colour per I²C event, for `captureScreen`. */
+export const I2C_TEXT: Record<I2cEvent['kind'], (e: I2cEvent) => [string, string]> = {
+  start: () => ['S', POWER],
+  stop: () => ['P', POWER],
+  addr: (e) => [`${hex(e.value, 2)} ${e.read ? 'R' : 'W'}`, DATA_COLOR],
+  data: (e) => [hex(e.value, 2), CLK_COLOR],
+  ack: () => ['A', POWER],
+  nack: () => ['N', HIGH_V],
 }

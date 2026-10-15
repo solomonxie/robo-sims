@@ -29,7 +29,7 @@ import {
   phaseCharge,
   phaseTime,
 } from '../../core/physics'
-import { amps as ampText, pct, secs, si, spanText } from '../../core/units'
+import { amps as ampText, msText, pct, secs, si, spanText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -42,7 +42,6 @@ import {
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   cell18650,
   codeBlock,
   emptyGroup,
@@ -57,23 +56,19 @@ import {
   ripples,
   scope,
   setGlow,
+  shadowlessRod,
   stretchRod,
+  trayMat,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, pick } from '../types'
 
 const PERIPH = '#7fa8ff'
 const OFF = '#23262d'
-const ms = (s: number) => `${+(s * 1000).toFixed(s < 0.01 ? 1 : 0)} ms`
 const coulombs = (c: number) => si(c, 'C')
 const logU = (a: number) => Math.min(1, Math.max(0, (Math.log10(a) + 6) / 6))
 const ampColor = (a: number) => (a < 1e-4 ? POWER : a < 5e-3 ? RING : HEAT)
 const lifeText = (cell: CellId, a: number) => spanText(lifeYears(cell, a) * YEAR_H)
-const lit = (m: THREE.MeshStandardMaterial) => {
-  const o = mesh(UNIT_ROD, m)
-  o.castShadow = false
-  return o
-}
 
 /** Log current meter, 1 µA … 1 A. */
 function ampMeter(parent: THREE.Object3D, at: V3, w: number, caption: string) {
@@ -107,7 +102,7 @@ const LEVEL: Record<DomainState, number> = { on: 1, held: 0.35, off: 0 }
 function chipView(parent: THREE.Object3D, at: V3, scale = 1) {
   const g = add(parent, new THREE.Group(), at)
   g.scale.setScalar(scale)
-  box(g, [28, 17.4, 1], mat('#1b1d22', { rough: 0.7 }), [0.5, -0.3, -0.7])
+  box(g, [28, 17.4, 1], trayMat(), [0.5, -0.3, -0.7])
   box(g, [26, 15.4, 0.2], mat('#2b303a', { rough: 0.45, metal: 0.2 }), [0.5, -0.3, -0.15])
   const tin = mat('#b8bcc4', { metal: 0.4, rough: 0.35 })
   for (let k = 0; k < 12; k++) {
@@ -118,14 +113,14 @@ function chipView(parent: THREE.Object3D, at: V3, scale = 1) {
   }
   const frame = glowMat(POWER, 0.35)
   const fr: [number, number][] = [[2.8, 0.55], [11.6, 0.55], [11.6, -6.3], [2.8, -6.3]]
-  fr.forEach((a, i) => stretchRod(add(g, lit(frame)), [a[0], a[1], 0.15], [fr[(i + 1) % 4][0], fr[(i + 1) % 4][1], 0.15], 0.07))
+  fr.forEach((a, i) => stretchRod(add(g, shadowlessRod(frame)), [a[0], a[1], 0.15], [fr[(i + 1) % 4][0], fr[(i + 1) % 4][1], 0.15], 0.07))
   partLetter(g, 'RTC domain · stays powered', [7.2, -6.95, 0.2], 0.4, POWER)
   const antMat = glowMat(DATA_COLOR, 0)
   for (let k = 0; k < 4; k++) {
-    stretchRod(add(g, lit(antMat)), [15.2 + k * 0.5, 2.6, 0], [15.2 + k * 0.5, 4.6, 0], 0.08)
-    if (k < 3) stretchRod(add(g, lit(antMat)), [15.2 + k * 0.5, k % 2 ? 2.6 : 4.6, 0], [15.7 + k * 0.5, k % 2 ? 2.6 : 4.6, 0], 0.08)
+    stretchRod(add(g, shadowlessRod(antMat)), [15.2 + k * 0.5, 2.6, 0], [15.2 + k * 0.5, 4.6, 0], 0.08)
+    if (k < 3) stretchRod(add(g, shadowlessRod(antMat)), [15.2 + k * 0.5, k % 2 ? 2.6 : 4.6, 0], [15.7 + k * 0.5, k % 2 ? 2.6 : 4.6, 0], 0.08)
   }
-  stretchRod(add(g, lit(antMat)), [11.2, 3.6, 0.3], [15.2, 3.6, 0], 0.06)
+  stretchRod(add(g, shadowlessRod(antMat)), [11.2, 3.6, 0.3], [15.2, 3.6, 0], 0.06)
   const dark = mat('#1a1c21')
   const tint = new THREE.Color()
   const blocks = BLOCKS.map((b) => {
@@ -186,8 +181,8 @@ const KEPT: Record<PowerMode, string> = {
 const WAKE: Record<PowerMode, string> = {
   active: 'already awake',
   modem: 'instant',
-  light: `${ms(POWER_MODES.light.wakeS)}, resumes`,
-  deep: `${ms(POWER_MODES.deep.wakeS)} reboot`,
+  light: `${msText(POWER_MODES.light.wakeS)}, resumes`,
+  deep: `${msText(POWER_MODES.deep.wakeS)} reboot`,
 }
 const MODE_CODE: Record<PowerMode, string[]> = {
   active: ['WiFi.begin("home", "secret");', 'WiFi.setSleep(false);  // radio listens nonstop', 'setCpuFrequencyMhz(240);', '// connected and fast: ~120 mA'],
@@ -205,7 +200,7 @@ export const deepSleep: Lesson = {
     const a = POWER_MODES[mode].amps
     const how =
       mode === 'modem'
-        ? `${ampText(CPU_80_A)} CPU at 80 MHz + ${ampText(RADIO_RX_A)} radio × ${ms(BEACON_AWAKE_S)} every ${DTIM}rd beacon (${ms(BEACON_S * DTIM)}) = ${ampText(a)}`
+        ? `${ampText(CPU_80_A)} CPU at 80 MHz + ${ampText(RADIO_RX_A)} radio × ${msText(BEACON_AWAKE_S)} every ${DTIM}rd beacon (${msText(BEACON_S * DTIM)}) = ${ampText(a)}`
         : `${MODES[mode]}: ${ampText(a)}`
     return `${how} · 18650 (3000 mAh) lasts ${lifeText('li18650', a)} on the bare chip, ${lifeText('li18650', a + DEVKIT_EXTRA_A)} on a DevKit (+${ampText(DEVKIT_EXTRA_A)})${mode === 'modem' ? ` · beacons slowed ${MODEM_SLOW}×` : ''}`
   },
@@ -331,7 +326,7 @@ export const wakeSources: Lesson = {
   tagline: 'Timer, pin, touch or ULP, then a full reboot',
   formula: (p) => {
     const S = wakeSetup(p)
-    return `wake = reset: ${S.boot.map((b) => `${b.name} ${ms(b.s)}`).join(' + ')} = ${ms(S.bootS)} at ~40 mA = ${coulombs(S.bootC)} = ${Math.round(S.sleepMin)} min of sleep at ${ampText(S.sleepA)} · light sleep (0.8 mA, no reboot) is cheaper when waking more often than every ${secs(S.even)} · wake slowed ${WAKE_SLOW}×, sleep sped up`
+    return `wake = reset: ${S.boot.map((b) => `${b.name} ${msText(b.s)}`).join(' + ')} = ${msText(S.bootS)} at ~40 mA = ${coulombs(S.bootC)} = ${Math.round(S.sleepMin)} min of sleep at ${ampText(S.sleepA)} · light sleep (0.8 mA, no reboot) is cheaper when waking more often than every ${secs(S.even)} · wake slowed ${WAKE_SLOW}×, sleep sped up`
   },
   legend: [
     { color: POWER, label: 'RTC domain: watches for the wake', shape: 'dot' },
@@ -365,7 +360,7 @@ export const wakeSources: Lesson = {
     const wires = (g: THREE.Group, ys: [number, number][]) =>
       ys.map(([py, dy]) => {
         const m = glowMat(GREY, 0.2)
-        stretchRod(add(g, lit(m)), [bx + 1.3, py, 0], chip.edge(dy), 0.09)
+        stretchRod(add(g, shadowlessRod(m)), [bx + 1.3, py, 0], chip.edge(dy), 0.09)
         return m
       })
     const ext0Btn = pushButton(parts.ext0, [bx, 4, 0])
@@ -387,7 +382,7 @@ export const wakeSources: Lesson = {
     const phaseLabel = liveLabel(scene, [bx, -6.6, 0.3], { size: 0.55 })
     const meter = ampMeter(scene, [-22, -10, 0], 8, 'current')
     const bar = add(scene, new THREE.Group(), [BAR_X, -10, 0])
-    const head = add(scene, lit(glowMat(LABEL, 1)))
+    const head = add(scene, shadowlessRod(glowMat(LABEL, 1)))
     const code = codeBlock(scene, [-29.5, 10, 0], 0.34, 4)
     const s = { key: '', t: 0, boots: 1, counted: false }
     return {
@@ -405,7 +400,7 @@ export const wakeSources: Lesson = {
             const w = (b.s / BAR_SPAN_S) * BAR_W
             box(bar, [Math.max(0.05, w - 0.08), 0.9, 0.4], glowMat(i < 3 ? BOOT_COLORS[i] : RING, 0.6), [x + w / 2, 0, 0])
             partLetter(bar, i < 3 ? b.name : 'setup', [x + w / 2, 1.1 + (w < 3 ? (i % 2) * 0.8 : 0), 0], 0.36, LABEL)
-            partLetter(bar, ms(b.s), [x + w / 2, -1.2 - (w < 3 ? (i % 2) * 0.7 : 0), 0], 0.34, GREY)
+            partLetter(bar, msText(b.s), [x + w / 2, -1.2 - (w < 3 ? (i % 2) * 0.7 : 0), 0], 0.34, GREY)
             x += w
           })
         }
@@ -458,14 +453,14 @@ export const wakeSources: Lesson = {
         const shown = i === S.show.length - 1 ? S.bootS + (SENSOR_READ.s * into) / SETUP_SHOW : asleep ? 0 : phaseTime(S.boot.slice(0, i - 2)) + into / WAKE_SLOW
         head.visible = !asleep
         stretchRod(head, [BAR_X + (shown / BAR_SPAN_S) * BAR_W, -10.8, 0.4], [BAR_X + (shown / BAR_SPAN_S) * BAR_W, -9.2, 0.4], 0.09)
-        phaseLabel.set(asleep ? (i === 0 ? `deep sleep · ${ampText(S.sleepA)}` : 'wake event!') : i === S.show.length - 1 ? `setup() · boot #${s.boots}` : `${ph.name} · ${ms(ph.s / WAKE_SLOW)}`, asleep ? (i === 0 ? POWER : HIGH_V) : LABEL)
+        phaseLabel.set(asleep ? (i === 0 ? `deep sleep · ${ampText(S.sleepA)}` : 'wake event!') : i === S.show.length - 1 ? `setup() · boot #${s.boots}` : `${ph.name} · ${msText(ph.s / WAKE_SLOW)}`, asleep ? (i === 0 ? POWER : HIGH_V) : LABEL)
         code(['RTC_DATA_ATTR int boots = 0;  // RTC memory: kept', 'int plain = 0;  // SRAM: blank after every wake', SOURCE_CODE[S.src], 'boots++; esp_deep_sleep_start();  // never returns'])
       },
       readouts: (p) => {
         const S = wakeSetup(p)
         return [
           { label: 'Asleep', value: `${ampText(S.sleepA)} · ${ARMED[S.src]}`, tone: S.sleepA < 5e-5 ? 'ok' : 'warn' },
-          { label: 'Each wake', value: `${ms(S.bootS)} · ${coulombs(S.bootC)}` },
+          { label: 'Each wake', value: `${msText(S.bootS)} · ${coulombs(S.bootC)}` },
           { label: 'Equals', value: `${Math.round(S.sleepMin)} min of sleep`, tone: S.sleepMin > 30 ? 'warn' : undefined },
           { label: 'Light sleep wins', value: `waking < every ${secs(S.even)}` },
         ]
@@ -573,7 +568,7 @@ export const batteryBudget: Lesson = {
     const avgLine = plot.level(POWER)
     for (const [d, t] of [[1, '10 µA'], [3, '1 mA'], [5, '100 mA']] as [number, string][]) partLetter(scene, t, [plotAt[0] + PLOT_W / 2 + 0.8, plotAt[1] - PLOT_H / 2 + (d / 6) * PLOT_H, 0], 0.4, GREY, 'left')
     const brk = glowMat(GREY, 0.5)
-    stretchRod(add(scene, lit(brk)), [plotAt[0] - PLOT_W / 2 + AWAKE_U * PLOT_W, plotAt[1] - PLOT_H / 2, 0.2], [plotAt[0] - PLOT_W / 2 + AWAKE_U * PLOT_W, plotAt[1] + PLOT_H / 2, 0.2], 0.05)
+    stretchRod(add(scene, shadowlessRod(brk)), [plotAt[0] - PLOT_W / 2 + AWAKE_U * PLOT_W, plotAt[1] - PLOT_H / 2, 0.2], [plotAt[0] - PLOT_W / 2 + AWAKE_U * PLOT_W, plotAt[1] + PLOT_H / 2, 0.2], 0.05)
     const awakeTag = liveLabel(scene, [plotAt[0] - PLOT_W / 2 + (AWAKE_U / 2) * PLOT_W, plotAt[1] + PLOT_H / 2 + 0.9, 0], { size: 0.42 })
     const sleepTag = liveLabel(scene, [plotAt[0] - PLOT_W / 2 + ((1 + AWAKE_U) / 2) * PLOT_W, plotAt[1] + PLOT_H / 2 + 0.9, 0], { size: 0.42 })
     const avgTag = liveLabel(scene, [plotAt[0] + PLOT_W / 2 - 0.3, 0, 0.4], { size: 0.4, align: 'right' })

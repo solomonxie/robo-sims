@@ -1,5 +1,5 @@
 // SPI bus: full-duplex shift registers, shared MISO with one CS per device, throughput for displays and SD cards.
-import { Bit } from '../logic'
+import { Bit } from '../../logic'
 import { GPIO_VDD, driveOhms } from './gpio'
 
 /** Master and slave 8-bit shift registers after `k` clocks, MSB first: each MSB goes out, the other's comes in at the LSB. */
@@ -45,9 +45,8 @@ export const tftFrameBytes = (w = TFT.w, h = TFT.h, bpp = TFT.bpp, setup = TFT.s
 export const frameRate = (bytesPerSec: number, frameBytes: number) => bytesPerSec / frameBytes
 
 export const SD_BLOCK = 512
-/** SD cards in SPI mode: 400 kHz to initialise, then up to 25 MHz (default speed). */
+/** SD cards in SPI mode: up to 25 MHz (default speed) after a 400 kHz init. */
 export const SD_SPI_MAX = 25e6
-export const SD_INIT_HZ = 400e3
 /** Typical program time after one block (cards vary: 0.25–250 ms). */
 export const SD_BUSY_S = 1e-3
 /** CMD24 single-block write: 6 command + 2 R1 + token + 512 data + 2 CRC + data response bytes, then the card holds MISO low while it programs. */

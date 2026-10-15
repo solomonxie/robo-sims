@@ -17,7 +17,7 @@ import {
   timerAt,
   timerTickHz,
 } from '../../core/physics'
-import { hertz, pct, secs } from '../../core/units'
+import { hertz, msText, pct, secs } from '../../core/units'
 import { buildHcSr04 } from '../../models/modules'
 import { buildWheel } from '../../models/motion'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
@@ -49,7 +49,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const ms = (s: number) => `${+(s * 1000).toFixed(s < 0.01 ? 2 : 0)} ms`
 
 /** A dark block with a title above; `set(glow, colour)` lights its face. */
 function block(parent: THREE.Object3D, at: V3, [w, h]: [number, number], title: string) {
@@ -85,7 +84,7 @@ export const hardwareTimers: Lesson = {
   tagline: 'A counter that never gets distracted',
   formula: (p) => {
     const t = timerSetup(p)
-    return `80 MHz ÷ ${t.pre} = ${hertz(t.tick)} (one tick = ${secs(1 / t.tick)}) · alarm = ${ms(t.period)} × ${hertz(t.tick)} = ${t.alarm.toLocaleString('en-US')} ticks → ISR every ${secs(t.actual)} · loop(): delay(${ms(t.period)}) + 0–${ms(t.work)} of work per pass`
+    return `80 MHz ÷ ${t.pre} = ${hertz(t.tick)} (one tick = ${secs(1 / t.tick)}) · alarm = ${msText(t.period, 2)} × ${hertz(t.tick)} = ${t.alarm.toLocaleString('en-US')} ticks → ISR every ${secs(t.actual)} · loop(): delay(${msText(t.period, 2)}) + 0–${msText(t.work, 2)} of work per pass`
   },
   legend: [
     { color: HIGH_V, label: 'Flash = alarm match, ISR runs', shape: 'dot' },
@@ -257,9 +256,9 @@ export const isrRules: Lesson = {
       share === 'plain'
         ? 'count not volatile → loop() reads a stale register copy'
         : share === 'volatile'
-          ? `copy … ${ms(GAP_S)} print … clear → counts in that gap are wiped`
+          ? `copy … ${msText(GAP_S, 2)} print … clear → counts in that gap are wiped`
           : 'copy + clear with interrupts held off: nothing wiped'
-    return `ISR ${secs(b.s + ISR_LATENCY_S)} vs an edge every ${ms(EDGE_S)} → ${pct(r.load)} of the CPU in ISRs, ${pct(r.lost / r.edges.length)} of edges lost · ${tail}`
+    return `ISR ${secs(b.s + ISR_LATENCY_S)} vs an edge every ${msText(EDGE_S, 2)} → ${pct(r.load)} of the CPU in ISRs, ${pct(r.lost / r.edges.length)} of edges lost · ${tail}`
   },
   legend: [
     { color: HIGH_V, label: 'Red = ISR running (loop() frozen)', shape: 'dot' },
@@ -407,8 +406,8 @@ export const millisWithoutDelay: Lesson = {
   formula: (p) => {
     const T = readPeriod(p)
     return p.how === 'millis'
-      ? `if (millis() − last ≥ interval): each task runs when due, loop() never waits · sensor every ${ms(T)} → at ${SPEED} cm/s at most ${+(SPEED * T).toFixed(1)} cm past the ${STOP_CM} cm line · unsigned maths survives the 49.7-day millis() rollover`
-      : `delay() blocks: one pass = 2 × ${ms(T / 2)} → sensor and button read every ${ms(T)} · at ${SPEED} cm/s the robot moves up to ${+(SPEED * T).toFixed(0)} cm between reads (stop line ${STOP_CM} cm)`
+      ? `if (millis() − last ≥ interval): each task runs when due, loop() never waits · sensor every ${msText(T, 2)} → at ${SPEED} cm/s at most ${+(SPEED * T).toFixed(1)} cm past the ${STOP_CM} cm line · unsigned maths survives the 49.7-day millis() rollover`
+      : `delay() blocks: one pass = 2 × ${msText(T / 2, 2)} → sensor and button read every ${msText(T, 2)} · at ${SPEED} cm/s the robot moves up to ${+(SPEED * T).toFixed(0)} cm between reads (stop line ${STOP_CM} cm)`
   },
   legend: [
     { color: RING, label: 'Flash = ultrasonic ping (sensor read)', shape: 'dot' },
@@ -517,7 +516,7 @@ export const millisWithoutDelay: Lesson = {
         caught[0].set(String(s.presses % 1000))
         caught[1].set(String(s.seen % 1000))
         const blocked = p.how !== 'millis'
-        passTag.set(blocked ? `pass: ${ms(T)}` : 'pass: ≈ 1 ms', blocked ? HEAT : POWER)
+        passTag.set(blocked ? `pass: ${msText(T, 2)}` : 'pass: ≈ 1 ms', blocked ? HEAT : POWER)
         code(MD_CODE[pick(MODES, p.how, 'delay')](Math.round(half * 1000)))
         const btnRead = blocked ? Math.floor(s.t / T) * T : s.t
         scope.frame(dt, [+ledOn, +(s.ping > 0.5), +down, +(blocked ? buttonDown(btnRead) : down)])
@@ -527,7 +526,7 @@ export const millisWithoutDelay: Lesson = {
         const run = runAt(p, s.run)
         const done = s.rt >= run.stopT
         return [
-          { label: 'Sensor every', value: ms(T), tone: T > 0.1 ? 'bad' : 'ok' },
+          { label: 'Sensor every', value: msText(T, 2), tone: T > 0.1 ? 'bad' : 'ok' },
           { label: 'Last stop', value: !done ? 'driving' : run.crashed ? 'CRASH' : `${run.stopD.toFixed(0)} cm`, tone: !done ? undefined : run.crashed ? 'bad' : 'ok' },
           { label: 'Presses seen', value: `${s.seen} / ${s.presses}`, tone: s.seen < s.presses ? 'bad' : 'ok' },
         ]

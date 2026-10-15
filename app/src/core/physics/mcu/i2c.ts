@@ -1,7 +1,7 @@
 // I²C bus: addresses and select pins, open-drain pull-ups vs bus capacitance, MPU-6050 register reads, bus scans.
-import { Vec3 } from '../fields'
+import { Vec3 } from '../../fields'
 import { GPIO_VDD } from './gpio'
-import { LOGIC_INPUTS, thresholds } from './levels'
+import { LOGIC_INPUTS, thresholds } from '../levels'
 
 export interface I2cChip {
   name: string
@@ -59,7 +59,6 @@ export const I2C_MODES = {
   standard: { hz: 100e3, trMax: 1000e-9 },
   fast: { hz: 400e3, trMax: 300e-9 },
 } satisfies Record<string, I2cMode>
-export const I2C_CB_MAX = 400e-12
 /** Spec sink current at VOL = 0.4 V. */
 export const I2C_SINK_A = 3e-3
 export const I2C_VOL = 0.4

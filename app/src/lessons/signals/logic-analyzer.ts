@@ -1,6 +1,5 @@
 import * as THREE from 'three/webgpu'
 import {
-  I2cEvent,
   SpiMode,
   catchOdds,
   findPattern,
@@ -18,6 +17,7 @@ import {
 } from '../../core/physics'
 import { Bit, bit } from '../../core/logic'
 import { hertz, hexByte, pct, secs, si } from '../../core/units'
+import { binary, hex } from '../../core/numbers'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -28,6 +28,7 @@ import {
   GREY,
   HEAT,
   HIGH_V,
+  I2C_TEXT,
   LABEL,
   POWER,
   RING,
@@ -42,7 +43,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const hx = (b: number) => b.toString(16).toUpperCase().padStart(2, '0')
 
 const SX = 5
 const SY = 0.5
@@ -283,8 +283,7 @@ const PRE = 50
 const N2 = Math.round(W2 * FS2)
 const TRIGS2 = { edge: 'Edge: D0 rises', pattern: 'Pattern' }
 const CARES = { all: 'All 4 bits', x3: 'D3 = X' }
-const binary = (v: number) => v.toString(2).padStart(4, '0')
-const patternText = (v: number, x3: boolean) => (x3 ? 'X' : binary(v)[0]) + binary(v).slice(1)
+const patternText = (v: number, x3: boolean) => (x3 ? 'X' : binary(v, 4)[0]) + binary(v, 4).slice(1)
 const PT_ROWS = [0, 1, 2, 3].map((k) => ({ label: `D${k}`, color: [CLK_COLOR, HEAT, DATA_COLOR, FORCE][k] }))
 const trig2Of = (p: Params) => {
   const mode = pick(TRIGS2, p.trig, 'pattern')
@@ -327,7 +326,7 @@ export const patternTrigger: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'trig', options: Object.entries(TRIGS2).map(([value, l]) => ({ value, label: l })), initial: 'pattern' },
-    { kind: 'slider', key: 'pattern', label: 'Pattern D3…D0', min: 0, max: 15, initial: 11, step: 1, format: (v) => `${binary(Math.round(v))} = ${Math.round(v)}` },
+    { kind: 'slider', key: 'pattern', label: 'Pattern D3…D0', min: 0, max: 15, initial: 11, step: 1, format: (v) => `${binary(Math.round(v), 4)} = ${Math.round(v)}` },
     { kind: 'choice', key: 'care', options: Object.entries(CARES).map(([value, l]) => ({ value, label: l })), initial: 'all' },
   ],
   build(): Stage {
@@ -392,7 +391,7 @@ export const patternTrigger: Lesson = {
         return [
           s.mode === 'edge'
             ? { label: 'Fires on', value: 'any state · moves', tone: 'warn' }
-            : { label: 'Fires on', value: matches.map((w) => `${binary(w)}`).join(' or '), tone: 'ok' },
+            : { label: 'Fires on', value: matches.map((w) => `${binary(w, 4)}`).join(' or '), tone: 'ok' },
           s.mode === 'edge' ? { label: 'D0 rises', value: `every ${secs(2 * STEP)}` } : { label: 'States that match', value: `${matches.length} of 16` },
           { label: 'Pre-trigger', value: `${PRE} µs kept` },
           { label: 'Counter', value: `1 step / ${secs(STEP)}` },
@@ -421,14 +420,6 @@ const solveI2c = (p: Params) => {
   const scl = sampleLine(lines.scl, FS3, count, -pad)
   const sda = sampleLine(lines.sda, FS3, count, -pad)
   return { addr, value, frame, scl, sda, count, total, ev: i2cDecode(scl, sda) }
-}
-const I2C_TEXT: Record<I2cEvent['kind'], (e: I2cEvent) => [string, string]> = {
-  start: () => ['S', POWER],
-  stop: () => ['P', POWER],
-  addr: (e) => [`${hx(e.value)} ${e.read ? 'R' : 'W'}`, DATA_COLOR],
-  data: (e) => [hx(e.value), CLK_COLOR],
-  ack: () => ['A', POWER],
-  nack: () => ['N', HIGH_V],
 }
 
 export const captureI2c: Lesson = {
@@ -504,7 +495,7 @@ export const captureI2c: Lesson = {
       },
       readouts: (p) => {
         const s = solveI2c(p)
-        const data = s.ev.filter((e) => e.kind === 'data').map((e) => hx(e.value))
+        const data = s.ev.filter((e) => e.kind === 'data').map((e) => hex(e.value, 2))
         return [
           { label: 'Address', value: `${hexByte(s.addr)} write · ${s.frame.ack ? 'ACK' : 'NACK'}`, tone: s.frame.ack ? 'ok' : 'bad' },
           { label: 'Decoded data', value: data.length ? data.join(' ') : 'none · stopped', tone: data.length ? 'ok' : 'bad' },
@@ -604,7 +595,7 @@ export const captureSpi: Lesson = {
             const i0 = s.dec.at[b * 8]
             const i1 = s.dec.at[b * 8 + 7]
             const half = (i1 - i0) / 14
-            return { u0: uOf(i0 - half), u1: uOf(i1 + half), text: `OUT ${hx(m)}  IN ${hx(s.dec.miso[b])}`, color: s.ok ? POWER : HIGH_V }
+            return { u0: uOf(i0 - half), u1: uOf(i1 + half), text: `OUT ${hex(m, 2)}  IN ${hex(s.dec.miso[b], 2)}`, color: s.ok ? POWER : HIGH_V }
           })
           .filter((g) => g.u1 <= c.prog)
         screen.annotate(segs)

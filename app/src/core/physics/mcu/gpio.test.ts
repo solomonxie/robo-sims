@@ -13,7 +13,7 @@ import {
   pullPad,
   pullRiseTime,
 } from './gpio'
-import { LEDS } from './semiconductors'
+import { LEDS } from '../semiconductors'
 
 describe('gpio', () => {
   it('switches the push-pull pair by bit and tri-states inputs', () => {

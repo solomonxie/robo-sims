@@ -1,9 +1,9 @@
 import * as THREE from 'three/webgpu'
 import {
+  GPIO_VDD,
   I2C_CHIPS,
   I2C_MODES,
   I2C_VOL,
-  I2cEvent,
   MPU6050,
   SCAN_FIRST,
   SCAN_LAST,
@@ -28,8 +28,8 @@ import {
   tiltAccel,
 } from '../../core/physics'
 import { Bit } from '../../core/logic'
-import { GPIO_VDD } from '../../core/physics/gpio'
 import { hexByte, ohms, secs, volts } from '../../core/units'
+import { hex } from '../../core/numbers'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -39,6 +39,7 @@ import {
   GREY,
   HEAT,
   HIGH_V,
+  I2C_TEXT,
   LABEL,
   LOW_V,
   POWER,
@@ -48,8 +49,8 @@ import {
   ceramicAlong,
   codeBlock,
   esp32Board,
-  frac,
   fetSymbol,
+  frac,
   glowMat,
   groundAt,
   i2cBreakout,
@@ -67,15 +68,6 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 type Steps = { scl: Bit; sda: Bit }[]
 const PER_BIT = 20
-const hx = (b: number) => b.toString(16).toUpperCase().padStart(2, '0')
-const I2C_TEXT: Record<I2cEvent['kind'], (e: I2cEvent) => [string, string]> = {
-  start: () => ['S', POWER],
-  stop: () => ['P', POWER],
-  addr: (e) => [`${hx(e.value)} ${e.read ? 'R' : 'W'}`, DATA_COLOR],
-  data: (e) => [hx(e.value), CLK_COLOR],
-  ack: () => ['A', POWER],
-  nack: () => ['N', HIGH_V],
-}
 
 /** Samples a step list at `perBit` samples per SCL bit, with a bit of idle either side, and decodes it. */
 function sampleSteps(steps: Steps, hz: number) {
@@ -648,7 +640,7 @@ export const readingAnImu: Lesson = {
           const got = R.arrive[k] <= head
           c.m.emissive.set(got ? CLK_COLOR : '#000000')
           c.m.emissiveIntensity = got ? 0.25 : 0
-          c.d.set(got ? hx(R.bytes[k]) : '', LABEL)
+          c.d.set(got ? hex(R.bytes[k], 2) : '', LABEL)
         })
         const P = R.parsed
         const txt = [
@@ -673,7 +665,7 @@ export const readingAnImu: Lesson = {
         const R = imuReadout(p)
         const ax = R.parsed.raw[0]
         return [
-          { label: 'AX bytes', value: `${hx(R.bytes[0])} ${hx(R.bytes[1])} = ${signed(ax, 0)}` },
+          { label: 'AX bytes', value: `${hex(R.bytes[0], 2)} ${hex(R.bytes[1], 2)} = ${signed(ax, 0)}` },
           { label: 'Pitch from accel', value: deg(accelPitch(R.parsed.accel)), tone: Math.abs(accelPitch(R.parsed.accel) - R.pitch) < 1e-3 ? 'ok' : 'warn' },
           { label: 'Gyro Y', value: `${signed(R.parsed.gyro[1], 1)} °/s` },
           { label: 'Burst read', value: secs(R.s.duration) },
@@ -789,7 +781,7 @@ export const busScan: Lesson = {
           const hit = S.present.includes(a)
           c.m.emissive.set(done && hit ? POWER : '#000000')
           c.m.emissiveIntensity = done && hit ? 0.4 : 0
-          c.d.set(res ? '' : done || a === cur ? (hit && (done || phase > 0.5) ? hx(a) : '--') : '', hit && (done || phase > 0.5) ? LABEL : GREY)
+          c.d.set(res ? '' : done || a === cur ? (hit && (done || phase > 0.5) ? hex(a, 2) : '--') : '', hit && (done || phase > 0.5) ? LABEL : GREY)
         })
         cursor.visible = scanning
         if (scanning) cursor.position.set(gx + (cur % 16) * cw, gy - Math.floor(cur / 16) * ch, -0.15)

@@ -1,5 +1,5 @@
 // PWM on an ESP32: LEDC timer resolution vs frequency, duty, averaging by an RC or a motor, switching loss, hobby-servo pulses.
-import { ledcBits } from './signals/scope'
+import { ledcBits } from '../signals/scope'
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 const frac = (x: number) => x - Math.floor(x)

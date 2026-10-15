@@ -1,5 +1,5 @@
 import { i2cByteRate } from './i2c'
-import { spiDecode, spiLines, spiSamplesRising, sampleLine } from './signals/buses'
+import { spiDecode, spiLines, spiSamplesRising, sampleLine } from '../signals/buses'
 import { MISO_DRIVE_OHMS, SD_SPI_MAX, frameRate, misoByte, misoLine, misoRead, sdBlockWrite, spiByteRate, spiShift, tftFrameBytes } from './spi'
 
 describe('spiShift', () => {

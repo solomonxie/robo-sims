@@ -30,6 +30,8 @@ export function potentialColor(f: number, out = new THREE.Color()): THREE.Color 
 }
 export const CLK_COLOR = '#5ad8e6'
 export const DATA_COLOR = '#b48cff'
+/** Dark text on lit plates. */
+export const INK = '#14161b'
 
 export function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number) {
   m.color.set(color)

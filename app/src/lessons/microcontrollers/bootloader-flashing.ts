@@ -17,7 +17,7 @@ import {
   uploadPlan,
 } from '../../core/physics'
 import { bytesText, hexByte, secs } from '../../core/units'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { V3, add, box } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CLK_COLOR,
@@ -27,13 +27,15 @@ import {
   GREY,
   HEAT,
   HIGH_V,
+  IDLE,
+  INK,
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   arcAt,
   codeBlock,
   emptyGroup,
+  flatBox,
   glide,
   glowMat,
   icPackage,
@@ -46,26 +48,19 @@ import {
   robotCar,
   routerModel,
   setGlow,
+  shadowlessRod,
   stretchRod,
+  trayMat,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const INK = '#14161b'
-const IDLE = '#3a3e47'
 const HOLD_S = 2.5
 const hex8 = (b: number) => `0x${b.toString(16).padStart(8, '0')}`
-const flat = (parent: THREE.Object3D, size: V3, m: THREE.Material, at: V3) => {
-  const o = add(parent, mesh(new THREE.BoxGeometry(...size), m), at)
-  o.castShadow = false
-  return o
-}
 const rodTo = (parent: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.08) => {
-  const o = add(parent, mesh(UNIT_ROD, m))
-  o.castShadow = false
+  const o = add(parent, shadowlessRod(m))
   stretchRod(o, a, b, r)
   return o
 }
-const tray = () => mat('#1b1d22', { rough: 0.7 })
 
 /** On-screen seconds per phase: short ones slowed to be seen, long ones (uploads, downloads) sped up. */
 const showS = (s: number) => (s < 1 ? 0.9 + 2.5 * s : Math.min(5, 1.6 + Math.log2(s)))
@@ -94,9 +89,9 @@ function phaseClock() {
 
 /** Glowing tile with a caption; `set(dt, on, color, text)`. */
 function tile(parent: THREE.Object3D, at: V3, w: number, h: number, title: string) {
-  box(parent, [w + 0.4, h + 0.4, 0.4], tray(), [at[0], at[1], -0.45])
+  box(parent, [w + 0.4, h + 0.4, 0.4], trayMat(), [at[0], at[1], -0.45])
   const m = glowMat(IDLE, 0.2)
-  flat(parent, [w, h, 0.3], m, at)
+  flatBox(parent, [w, h, 0.3], m, at)
   const head = liveLabel(parent, [at[0], at[1] + (h > 1.8 ? 0.35 : 0), 0.3], { size: 0.42 })
   const sub = liveLabel(parent, [at[0], at[1] - 0.45, 0.3], { size: 0.3 })
   let k = 0.2
@@ -196,7 +191,7 @@ export const bootModes: Lesson = {
     partLetter(scene, 'TX RX', [-19.1, pinY.tx + 0.45, 0], 0.3, POWER, 'left')
     rodTo(scene, [-19.3, pinY.dtr, 0], [-15.2, pinY.dtr, 0], lineMat.dtr)
     rodTo(scene, [-19.3, pinY.rts, 0], [-15.2, pinY.rts, 0], lineMat.rts)
-    box(scene, [3.6, 4.6, 0.4], tray(), [-13.4, 4.9, -0.45])
+    box(scene, [3.6, 4.6, 0.4], trayMat(), [-13.4, 4.9, -0.45])
     partLetter(scene, 'auto-reset', [-13.4, 7.8, 0], 0.32, GREY)
     const q1 = tile(scene, [-13.4, 6.1, 0], 2.6, 1.3, 'Q1')
     const q2 = tile(scene, [-13.4, 3.7, 0], 2.6, 1.3, 'Q2')
@@ -222,7 +217,7 @@ export const bootModes: Lesson = {
     const bits = ['0', '2', '12'].map((name, k) => {
       const m = glowMat(GREY, 0.2)
       const x = chip.position.x - 1.5 + k * 1.5
-      flat(scene, [1.2, 1.1, 0.2], m, [x, 4.3, 0.65])
+      flatBox(scene, [1.2, 1.1, 0.2], m, [x, 4.3, 0.65])
       partLetter(scene, name, [x, 3.35, 0.7], 0.22, GREY)
       return { m, t: liveLabel(scene, [x, 4.3, 0.8], { size: 0.36 }) }
     })
@@ -240,10 +235,10 @@ export const bootModes: Lesson = {
     rodTo(scene, [8.2, CHAIN_Y - 1.3, 0], [8.2, 4, 0], dlArrow)
     rodTo(scene, [8.2, 4, 0], [8, 4, 0], dlArrow)
     const fw = FLASH.x1 - FLASH.x0
-    box(scene, [fw + 0.4, 1.8, 0.4], tray(), [FLASH.x0 + fw / 2, FLASH.y, -0.45])
+    box(scene, [fw + 0.4, 1.8, 0.4], trayMat(), [FLASH.x0 + fw / 2, FLASH.y, -0.45])
     const seg = (x0: number, x1: number, color: string, name: string, addr: string) => {
       const m = glowMat(color, 0.25)
-      flat(scene, [x1 - x0 - 0.15, 1.4, 0.2], m, [(x0 + x1) / 2, FLASH.y, -0.1])
+      flatBox(scene, [x1 - x0 - 0.15, 1.4, 0.2], m, [(x0 + x1) / 2, FLASH.y, -0.1])
       partLetter(scene, name, [(x0 + x1) / 2, FLASH.y + 1.35, 0], 0.3, LABEL)
       partLetter(scene, addr, [x0 + 0.1, FLASH.y - 1.3, 0], 0.26, GREY, 'left')
       return m
@@ -253,12 +248,12 @@ export const bootModes: Lesson = {
     const appX0 = FLASH.x0 + 5.2
     const segApp = seg(appX0, FLASH.x1, CLK_COLOR, 'app0 (not to scale)', '0x10000')
     const fillMat = glowMat(POWER, 0.9)
-    const fill = flat(scene, [1, 1.1, 0.3], fillMat, [appX0, FLASH.y, 0.05])
+    const fill = flatBox(scene, [1, 1.1, 0.3], fillMat, [appX0, FLASH.y, 0.05])
     const fillText = liveLabel(scene, [appX0 + (FLASH.x1 - appX0) / 2, FLASH.y, 0.35], { size: 0.34 })
     // Traces.
     const rowY = (k: number) => TR.y - k * (TR.h + TR.gap)
     const nRows = ROWS.length + 1
-    box(scene, [TR.x1 - TR.x0 + 0.6, nRows * (TR.h + TR.gap) + 0.2, 0.4], tray(), [(TR.x0 + TR.x1) / 2, rowY((nRows - 1) / 2), -0.45])
+    box(scene, [TR.x1 - TR.x0 + 0.6, nRows * (TR.h + TR.gap) + 0.2, 0.4], trayMat(), [(TR.x0 + TR.x1) / 2, rowY((nRows - 1) / 2), -0.45])
     ROWS.forEach((r, k) => partLetter(scene, r.name, [TR.x0 - 0.6, rowY(k), 0], 0.36, r.color, 'right'))
     partLetter(scene, 'UART0', [TR.x0 - 0.6, rowY(ROWS.length), 0], 0.36, POWER, 'right')
     const g = add(scene, new THREE.Group())
@@ -287,14 +282,14 @@ export const bootModes: Lesson = {
             ph.forEach((x, i) => {
               const v = r.v(x)
               const y = rowY(k) + (v - 0.5) * TR.h * 0.8
-              segs.push({ x0: xs[i], x1: xe(i), o: flat(g, [1, 0.14, 0.15], m, [0, y, 0]) })
-              if (i > 0 && r.v(ph[i - 1]) !== v) segs.push({ x0: xs[i], x1: xs[i] + 0.12, o: flat(g, [1, TR.h * 0.8, 0.15], m, [0, rowY(k), 0]) })
+              segs.push({ x0: xs[i], x1: xe(i), o: flatBox(g, [1, 0.14, 0.15], m, [0, y, 0]) })
+              if (i > 0 && r.v(ph[i - 1]) !== v) segs.push({ x0: xs[i], x1: xs[i] + 0.12, o: flatBox(g, [1, TR.h * 0.8, 0.15], m, [0, rowY(k), 0]) })
             })
           })
           ph.forEach((x, i) => {
             const w = xe(i) - xs[i]
             const color = x.stage === 'error' ? HIGH_V : x.uart ? POWER : IDLE
-            const o = flat(g, [1, TR.h * 0.8, 0.2], glowMat(color, x.uart ? 0.7 : 0.25), [0, rowY(ROWS.length), 0])
+            const o = flatBox(g, [1, TR.h * 0.8, 0.2], glowMat(color, x.uart ? 0.7 : 0.25), [0, rowY(ROWS.length), 0])
             const label = STAGE_TEXT[x.stage]
             const text = w > label.length * 0.3 + 0.2 ? partLetter(g, label, [xs[i] + w / 2, rowY(ROWS.length), 0.3], 0.3, x.uart ? INK : GREY) : undefined
             segs.push({ x0: xs[i], x1: xe(i), o, text })
@@ -492,33 +487,33 @@ export const otaUpdates: Lesson = {
     const packets = packetPool(scene, 8, 0.5)
     // Flash map: small partitions, two app slots, otadata sectors.
     const smalls: [string, string][] = [['boot', HEAT], ['table', RING], ['nvs', POWER]]
-    box(scene, [7.2 + 2 * SLOT_W, 3, 0.4], tray(), [MAP.x0 + 3.5 + SLOT_W, MAP.y, -0.45])
+    box(scene, [7.2 + 2 * SLOT_W, 3, 0.4], trayMat(), [MAP.x0 + 3.5 + SLOT_W, MAP.y, -0.45])
     smalls.forEach(([name, color], k) => {
       const x = MAP.x0 + 0.8 + k * 1.6
-      flat(scene, [1.4, 2.4, 0.2], glowMat(color, 0.3), [x, MAP.y, -0.1])
+      flatBox(scene, [1.4, 2.4, 0.2], glowMat(color, 0.3), [x, MAP.y, -0.1])
       partLetter(scene, name, [x, MAP.y + 1.75, 0], 0.26, GREY)
     })
     const otaMats = [0, 1].map((k) => {
       const m = glowMat(GREY, 0.3)
-      flat(scene, [0.7, 2.4, 0.2], m, [MAP.x0 + 5.4 + k * 0.8, MAP.y, -0.1])
+      flatBox(scene, [0.7, 2.4, 0.2], m, [MAP.x0 + 5.4 + k * 0.8, MAP.y, -0.1])
       return m
     })
     partLetter(scene, 'otadata', [MAP.x0 + 5.8, MAP.y + 1.75, 0], 0.26, FORCE)
     const slots = [0, 1].map((k) => {
       const x = MAP.x0 + 6.6 + k * (SLOT_W + 0.2) + SLOT_W / 2
       const m = glowMat(CLK_COLOR, 0.2)
-      flat(scene, [SLOT_W, 2.4, 0.2], m, [x, MAP.y, -0.1])
+      flatBox(scene, [SLOT_W, 2.4, 0.2], m, [x, MAP.y, -0.1])
       partLetter(scene, `app${k}`, [x, MAP.y + 1.75, 0], 0.32, LABEL)
       const fm = glowMat(DATA_COLOR, 0.8)
-      const fill = flat(scene, [1, 1.6, 0.25], fm, [x, MAP.y, 0.05])
+      const fill = flatBox(scene, [1, 1.6, 0.25], fm, [x, MAP.y, 0.05])
       return { x, m, fm, fill, text: liveLabel(scene, [x, MAP.y, 0.4], { size: 0.38 }), run: liveLabel(scene, [x, MAP.y - 1.9, 0.3], { size: 0.34 }) }
     })
     // otadata zoom: the two sectors.
     const secs2 = [0, 1].map((k) => {
       const at: V3 = [MAP.x0 + 3.2 + k * 7, 1.6, 0]
-      box(scene, [6.4, 2.6, 0.4], tray(), [at[0], at[1], -0.45])
+      box(scene, [6.4, 2.6, 0.4], trayMat(), [at[0], at[1], -0.45])
       const m = glowMat(GREY, 0.2)
-      flat(scene, [6, 2.2, 0.2], m, at)
+      flatBox(scene, [6, 2.2, 0.2], m, at)
       partLetter(scene, `otadata[${k}]`, [at[0], at[1] + 1.75, 0], 0.3, FORCE)
       return { m, t: liveLabel(scene, [at[0], at[1] + 0.35, 0.3], { size: 0.38 }), s: liveLabel(scene, [at[0], at[1] - 0.45, 0.3], { size: 0.32 }) }
     })

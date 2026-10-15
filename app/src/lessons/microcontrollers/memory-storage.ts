@@ -40,7 +40,7 @@ import {
   wearSpread,
 } from '../../core/physics'
 import { bytesText, pct, secs, spanText } from '../../core/units'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { V3, add, box, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CLK_COLOR,
@@ -53,7 +53,6 @@ import {
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   codeBlock,
   emptyGroup,
   glide,
@@ -62,7 +61,9 @@ import {
   partLetter,
   path,
   setGlow,
+  shadowlessRod,
   stretchRod,
+  trayMat,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
@@ -70,12 +71,7 @@ const DARK = '#23262d'
 const FILL = '#b5f6ff'
 const hex = (b: number) => `0x${b.toString(16).toUpperCase()}`
 const ns = (s: number) => (s < 1e-6 ? `${+(s * 1e9).toFixed(1)} ns` : secs(s))
-const lit = (m: THREE.Material) => {
-  const o = mesh(UNIT_ROD, m)
-  o.castShadow = false
-  return o
-}
-const rod = (g: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.06) => stretchRod(add(g, lit(m)), a, b, r)
+const rod = (g: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.06) => stretchRod(add(g, shadowlessRod(m)), a, b, r)
 
 /** Unit box resized each frame: `set(x0, x1, y, h)`; zero width hides it. */
 function slab(parent: THREE.Object3D, m: THREE.Material, z = 0, depth = 0.4) {
@@ -191,8 +187,8 @@ export const flashLayout: Lesson = {
     const scene = createStage({ span: 36 })
     const sx = (b: number) => ST.x + (b / FLASH_BYTES) * ST.w
     const zx = (b: number) => ZM.x + (b / ZM.bytes) * ZM.w
-    box(scene, [ST.w + 0.6, ST.h + 0.6, 0.5], mat('#1b1d22', { rough: 0.7 }), [ST.x + ST.w / 2, ST.y, -0.5])
-    box(scene, [ZM.w + 0.6, ZM.h + 0.6, 0.5], mat('#1b1d22', { rough: 0.7 }), [ZM.x + ZM.w / 2, ZM.y, -0.5])
+    box(scene, [ST.w + 0.6, ST.h + 0.6, 0.5], trayMat(), [ST.x + ST.w / 2, ST.y, -0.5])
+    box(scene, [ZM.w + 0.6, ZM.h + 0.6, 0.5], trayMat(), [ZM.x + ZM.w / 2, ZM.y, -0.5])
     partLetter(scene, 'SPI flash · 4 MB · to scale', [ST.x, ST.y + 3.1, 0], 0.5, LABEL, 'left')
     partLetter(scene, 'first 64 KB, zoomed', [ZM.x, ZM.y - 3.6, 0], 0.42, GREY, 'left')
     const zoomMat = glowMat(GREY, 0.3)
@@ -201,7 +197,7 @@ export const flashLayout: Lesson = {
     const ramMats = {} as Record<string, THREE.MeshStandardMaterial>
     for (const [k, [x0, x1, color, name]] of Object.entries(RAM_BOX)) {
       if (k === 'flash') continue
-      box(scene, [x1 - x0 + 0.3, 2.9, 0.5], mat('#1b1d22', { rough: 0.7 }), [(x0 + x1) / 2, RAM_Y, -0.5])
+      box(scene, [x1 - x0 + 0.3, 2.9, 0.5], trayMat(), [(x0 + x1) / 2, RAM_Y, -0.5])
       ramMats[k] = glowMat(color, 0.15)
       const o = add(scene, mesh(new THREE.BoxGeometry(x1 - x0, 2.5, 0.3), ramMats[k]), [(x0 + x1) / 2, RAM_Y, 0])
       o.castShadow = false
@@ -389,7 +385,7 @@ export const stackAndHeap: Lesson = {
     const scene = createStage({ span: 36 })
     const kx = (b: number) => SK.x1 - (b / STACK_BYTES) * (SK.x1 - SK.x0)
     const hx = (b: number) => HP.x0 + (b / HEAP_BYTES) * (HP.x1 - HP.x0)
-    const tray = mat('#1b1d22', { rough: 0.7 })
+    const tray = trayMat()
     box(scene, [SK.x1 - SK.x0 + NEIGHBOUR_W + 0.8, SK.h + 0.6, 0.5], tray, [(SK.x0 - NEIGHBOUR_W + SK.x1) / 2, SK.y, -0.5])
     box(scene, [HP.x1 - HP.x0 + 0.6, HP.h + 0.6, 0.5], tray, [(HP.x0 + HP.x1) / 2, HP.y, -0.5])
     partLetter(scene, 'loopTask stack · 8 KB · grows from the high address (right) down', [SK.x1, SK.y + SK.h / 2 + 0.9, 0], 0.48, LABEL, 'right')
@@ -407,9 +403,9 @@ export const stackAndHeap: Lesson = {
     const frames = Array.from({ length: 64 }, (_, i) => ({ set: slab(scene, frameMats[i % 2], 0.05, 0.3), i }))
     const frameLabels = Array.from({ length: 4 }, () => liveLabel(scene, [0, SK.y, 0.4], { size: 0.38 }))
     const spMat = glowMat(LABEL, 1)
-    const sp = add(scene, lit(spMat))
+    const sp = add(scene, shadowlessRod(spMat))
     const spLabel = liveLabel(scene, [0, SK.y - SK.h / 2 - 0.8, 0.3], { size: 0.4 })
-    const hwm = add(scene, lit(glowMat(RING, 0.9)))
+    const hwm = add(scene, shadowlessRod(glowMat(RING, 0.9)))
     const usedLabel = liveLabel(scene, [SK.x0 + 2, SK.y + SK.h / 2 + 0.9, 0], { size: 0.42, align: 'left' })
     const heapG = add(scene, new THREE.Group())
     const ghost = slab(scene, glowMat(HIGH_V, 0.9), 0.1, 0.3)
@@ -540,7 +536,7 @@ const fsSetup = (p: Params) => {
 
 function flashCell(root: THREE.Object3D, x: number) {
   const parent = add(root, new THREE.Group())
-  box(parent, [CELL_W + 0.4, 2.4, 0.5], mat('#1b1d22', { rough: 0.7 }), [x, CELLS.y, -0.5])
+  box(parent, [CELL_W + 0.4, 2.4, 0.5], trayMat(), [x, CELLS.y, -0.5])
   const m = glowMat(RING, 0.6)
   const fill = slab(parent, m, 0, 0.3)
   const text = liveLabel(parent, [x, CELLS.y, 0.4], { size: 0.45 })
@@ -587,7 +583,7 @@ export const littleFs: Lesson = {
     const scene = createStage({ span: 36 })
     const pitch = (BAR.x1 - BAR.x0) / SHOWN
     const bx = (i: number) => BAR.x0 + (i + 0.5) * pitch
-    box(scene, [BAR.x1 - BAR.x0 + 0.6, 1.6, 0.5], mat('#1b1d22', { rough: 0.7 }), [(BAR.x0 + BAR.x1) / 2, BAR.y, -0.5])
+    box(scene, [BAR.x1 - BAR.x0 + 0.6, 1.6, 0.5], trayMat(), [(BAR.x0 + BAR.x1) / 2, BAR.y, -0.5])
     const tiles = Array.from({ length: SHOWN }, (_, i) => {
       const m = glowMat(DARK, 0.2)
       const o = add(scene, mesh(new THREE.BoxGeometry(pitch - 0.12, 1.1, 0.3), m), [bx(i), BAR.y, 0])
@@ -604,7 +600,7 @@ export const littleFs: Lesson = {
     const oldCell = flashCell(scene, CELLS.old)
     const newCell = flashCell(scene, CELLS.new)
     const ptrMat = glowMat(FORCE, 0.9)
-    const ptr = add(scene, lit(ptrMat))
+    const ptr = add(scene, shadowlessRod(ptrMat))
     const ptrHead = add(scene, mesh(new THREE.SphereGeometry(0.3, 12, 8), ptrMat))
     const ptrLabel = liveLabel(scene, [CELLS.old, CELLS.y + 1.6, 0], { size: 0.38, align: 'right' })
     const stepLabels = [0, 1, 2].map((k) => liveLabel(scene, [-2, CELLS.y + 1.2 - k * 0.95, 0], { size: 0.42, align: 'left' }))

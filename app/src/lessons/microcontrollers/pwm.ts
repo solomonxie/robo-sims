@@ -24,7 +24,7 @@ import {
   servoStep,
   switchingLoss,
 } from '../../core/physics'
-import { amps, hertz, ohms, pct, secs, si, volts, watts } from '../../core/units'
+import { amps, hertz, mAText, ohms, pct, secs, si, volts, watts } from '../../core/units'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -34,6 +34,7 @@ import {
   HIGH_V,
   LABEL,
   LOW_V,
+  PIN_COLOR,
   POWER,
   RING,
   ceramicAlong,
@@ -64,11 +65,9 @@ import { Lesson, Stage, n, pick } from '../types'
 const VDD = GPIO_VDD
 const MOTOR_V = 5
 const PIN = 18
-const PIN_COLOR = '#5ad8e6'
 const BOARD: V3 = [-14, 5.5, 0]
 const SHOWN_PERIOD_S = 1.2
 const VIEW = { center: [-1, -3.4, 0] as V3, radius: 80, polar: 1.47, azimuth: 0.06 }
-const mA = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 const rpm = (r: number) => `${Math.round(r)} rpm`
 const slowText = (hz: number) => `${Math.round(hz * SHOWN_PERIOD_S)}×`
 
@@ -125,7 +124,7 @@ export const dutyCycle: Lesson = {
     const head = `duty = ${c} / 256 = ${pct(c / 256)}`
     return p.load === 'motor'
       ? `${head} · V_avg = ${pct(c / 256)} × 5 V = ${volts(pwmAverage(MOTOR_V, c / 256))} → ${rpm(motorRpm(pwmAverage(MOTOR_V, c / 256)))}`
-      : `${head} · V_avg = ${volts(pwmAverage(VDD, c / 256))} · LED current ${mA(LED_PEAK_A)} × ${pct(c / 256)} = ${mA(LED_PEAK_A * (c / 256))} average`
+      : `${head} · V_avg = ${volts(pwmAverage(VDD, c / 256))} · LED current ${mAText(LED_PEAK_A)} × ${pct(c / 256)} = ${mAText(LED_PEAK_A * (c / 256))} average`
   },
   legend: [
     { color: RING, label: 'Timer count; dashed = duty value', shape: 'dot' },
@@ -204,7 +203,7 @@ export const dutyCycle: Lesson = {
           { label: 'Average', value: volts(pwmAverage(motorOn ? MOTOR_V : VDD, d)) },
           motorOn
             ? { label: 'Motor', value: r > 0 ? rpm(r) : 'stalled', tone: r > 0 ? 'ok' : 'bad' }
-            : { label: 'LED avg', value: mA(LED_PEAK_A * d), tone: 'ok' },
+            : { label: 'LED avg', value: mAText(LED_PEAK_A * d), tone: 'ok' },
         ]
       },
     }

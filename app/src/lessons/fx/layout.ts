@@ -56,6 +56,12 @@ export function standUp(parent: THREE.Object3D, part: THREE.Group, at: V3, k: nu
 }
 
 export const UNIT_ROD = new THREE.CylinderGeometry(1, 1, 1, 8)
+/** `UNIT_ROD` mesh that casts no shadow, for `stretchRod`. */
+export const shadowlessRod = (m: THREE.Material) => {
+  const o = mesh(UNIT_ROD, m)
+  o.castShadow = false
+  return o
+}
 const rodDir = new THREE.Vector3()
 
 /** Stretches a `UNIT_ROD` mesh of radius `r` from a to b; hidden when a = b. */

@@ -1,4 +1,4 @@
-import { i2cDecode, i2cLines, i2cRegisterSteps, sampleLine, stepLines } from './signals/buses'
+import { i2cDecode, i2cLines, i2cRegisterSteps, sampleLine, stepLines } from '../signals/buses'
 import {
   I2C_CHIPS,
   I2C_MODES,

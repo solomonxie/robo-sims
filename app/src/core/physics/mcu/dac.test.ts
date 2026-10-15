@@ -1,5 +1,5 @@
-import { kclResidual, solveNodal } from '../nodal'
-import { rcGain } from './signals/filters'
+import { kclResidual, solveNodal } from '../../nodal'
+import { rcGain } from '../signals/filters'
 import {
   dacVolts,
   heldCode,

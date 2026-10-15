@@ -15,7 +15,7 @@ import {
   sensitivityDbm,
   wavelength,
 } from '../../core/physics'
-import { ohms, si } from '../../core/units'
+import { dbmText, ohms, si } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh, rod, tube } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
@@ -41,7 +41,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, pick } from '../types'
 
-const dbm = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 const db = (x: number) => `${Math.round(x)} dB`
 const cm = (m: number) => `${+(m * 100).toFixed(m < 0.2 ? 1 : 0)} cm`
 const dist = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${+(m / 1000).toFixed(1)} km`)
@@ -92,7 +91,7 @@ export const twoFourGhz: Lesson = {
   tagline: 'Wi-Fi’s 12 cm wave spreads out, thins with distance and loses a chunk at every wall',
   formula: (p) => {
     const s = wifiOf(p)
-    return `RSSI = Ptx + G − FSPL − walls = ${TX} + ${GAIN} − ${db(s.fspl)} − ${s.crossed * WALL_DB} = ${dbm(s.rssi)} · FSPL = 20·log10(4π·d / λ)`
+    return `RSSI = Ptx + G − FSPL − walls = ${TX} + ${GAIN} − ${db(s.fspl)} − ${s.crossed * WALL_DB} = ${dbmText(s.rssi)} · FSPL = 20·log10(4π·d / λ)`
   },
   legend: [
     { color: HIGH_V, label: 'Wavefronts: brighter = stronger field', shape: 'dot' },
@@ -168,7 +167,7 @@ export const twoFourGhz: Lesson = {
           st.key = key
           walls.forEach((w, i) => (w.visible = i < s.walls))
           curve.draw((u) => yOf(rssiAt(dOf(u * SPAN), s.walls)), sOf(s.d) / SPAN)
-          phoneTag.set(dbm(s.rssi), toneColor(s.rssi))
+          phoneTag.set(dbmText(s.rssi), toneColor(s.rssi))
           phoneDist.set(`${s.d} M`, LABEL)
           const lit = s.rssi > GOOD ? 4 : s.rssi > -75 ? 3 : s.rssi > -82 ? 2 : s.rssi > SENS ? 1 : 0
           bars.forEach((m, i) => setGlow(m, i < lit ? toneColor(s.rssi) : GREY, i < lit ? 1.2 : 0.1))
@@ -189,7 +188,7 @@ export const twoFourGhz: Lesson = {
           { label: 'Wavelength', value: `${cm(s.lambda)} · λ/4 ${cm(s.lambda / 4)}` },
           { label: 'Path loss', value: `${db(s.fspl)} over ${s.d} m` },
           { label: 'Walls in the way', value: s.crossed ? `${s.crossed} × ${WALL_DB} dB` : 'none', tone: s.crossed ? 'warn' : 'ok' },
-          { label: 'RSSI', value: s.rssi < -95 ? `${dbm(s.rssi)} · lost` : dbm(s.rssi), tone: tone(s.rssi) },
+          { label: 'RSSI', value: s.rssi < -95 ? `${dbmText(s.rssi)} · lost` : dbmText(s.rssi), tone: tone(s.rssi) },
         ]
       },
     }
@@ -444,7 +443,7 @@ export const lora: Lesson = {
   tagline: 'Keying data onto a carrier: OOK, FSK, and LoRa’s slow chirps that reach kilometres',
   formula: (p) => {
     const s = loraOf(p)
-    const sens = `sensitivity = −174 + 10·log10(${si(s.m.bw, 'Hz', 3)}) + NF ${NF} + SNR ${s.m.snr} = ${dbm(s.sens)}`
+    const sens = `sensitivity = −174 + 10·log10(${si(s.m.bw, 'Hz', 3)}) + NF ${NF} + SNR ${s.m.snr} = ${dbmText(s.sens)}`
     return s.m.sf ? `Rb = SF × BW / 2^SF × 4/5 = ${s.m.sf} × 125 kHz / ${2 ** s.m.sf} × 0.8 = ${si(s.m.rate, 'bps', 3)} · ${sens}` : sens
   },
   legend: [
@@ -542,7 +541,7 @@ export const lora: Lesson = {
         const s = loraOf(p)
         return [
           { label: 'Bit rate', value: si(s.m.rate, 'bps', 3) },
-          { label: 'Sensitivity', value: `${dbm(s.sens)} (${s.m.tx > 0 ? '+' : ''}${s.m.tx} dBm out)` },
+          { label: 'Sensitivity', value: `${dbmText(s.sens)} (${s.m.tx > 0 ? '+' : ''}${s.m.tx} dBm out)` },
           { label: 'Reach in town', value: dist(s.range), tone: s.range > 2000 ? 'ok' : s.range > 500 ? 'warn' : 'bad' },
           { label: `${PACKET}-byte packet`, value: si(s.airtime, 's', 3), tone: s.airtime < 0.2 ? 'ok' : s.airtime < 1 ? 'warn' : 'bad' },
         ]

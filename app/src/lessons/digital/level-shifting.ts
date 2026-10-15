@@ -23,6 +23,7 @@ import {
   LABEL,
   LED_RED,
   LOW_V,
+  PIN_COLOR,
   POWER,
   RING,
   diodeAlong,
@@ -46,7 +47,6 @@ import {
 import { Lesson, Stage, e12, n, resistorSlider } from '../types'
 
 const WIRES = { color: HIGH_V, label: 'Wire colour: blue 0 V → red 5 V', shape: 'dot' } as const
-const PIN_COLOR = '#5ad8e6'
 const READ_COLOR = LED_RED
 const fixed = (v: number) => v.toFixed(2)
 /** A read for the scope: 0 / 1, or a mid-level flicker in the forbidden band. */
