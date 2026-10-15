@@ -1,4 +1,4 @@
-// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, I²C breakouts.
+// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, ESP32-CAM, I²C breakouts.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, GOLD, mat, mesh, STEEL, TIN } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
@@ -247,6 +247,35 @@ export function i2cBreakout(parent: THREE.Object3D, at: V3, { name = '', color =
     chip(c: string, f: number) {
       chipMat.emissive.set(c)
       chipMat.emissiveIntensity = f
+    },
+  }
+}
+
+/** ESP32-CAM (AI-Thinker, 27 × 40 mm) face-on with the OV2640 lens toward +z, `k` units per mm. `lens()` = lens centre in
+ *  world space (after the caller turns `group`); `glass` glows; `iris(f)` sets the aperture opening (1 = full lens). */
+export function esp32Cam(parent: THREE.Object3D, at: V3, k: number) {
+  const g = add(parent, new THREE.Group(), at)
+  g.scale.setScalar(k)
+  box(g, [27, 40, 1.6], mat('#1d2b25', { rough: 0.6 }), [0, 0, -0.8])
+  box(g, [16, 17, 2.4], STEEL(), [0, -10, 1.2])
+  add(g, label('ESP32-S', { ...SILK, color: '#3a3d44', size: 2.2 }), [0, -10, 2.45])
+  add(g, label('ESP32-CAM', { ...SILK, size: 2 }), [0, -1, 0.05])
+  for (const x of [-12.2, 12.2]) for (let i = 0; i < 8; i++) box(g, [1.6, 1.6, 2.4], mat('#141416', { rough: 0.7 }), [x, -17 + i * 2.54, 1.2])
+  box(g, [10, 10, 3], mat('#141416', { rough: 0.6 }), [0, 9, 1.5])
+  cylinder(g, 4.2, 5, mat('#1c1c1f', { rough: 0.5 }), [0, 9, 5.5], 'z', 28)
+  const glass = glowMat('#5a7dff', 0.35)
+  const iris = add(g, mesh(new THREE.CircleGeometry(3.4, 32), glass), [0, 9, 8.05])
+  iris.castShadow = false
+  box(g, [3, 3, 1.4], mat('#f5f2e6', { rough: 0.4 }), [9, 15, 0.7])
+  const lensLocal = new THREE.Vector3(0, 9, 8.1)
+  return {
+    group: g,
+    glass,
+    iris: (f: number) => iris.scale.setScalar(Math.max(0.05, Math.min(1, f))),
+    lens(): V3 {
+      g.updateWorldMatrix(true, false)
+      const v = g.localToWorld(lensLocal.clone())
+      return [v.x, v.y, v.z]
     },
   }
 }

@@ -78,6 +78,7 @@ import { countsPerRevolution, quadrature, speedFromTicks } from '../lessons/sens
 import { accelerometer, complementaryFilter, drift, gyroscope } from '../lessons/sensors/imu'
 import { hardIronCalibration, heading } from '../lessons/sensors/magnetometer'
 import { fixAndAccuracy, rtk, trilateration } from '../lessons/sensors/gps'
+import { exposure, lensDistortion, rollingVsGlobalShutter } from '../lessons/sensors/camera'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -339,6 +340,9 @@ const READY: Record<string, Lesson> = {
   'sensors/gps/trilateration': trilateration,
   'sensors/gps/fix-and-accuracy': fixAndAccuracy,
   'sensors/gps/rtk': rtk,
+  'sensors/camera/rolling-vs-global-shutter': rollingVsGlobalShutter,
+  'sensors/camera/exposure': exposure,
+  'sensors/camera/lens-distortion': lensDistortion,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

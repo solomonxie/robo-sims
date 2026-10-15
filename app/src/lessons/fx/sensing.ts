@@ -1,4 +1,4 @@
-// Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, and light rays.
+// Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, light rays, and an image sensor pixel grid.
 import * as THREE from 'three/webgpu'
 import { V3, add, mesh } from '../../models/kit'
 import { buildHcSr04 } from '../../models/modules'
@@ -104,5 +104,27 @@ export function lightRay(parent: THREE.Object3D, beads = 16, bead = 0.13, speed 
       im.setMatrixAt(k, m4.makeTranslation(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u))
     }
     im.instanceMatrix.needsUpdate = true
+  }
+}
+
+/** Image sensor as `cols × rows` unlit square pixels facing +z on a black plate, centred on `at`. `set(i, r, g, b)` takes
+ *  sRGB 0…1 (index = row × cols + col, row 0 on top), `commit()` uploads; `cell(c, r)` = a pixel centre in `parent` space. */
+export function pixelGrid(parent: THREE.Object3D, at: V3, cols: number, rows: number, pitch: number) {
+  const plate = add(parent, mesh(new THREE.BoxGeometry(cols * pitch + pitch, rows * pitch + pitch, 0.2), new THREE.MeshStandardMaterial({ color: '#08090c', roughness: 0.8 })), [at[0], at[1], at[2] - 0.1])
+  plate.castShadow = false
+  const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(pitch * 0.9, pitch * 0.9), new THREE.MeshBasicMaterial({ color: '#ffffff' }), cols * rows)
+  im.castShadow = false
+  im.frustumCulled = false
+  const cell = (c: number, r: number): V3 => [at[0] + (c - (cols - 1) / 2) * pitch, at[1] + ((rows - 1) / 2 - r) * pitch, at[2] + 0.02]
+  const m4 = new THREE.Matrix4()
+  const color = new THREE.Color()
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) im.setMatrixAt(r * cols + c, m4.makeTranslation(...cell(c, r)))
+  im.setColorAt(0, color.setRGB(0, 0, 0))
+  parent.add(im)
+  return {
+    mesh: im,
+    cell,
+    set: (i: number, r: number, g: number, b: number) => im.setColorAt(i, color.setRGB(r, g, b, THREE.SRGBColorSpace)),
+    commit: () => (im.instanceColor!.needsUpdate = true),
   }
 }
