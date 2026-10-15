@@ -12,7 +12,7 @@ export const ARDUINO = '#9fe0a0'
 export const IDF = '#8ab8ff'
 export const CODE_LEGEND = { color: ARDUINO, label: 'Code: Arduino green, ESP-IDF blue', shape: 'dot' } as const
 
-const isIdf = (l: string) => /\b[a-z][a-z0-9]*_[a-z0-9_]*\(/.test(l)
+const isIdf = (l: string) => /\b[a-z][a-z0-9]*_[a-z0-9_]*\(|\b(?!u?int\d+_t\b|size_t\b)[a-z][a-z0-9_]*_t\b|\b(esp|twai|gpio|wifi|ble)_\w+/.test(l)
 
 /** Left-aligned code lines: snake_case calls are ESP-IDF (blue), `//` comments grey, the rest Arduino; indented lines continue the one above. */
 export function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72, rows = 3) {
