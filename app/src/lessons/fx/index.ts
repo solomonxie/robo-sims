@@ -1,4 +1,5 @@
 // Visual vocabulary shared by lessons.
+export * from './boards'
 export * from './cells'
 export * from './circuit'
 export * from './colors'

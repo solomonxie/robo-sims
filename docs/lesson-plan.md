@@ -21,6 +21,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
 - `modules` — `tp4056Module`, `dcdcModule` (LM2596/MT3608/XL6009), `sg90Servo` [`physics/power`].
+- `boards` — `pcbStack` (explodable layer stack, `via`), `flatTrace`, `flatText` [`physics/pcb`]. `flows` — `loopBeads`.
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
 - `electromech` — relay/SSR, switches, pot. `heat`, `flows`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 - `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `benchScope` (DSO: knobs, status, BNC) [`physics/scope`], `ivScreen`, `phasor`, `clockFace`.
@@ -55,7 +56,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Transmission lines
   - [x] Radio basics
   - [x] Grounding & shielding
-  - [ ] PCB design
+  - [x] PCB design
 
 ### Later waves (file order within each)
 - Wave 4: Microcontrollers, Sensors, Software

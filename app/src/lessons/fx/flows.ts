@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { CONVENTIONAL, ELECTRON, RING, glowMat, potentialColor } from './colors'
 import { plusGeometry } from './shapes'
-import { path, rand, randomDir } from './util'
+import { frac, path, rand, randomDir } from './util'
 
 /** Evenly spaced dots sliding along a path; wraps at the ends. */
 export class Flow {
@@ -187,4 +187,25 @@ export function plusFlow(parent: THREE.Object3D, points: V3[], paint: (at: THREE
   flow.colorBy((at, out) => potentialColor(paint(at), out))
   parent.add(flow.mesh)
   return flow
+}
+
+/** Beads riding a path (closed by default); `step` moves them by `du` of its length. */
+export function loopBeads(parent: THREE.Object3D, n: number, color: string, { r = 0.22, closed = true } = {}) {
+  const m = glowMat(color, 1.2)
+  const beads = Array.from({ length: n }, () => add(parent, mesh(new THREE.SphereGeometry(r, 12, 8), m)))
+  beads.forEach((b) => (b.castShadow = false))
+  let curve = path([[0, 0, 0], [1, 0, 0]], closed)
+  let s = 0
+  return {
+    setPath(points: V3[]) {
+      curve = path(points, closed)
+    },
+    show(on: boolean) {
+      beads.forEach((b) => (b.visible = on))
+    },
+    step(du: number) {
+      s = frac(s + du)
+      beads.forEach((b, i) => b.position.copy(curve.getPointAt(frac(s + i / n))))
+    },
+  }
 }

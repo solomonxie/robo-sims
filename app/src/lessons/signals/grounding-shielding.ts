@@ -25,12 +25,11 @@ import {
   RING,
   cableRun,
   emptyGroup,
-  frac,
   glowMat,
   groundAt,
   label,
   liveLabel,
-  path,
+  loopBeads,
   scope,
 } from '../fx'
 import { Lesson, Params, Stage } from '../types'
@@ -45,27 +44,6 @@ function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number) {
   m.color.set(color)
   m.emissive.set(color)
   m.emissiveIntensity = k
-}
-
-/** Beads riding a closed loop; `step` moves them by `du` of the loop. */
-function loopBeads(parent: THREE.Object3D, n: number, color: string) {
-  const m = glowMat(color, 1.2)
-  const beads = Array.from({ length: n }, () => add(parent, mesh(new THREE.SphereGeometry(0.22, 12, 8), m)))
-  beads.forEach((b) => (b.castShadow = false))
-  let curve = path([[0, 0, 0], [1, 0, 0]], true)
-  let s = 0
-  return {
-    setPath(points: V3[]) {
-      curve = path(points, true)
-    },
-    show(on: boolean) {
-      beads.forEach((b) => (b.visible = on))
-    },
-    step(du: number) {
-      s = frac(s + du)
-      beads.forEach((b, i) => b.position.copy(curve.getPointAt(frac(s + i / n))))
-    },
-  }
 }
 
 // --- Ground loops: two earthed boxes joined by a signal cable close a loop; a mains field threads it and drives hum. ---

@@ -53,6 +53,7 @@ import { captureI2c, captureSpi, patternTrigger, sampleRate } from '../lessons/s
 import { reflections, termination } from '../lessons/signals/transmission-lines'
 import { antennaTypes, lora, twoFourGhz } from '../lessons/signals/radio-basics'
 import { cableShields, groundLoops, twistedPairs } from '../lessons/signals/grounding-shielding'
+import { layoutRules, manufacturing, schematicCapture, tracesAndVias } from '../lessons/signals/pcb-design'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -245,6 +246,10 @@ const READY: Record<string, Lesson> = {
   'signals/grounding-shielding/ground-loops': groundLoops,
   'signals/grounding-shielding/twisted-pairs': twistedPairs,
   'signals/grounding-shielding/cable-shields': cableShields,
+  'signals/pcb-design/schematic-capture': schematicCapture,
+  'signals/pcb-design/layout-rules': layoutRules,
+  'signals/pcb-design/traces-and-vias': tracesAndVias,
+  'signals/pcb-design/manufacturing': manufacturing,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
