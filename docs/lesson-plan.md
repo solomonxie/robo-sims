@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `hoursText`, …); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
+- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `hoursText`, `spanText`, …); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -35,7 +35,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); `wireless`: Wi-Fi STA/AP hops + rates, HTTP vs WebSocket cost, BLE GATT read/notify, ESP-NOW airtime/retries; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); `wireless`: Wi-Fi STA/AP hops + rates, HTTP vs WebSocket cost, BLE GATT read/notify, ESP-NOW airtime/retries; `sleep`: ESP32 power domains per mode, wake sources + boot cost, sensor-node duty cycle → battery years; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -66,7 +66,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] SPI
   - [x] CAN bus
   - [x] Wi-Fi & Bluetooth
-  - [ ] Power modes
+  - [x] Power modes
   - [ ] Memory & storage
   - [ ] RTOS basics
   - [ ] Bootloader & flashing

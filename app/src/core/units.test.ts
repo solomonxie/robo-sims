@@ -1,4 +1,4 @@
-import { amps, fitDigits, hoursText, joules, mA, millivolts, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
+import { amps, fitDigits, hoursText, joules, spanText, mA, millivolts, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
 
 describe('units', () => {
   it('formats with SI prefixes and scientific notation', () => {
@@ -22,6 +22,9 @@ describe('units', () => {
     expect(hoursText(0.5)).toBe('30 min')
     expect(hoursText(2.345)).toBe('2.3 h')
     expect(hoursText(2.345, 2)).toBe('2.35 h')
+    expect(spanText(30)).toBe('30 h')
+    expect(spanText(240)).toBe('10 days')
+    expect(spanText(8766 * 2.34)).toBe('2.3 years')
   })
   it('fits a number into seven-segment cells with the most decimals', () => {
     expect(fitDigits(6, 3)).toBe('6.00')
