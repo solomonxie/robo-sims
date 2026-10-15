@@ -56,6 +56,7 @@ import { cableShields, groundLoops, twistedPairs } from '../lessons/signals/grou
 import { layoutRules, manufacturing, schematicCapture, tracesAndVias } from '../lessons/signals/pcb-design'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
+import { driveStrength, interrupts, outputAndInputModes, pullUps } from '../lessons/microcontrollers/gpio'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -250,6 +251,10 @@ const READY: Record<string, Lesson> = {
   'signals/pcb-design/layout-rules': layoutRules,
   'signals/pcb-design/traces-and-vias': tracesAndVias,
   'signals/pcb-design/manufacturing': manufacturing,
+  'microcontrollers/gpio/output-and-input-modes': outputAndInputModes,
+  'microcontrollers/gpio/pull-ups': pullUps,
+  'microcontrollers/gpio/drive-strength': driveStrength,
+  'microcontrollers/gpio/interrupts': interrupts,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

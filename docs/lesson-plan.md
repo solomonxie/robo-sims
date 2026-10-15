@@ -22,7 +22,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
-- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo` [`physics/power`].
+- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `esp32Board` (face-on, `pin(i, top)`) [`physics/power`].
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot.
@@ -33,7 +33,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain; subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -54,7 +54,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 4 — Microcontrollers, Sensors, Software
 - Microcontrollers:
-  - [ ] GPIO
+  - [x] GPIO
   - [ ] PWM
   - [ ] ADC
   - [ ] DAC

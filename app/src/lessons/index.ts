@@ -54,6 +54,7 @@ import { reflections, termination } from './signals/transmission-lines'
 import { antennaTypes, lora, twoFourGhz } from './signals/radio-basics'
 import { cableShields, groundLoops, twistedPairs } from './signals/grounding-shielding'
 import { layoutRules, manufacturing, schematicCapture, tracesAndVias } from './signals/pcb-design'
+import { driveStrength, interrupts, outputAndInputModes, pullUps } from './microcontrollers/gpio'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -63,4 +64,5 @@ export const UNITS: Unit[] = [
   { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595, mooreVsMealy, trafficLight, robotBehaviour, propagationDelay, metastability, clockDividers, logicThresholds, dividerShifter, bidirectionalShifter, luts, blinkyInHardware] },
   { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits, inductorRipple, efficiency, choosingAModule, addUpTheLoads, runtimeEstimate, peakVsAverage, voltageDrop, connectorRatings, starGround, motorNoise, bulkCapacitors, separateRails, currentSpikes, diagnosingResets] },
   { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus, sampleRate, patternTrigger, captureI2c, captureSpi, reflections, termination, twoFourGhz, antennaTypes, lora, groundLoops, twistedPairs, cableShields, schematicCapture, layoutRules, tracesAndVias, manufacturing] },
+  { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts] },
 ]

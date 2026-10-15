@@ -1,6 +1,7 @@
 // Modules and boards: TP4056 charger, DC-DC converters, SG90 servo.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, STEEL, TIN } from '../../models/kit'
+import { buildEsp32 } from '../../models/modules'
 import { glowHalo } from './circuit'
 import { LED_RED, glowMat } from './colors'
 import { heatGlow } from './heat'
@@ -209,4 +210,12 @@ export function sg90Servo(parent: THREE.Object3D, at: V3) {
   const horn = add(g, new THREE.Group(), [shaftAt[0], 0, 1.75])
   box(horn, [0.5, 2.6, 0.2], mat('#f2f2f2'), [0, 0.9, 0])
   return horn
+}
+
+/** ESP32 DevKit face-on, centre `at`; `pin(i, top)` is header pin i (−7…7) on the top or bottom row, at its tip. */
+export function esp32Board(parent: THREE.Object3D, at: V3, scale: number) {
+  const board = add(parent, buildEsp32(), at)
+  board.scale.setScalar(scale)
+  board.rotation.x = Math.PI / 2
+  return (i: number, top = true): V3 => [at[0] + i * scale, at[1] + (top ? 5 : -5) * scale, 3.5 * scale]
 }

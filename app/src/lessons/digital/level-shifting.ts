@@ -15,7 +15,7 @@ import {
 } from '../../core/physics'
 import { si, volts } from '../../core/units'
 import { V3, add } from '../../models/kit'
-import { buildEsp32, buildHcSr04 } from '../../models/modules'
+import { buildHcSr04 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
 import {
   GREY,
@@ -27,6 +27,7 @@ import {
   RING,
   diodeAlong,
   emptyGroup,
+  esp32Board,
   fetPart,
   glide,
   glowMat,
@@ -50,14 +51,6 @@ const READ_COLOR = LED_RED
 const fixed = (v: number) => v.toFixed(2)
 /** A read for the scope: 0 / 1, or a mid-level flicker in the forbidden band. */
 const shown = (r: 0 | 1 | null) => r ?? 0.35 + 0.3 * Math.random()
-
-/** ESP32 DevKit face-on, centre `at`; `pin(i, top)` is header pin i (−7…7) on the top or bottom row, at its tip. */
-function esp32Board(parent: THREE.Object3D, at: V3, scale: number) {
-  const board = add(parent, buildEsp32(), at)
-  board.scale.setScalar(scale)
-  board.rotation.x = Math.PI / 2
-  return (i: number, top = true): V3 => [at[0] + i * scale, at[1] + (top ? 5 : -5) * scale, 3.5 * scale]
-}
 
 /** LED from `from` to `at`, cathode to ground below; `(dt, on)`. */
 function readLed(parent: THREE.Object3D, from: V3, at: V3) {
