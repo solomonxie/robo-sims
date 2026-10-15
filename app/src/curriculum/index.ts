@@ -52,6 +52,7 @@ import { decodingBus, probing, triggering } from '../lessons/signals/oscilloscop
 import { captureI2c, captureSpi, patternTrigger, sampleRate } from '../lessons/signals/logic-analyzer'
 import { reflections, termination } from '../lessons/signals/transmission-lines'
 import { antennaTypes, lora, twoFourGhz } from '../lessons/signals/radio-basics'
+import { cableShields, groundLoops, twistedPairs } from '../lessons/signals/grounding-shielding'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -241,6 +242,9 @@ const READY: Record<string, Lesson> = {
   'signals/radio-basics/2-4-ghz': twoFourGhz,
   'signals/radio-basics/antenna-types': antennaTypes,
   'signals/radio-basics/lora': lora,
+  'signals/grounding-shielding/ground-loops': groundLoops,
+  'signals/grounding-shielding/twisted-pairs': twistedPairs,
+  'signals/grounding-shielding/cable-shields': cableShields,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

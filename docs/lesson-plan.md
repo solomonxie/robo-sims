@@ -54,7 +54,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Logic analyzer
   - [x] Transmission lines
   - [x] Radio basics
-  - [ ] Grounding & shielding
+  - [x] Grounding & shielding
   - [ ] PCB design
 
 ### Later waves (file order within each)

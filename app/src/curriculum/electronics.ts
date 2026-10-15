@@ -99,7 +99,7 @@ export const electronics = [
     ['Logic analyzer', 'Watching digital buses', ['Sample rate', 'Pattern trigger', 'Capture I²C', 'Capture SPI']],
     ['Transmission lines', 'When wires act like antennas', ['Reflections', 'Termination']],
     ['Radio basics', 'Carrier, modulation, range', ['2.4 GHz', 'Antenna types', 'LoRa']],
-    ['Grounding & shielding', 'Taming interference', ['Ground loops', 'Ferrite beads']],
+    ['Grounding & shielding', 'Taming interference', ['Ground loops', 'Twisted pairs', 'Cable shields']],
     ['PCB design', 'From schematic to board', ['Schematic capture', 'Layout rules', 'Traces and vias', 'Manufacturing']],
   ]),
 ]
