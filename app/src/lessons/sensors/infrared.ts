@@ -494,8 +494,9 @@ export const sunlightInterference: Lesson = {
     box(plainG, [1, 4.6, 3], mat('#1f4fa8', { rough: 0.5 }), [1.2, 0, -0.2])
     const pd = sideLed(plainG, '#141418', [0.6, 0, 0.3], -1, 0.62)
     const vsG = add(rx, new THREE.Group())
-    box(vsG, [1.6, 3.2, 2.2], mat('#3a3c44', { rough: 0.45 }), [0.9, 0, 0])
-    const dome = add(vsG, new THREE.Mesh(new THREE.SphereGeometry(0.75, 20, 12, Math.PI / 2, Math.PI), mat('#3a3d45', { rough: 0.2 })), [0.1, 0.3, 0])
+    const vsBody = mat('#7a7f8c', { rough: 0.3 })
+    box(vsG, [1.6, 3.2, 2.2], vsBody, [0.9, 0, 0])
+    const dome = add(vsG, new THREE.Mesh(new THREE.SphereGeometry(0.75, 20, 12, Math.PI / 2, Math.PI), vsBody), [0.1, 0.3, 0])
     dome.rotation.y = Math.PI
     for (const y of [-1.8, -2.6]) box(vsG, [0.1, 0.1, 0.1], mat('#000'), [0, y, 0])
     const rxName = liveLabel(scene, [0, SL.y - 4, 0.3], { size: 0.34 })
