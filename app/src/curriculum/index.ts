@@ -69,6 +69,7 @@ import { bleGatt, espNow, httpAndWebSocket, stationAndAp } from '../lessons/micr
 import { batteryBudget, deepSleep, wakeSources } from '../lessons/microcontrollers/power-modes'
 import { flashLayout, littleFs, stackAndHeap } from '../lessons/microcontrollers/memory-storage'
 import { mutexes, queues, tasksAndPriorities } from '../lessons/microcontrollers/rtos-basics'
+import { bootModes, otaUpdates } from '../lessons/microcontrollers/bootloader-flashing'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -305,6 +306,8 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/rtos-basics/tasks-and-priorities': tasksAndPriorities,
   'microcontrollers/rtos-basics/queues': queues,
   'microcontrollers/rtos-basics/mutexes': mutexes,
+  'microcontrollers/bootloader-flashing/boot-modes': bootModes,
+  'microcontrollers/bootloader-flashing/ota-updates': otaUpdates,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
