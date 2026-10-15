@@ -210,15 +210,17 @@ export const joystickOverBle: Lesson = {
         const head = worldOf(robot.group)
         packets.begin()
         let newest = -1
+        let tagged = -1
         for (let j = pk.length - 1; j >= 0 && pk[j].sent > now - 0.3; j--) {
           if (pk[j].sent > now) continue
           if (newest < 0) newest = j
           const u = (now - pk[j].sent) / 0.3
-          packets.put(arcAt(phone.top, head, u, 3), POWER, { w: 1.1, payload: 0.5, text: j === newest ? hexRow(pk[j].bytes) : '' })
+          if (tagged < 0 && u >= 0.35) tagged = j
+          packets.put(arcAt(phone.top, head, u, 3), POWER, { w: 1.1, payload: 0.5, text: j === tagged ? hexRow(pk[j].bytes) : '' })
         }
         packets.end()
         rip(now, POWER, 0.6)
-        const last = pk[newest]
+        const last = pk[tagged < 0 ? newest : tagged]
         notifyText.set(last ? `notify #${last.bytes[0]}: ${hexRow(last.bytes)}` : '', POWER)
         barL(Math.abs(f.wl), pctText(f.wl), f.wl < 0 ? HIGH_V : HEAT)
         barR(Math.abs(f.wr), pctText(f.wr), f.wr < 0 ? HIGH_V : B_FIELD)
@@ -302,7 +304,7 @@ export const webSocketControl: Lesson = {
     floorMat(g, [-0.3, WS.wallX], [-0.35, 0.35])
     const wallM = glowMat('#3a3e47', 0.2)
     box(g, [0.06, 0.7, 0.3], wallM, [WS.wallX + 0.03, 0, 0.15])
-    addLabel(g, 'wall', [WS.wallX + 0.03, 0.5, 0.02], GREY, 0.12)
+    addLabel(g, 'wall', [WS.wallX + 0.03, -0.5, 0.02], GREY, 0.12)
     const robot = lidarRobot(g, 1, 0.24)
     const stopMark = flatBox(g, [0.02, 0.5, 0.006], glowMat(HIGH_V, 1), [0, 0, 0.006])
     const packets = packetPool(scene, 24, 0.4)
