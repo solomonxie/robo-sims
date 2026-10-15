@@ -5,25 +5,28 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts`; control helpers (`e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
+- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`hoursText`, `millivolts`, …); control helpers (`e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (import `'../fx'`); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
-- Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s).
+- Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
 - Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts, state the slow-down factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
 - Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; params/frames: `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}' frames=N`.
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
 `lessons/fx/` (model in brackets):
-- `util` — easing (`ease`, `glide`), `lerp`, `path`, `emptyGroup`, `presence`, `halton`.
-- `colors` — palette, `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
-- `cells` — `cellCutaway` (electrodes, separator, shuttling ions), `cell18650`, `nickelStrip` (weld sparks), `cellPackModel` (SxP zig-zag pack) [`physics/batteries`, `physics/packs`].
-- `heat`, `flows`, `crystal`, `dies` [`semiconductors`, `memory`], `fields` [`core/fields`], `plots`, `story` (stepped lessons).
-- `circuit` — cells, sources, `wire`/`lane`, `cableRun` (hookup wire), `lieFlat`/`standUp` (board/part poses), R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
-- `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `sg90Servo`, `tp4056Module` [`physics/charging`], `dcdcModule` (LM2596/MT3608/XL6009) [`physics/converters`], `partLetter`. `electromech` — relay/SSR, switches, pot.
+- `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`.
+- `colors` — palette (`HEAT`, …), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
+- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`.
+- `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
+- `symbols` — ground, current/AC source, diode, op-amp.
+- `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
+- `modules` — `tp4056Module`, `dcdcModule` (LM2596/MT3608/XL6009), `sg90Servo` [`physics/power`].
+- `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
+- `electromech` — relay/SSR, switches, pot. `heat`, `flows`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 - `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `ivScreen`, `phasor`, `clockFace`.
-- `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet` (`Net` schematic), `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`, `core/numbers`].
-- `diagrams` — `timingDiagram` (logic analyser), `stateDiagram` [`core/fsm`].
-- Digital models: `core/logic` (gates, adders, `Net` eval/step/settle, latches, shift/counter), `core/numbers`, `core/fsm`, `core/fpga`, `physics/timing`, `physics/levels`.
+- `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
+- `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
+- `core/physics/` by domain; `power/` = batteries, packs, charging, converters, budget, wiring, noise, brownout.
 
 ## Pacing
 
@@ -43,15 +46,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 3 — Digital, Power, Signals
 - Digital ✓ 8/8
-- Power:
-  - [x] Battery chemistry
-  - [x] 18650 packs
-  - [x] Charging
-  - [x] Buck & boost
-  - [x] Power budget
-  - [x] Wiring & gauge
-  - [x] Noise & decoupling
-  - [x] Brownouts
+- Power ✓ 8/8
 - Signals:
   - [ ] Filters
   - [ ] Fourier intuition
