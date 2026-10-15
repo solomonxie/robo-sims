@@ -50,7 +50,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Buck & boost
   - [x] Power budget
   - [x] Wiring & gauge
-  - [ ] Noise & decoupling
+  - [x] Noise & decoupling
   - [ ] Brownouts
 - Signals:
   - [ ] Filters

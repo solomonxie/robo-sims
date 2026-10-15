@@ -44,6 +44,7 @@ import { chargeCurveLesson, thermalLimits, tp4056 } from '../lessons/power/charg
 import { choosingAModule, efficiency, inductorRipple } from '../lessons/power/buck-boost'
 import { addUpTheLoads, peakVsAverage, runtimeEstimate } from '../lessons/power/power-budget'
 import { connectorRatings, starGround, voltageDrop } from '../lessons/power/wiring-gauge'
+import { bulkCapacitors, motorNoise, separateRails } from '../lessons/power/noise-decoupling'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -210,6 +211,9 @@ const READY: Record<string, Lesson> = {
   'power/wiring-gauge/voltage-drop': voltageDrop,
   'power/wiring-gauge/connector-ratings': connectorRatings,
   'power/wiring-gauge/star-ground': starGround,
+  'power/noise-decoupling/motor-noise': motorNoise,
+  'power/noise-decoupling/bulk-capacitors': bulkCapacitors,
+  'power/noise-decoupling/separate-rails': separateRails,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
