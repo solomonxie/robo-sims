@@ -373,8 +373,8 @@ export const countsPerRevolution: Lesson = {
           parts.wheel.scale.setScalar(C.k)
           if (R.enc === 'hall') {
             parts.disc = encoderUnit(rig, 'hall', R.ppr, 3.8)
-            parts.disc.group.rotation.y = Math.PI / 2
-            parts.disc.group.position.set(25 * C.k, 0, 0)
+            parts.disc.group.rotation.y = 0.8
+            parts.disc.group.position.set(29 * C.k, 0, 0)
           } else {
             parts.disc = encoderUnit(rig, 'slot', R.ppr, 4.2)
             parts.disc.group.position.set(0, 0, 8.4 * C.k)
