@@ -51,6 +51,7 @@ import { aliasing, nyquistLimit, spectrum } from '../lessons/signals/fourier-int
 import { decodingBus, probing, triggering } from '../lessons/signals/oscilloscope'
 import { captureI2c, captureSpi, patternTrigger, sampleRate } from '../lessons/signals/logic-analyzer'
 import { reflections, termination } from '../lessons/signals/transmission-lines'
+import { antennaTypes, lora, twoFourGhz } from '../lessons/signals/radio-basics'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -237,6 +238,9 @@ const READY: Record<string, Lesson> = {
   'signals/logic-analyzer/capture-spi': captureSpi,
   'signals/transmission-lines/reflections': reflections,
   'signals/transmission-lines/termination': termination,
+  'signals/radio-basics/2-4-ghz': twoFourGhz,
+  'signals/radio-basics/antenna-types': antennaTypes,
+  'signals/radio-basics/lora': lora,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

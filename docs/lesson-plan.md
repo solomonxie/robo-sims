@@ -53,7 +53,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Oscilloscope
   - [x] Logic analyzer
   - [x] Transmission lines
-  - [ ] Radio basics
+  - [x] Radio basics
   - [ ] Grounding & shielding
   - [ ] PCB design
 
