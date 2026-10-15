@@ -26,14 +26,15 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot.
-- `displays` — `segmentDisplay`, `pulseLabel`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
+- `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
 - `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder) [`physics/signals/buses`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
+- `mcu` — `codeBlock` (Arduino/ESP-IDF lines), `CODE_LEGEND`, `fetSymbol` (in-pin FET), `ledLoad`.
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `pwm`: LEDC bits, ripple, switching loss, servo); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -55,7 +56,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 ### Wave 4 — Microcontrollers, Sensors, Software
 - Microcontrollers:
   - [x] GPIO
-  - [ ] PWM
+  - [x] PWM
   - [ ] ADC
   - [ ] DAC
   - [ ] Timers & interrupts

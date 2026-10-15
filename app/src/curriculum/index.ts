@@ -57,6 +57,7 @@ import { layoutRules, manufacturing, schematicCapture, tracesAndVias } from '../
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { driveStrength, interrupts, outputAndInputModes, pullUps } from '../lessons/microcontrollers/gpio'
+import { averageVoltage, dutyCycle, frequencyChoice, servoPulses } from '../lessons/microcontrollers/pwm'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -255,6 +256,10 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/gpio/pull-ups': pullUps,
   'microcontrollers/gpio/drive-strength': driveStrength,
   'microcontrollers/gpio/interrupts': interrupts,
+  'microcontrollers/pwm/duty-cycle': dutyCycle,
+  'microcontrollers/pwm/frequency-choice': frequencyChoice,
+  'microcontrollers/pwm/servo-pulses': servoPulses,
+  'microcontrollers/pwm/average-voltage': averageVoltage,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
