@@ -1,6 +1,7 @@
 // Rooms for mobile-robot lessons, drawn in metres (x, y floor, z up) inside a group the caller scales and turns: solids, a robot with a lidar head, point clouds and ray fans.
 import * as THREE from 'three/webgpu'
-import { Room, RoomSolid } from '../../core/physics'
+import { CostGrid, INSCRIBED, LETHAL, Room, RoomSolid } from '../../core/physics'
+import { B_FIELD, potentialColor } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 
 const SOLID_LOOK = {
@@ -98,5 +99,34 @@ export function rayFan(parent: THREE.Object3D, max: number, material: THREE.Mate
       im.setMatrixAt(i, m4)
     }
     im.instanceMatrix.needsUpdate = true
+  }
+}
+
+export const LETHAL_C = '#eef0f4'
+
+/** Costmap as instanced bars (metres, z up): height ∝ cost, lethal white, inscribed cyan, inflation red → blue. `draw` skips a grid it just drew. */
+export function costField(parent: THREE.Object3D, g: CostGrid, maxH = 0.5) {
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.7 }), g.nx * g.ny)
+  im.castShadow = im.receiveShadow = false
+  parent.add(im)
+  const m4 = new THREE.Matrix4()
+  const c = new THREE.Color()
+  const s = g.res * 0.9
+  let last: Uint8Array | null = null
+  return {
+    mesh: im,
+    draw(grid: CostGrid) {
+      if (grid.cost === last) return
+      last = grid.cost
+      for (let k = 0; k < grid.cost.length; k++) {
+        const v = grid.cost[k]
+        const h = Math.max(0.004, (maxH * v) / LETHAL)
+        m4.makeScale(s, s, h).setPosition(grid.ox + ((k % grid.nx) + 0.5) * grid.res, grid.oy + (Math.floor(k / grid.nx) + 0.5) * grid.res, h / 2)
+        im.setMatrixAt(k, m4)
+        im.setColorAt(k, v >= LETHAL ? c.set(LETHAL_C) : v >= INSCRIBED ? c.set(B_FIELD) : v > 0 ? potentialColor(v / (INSCRIBED - 1), c) : c.set('#2e3138'))
+      }
+      im.instanceMatrix.needsUpdate = true
+      im.instanceColor!.needsUpdate = true
+    },
   }
 }

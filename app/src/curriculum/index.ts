@@ -87,6 +87,7 @@ import { complementaryHeading, kalmanIntuition, whyFuse } from '../lessons/senso
 import { fixedRateControlLoop, hardwareAbstraction, superLoopVsRtos } from '../lessons/software/firmware-structure'
 import { launchFiles, publishAndSubscribe, servicesAndActions } from '../lessons/software/ros2-concepts'
 import { frameTree, writingAUrdf } from '../lessons/software/tf-urdf'
+import { behaviourTrees, costmaps } from '../lessons/software/nav2'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -371,6 +372,8 @@ const READY: Record<string, Lesson> = {
   'software/ros-2-concepts/launch-files': launchFiles,
   'software/tf-urdf/frame-tree': frameTree,
   'software/tf-urdf/writing-a-urdf': writingAUrdf,
+  'software/nav2/costmaps': costmaps,
+  'software/nav2/behaviour-trees': behaviourTrees,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
