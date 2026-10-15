@@ -1,7 +1,8 @@
-// Readouts: seven-segment digits, multimeter, oscilloscope, phasor.
+// Readouts: seven-segment digits, multimeter, oscilloscope (screen and benchtop), phasor.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
 import { GREY, HIGH_V, RING, glowMat } from './colors'
+import { liveLabel, label } from './text'
 import { UP } from './util'
 
 const SEGMENTS: Record<string, string> = {
@@ -218,13 +219,13 @@ type Plot = ReturnType<typeof scope>
 
 /** Grey tick numbers: under the screen at x fractions, right of it at y fractions. */
 export function ticks(plot: Plot, x: [number, string][], y: [number, string][], size = 0.8) {
-  const label = (text: string, at: V3) => {
+  const tick = (text: string, at: V3) => {
     const d = segmentDisplay(text.replace('.', '').length, size, GREY, true)
     d.set(text)
     add(plot.group, d.group, at)
   }
-  for (const [u, s] of x) label(s, [plot.xAt(u), -plot.height / 2 - 0.3 - size, 0])
-  for (const [v, s] of y) label(s, [plot.width / 2 + 0.7 + size, v * plot.height - plot.height / 2, 0])
+  for (const [u, s] of x) tick(s, [plot.xAt(u), -plot.height / 2 - 0.3 - size, 0])
+  for (const [v, s] of y) tick(s, [plot.width / 2 + 0.7 + size, v * plot.height - plot.height / 2, 0])
 }
 
 /** A plot screen at `at` with zero at the bottom and a glowing operating-point dot; `y(f)` maps 0..1 of full scale. */
@@ -293,6 +294,84 @@ export function clockFace(parent: THREE.Object3D, at: V3, r: number, color: stri
     set(shown: number, truth: number) {
       turn(sets[1], shown)
       turn(sets[0], truth)
+    },
+  }
+}
+
+/** Benchtop DSO facing +z, origin at the screen centre: a `scope()` screen of `w` × `h`, status line above it,
+ *  VOLTS/DIV, TIME/DIV and trigger LEVEL knobs (`knobs.*.set(angle)`), a TRIG'D lamp and BNC inputs (`ch1`, `ch2`). */
+export function benchScope(parent: THREE.Object3D, w = 12.5, h = 10, opts: { divs?: [number, number]; zeroAt?: number } = {}) {
+  const group = add(parent, new THREE.Group())
+  const x0 = -w / 2 - 1.1
+  const x1 = w / 2 + 7.6
+  const top = h / 2 + 2
+  const bottom = -h / 2 - 1.3
+  const cx = (x0 + x1) / 2
+  const cy = (top + bottom) / 2
+  box(group, [x1 - x0 + 0.6, top - bottom + 0.6, 5], mat('#c9cdd4', { rough: 0.6 }), [cx, cy, -3.5])
+  box(group, [x1 - x0, top - bottom, 0.4], mat('#2b2e35', { rough: 0.55 }), [cx, cy, -0.75])
+  for (const fx of [x0 + 1.2, x1 - 1.2]) box(group, [1.6, 0.5, 4], mat('#1c1c1f', { rough: 0.8 }), [fx, bottom - 0.5, -3])
+  const screen = scope(group, w, h, opts)
+  screen.group.position.z = -0.1
+  const status = [
+    liveLabel(group, [-w / 2, h / 2 + 0.9, 0], { size: 0.48, align: 'left' }),
+    liveLabel(group, [-w / 2 + w * 0.36, h / 2 + 0.9, 0], { size: 0.48, align: 'left' }),
+    liveLabel(group, [w / 2, h / 2 + 0.9, 0], { size: 0.48, align: 'right' }),
+  ]
+  const ka = w / 2 + 2.7
+  const kb = w / 2 + 5.6
+  const caption = (s: string, at: V3, color = '#d7dbe2', size = 0.38) => {
+    const m = add(group, label(s, { size, color, glow: 0.4 }), at)
+    m.castShadow = false
+    return m
+  }
+  caption('DSO 1102', [(ka + kb) / 2, top - 0.8, 0], '#e8e8e8', 0.5)
+  const knob = (x: number, y: number, r: number, name: string, ring?: string) => {
+    const g = add(group, new THREE.Group(), [x, y, -0.5])
+    if (ring) cylinder(g, r + 0.25, 0.15, glowMat(ring, 0.5), [0, 0, 0], 'z', 40)
+    cylinder(g, r, 0.9, mat('#1e2024', { rough: 0.45 }), [0, 0, 0.45], 'z', 32)
+    cylinder(g, r * 0.8, 0.12, mat('#3a3d45', { metal: 0.3, rough: 0.35 }), [0, 0, 0.95], 'z', 32)
+    const dial = add(g, new THREE.Group(), [0, 0, 1])
+    box(dial, [0.14, r * 0.6, 0.08], mat('#f4f4f4', { emissive: '#666666' }), [0, r * 0.45, 0.04])
+    caption(name, [x, y - r - 0.55, 0])
+    return { group: g, set: (angle: number) => (dial.rotation.z = -angle) }
+  }
+  const knobs = {
+    volts: knob(ka, h / 2 - 1.6, 1.05, 'VOLTS/DIV', '#ffd84d'),
+    pos: knob(kb, h / 2 - 1.6, 0.6, 'POSITION'),
+    time: knob(ka, -0.4, 1.25, 'TIME/DIV'),
+    level: knob(kb, -0.4, 0.75, 'LEVEL'),
+  }
+  caption('TRIGGER', [kb, 1.3, 0], '#9aa0aa')
+  const lampMat = glowMat(GREY, 0.2)
+  add(group, mesh(new THREE.SphereGeometry(0.22, 12, 8), lampMat), [kb + 1.75, 1.3, -0.3])
+  const button = (x: number, y: number, color: string, name: string) => {
+    box(group, [1.5, 0.75, 0.35], mat(color, { rough: 0.5, emissive: color }), [x, y, -0.4]).castShadow = false
+    caption(name, [x, y - 0.75, 0])
+  }
+  button(ka, -h / 2 + 2.5, '#3c8a4c', 'RUN/STOP')
+  button(kb, -h / 2 + 2.5, '#45484f', 'AUTO')
+  const bnc = (x: number, color: string, name: string): V3 => {
+    const y = -h / 2 + 0.3
+    cylinder(group, 0.75, 0.15, glowMat(color, 0.5), [x, y, -0.5], 'z', 32)
+    cylinder(group, 0.55, 0.9, STEEL(), [x, y, -0.1], 'z', 24)
+    cylinder(group, 0.25, 0.95, mat('#111'), [x, y, -0.05], 'z', 16)
+    caption(name, [x, y - 1.05, 0], color)
+    return [x, y, 0.4]
+  }
+  const ch1 = bnc(ka, '#ffd84d', 'CH1')
+  const ch2 = bnc(kb, '#5ad8e6', 'CH2')
+  return {
+    group,
+    screen,
+    status,
+    knobs,
+    ch1,
+    ch2,
+    lamp(color: string, on: boolean) {
+      lampMat.color.set(on ? color : GREY)
+      lampMat.emissive.set(on ? color : GREY)
+      lampMat.emissiveIntensity = on ? 1.3 : 0.15
     },
   }
 }

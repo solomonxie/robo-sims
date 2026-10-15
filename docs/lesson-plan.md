@@ -15,7 +15,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 `lessons/fx/` (model in brackets):
 - `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`.
-- `colors` — palette (`HEAT`, …), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
+- `colors` — palette (`HEAT`, …), `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label`, `liveLabel` (changing text) [`core/strokeFont`].
 - `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`.
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
@@ -23,7 +23,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `modules` — `tp4056Module`, `dcdcModule` (LM2596/MT3608/XL6009), `sg90Servo` [`physics/power`].
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
 - `electromech` — relay/SSR, switches, pot. `heat`, `flows`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
-- `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `ivScreen`, `phasor`, `clockFace`.
+- `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `benchScope` (DSO: knobs, status, BNC) [`physics/scope`], `ivScreen`, `phasor`, `clockFace`.
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
 - `core/physics/` by domain; `power/` = batteries, packs, charging, converters, budget, wiring, noise, brownout.
@@ -50,7 +50,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Signals:
   - [x] Filters
   - [x] Fourier intuition
-  - [ ] Oscilloscope
+  - [x] Oscilloscope
   - [ ] Logic analyzer
   - [ ] Transmission lines
   - [ ] Radio basics

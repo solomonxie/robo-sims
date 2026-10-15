@@ -66,3 +66,26 @@ export function label(text: string, { size = 1, color = LABEL, glow = 0.9, align
   const material = glow === false ? mat(color) : glowMat(color, glow === true ? 0.9 : glow)
   return mesh(geo, material)
 }
+
+/** A label at `at` whose text (and colour) can change; rebuilds its mesh only when they do. */
+export function liveLabel(parent: THREE.Object3D, at: [number, number, number], opts: LabelOpts = {}) {
+  const group = new THREE.Group()
+  group.position.set(...at)
+  parent.add(group)
+  let key = ''
+  return {
+    group,
+    set(text: string, color = opts.color ?? LABEL) {
+      if (`${text}|${color}` === key) return
+      key = `${text}|${color}`
+      for (const c of [...group.children]) {
+        group.remove(c)
+        if (c instanceof THREE.Mesh) c.geometry.dispose()
+      }
+      if (!text) return
+      const m = label(text, { ...opts, color })
+      m.castShadow = false
+      group.add(m)
+    },
+  }
+}
