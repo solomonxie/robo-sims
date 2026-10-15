@@ -49,7 +49,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Power ✓ 8/8
 - Signals:
   - [x] Filters
-  - [ ] Fourier intuition
+  - [x] Fourier intuition
   - [ ] Oscilloscope
   - [ ] Logic analyzer
   - [ ] Transmission lines

@@ -47,6 +47,7 @@ import { connectorRatings, starGround, voltageDrop } from '../lessons/power/wiri
 import { bulkCapacitors, motorNoise, separateRails } from '../lessons/power/noise-decoupling'
 import { currentSpikes, diagnosingResets } from '../lessons/power/brownouts'
 import { bodePlot, highPass, rcLowPass } from '../lessons/signals/filters'
+import { aliasing, nyquistLimit, spectrum } from '../lessons/signals/fourier-intuition'
 import { Lesson } from '../lessons/types'
 import { electronics } from './electronics'
 import { physics } from './physics'
@@ -221,6 +222,9 @@ const READY: Record<string, Lesson> = {
   'signals/filters/rc-low-pass': rcLowPass,
   'signals/filters/high-pass': highPass,
   'signals/filters/bode-plot': bodePlot,
+  'signals/fourier-intuition/spectrum': spectrum,
+  'signals/fourier-intuition/aliasing': aliasing,
+  'signals/fourier-intuition/nyquist': nyquistLimit,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
