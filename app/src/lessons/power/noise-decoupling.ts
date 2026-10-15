@@ -3,7 +3,7 @@ import { CAPS, Cap, Rail, bankOhms, decibels, lcCutoff, lcGain, noiseCounts, pea
 import { si, volts } from '../../core/units'
 import { buildEsp32, buildL298n } from '../../models/modules'
 import { buildCeramicCap, buildElectrolyticCap } from '../../models/passives'
-import { V3, add, mesh, tube } from '../../models/kit'
+import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -13,6 +13,7 @@ import {
   POWER,
   RING,
   arcSpark,
+  cableRun,
   cellPackModel,
   ceramicAlong,
   dcdcModule,
@@ -21,11 +22,13 @@ import {
   glowBox,
   label,
   lane,
+  lieFlat,
   motorCan,
   plusFlow,
   presence,
   pulseLabel,
   scope,
+  standUp,
   ticks,
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
@@ -41,7 +44,6 @@ const BINS = 260
 const PLAY_S = 6
 const HEAT = '#ff9a4d'
 const SPARK = '#cfe3ff'
-const RED_INS = '#d8322c'
 const mV = (v: number) => `${Math.round(v * 1000)} mV`
 
 const wireRail = (caps: Cap[]): Rail => ({ vs: V_RAIL, ohms: 0.05, henries: 0.5e-6, stray: 47e-9, caps })
@@ -55,26 +57,6 @@ const edgeSpike = (t: number, amps: number) => {
 const span = (v: number[]) => Math.max(...v) - Math.min(...v)
 /** ADC jitter for a 5 V sensor divided by 2 into the 3.3 V, 12-bit ADC: the rail's p-p rides on its output. */
 const jitter = (pp: number) => noiseCounts(pp / 2, 3.3, 12)
-
-function run(parent: THREE.Object3D, points: V3[], color = RED_INS, r = 0.16) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.55 })
-  for (let i = 0; i < points.length - 1; i++) tube(parent, [points[i], points[i + 1]], r, m, 4)
-  for (let i = 1; i < points.length - 1; i++) add(parent, mesh(new THREE.SphereGeometry(r, 12, 8), m), points[i])
-}
-
-const flat = (o: THREE.Object3D, k = 0.22) => {
-  o.scale.setScalar(k)
-  o.rotation.x = Math.PI / 2
-  return o
-}
-
-/** A cap model standing on (or hanging from) a horizontal wire at `at`, `k` × real. */
-function standing(parent: THREE.Object3D, part: THREE.Group, at: V3, k: number, hang = false) {
-  const g = add(parent, new THREE.Group(), at)
-  g.rotation.z = hang ? Math.PI : 0
-  add(g, part, [0, 1.5 * k, 0]).scale.setScalar(k)
-  return g
-}
 
 /** Scope with `lines` traces over one window, a brownout line and a sim-time counter; `frame(dt)` sweeps a dot along them. */
 function railScope(scene: THREE.Object3D, at: V3, w: number, h: number, lo: number, hi: number, colors: string[], title: string, tickVolts: number[]) {
@@ -115,9 +97,9 @@ function bench(scene: THREE.Object3D) {
   const MOT: V3 = [12, 3.6, 0]
   const buck = dcdcModule(scene, [-13.6, 2.8, 0], 'lm2596', 0.2)
   add(scene, label('5 V BUCK', { size: 0.5, color: LABEL }), [-13.6, 5.6, 0])
-  flat(add(scene, buildEsp32(), ESP))
+  lieFlat(add(scene, buildEsp32(), ESP))
   add(scene, label('ESP32', { size: 0.5, color: B_FIELD }), [ESP[0], ESP[1] - 2.4, 0])
-  flat(add(scene, buildL298n(), DRV))
+  lieFlat(add(scene, buildL298n(), DRV))
   add(scene, label('L298N', { size: 0.5, color: HEAT, align: 'left' }), [DRV[0] - 0.4, DRV[1] + 3.2, 0])
   const motor = motorCan(scene, MOT, { r: 1.9, legs: 0.6 })
   const pins = motor.pins.map((q): V3 => [q[0], q[1], 0])
@@ -125,12 +107,12 @@ function bench(scene: THREE.Object3D) {
   const espV: V3 = [ESP[0] - 0.8, ESP[1] + 1.4, 0]
   const drvV: V3 = [DRV[0] - 1.2, DRV[1] + 2.2, 0]
   const feed: V3[] = [out, [out[0] + 1, out[1], 0], [out[0] + 1, RAIL_Y, 0], [drvV[0], RAIL_Y, 0], drvV]
-  run(scene, feed)
-  run(scene, [[espV[0], RAIL_Y, 0], espV])
+  cableRun(scene, feed)
+  cableRun(scene, [[espV[0], RAIL_Y, 0], espV])
   const drvOut: V3 = [DRV[0] + 2, DRV[1] + 0.2, 0]
   const [lowA, lowB] = [pins[0][1] - 1.4, pins[0][1] - 2.2]
-  run(scene, [drvOut, [drvOut[0] + 0.8, drvOut[1], 0], [drvOut[0] + 0.8, lowA, 0], [pins[0][0], lowA, 0], pins[0]], '#e0e0e0', 0.12)
-  run(scene, [[drvOut[0], drvOut[1] - 0.8, 0], [drvOut[0] + 0.3, drvOut[1] - 0.8, 0], [drvOut[0] + 0.3, lowB, 0], [pins[1][0], lowB, 0], pins[1]], '#e0e0e0', 0.12)
+  cableRun(scene, [drvOut, [drvOut[0] + 0.8, drvOut[1], 0], [drvOut[0] + 0.8, lowA, 0], [pins[0][0], lowA, 0], pins[0]], '#e0e0e0', 0.12)
+  cableRun(scene, [[drvOut[0], drvOut[1] - 0.8, 0], [drvOut[0] + 0.3, drvOut[1] - 0.8, 0], [drvOut[0] + 0.3, lowB, 0], [pins[1][0], lowB, 0], pins[1]], '#e0e0e0', 0.12)
   const flow = plusFlow(scene, lane(feed, 0.5), () => 1)
   const { m: resetMat } = glowBox(scene, [5.4, 3.8, 0.4], [ESP[0], ESP[1], 1], HIGH_V, 0)
   const resetText = add(scene, label('RESET', { size: 0.8, color: '#ffffff' }), [ESP[0], ESP[1], 1.4])
@@ -315,8 +297,8 @@ export const bulkCapacitors: Lesson = {
     const scene = createStage({ span: 22 })
     const b = bench(scene)
     const x0 = b.DRV[0] - 5.6
-    const bulk = standing(scene, buildElectrolyticCap(), [x0, b.RAIL_Y - 0.1, 0], 0.7, true)
-    const cer = standing(scene, buildCeramicCap(), [x0 + 2.2, b.RAIL_Y - 0.1, 0], 0.7, true)
+    const bulk = standUp(scene, buildElectrolyticCap(), [x0, b.RAIL_Y - 0.1, 0], 0.7, true)
+    const cer = standUp(scene, buildCeramicCap(), [x0 + 2.2, b.RAIL_Y - 0.1, 0], 0.7, true)
     const bulkText = add(scene, label('470 µF', { size: 0.42, color: POWER, align: 'right' }), [x0 - 1.1, b.RAIL_Y - 2.6, 0])
     const cerText = add(scene, label('100 NF', { size: 0.42, color: POWER }), [x0 + 2.2, b.RAIL_Y - 4.6, 0])
     const sc = railScope(scene, [-1, -7.6, 0], 24, 5, 1.5, 7.5, [B_FIELD], 'RAIL AT THE DRIVER', [2, 3.5, 5, 6.5])
@@ -441,47 +423,47 @@ export const separateRails: Lesson = {
     const mBuck = dcdcModule(scene, [-9.6, 5.4, 0], 'lm2596', 0.18)
     add(scene, label('MOTOR BUCK', { size: 0.42, color: HEAT }), [-9.6, 8, 0])
     const inX = mBuck.pins.inP[0] - 1
-    run(scene, [plus, [plus[0], RAIL_Y + 1.4, 0], [inX, RAIL_Y + 1.4, 0], [inX, mBuck.pins.inP[1], 0], mBuck.pins.inP])
+    cableRun(scene, [plus, [plus[0], RAIL_Y + 1.4, 0], [inX, RAIL_Y + 1.4, 0], [inX, mBuck.pins.inP[1], 0], mBuck.pins.inP])
     const ESP: V3 = [3.4, -0.8, 0]
     const DRV: V3 = [6.6, 4.4, 0]
     const MOT: V3 = [13, 5.2, 0]
-    flat(add(scene, buildL298n(), DRV))
+    lieFlat(add(scene, buildL298n(), DRV))
     add(scene, label('L298N', { size: 0.45, color: HEAT, align: 'left' }), [DRV[0] + 2.6, DRV[1] + 2.2, 0])
     const motor = motorCan(scene, MOT, { r: 1.3, legs: 0.5 })
-    run(scene, [[DRV[0] + 2, DRV[1] + 0.2, 0], [MOT[0] - 1.6, DRV[1] + 0.2, 0]], '#e0e0e0', 0.12)
-    flat(add(scene, buildEsp32(), ESP))
+    cableRun(scene, [[DRV[0] + 2, DRV[1] + 0.2, 0], [MOT[0] - 1.6, DRV[1] + 0.2, 0]], '#e0e0e0', 0.12)
+    lieFlat(add(scene, buildEsp32(), ESP))
     add(scene, label('ESP32', { size: 0.45, color: B_FIELD, align: 'left' }), [ESP[0] + 2.8, ESP[1], 0])
     const out = mBuck.pins.outP
     const drvV: V3 = [DRV[0] - 1.2, DRV[1] + 2.2, 0]
     const motorFeed: V3[] = [out, [out[0] + 0.8, out[1], 0], [out[0] + 0.8, RAIL_Y, 0], [drvV[0], RAIL_Y, 0], drvV]
-    run(scene, motorFeed)
+    cableRun(scene, motorFeed)
     const espV: V3 = [ESP[0] - 0.8, ESP[1] + 1.4, 0]
     const TAP_X = -2.6
     const LOGIC_Y = 2.2
 
     const shared = add(scene, new THREE.Group())
     const sharedFeed: V3[] = [[TAP_X, RAIL_Y, 0], [TAP_X, LOGIC_Y, 0], [espV[0], LOGIC_Y, 0], espV]
-    run(shared, sharedFeed)
+    cableRun(shared, sharedFeed)
 
     const lc = add(scene, new THREE.Group())
     const coilAt: V3 = [TAP_X, 5, 0.4]
-    run(lc, [[TAP_X, RAIL_Y, 0], [TAP_X, coilAt[1] + 1, 0]])
-    run(lc, [[TAP_X, coilAt[1] - 1, 0], ...sharedFeed.slice(1)])
+    cableRun(lc, [[TAP_X, RAIL_Y, 0], [TAP_X, coilAt[1] + 1, 0]])
+    cableRun(lc, [[TAP_X, coilAt[1] - 1, 0], ...sharedFeed.slice(1)])
     const coil = add(lc, new THREE.Group(), coilAt)
     add(coil, mesh(new THREE.TorusGeometry(0.85, 0.42, 14, 40), new THREE.MeshStandardMaterial({ color: '#c8803f', metalness: 0.35, roughness: 0.4 })))
     add(lc, label('10 µH', { size: 0.4, color: LABEL, align: 'right' }), [TAP_X - 1.6, coilAt[1], 0])
-    standing(lc, buildElectrolyticCap(), [TAP_X + 1.6, LOGIC_Y, 0], 0.5)
-    standing(lc, buildCeramicCap(), [TAP_X + 3.4, LOGIC_Y, 0], 0.5)
+    standUp(lc, buildElectrolyticCap(), [TAP_X + 1.6, LOGIC_Y, 0], 0.5)
+    standUp(lc, buildCeramicCap(), [TAP_X + 3.4, LOGIC_Y, 0], 0.5)
     add(lc, label('100 µF + 100 NF', { size: 0.36, color: LABEL }), [TAP_X + 2.4, LOGIC_Y - 1, 0])
 
     const sep = add(scene, new THREE.Group())
     const lBuck = dcdcModule(sep, [-9.6, -0.8, 0], 'lm2596', 0.18)
     add(sep, label('LOGIC BUCK', { size: 0.42, color: B_FIELD }), [-9.6, 1.9, 0])
     const j: V3 = [plus[0], plus[1] + 0.8, 0]
-    run(sep, [j, [inX - 0.6, j[1], 0], [inX - 0.6, lBuck.pins.inP[1], 0], lBuck.pins.inP])
+    cableRun(sep, [j, [inX - 0.6, j[1], 0], [inX - 0.6, lBuck.pins.inP[1], 0], lBuck.pins.inP])
     const lo = lBuck.pins.outP
     const sepFeed: V3[] = [lo, [lo[0] + 0.8, lo[1], 0], [lo[0] + 0.8, LOGIC_Y, 0], [espV[0], LOGIC_Y, 0], espV]
-    run(sep, sepFeed)
+    cableRun(sep, sepFeed)
 
     const motorFlow = plusFlow(scene, lane(motorFeed, 0.5), () => 1)
     const flows = { shared: plusFlow(shared, lane(sharedFeed, 0.5), () => 1), lc: plusFlow(lc, lane(sharedFeed.slice(1), 0.5), () => 1), separate: plusFlow(sep, lane(sepFeed, 0.5), () => 1) }

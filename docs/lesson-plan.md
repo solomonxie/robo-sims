@@ -18,7 +18,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `colors` — palette, `glowMat`, `potentialColor`. `shapes` — `arrow`, `plusGeometry`, `glowBox`. `text` — `label` [`core/strokeFont`].
 - `cells` — `cellCutaway` (electrodes, separator, shuttling ions), `cell18650`, `nickelStrip` (weld sparks), `cellPackModel` (SxP zig-zag pack) [`physics/batteries`, `physics/packs`].
 - `heat`, `flows`, `crystal`, `dies` [`semiconductors`, `memory`], `fields` [`core/fields`], `plots`, `story` (stepped lessons).
-- `circuit` — cells, sources, `wire`/`lane`, R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
+- `circuit` — cells, sources, `wire`/`lane`, `cableRun` (hookup wire), `lieFlat`/`standUp` (board/part poses), R/D/LED, switches, `icPackage`, ground, op-amp symbol; layout consts.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `sg90Servo`, `tp4056Module` [`physics/charging`], `dcdcModule` (LM2596/MT3608/XL6009) [`physics/converters`], `partLetter`. `electromech` — relay/SSR, switches, pot.
 - `displays` — `segmentDisplay`, `pulseLabel`, meter/probe, `scope`, `ivScreen`, `phasor`, `clockFace`.
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet` (`Net` schematic), `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`, `core/numbers`].
@@ -51,7 +51,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Power budget
   - [x] Wiring & gauge
   - [x] Noise & decoupling
-  - [ ] Brownouts
+  - [x] Brownouts
 - Signals:
   - [ ] Filters
   - [ ] Fourier intuition

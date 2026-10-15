@@ -1,6 +1,6 @@
 // Circuit parts: cells, wires, resistors, nodes, sources.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL } from '../../models/kit'
+import { V3, add, box, cylinder, lead, mat, mesh, rod, STEEL, tube } from '../../models/kit'
 import { buildLed, resistorBody } from '../../models/passives'
 import { Helix } from '../../models/power'
 import { COPPER, CONVENTIONAL, HIGH_V, LOW_V, POWER, RING, glowMat, potentialColor } from './colors'
@@ -579,4 +579,26 @@ export function opAmpSymbol(parent: THREE.Object3D, at: V3, { size = 4.4, lead: 
       tint(nDot, n)
     },
   }
+}
+
+/** Insulated hookup wire through `points`, rounded at the bends. */
+export function cableRun(parent: THREE.Object3D, points: V3[], color = '#d8322c', r = 0.16) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.55 })
+  for (let i = 0; i < points.length - 1; i++) tube(parent, [points[i], points[i + 1]], r, m, 4)
+  for (let i = 1; i < points.length - 1; i++) add(parent, mesh(new THREE.SphereGeometry(r, 12, 8), m), points[i])
+}
+
+/** A board model laid face-up toward the camera at `k` × real. */
+export const lieFlat = (o: THREE.Object3D, k = 0.22) => {
+  o.scale.setScalar(k)
+  o.rotation.x = Math.PI / 2
+  return o
+}
+
+/** A part model standing on (or hanging from) a horizontal wire at `at`, `k` × real. */
+export function standUp(parent: THREE.Object3D, part: THREE.Group, at: V3, k: number, hang = false) {
+  const g = add(parent, new THREE.Group(), at)
+  g.rotation.z = hang ? Math.PI : 0
+  add(g, part, [0, 1.5 * k, 0]).scale.setScalar(k)
+  return g
 }
