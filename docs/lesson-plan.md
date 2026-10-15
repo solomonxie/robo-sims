@@ -31,7 +31,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Pacing
 
 - Serial: one agent at a time; next starts only after the last finishes.
-- Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 15 for one agent (< 10 for two). Else wait for the hourly check.
+- Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 25 for one agent (raised from 15: background load from other apps sat at ~20 for hours; agent work is niced) (< 10 for two). Else wait for the hourly check.
 - After each section (category) is done: one cleanup agent before the next topic — split/dedupe shared code (`lessons/fx/`, `core/`), drop dead code, compact this file and `DESIGN.md`. No behaviour change.
 - Hourly check: read git log + this file, check load; speed up (2 agents in parallel, on different categories) only if the Mac is idle and the last runs were clean; pause on red tests or overload.
 - Builds/tests run with `nice -n 10`.
