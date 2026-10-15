@@ -77,6 +77,7 @@ import { pointClouds, rangeAndResolution, scan2d } from '../lessons/sensors/lida
 import { countsPerRevolution, quadrature, speedFromTicks } from '../lessons/sensors/encoder'
 import { accelerometer, complementaryFilter, drift, gyroscope } from '../lessons/sensors/imu'
 import { hardIronCalibration, heading } from '../lessons/sensors/magnetometer'
+import { fixAndAccuracy, rtk, trilateration } from '../lessons/sensors/gps'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -335,6 +336,9 @@ const READY: Record<string, Lesson> = {
   'sensors/imu/drift': drift,
   'sensors/magnetometer/heading': heading,
   'sensors/magnetometer/hard-iron-calibration': hardIronCalibration,
+  'sensors/gps/trilateration': trilateration,
+  'sensors/gps/fix-and-accuracy': fixAndAccuracy,
+  'sensors/gps/rtk': rtk,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
