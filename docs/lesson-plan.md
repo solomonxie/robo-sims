@@ -41,7 +41,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — `gpio` pads/pulls/polling; `pwm` LEDC/ripple/servo; `adc` SAR/noise/attenuation; `dac` R-2R/tones/reconstruction; `timers` alarms/ISRs/millis; `uart` framing/links/NMEA; `i2c` addresses/pull-ups/MPU-6050; `spi` shift ring/MISO/TFT+SD; `can` link/arbitration/frames; `wireless` Wi-Fi/HTTP vs WS/BLE/ESP-NOW; `sleep` domains/wake/battery years; `memory` partitions/stack+heap/flash wear; `rtos` two-core tick scheduler; `boot` straps/esptool/OTA.
-- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering; `lidar` RPLIDAR scan/de-skew, glass/mirror/black returns, VLP-16 cloud + clustering.
+- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering; `lidar` RPLIDAR scan/de-skew, glass/mirror/black returns, VLP-16 cloud + clustering; `encoder` quadrature/Gray-code ISR, CPR × gear → mm/tick, window vs period speed, diff-drive `odoStep`.
 - `room.ts` — walled rooms (boxes, posts), `castRoom` ray cast with normals, `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
@@ -68,7 +68,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Infrared
   - [x] Time-of-flight laser
   - [x] LiDAR
-  - [ ] Encoder
+  - [x] Encoder
   - [ ] IMU
   - [ ] Magnetometer
   - [ ] GPS

@@ -74,6 +74,7 @@ import { beamAngle, softTargetErrors, timeOfFlight } from '../lessons/sensors/ul
 import { lineFollower, obstacleSensor, sunlightInterference } from '../lessons/sensors/infrared'
 import { multiZoneRanging, vl53l0x } from '../lessons/sensors/time-of-flight-laser'
 import { pointClouds, rangeAndResolution, scan2d } from '../lessons/sensors/lidar'
+import { countsPerRevolution, quadrature, speedFromTicks } from '../lessons/sensors/encoder'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -323,6 +324,9 @@ const READY: Record<string, Lesson> = {
   'sensors/lidar/2d-scan': scan2d,
   'sensors/lidar/point-clouds': pointClouds,
   'sensors/lidar/resolution-and-range': rangeAndResolution,
+  'sensors/encoder/quadrature': quadrature,
+  'sensors/encoder/counts-per-revolution': countsPerRevolution,
+  'sensors/encoder/speed-from-ticks': speedFromTicks,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
