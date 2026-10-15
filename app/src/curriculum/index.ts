@@ -82,6 +82,7 @@ import { exposure, lensDistortion, rollingVsGlobalShutter } from '../lessons/sen
 import { oneWireProtocol, thermistorCurve } from '../lessons/sensors/temperature-humidity'
 import { ina219, shuntResistor, stateOfCharge } from '../lessons/sensors/current-voltage-sensing'
 import { capacitiveTouch, strainGauge } from '../lessons/sensors/force-touch'
+import { memsMic, soundSourceDirection } from '../lessons/sensors/microphone-sound'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -353,6 +354,8 @@ const READY: Record<string, Lesson> = {
   'sensors/current-voltage-sensing/state-of-charge': stateOfCharge,
   'sensors/force-touch/strain-gauge': strainGauge,
   'sensors/force-touch/capacitive-touch': capacitiveTouch,
+  'sensors/microphone-sound/mems-mic': memsMic,
+  'sensors/microphone-sound/sound-source-direction': soundSourceDirection,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
