@@ -67,6 +67,7 @@ import { chipSelect, clockModes, sdCardsAndDisplays } from '../lessons/microcont
 import { arbitration, differentialSignalling } from '../lessons/microcontrollers/can-bus'
 import { bleGatt, espNow, httpAndWebSocket, stationAndAp } from '../lessons/microcontrollers/wifi-bluetooth'
 import { batteryBudget, deepSleep, wakeSources } from '../lessons/microcontrollers/power-modes'
+import { flashLayout, littleFs, stackAndHeap } from '../lessons/microcontrollers/memory-storage'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -297,6 +298,9 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/power-modes/deep-sleep': deepSleep,
   'microcontrollers/power-modes/wake-sources': wakeSources,
   'microcontrollers/power-modes/battery-budget': batteryBudget,
+  'microcontrollers/memory-storage/flash-layout': flashLayout,
+  'microcontrollers/memory-storage/stack-and-heap': stackAndHeap,
+  'microcontrollers/memory-storage/littlefs': littleFs,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

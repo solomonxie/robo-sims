@@ -66,3 +66,5 @@ export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 6
 export const spanText = (h: number) => (h < 48 ? hoursText(h) : h < 24 * 365 ? `${Math.round(h / 24)} days` : `${+(h / 8766).toFixed(1)} years`)
 
 export const tiny = (x: number, eps: number) => (Math.abs(x) < eps ? 0 : x)
+/** Binary sizes: 512 B, 20 KB, 1.25 MB. */
+export const bytesText = (b: number) => (b >= 1048576 ? `${+(b / 1048576).toFixed(3)} MB` : b >= 1024 ? `${+(b / 1024).toFixed(1)} KB` : `${Math.round(b)} B`)

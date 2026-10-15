@@ -1,4 +1,4 @@
-import { amps, fitDigits, hoursText, joules, spanText, mA, millivolts, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
+import { amps, bytesText, fitDigits, hoursText, joules, spanText, mA, millivolts, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
 
 describe('units', () => {
   it('formats with SI prefixes and scientific notation', () => {
@@ -42,5 +42,11 @@ describe('units', () => {
     expect(niceCeil(2)).toBe(2)
     expect(niceCeil(0.0011)).toBeCloseTo(0.002, 12)
     expect(niceCeil(0)).toBe(0)
+  })
+  it('formats binary sizes', () => {
+    expect(bytesText(512)).toBe('512 B')
+    expect(bytesText(0x5000)).toBe('20 KB')
+    expect(bytesText(0x140000)).toBe('1.25 MB')
+    expect(bytesText(0x160000)).toBe('1.375 MB')
   })
 })
