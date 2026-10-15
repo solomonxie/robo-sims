@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -46,6 +46,18 @@ describe('strokeFont', () => {
     const le = layoutText('≤').lines[0]
     expect(ge[1][0]).toBeGreaterThan(ge[0][0])
     expect(le[1][0]).toBeLessThan(le[0][0])
+  })
+
+  it('points arrows the right way and tells ✓ from ✗', () => {
+    const [up] = layoutText('↑').lines
+    const [down] = layoutText('↓').lines
+    expect(up[1][1]).toBeGreaterThan(up[0][1])
+    expect(down[1][1]).toBeLessThan(down[0][1])
+    const [left] = layoutText('←').lines
+    expect(left[1][0]).toBeLessThan(left[0][0])
+    expect(layoutText('✓').lines.length).toBe(1)
+    expect(layoutText('✗').lines.length).toBe(2)
+    expect(layoutText('⚡').lines[0].length).toBe(4)
   })
 
   it('covers every printable ASCII character and dashes', () => {
