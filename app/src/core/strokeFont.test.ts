@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -48,8 +48,13 @@ describe('strokeFont', () => {
     expect(le[1][0]).toBeLessThan(le[0][0])
   })
 
+  it('covers every printable ASCII character and dashes', () => {
+    const ascii = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i))
+    for (const ch of [...ascii, '–', '—']) expect(hasGlyph(ch)).toBe(true)
+  })
+
   it('renders unknown characters as a gap', () => {
-    expect(layoutText('~').lines).toEqual([])
-    expect(layoutText('A~A').width).toBeGreaterThan(layoutText('AA').width)
+    expect(layoutText('¤').lines).toEqual([])
+    expect(layoutText('A¤A').width).toBeGreaterThan(layoutText('AA').width)
   })
 })
