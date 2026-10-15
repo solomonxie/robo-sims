@@ -159,7 +159,8 @@ const GLYPHS: Record<string, Glyph> = {
   '@': g(5.4, ring(2.6, 2.9, 1.1, 1.3), [[3.7, 4.2], [3.7, 1.9], ...arc(4.3, 1.9, 0.6, 0.6, 180, 360), ...arc(2.7, 3, 2.6, 3, 10, 300)]),
 }
 GLYPHS['μ'] = GLYPHS['µ']
-GLYPHS['²'] = g(GLYPHS['2'].w * 0.55, ...GLYPHS['2'].lines.map((l) => l.map(([x, y]): Pt => [x * 0.55, 3.4 + y * 0.43])))
+const sup = (base: string) => g(GLYPHS[base].w * 0.55, ...GLYPHS[base].lines.map((l) => l.map(([x, y]): Pt => [x * 0.55, 3.4 + y * 0.43])))
+for (const [ch, base] of [['²', '2'], ['¹', '1'], ['³', '3'], ['⁺', '+'], ['⁻', '-']]) GLYPHS[ch] = sup(base)
 
 export const hasGlyph = (ch: string) => ch in GLYPHS || OVERBARS.has(ch)
 

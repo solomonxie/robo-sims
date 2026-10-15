@@ -428,7 +428,7 @@ export const exposure: Lesson = {
           noisy && dark ? 'Too little light: dark and noisy' : noisy ? 'Gain brightened the noise along with the image' : blurry ? 'Long exposure: the moving robot smears' : dark ? 'Clean but dark: add gain or time' : fair ? 'Dim-room compromise: a little blur, a little noise' : 'Enough light and little blur',
           noisy || blurry ? HIGH_V : dark || fair ? HEAT : POWER,
         )
-        text.b.set(`wall pixel ${Math.round(S.e)} e- · SNR ${S.snr.toFixed(0)} dB · value ${S.dn}`, noisy ? HIGH_V : S.snr < SNR_OK ? HEAT : LABEL)
+        text.b.set(`wall pixel ${Math.round(S.e)} e⁻ · SNR ${S.snr.toFixed(0)} dB · value ${S.dn}`, noisy ? HIGH_V : S.snr < SNR_OK ? HEAT : LABEL)
         text.c.set(`robot ${EXPO.speed} px/s × ${ms(S.t)} = ${S.blur.toFixed(S.blur < 10 ? 1 : 0)} px of blur`, blurry ? HIGH_V : S.blur > BLUR_OK ? HEAT : POWER)
         text.status.set(`robot slowed ${EXPO.slow}× · ${EXPO.fps} new frames/s shown · noise redrawn each frame`, GREY)
       },

@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡‘’“”'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓✓✗⚡‘’“”'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -37,6 +37,14 @@ describe('strokeFont', () => {
     const [[x0, y], [x1]] = bar.lines.at(-1)!
     expect(y).toBeGreaterThan(1)
     expect([x0, x1]).toEqual([0, plain.width])
+  })
+
+  it('raises superscripts above the x-height', () => {
+    for (const ch of '¹²³⁺⁻') {
+      const ys = layoutText(ch).lines.flat().map(([, y]) => y)
+      expect(Math.min(...ys)).toBeGreaterThan(0.5)
+    }
+    expect(layoutText('e⁻').width).toBeLessThan(layoutText('e-').width)
   })
 
   it('draws math symbols as distinct strokes', () => {
