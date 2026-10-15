@@ -59,7 +59,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] PWM
   - [x] ADC
   - [x] DAC
-  - [ ] Timers & interrupts
+  - [x] Timers & interrupts
   - [ ] UART serial
   - [ ] I²C
   - [ ] SPI
