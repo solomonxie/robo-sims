@@ -545,7 +545,7 @@ export const readingAnImu: Lesson = {
   formula: (p) => {
     const S = imuSetup(p)
     const r = imuReadout(p)
-    return `ax = (AX_H << 8 | AX_L) as int16 / 16384 LSB/g · gyro / 131 LSB per °/s · pitch = atan2(−ax, √(ay² + az²)) · 2 + 1 + 14 bytes + ACKs = ${secs(r.s.duration)} at ${S.hzKey} kHz · bus slowed ${Math.round(IMU_REVEAL / r.s.duration).toLocaleString('en')}×, the rocking is not`
+    return `ax = (AX_H << 8 | AX_L) as int16 / 16384 LSB/g · gyro / 131 LSB per °/s · pitch = atan2(ax, √(ay² + az²)) · 2 + 1 + 14 bytes + ACKs = ${secs(r.s.duration)} at ${S.hzKey} kHz · bus slowed ${Math.round(IMU_REVEAL / r.s.duration).toLocaleString('en')}×, the rocking is not`
   },
   legend: [
     { color: DATA_COLOR, label: 'ESP32 sends: address, register 0x3B', shape: 'dot' },
@@ -559,7 +559,7 @@ export const readingAnImu: Lesson = {
     'The MPU-6050 keeps accel X/Y/Z, temperature and gyro X/Y/Z at 0x3B–0x48: 14 bytes, high byte first. One burst gets all of them from the same instant.',
     'Between the write and the read the ESP32 sends a repeated START (Sr) instead of STOP, so no other master can grab the bus. In Arduino that is endTransmission(false).',
     'The master ACKs every byte it wants more of and NACKs the last one, then STOP. Each pair joins into a signed 16-bit number: ±2 g = ±32768, so 1 g = 16384.',
-    'Tilt the board and gravity leaks from Z into X: ax = −sin(pitch). The gyro reads how fast it turns (°/s), not where it is.',
+    'Tilt the board and gravity leaks from Z into X: ax = sin(pitch), nose up = positive. The gyro reads how fast it turns (°/s), not where it is.',
     'Before the first read, write 0 to PWR_MGMT_1 (0x6B) to wake the chip; it powers up asleep and returns zeros.',
   ],
   controls: [
