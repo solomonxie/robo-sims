@@ -94,6 +94,7 @@ import { blackboard, sequenceAndFallback } from '../lessons/software/behaviour-t
 import { plottingLiveData, replayLogs } from '../lessons/software/telemetry-logging'
 import { joystickOverBle, latency, webSocketControl } from '../lessons/software/remote-control'
 import { eStop, faultStates, watchdog } from '../lessons/software/safety-failsafes'
+import { backEmfLesson, gearboxes, stallCurrent, torqueAndSpeedCurve } from '../lessons/actuators/dc-motor'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -394,6 +395,10 @@ const READY: Record<string, Lesson> = {
   'software/safety-failsafes/watchdog': watchdog,
   'software/safety-failsafes/e-stop': eStop,
   'software/safety-failsafes/fault-states': faultStates,
+  'actuators/dc-motor/back-emf': backEmfLesson,
+  'actuators/dc-motor/torque-and-speed-curve': torqueAndSpeedCurve,
+  'actuators/dc-motor/stall-current': stallCurrent,
+  'actuators/dc-motor/gearboxes': gearboxes,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
