@@ -9,6 +9,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
+- Robot frames: body X forward, Y left, Z up; pitch > 0 = nose up; heading clockwise from north (`tiltAccel`, `bodyAccel`, `toBody`).
 - Time-lapse: step tested fns, reset on control change, show sim time, ≤ 4 readouts, state the slow-down factor. Fields: retrace only on input change, log-scale decades, forces in screen plane.
 - Preview: `make preview LESSON=<id>` → `/tmp/<id>.png`; params/frames: `cd app && node tools/preview/shoot.mjs <id> <png> params='{"k":v}' frames=N`.
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
@@ -41,7 +42,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — `gpio` pads/pulls/polling; `pwm` LEDC/ripple/servo; `adc` SAR/noise/attenuation; `dac` R-2R/tones/reconstruction; `timers` alarms/ISRs/millis; `uart` framing/links/NMEA; `i2c` addresses/pull-ups/MPU-6050; `spi` shift ring/MISO/TFT+SD; `can` link/arbitration/frames; `wireless` Wi-Fi/HTTP vs WS/BLE/ESP-NOW; `sleep` domains/wake/battery years; `memory` partitions/stack+heap/flash wear; `rtos` two-core tick scheduler; `boot` straps/esptool/OTA.
-- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering; `lidar` RPLIDAR scan/de-skew, glass/mirror/black returns, VLP-16 cloud + clustering; `encoder` quadrature/Gray-code ISR, CPR × gear → mm/tick, window vs period speed, diff-drive `odoStep`; `imu` specific force/proof mass, Coriolis + range clipping, complementary filter + `balanceRun`, ZRO tempco/calibration drift.
+- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering; `lidar` RPLIDAR scan/de-skew, glass/mirror/black returns, VLP-16 cloud + clustering; `encoder` quadrature/Gray-code ISR, CPR × gear → mm/tick, window vs period speed, diff-drive `odoStep`; `imu` specific force/proof mass, Coriolis + range clipping, complementary filter + `balanceRun`, ZRO tempco/calibration drift; `magnetometer` Earth field/`toBody`, atan2 + tilt-comp heading, declination, hard-iron circle/sphere fit.
 - `room.ts` — walled rooms (boxes, posts), `castRoom` ray cast with normals, `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
@@ -70,7 +71,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] LiDAR
   - [x] Encoder
   - [x] IMU
-  - [ ] Magnetometer
+  - [x] Magnetometer
   - [ ] GPS
   - [ ] Camera
   - [ ] Temperature & humidity

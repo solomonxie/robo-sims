@@ -76,6 +76,7 @@ import { multiZoneRanging, vl53l0x } from '../lessons/sensors/time-of-flight-las
 import { pointClouds, rangeAndResolution, scan2d } from '../lessons/sensors/lidar'
 import { countsPerRevolution, quadrature, speedFromTicks } from '../lessons/sensors/encoder'
 import { accelerometer, complementaryFilter, drift, gyroscope } from '../lessons/sensors/imu'
+import { hardIronCalibration, heading } from '../lessons/sensors/magnetometer'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -332,6 +333,8 @@ const READY: Record<string, Lesson> = {
   'sensors/imu/gyroscope': gyroscope,
   'sensors/imu/complementary-filter': complementaryFilter,
   'sensors/imu/drift': drift,
+  'sensors/magnetometer/heading': heading,
+  'sensors/magnetometer/hard-iron-calibration': hardIronCalibration,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
