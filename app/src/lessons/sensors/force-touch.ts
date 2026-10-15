@@ -71,7 +71,7 @@ function scaleSetup(p: Params) {
 type ScaleSetup = ReturnType<typeof scaleSetup>
 
 const uV = (v: number) => si(v, 'V', 3)
-const microStrain = (e: number) => `${Math.round(e * 1e6)} µm/m`
+const microStrain = (e: number) => `${Math.round(e * 1e6)} µε`
 const gramsText = (g: number) => `${g.toFixed(Math.abs(g) < 100 ? 2 : 1)} g`
 const shown = (S: ScaleSetup, raw: number) => (S.step === 'raw' ? raw : S.step === 'tare' ? raw - S.rawTare : toGrams(raw, S.rawTare, S.factor))
 const shownText = (S: ScaleSetup, raw: number) => (S.step === 'cal' ? gramsText(shown(S, raw)) : `${Math.round(shown(S, raw))} counts`)
@@ -331,7 +331,7 @@ export const strainGauge: Lesson = {
         const last = s.hist[s.hist.length - 1]
         const tone = S.step === 'raw' ? HEAT : S.step === 'tare' ? RING : S.bridge === 'quarter' && Math.abs(S.read - S.grams) > 0.05 ? HEAT : POWER
         text.a.set(strainHeadline(S), tone)
-        text.b.set(`${microStrain(S.now.strain)} → R4 ${si(S.now.delta, 'Ω', 3)} → ${uV(S.now.out)} → raw ${S.now.code}`, LABEL)
+        text.b.set(`ε ${microStrain(S.now.strain)} (µm/m) → R4 ${si(S.now.delta, 'Ω', 3)} → ${uV(S.now.out)} → raw ${S.now.code}`, LABEL)
         text.c.set(`now: ${shownText(S, last)}${S.step === 'cal' ? ` (true ${S.grams} g)` : ''}`, B_FIELD)
         text.status.set(`tray ${TRAY * 1000} g · tare ${S.rawTare} · ${S.factor.toFixed(1)} counts/g · 10 SPS, real time · bend exaggerated`, GREY)
       },

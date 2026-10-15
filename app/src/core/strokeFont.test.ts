@@ -83,6 +83,30 @@ describe('strokeFont', () => {
     for (const ch of [...ascii, '–', '—']) expect(hasGlyph(ch)).toBe(true)
   })
 
+  it('covers the full Greek alphabet', () => {
+    const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => String.fromCharCode(a + i))
+    const greek = [...range(0x391, 0x3a9), ...range(0x3b1, 0x3c9)].filter((ch) => ch !== '\u03a2')
+    expect(greek).toHaveLength(49)
+    for (const ch of greek) {
+      expect(hasGlyph(ch)).toBe(true)
+      const { lines, width } = layoutText(ch)
+      expect(lines.length).toBeGreaterThan(0)
+      for (const [x, y] of lines.flat()) {
+        expect(x).toBeGreaterThanOrEqual(-0.2)
+        expect(x).toBeLessThanOrEqual(width + 0.2)
+        expect(y).toBeGreaterThanOrEqual(-0.4)
+        expect(y).toBeLessThanOrEqual(1.1)
+      }
+    }
+  })
+
+  it('draws Greek letters apart from their Latin look-alikes', () => {
+    const same = (a: string, b: string) => JSON.stringify(layoutText(a)) === JSON.stringify(layoutText(b))
+    expect(same('Α', 'A')).toBe(true)
+    for (const [greek, latin] of [['ε', 'e'], ['ν', 'v'], ['ρ', 'p'], ['υ', 'u'], ['κ', 'k'], ['θ', 'Θ'], ['φ', 'Φ'], ['ψ', 'Ψ'], ['σ', 'o'], ['Σ', 'E']]) expect(same(greek, latin)).toBe(false)
+    expect(Math.min(...layoutText('ρ').lines.flat().map(([, y]) => y))).toBeLessThan(0)
+  })
+
   it('renders unknown characters as a gap', () => {
     expect(layoutText('¤').lines).toEqual([])
     expect(layoutText('A¤A').width).toBeGreaterThan(layoutText('AA').width)
