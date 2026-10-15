@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²λ;{}&±…≥≤≈→[]'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -37,6 +37,15 @@ describe('strokeFont', () => {
     const [[x0, y], [x1]] = bar.lines.at(-1)!
     expect(y).toBeGreaterThan(1)
     expect([x0, x1]).toEqual([0, plain.width])
+  })
+
+  it('draws math symbols as distinct strokes', () => {
+    expect(layoutText('±').lines.length).toBe(3)
+    expect(layoutText('…').lines.length).toBe(3)
+    const ge = layoutText('≥').lines[0]
+    const le = layoutText('≤').lines[0]
+    expect(ge[1][0]).toBeGreaterThan(ge[0][0])
+    expect(le[1][0]).toBeLessThan(le[0][0])
   })
 
   it('renders unknown characters as a gap', () => {
