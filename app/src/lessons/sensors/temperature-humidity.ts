@@ -45,23 +45,20 @@ import {
   glide,
   glowMat,
   junction,
+  litWire,
   liveLabel,
   memoBy,
-  swapResistor,
   resistorAlong,
   scope,
-  litWire,
+  swapResistor,
+  textLines,
   thermistorAlong,
+  toneColor,
   transistorPart,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const textLines = (scene: THREE.Scene, T0: V3) => {
-  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
-  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
-  return { a, b, c, status }
-}
 const degC = (t: number, d = 1) => `${t < 0 ? '−' : ''}${Math.abs(t).toFixed(d)} °C`
 const signed = (t: number, d = 2) => `${t < 0 ? '−' : '+'}${Math.abs(t).toFixed(d)} °C`
 const secsText = (s: number) => `${s < 10 ? s.toFixed(1) : Math.round(s)} s`
@@ -99,7 +96,6 @@ const errCurves = memoBy(
 )
 
 const errTone = (e: number) => (Math.abs(e) > 1 ? 'bad' : Math.abs(e) > OK_ERR ? 'warn' : 'ok')
-const toneColor = { ok: POWER, warn: HEAT, bad: HIGH_V }
 
 function curveCode(S: CurveSetup) {
   const rf = S.rf.toFixed(0)

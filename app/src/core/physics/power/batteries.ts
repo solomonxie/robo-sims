@@ -1,4 +1,5 @@
 // Cell chemistries: open-circuit voltage vs state of charge, internal-resistance sag, C-rate.
+import { clamp01 } from '../common'
 
 export type ChemistryId = 'alkaline' | 'nimh' | 'liion' | 'lfp'
 
@@ -42,7 +43,6 @@ export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
   },
 }
 
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 
 /** Open-circuit volts at state of charge `soc` (0 empty … 1 full). */
 export function openCircuitVolts(c: Chemistry, soc: number): number {

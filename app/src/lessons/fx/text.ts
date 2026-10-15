@@ -18,7 +18,7 @@ export interface LabelOpts {
 const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1)
 
 /** Stroke boxes (square ends overlap at joints), merged into one geometry; facing +z. */
-export function textGeometry(text: string, size: number, weight = 0.14) {
+function textGeometry(text: string, size: number, weight = 0.14) {
   const { lines, width } = layoutText(text)
   const t = size * weight
   const src = UNIT_BOX.attributes.position.array as Float32Array
@@ -93,3 +93,10 @@ export function liveLabel(parent: THREE.Object3D, at: [number, number, number], 
 /** A shadowless `label` added to `parent` at `at`. */
 export const addLabel = (parent: THREE.Object3D, s: string, at: [number, number, number], color = GREY, size = 0.6, align: LabelOpts['align'] = 'center') =>
   (add(parent, label(s, { size, color, align }), at).castShadow = false)
+
+/** Three left-aligned text lines from `T0` down, plus a smaller status line under them. */
+export function textLines(scene: THREE.Object3D, T0: [number, number, number]) {
+  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
+  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
+  return { a, b, c, status }
+}

@@ -1,8 +1,9 @@
 // Infrared reflective sensors: FC-51 obstacle module, TCRT5000 line array, 38 kHz receivers under sunlight.
+import { Pose } from '../room'
 import { fitDiode, ledStringAmps } from '../semiconductors'
 
 /** 940 nm IR LED: ~1.2 V at 20 mA. */
-export const IR_LED = fitDiode(1.2)
+const IR_LED = fitDiode(1.2)
 export const IR_NM = 940
 
 export const irLedAmps = (vcc: number, ohms: number) => ledStringAmps(vcc, ohms, IR_LED)
@@ -77,11 +78,6 @@ export function linePosition(adc: number[], digital: boolean): number | null {
   return w.reduce((a, wi, i) => a + wi * sensorX(i), 0) / sum
 }
 
-export interface Pose {
-  x: number
-  y: number
-  heading: number
-}
 
 /** Closed test track (m): a lobed loop ~1.7 × 1 m. */
 export function trackPoint(u: number) {
@@ -119,17 +115,17 @@ export function trackOffset(x: number, y: number) {
 
 export const CAR = { trackM: 0.13, barM: 0.09 }
 /** TT gear motors take ~80 ms to reach a new speed. */
-export const MOTOR_TAU = 0.08
+const MOTOR_TAU = 0.08
 
 /** Where sensor i sits on the floor. */
 export function sensorAt(p: Pose, i: number) {
-  const c = Math.cos(p.heading)
-  const s = Math.sin(p.heading)
+  const c = Math.cos(p.th)
+  const s = Math.sin(p.th)
   const lat = -sensorX(i)
   return { x: p.x + c * CAR.barM - s * lat, y: p.y + s * CAR.barM + c * lat }
 }
 
-export const readBar = (p: Pose) => Array.from({ length: TCRT.count }, (_, i) => {
+const readBar = (p: Pose) => Array.from({ length: TCRT.count }, (_, i) => {
   const s = sensorAt(p, i)
   return tcrtAdc(trackOffset(s.x, s.y))
 })
@@ -146,7 +142,7 @@ export interface Follower {
 export function startFollower(): Follower {
   const a = trackPoint(0)
   const b = trackPoint(0.002)
-  const pose = { x: a.x, y: a.y, heading: Math.atan2(b.y - a.y, b.x - a.x) }
+  const pose = { x: a.x, y: a.y, th: Math.atan2(b.y - a.y, b.x - a.x) }
   return { pose, last: 0, err: 0, adc: readBar(pose), left: 0, right: 0 }
 }
 
@@ -161,8 +157,8 @@ export function followStep(f: Follower, dt: number, speed: number, kp: number, d
   const right = f.right + (speed * (1 - turn) - f.right) * lag
   const w = (left - right) / CAR.trackM
   const v = (left + right) / 2
-  const h = f.pose.heading - w * dt
-  const pose = { x: f.pose.x + v * Math.cos(h) * dt, y: f.pose.y + v * Math.sin(h) * dt, heading: h }
+  const h = f.pose.th - w * dt
+  const pose = { x: f.pose.x + v * Math.cos(h) * dt, y: f.pose.y + v * Math.sin(h) * dt, th: h }
   return { pose, last: pos ?? f.last, err: pos, adc, left, right }
 }
 

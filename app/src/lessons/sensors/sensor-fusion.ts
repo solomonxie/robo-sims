@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import type { CompRun } from '../../core/physics'
-import { COMP, FUSE, REBAR_AT, compRun, crossoverHz, fuseRun, gaussPdf, highGain, kalmanRun, kfSteady, lowGain, wrapPi } from '../../core/physics'
+import { COMP, DEG, FUSE, REBAR_AT, compRun, crossoverHz, fuseRun, gaussPdf, highGain, kalmanRun, kfSteady, lowGain, wrapPi } from '../../core/physics'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -21,17 +21,12 @@ import {
   setGlow,
   shadowlessRod,
   stretchRod,
+  textLines,
   ticks,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
+import { signed } from '../../core/units'
 
-const textLines = (scene: THREE.Scene, T0: V3) => {
-  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
-  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
-  return { a, b, c, status }
-}
-const DEG = Math.PI / 180
-const sgn = (v: number, d = 1) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(d)}`
 const metres = (v: number) => (v < 1 ? `${Math.round(v * 100)} cm` : `${v.toFixed(2)} m`)
 const smooth = (f: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, f)))
 
@@ -172,7 +167,7 @@ export const whyFuse: Lesson = {
         const e = r.err
         const wins = e.fused < W.best
         text.a.set(wins ? `Fused ${metres(e.fused)} rms: ×${(W.best / e.fused).toFixed(1)} better than the best single sensor` : `Fused ${metres(e.fused)} rms`, wins ? POWER : HEAT)
-        const now = (i: number) => sgn(est[i] - x, 2)
+        const now = (i: number) => signed(est[i] - x, 2)
         text.b.set(`now: odo ${now(0)} · GPS ${now(1)} · post ${now(2)} · fused ${now(3)} ± ${r.sigma[k].toFixed(2)} m`, LABEL)
         text.c.set(`${USES[W.use]}: odometry ${Math.round(W.slip * 100)} % long · GPS ±${W.gps} m at 1 Hz · posts every 5 m`, GREY)
         text.status.set(`t = ${s.t.toFixed(1)} s of ${FUSE.seconds} s · real time · filter at ${1 / FUSE.dt} Hz`, GREY)
@@ -329,7 +324,7 @@ export const complementaryHeading: Lesson = {
         )
         const [hl, hc] = cfHeadline(C)
         text.a.set(hl, hc)
-        const e = (arr: number[]) => sgn(wrapPi(arr[k] - h) / DEG, 0)
+        const e = (arr: number[]) => signed(wrapPi(arr[k] - h) / DEG, 0)
         text.b.set(`now: wheels ${e(r.odo)}° · compass ${e(r.mag)}° · fused ${e(r.fused)}°`, LABEL)
         text.c.set(`τ = ${C.tau < 1 ? C.tau.toFixed(2) : C.tau.toFixed(1)} s: slower than ${C.fc < 0.1 ? C.fc.toFixed(3) : C.fc.toFixed(2)} Hz from the compass, faster from the wheels`, GREY)
         text.status.set(`t = ${s.t.toFixed(1)} s · sped up ×${CF.speedup} · ${1 / COMP.dt} Hz loop · α = ${r.alpha.toFixed(4)}`, GREY)
@@ -464,7 +459,7 @@ export const kalmanIntuition: Lesson = {
         const [hl, hc] = kfHeadline(st.K)
         text.a.set(hl, hc)
         text.b.set(`prediction σ ${Math.sqrt(st.prior.P).toFixed(2)} m · sensor σ ${R.sr.toFixed(2)} m → K = P / (P + R) = ${st.K.toFixed(2)}`, LABEL)
-        text.c.set(`estimate P = (1 − K) P → σ ${Math.sqrt(st.post.P).toFixed(2)} m · error ${sgn(st.post.x - st.truth, 2)} m · steady K = ${R.steady.K.toFixed(2)}`, GREY)
+        text.c.set(`estimate P = (1 − K) P → σ ${Math.sqrt(st.post.P).toFixed(2)} m · error ${signed(st.post.x - st.truth, 2)} m · steady K = ${R.steady.K.toFixed(2)}`, GREY)
         text.status.set(`step ${i + 1} of ${KF.steps} · ${phase} · drive ${KF.u} m per step · slowed for viewing`, GREY)
       },
       readouts: (p) => {

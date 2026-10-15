@@ -1,6 +1,12 @@
-import { amps, bytesText, dbmText, fitDigits, hoursText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, superscript, volts, watts } from './units'
+import { amps, bytesText, dbmText, fitDigits, hoursText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, signed, superscript, volts, watts } from './units'
 
 describe('units', () => {
+  it('always signs fixed-point text', () => {
+    expect(signed(1)).toBe('+1.0')
+    expect(signed(-0.456, 2)).toBe('−0.46')
+    expect(signed(0, 0)).toBe('+0')
+  })
+
   it('formats with SI prefixes and scientific notation', () => {
     expect(si(0.0123, 'A')).toBe('12.3 mA')
     expect(si(4700, 'Ω', 2)).toBe('4.7 kΩ')

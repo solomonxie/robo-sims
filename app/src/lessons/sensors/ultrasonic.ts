@@ -16,7 +16,7 @@ import {
   rangeFromEcho,
   softPing,
   speedOfSound,
-  soundWavelength,
+  wavelength,
 } from '../../core/physics'
 import { msText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
@@ -40,9 +40,9 @@ import {
   memoBy,
   meterBar,
   partLetter,
+  rodBetween,
   scope,
   setGlow,
-  shadowlessRod,
   stretchRod,
   wavePool,
 } from '../fx'
@@ -51,11 +51,6 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 const HALF = (HCSR04.halfDeg * Math.PI) / 180
 const HOLD_S = 1.2
 const cmText = (m: number) => `${(m * 100).toFixed(m < 1 ? 1 : 0)} cm`
-const rodTo = (parent: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.08) => {
-  const o = add(parent, shadowlessRod(m))
-  stretchRod(o, a, b, r)
-  return o
-}
 
 /** Loops `showS` seconds of animation plus a hold, restarting when `key` changes; → elapsed on-screen seconds. */
 function loopClock() {
@@ -137,7 +132,7 @@ export const timeOfFlight: Lesson = {
     const cone = beamCone(scene, CLK_COLOR)
     const waves = wavePool(scene, 8, 36)
     const rulerMat = glowMat(GREY, 0.4)
-    const ruler = rodTo(scene, [0, 0, 0], [1, 0, 0], rulerMat, 0.05)
+    const ruler = rodBetween(scene, [0, 0, 0], [1, 0, 0], rulerMat, 0.05)
     const rulerText = liveLabel(scene, [0, TOF.y - 4.6, 0.3], { size: 0.42 })
     const airText = liveLabel(scene, [-2, 6.6, 0.3], { size: 0.42 })
     // Scope: TRIG and ECHO.
@@ -149,7 +144,7 @@ export const timeOfFlight: Lesson = {
     partLetter(scene, 'ECHO', [-SW / 2 - 1, -10.2 - 1.6, 0], 0.4, POWER, 'right')
     const trig = plot.trace(RING, { samples: 200, radius: 0.1 })
     const echo = plot.trace(POWER, { samples: 200, radius: 0.1 })
-    const cursor = rodTo(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.05)
+    const cursor = rodBetween(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.05)
     const pulseText = liveLabel(scene, [0, -10.2 - 1.6, 0.4], { size: 0.38 })
     const spanText = liveLabel(scene, [SW / 2, -10.2 - SH / 2 - 1.2, 0.3], { size: 0.36, align: 'right' })
     partLetter(scene, '0', [-SW / 2, -10.2 - SH / 2 - 1.2, 0.3], 0.36, GREY, 'left')
@@ -173,7 +168,7 @@ export const timeOfFlight: Lesson = {
         stretchRod(ruler, [TOF.face, TOF.y - 3.8, 0.3], [s.x, TOF.y - 3.8, 0.3], 0.05)
         rulerText.group.position.x = (TOF.face + s.x) / 2
         rulerText.set(`d = ${R.m * 100} cm`, LABEL)
-        airText.set(`${R.T} °C · c = ${R.c.toFixed(1)} m/s · λ = ${(soundWavelength(R.T) * 1000).toFixed(1)} mm`, R.T < 10 ? CLK_COLOR : R.T > 30 ? HEAT : LABEL)
+        airText.set(`${R.T} °C · c = ${R.c.toFixed(1)} m/s · λ = ${(wavelength(HCSR04.hz, speedOfSound(R.T)) * 1000).toFixed(1)} mm`, R.T < 10 ? CLK_COLOR : R.T > 30 ? HEAT : LABEL)
         cone([TOF.face, TOF.y, 0], 0, HALF, Math.max(0.5, s.x - TOF.face), 0.07)
         const inside = (x: number) => x <= s.x
         waves.begin()
@@ -337,8 +332,8 @@ export const beamAngle: Lesson = {
       return g
     })
     const axisMat = glowMat(GREY, 0.3)
-    const axis = rodTo(scene, [0, 0, 0], [1, 0, 0], axisMat, 0.04)
-    const bounce = rodTo(scene, [0, 0, 0], [1, 0, 0], glowMat(HIGH_V, 0.6), 0.07)
+    const axis = rodBetween(scene, [0, 0, 0], [1, 0, 0], axisMat, 0.04)
+    const bounce = rodBetween(scene, [0, 0, 0], [1, 0, 0], glowMat(HIGH_V, 0.6), 0.07)
     const waves = wavePool(scene, 16, 40, 0.13)
     const code = codeBlock(scene, [-25, 13.8, 0], 0.38, 4)
     const status = liveLabel(scene, [-25, -12.6, 0.3], { size: 0.42, align: 'left' })
@@ -557,7 +552,7 @@ export const softTargetErrors: Lesson = {
     for (const g of Object.values(looks)) tg.add(g)
     const rulerText = liveLabel(scene, [0, SOFT.floor - 1.2, 0.3], { size: 0.4 })
     const reachMat = glowMat(POWER, 0.6)
-    const reach = rodTo(scene, [0, 0, 0], [0, 1, 0], reachMat, 0.06)
+    const reach = rodBetween(scene, [0, 0, 0], [0, 1, 0], reachMat, 0.06)
     const reachText = liveLabel(scene, [0, SOFT.floor - 2.4, 0.3], { size: 0.34 })
     // Echo strength vs threshold, dB.
     const meter = meterBar(scene, [-12, -9.8, 0], 22, 60, [[30, 'threshold', HIGH_V]], 'echo')
@@ -568,9 +563,9 @@ export const softTargetErrors: Lesson = {
     plot.group.position.set(1, -14.6, 0)
     partLetter(scene, 'ECHO', [1 - SW / 2 - 1, -14.6, 0], 0.4, POWER, 'right')
     const echo = plot.trace(POWER, { samples: 240, radius: 0.1 })
-    const tmo = rodTo(scene, [0, 0, 0], [0, 1, 0], glowMat(HIGH_V, 0.9), 0.07)
+    const tmo = rodBetween(scene, [0, 0, 0], [0, 1, 0], glowMat(HIGH_V, 0.9), 0.07)
     const tmoText = liveLabel(scene, [0, -14.6 + SH / 2 + 0.6, 0.3], { size: 0.34 })
-    const cursor = rodTo(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.05)
+    const cursor = rodBetween(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.05)
     partLetter(scene, '0', [1 - SW / 2, -14.6 - SH / 2 - 0.9, 0.3], 0.34, GREY, 'left')
     partLetter(scene, '40 ms', [1 + SW / 2, -14.6 - SH / 2 - 0.9, 0.3], 0.34, GREY, 'right')
     const code = codeBlock(scene, [-25, 10, 0], 0.38, 4)

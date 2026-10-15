@@ -1,4 +1,5 @@
 // Current & voltage sensing: shunt + amplifier + ADC, pack divider, INA219 registers, SoC from voltage vs coulomb counting.
+import { clamp } from '../common'
 import { dividerOut } from '../circuits'
 import { MCP6002, saturate } from '../opamps'
 import { lsb, quantize } from '../mcu/adc'
@@ -8,7 +9,6 @@ import { cellVolts } from '../power/packs'
 const VDD = 3.3
 const BITS = 12
 const STEP = lsb(VDD, BITS)
-const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
 
 export type ShuntSide = 'low' | 'high'
 
@@ -95,7 +95,7 @@ export function socFromVolts(c: Chemistry, cellV: number): number {
 }
 
 /** Per-cell polarisation (RC) on top of the ohmic sag: relaxes over minutes after the load stops. */
-export const POLARISATION = { ohms: 0.03, tau: 90 }
+const POLARISATION = { ohms: 0.03, tau: 90 }
 
 /** Drive cycle: `driveS` seconds driving at `driveA`, then `parkS` parked at `parkA`, repeating. */
 export const DRIVE_CYCLE = { driveS: 360, parkS: 240 }
@@ -155,4 +155,3 @@ export function socRun(o: SocRunOpts): SocSample[] {
 }
 
 /** Sample of a run at time `t` (held from the step before). */
-export const socAt = (run: SocSample[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]

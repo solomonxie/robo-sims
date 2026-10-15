@@ -1,4 +1,4 @@
-import { Optic, P3, RobotPose, Room, RoomSolid, castRoom, rayDir, toRoom } from '../room'
+import { Optic, P3, Pose, Room, RoomSolid, castRoom, rayDir, toRoom } from '../room'
 
 // --- Spinning laser rangefinders: one ToF ranger on a turntable. ---
 
@@ -21,7 +21,7 @@ export const lidarReach = (refl: number, spec: RangerSpec = RPLIDAR_A1) => Math.
 export const seamShift = (v: number, scanHz: number) => v / scanHz
 export const turnSkewDeg = (degPerS: number, scanHz: number) => degPerS / scanHz
 /** Within this many degrees of square-on, glass and mirrors bounce the beam straight back. */
-export const SPECULAR_DEG = 6
+const SPECULAR_DEG = 6
 /** Sample angles drift from one revolution to the next (the motor isn't locked to the sampler). */
 export const scanPhase = (rev: number) => (rev * 0.618034) % 1
 
@@ -89,7 +89,7 @@ export interface ScanPoint {
 }
 
 /** One revolution from `t0`, every `stride`-th sample, angles offset by `phase` samples; the robot may move meanwhile (`poseAt`). Head `z` m up. */
-export function scanRev(room: Room, poseAt: (t: number) => RobotPose, t0: number, scanHz: number, sampleHz: number, z: number, stride = 1, phase = 0): ScanPoint[] {
+export function scanRev(room: Room, poseAt: (t: number) => Pose, t0: number, scanHz: number, sampleHz: number, z: number, stride = 1, phase = 0): ScanPoint[] {
   const N = pointsPerRev(sampleHz, scanHz)
   const start = poseAt(t0)
   const out: ScanPoint[] = []

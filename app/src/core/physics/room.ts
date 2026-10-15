@@ -16,10 +16,10 @@ export interface Room {
   d: number
   solids: RoomSolid[]
 }
-export interface RobotPose {
+/** Robot on the floor: metres; `th` heading, rad, counter-clockwise from +x. */
+export interface Pose {
   x: number
   y: number
-  /** Heading, rad, counter-clockwise from +x. */
   th: number
 }
 /** First hit: distance, point, unit surface normal facing the ray; `solid` null = floor. */
@@ -97,7 +97,7 @@ export function castRoom(room: Room, o: P3, d: P3, maxM = Infinity, skip?: RoomS
 export const rayDir = (heading: number, elev = 0): P3 => [Math.cos(elev) * Math.cos(heading), Math.cos(elev) * Math.sin(heading), Math.sin(elev)]
 
 /** Robot-frame point (x forward, y left) → room frame. */
-export const toRoom = (pose: RobotPose, x: number, y: number): [number, number] => [pose.x + x * Math.cos(pose.th) - y * Math.sin(pose.th), pose.y + x * Math.sin(pose.th) + y * Math.cos(pose.th)]
+export const toRoom = (pose: Pose, x: number, y: number): [number, number] => [pose.x + x * Math.cos(pose.th) - y * Math.sin(pose.th), pose.y + x * Math.sin(pose.th) + y * Math.cos(pose.th)]
 
 /** Back and forth between `a` and `b` at `v` m/s: position at time `t` (starts at `a`). */
 export function shuttle(t: number, v: number, a: number, b: number) {

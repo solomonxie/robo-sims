@@ -1,11 +1,11 @@
 // Transmission lines: characteristic impedance, velocity factor, reflections and the bounce (lattice) diagram.
-const C = 299_792_458
+import { LIGHT_C } from '../common'
 
 /** Fraction of light speed a wave keeps in a dielectric of relative permittivity `er`. */
 export const velocityFactor = (er: number) => 1 / Math.sqrt(er)
 
 /** One-way delay of `meters` of line with velocity factor `vf`. */
-export const lineDelay = (meters: number, vf: number) => meters / (C * vf)
+export const lineDelay = (meters: number, vf: number) => meters / (LIGHT_C * vf)
 
 /** Coax: shield inner diameter `outer`, core diameter `inner` (same units). */
 export const coaxZ0 = (outer: number, inner: number, er: number) => (60 / Math.sqrt(er)) * Math.log(outer / inner)
@@ -23,7 +23,7 @@ export const launchVolts = (vs: number, rs: number, z0: number) => (vs * z0) / (
 export const settledVolts = (vs: number, rs: number, zl: number) => (zl === Infinity ? vs : (vs * zl) / (rs + zl))
 
 /** Longest line that still acts as a plain wire for an edge of `rise` s: about a sixth of the edge's length on the wire. */
-export const criticalLength = (rise: number, vf: number) => (rise * C * vf) / 6
+export const criticalLength = (rise: number, vf: number) => (rise * LIGHT_C * vf) / 6
 
 export interface Bounce {
   /** Leg k travels from t = k to k + 1 (in one-way delays): forward (source → load) when k is even. */

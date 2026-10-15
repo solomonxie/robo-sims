@@ -1,14 +1,13 @@
 // GPS: pseudoranges, least-squares position + clock bias, DOP, urban canyon, RTK carrier phase and integer fixing.
+import { DEG, LIGHT_C } from '../common'
 import { Vec3 } from '../../fields'
 import { gaussSolve } from '../../nodal'
 import { gaussAt } from '../mcu/adc'
 import { wavelength } from '../signals/radio'
-import { LIGHT_C } from './tof'
 
-const DEG = Math.PI / 180
 export const EARTH_R = 6_371e3
 /** GPS orbit radius (m): ~20 200 km up, two orbits a day. */
-export const GPS_ORBIT_R = 26_560e3
+const GPS_ORBIT_R = 26_560e3
 export const L1_HZ = 1575.42e6
 export const L1_LAMBDA = wavelength(L1_HZ)
 
@@ -125,7 +124,7 @@ export function canyonPath(azDeg: number, elDeg: number, streetM: number, wallM:
 }
 
 /** 1σ range errors (m). Common: shared by receivers a few km apart. Local: each receiver's own (code vs carrier). */
-export const GPS_ERR = {
+const GPS_ERR = {
   common: { satClock: 1.5, orbit: 1.0, iono: 4.0, tropo: 0.5 },
   code: { multipath: 0.6, noise: 0.3 },
   carrier: { multipath: 0.005, noise: 0.002 },

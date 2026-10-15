@@ -1,8 +1,8 @@
 // MEMS microphone (INMP441 → I²S → ESP32) and sound direction from time differences between mics.
+import { SOUND_C } from '../common'
 import { EPSILON_0 } from '../electromagnetism'
 import { dftAmplitudes } from '../signals/fourier'
 import { wrapPi } from './magnetometer'
-import { C_FIXED } from './ultrasonic'
 
 export const INMP441 = { sensDbfs: -26, refDb: 94, snrDb: 61, aopDb: 120, bits: 24, slot: 32, highHz: 15000 }
 /** MEMS capsule: diaphragm radius, gap to the backplate, compliance, bias. */
@@ -36,7 +36,7 @@ export function pdmBits(x: number[]) {
 export type Sound = 'clap' | 'whine' | 'tone'
 export const WHINE_HZ = 1200
 export const TONE_HZ = 2000
-export const CLAP_TAU = 0.004
+const CLAP_TAU = 0.004
 
 const hash = (i: number) => Math.abs(Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1
 const CLAP_PARTS = Array.from({ length: 64 }, (_, i) => {
@@ -60,7 +60,7 @@ export function soundAt(kind: Sound, t: number, cut = Infinity) {
 
 /** What the INMP441 delivers at `fs`: its decimation filter drops everything above fs/2 (and its 15 kHz band edge), so nothing aliases. */
 export const micCutoff = (fs: number) => Math.min(fs / 2, INMP441.highHz)
-export const micSamples = (kind: Sound, fs: number, n: number, t0 = 0) => Array.from({ length: n }, (_, i) => soundAt(kind, t0 + i / fs, micCutoff(fs)))
+const micSamples = (kind: Sound, fs: number, n: number, t0 = 0) => Array.from({ length: n }, (_, i) => soundAt(kind, t0 + i / fs, micCutoff(fs)))
 
 /** Hann-windowed spectrum of `n` samples: bin Hz, amplitude, dB below the strongest bin (floor −60), and flatness over the passband. */
 export function micSpectrum(kind: Sound, fs: number, n = 256) {
@@ -84,7 +84,6 @@ export function spectralFlatness(amps: number[]) {
 
 export type MicSet = 'two' | 'four'
 export type MicName = 'L' | 'R' | 'F' | 'B'
-export const SOUND_C = C_FIXED
 
 export function micArray(set: MicSet, d: number): { name: MicName; x: number; y: number }[] {
   const lr = [
@@ -94,7 +93,7 @@ export function micArray(set: MicSet, d: number): { name: MicName; x: number; y:
   return set === 'two' ? lr : [...lr, { name: 'F', x: 0, y: d / 2 }, { name: 'B', x: 0, y: -d / 2 }]
 }
 /** Plane-wave arrival time at (x, y) relative to the array centre: mics nearer the source hear it first. */
-export const arrivalS = (x: number, y: number, bearing: number, c = SOUND_C) => -(x * Math.sin(bearing) + y * Math.cos(bearing)) / c
+const arrivalS = (x: number, y: number, bearing: number, c = SOUND_C) => -(x * Math.sin(bearing) + y * Math.cos(bearing)) / c
 /** t_L − t_R for a pair `d` apart: d·sin θ / c. */
 export const tdoa = (bearing: number, d: number, c = SOUND_C) => (d * Math.sin(bearing)) / c
 export const maxLagSamples = (d: number, fs: number, c = SOUND_C) => (d / c) * fs

@@ -1,5 +1,6 @@
 import { CHEMISTRIES } from '../power/batteries'
-import { INA219, cycleAmps, ina219Cal, ina219Config, ina219Read, packDivider, regWord, socAt, shuntSense, socFromVolts, socRun } from './current'
+import { fixedStepAt } from '../common'
+import { INA219, cycleAmps, ina219Cal, ina219Config, ina219Read, packDivider, regWord, shuntSense, socFromVolts, socRun } from './current'
 import type { SocRunOpts } from './current'
 
 const LI = CHEMISTRIES.liion
@@ -81,10 +82,10 @@ describe('state of charge', () => {
   })
   it('sag under load makes the voltage reading low; it recovers when parked', () => {
     const run = socRun({ ...base, driveA: 2 })
-    const driving = socAt(run, 3000, 5)
+    const driving = fixedStepAt(run, 3000, 5)
     expect(cycleAmps(3000, 2, 0.16).parked).toBe(0)
     expect(driving.soc - driving.vSoc).toBeGreaterThan(0.1)
-    const parked = socAt(run, 3560, 5)
+    const parked = fixedStepAt(run, 3560, 5)
     expect(Math.abs(parked.soc - parked.vSoc)).toBeLessThan(0.05)
   })
   it('coulomb counting is exact with a perfect sensor, drifts with offset or a faded pack', () => {

@@ -17,7 +17,7 @@ export const gaugeDelta = (ohms: number, gf: number, strain: number) => ohms * g
 export type Bridge = 'quarter' | 'half' | 'full'
 
 /** Strain sign per arm [E+→A−, A−→E−, E+→A+, A+→E−]; 0 = fixed resistor. */
-export const BRIDGE_ARMS: Record<Bridge, number[]> = { quarter: [0, 0, 0, 1], half: [0, 0, -1, 1], full: [1, -1, -1, 1] }
+const BRIDGE_ARMS: Record<Bridge, number[]> = { quarter: [0, 0, 0, 1], half: [0, 0, -1, 1], full: [1, -1, -1, 1] }
 
 /** Wheatstone bridge excited by `vex`, solved with nodal analysis; `zeroOhms` = gauge mismatch on the A−→E− arm. */
 export function bridgeOut(vex: number, ohms: number, gf: number, strain: number, bridge: Bridge, zeroOhms = 0) {
@@ -61,17 +61,17 @@ export const toGrams = (raw: number, rawTare: number, factor: number) => (raw - 
 export const TOUCH = { window: 0.5e-3, vHigh: 2.7, vLow: 0.5, amps: 12e-6, padF: 20e-12, bodyF: 150e-12, fingerM2: 1.44e-4, noise: 0.8 }
 
 /** Cover over the pad: thickness (m) and relative permittivity. */
-export const OVERLAYS = { bare: { m: 0.03e-3, er: 3.5 }, thin: { m: 1e-3, er: 3 }, thick: { m: 3e-3, er: 3 } }
+const OVERLAYS = { bare: { m: 0.03e-3, er: 3.5 }, thin: { m: 1e-3, er: 3 }, thick: { m: 3e-3, er: 3 } }
 export type Overlay = keyof typeof OVERLAYS
 
 /** Water on the cover: wetted area over the pad and its own coupling to ground (a puddle reaches the ground hatch around the pad). */
-export const WATER = { none: { m2: 0, toGround: 0 }, drop: { m2: 0.2e-4, toGround: 0.5e-12 }, puddle: { m2: 1.2e-4, toGround: 20e-12 } }
+const WATER = { none: { m2: 0, toGround: 0 }, drop: { m2: 0.2e-4, toGround: 0.5e-12 }, puddle: { m2: 1.2e-4, toGround: 20e-12 } }
 export type Water = keyof typeof WATER
 
-export const seriesC = (a: number, b: number) => (a > 0 && b > 0 ? (a * b) / (a + b) : 0)
+const seriesC = (a: number, b: number) => (a > 0 && b > 0 ? (a * b) / (a + b) : 0)
 
 /** Plates through the cover plus an air gap: C = ε₀·A / (t/εr + gap). */
-export const coverCapacitance = (m2: number, overlay: Overlay, gapM = 0) => {
+const coverCapacitance = (m2: number, overlay: Overlay, gapM = 0) => {
   const o = OVERLAYS[overlay]
   return (EPSILON_0 * m2) / (o.m / o.er + gapM)
 }

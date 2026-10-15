@@ -22,24 +22,20 @@ import {
   groundAt,
   i2cBreakout,
   junction,
-  liveLabel,
   litWire,
+  liveLabel,
   partLetter,
   resistorAlong,
   scope,
   setGlow,
   shadowlessRod,
+  smoothstep,
   stretchRod,
+  textLines,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const textLines = (scene: THREE.Scene, T0: V3) => {
-  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
-  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
-  return { a, b, c, status }
-}
-const smooth = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x))
 
 // --- Strain gauge: a bar load cell bends, its foil gauges stretch, a Wheatstone bridge turns milliohms into microvolts, the HX711 counts them, tare + one known weight give grams. ---
 
@@ -364,7 +360,7 @@ const SLOW = 1e5
 
 const gapAt = (t: number) => {
   const u = ((t % CYCLE) + CYCLE) % CYCLE
-  return u < 1 ? FAR_MM : u < 3 ? FAR_MM * (1 - smooth((u - 1) / 2)) : u < 5 ? 0 : u < 7 ? FAR_MM * smooth((u - 5) / 2) : FAR_MM
+  return u < 1 ? FAR_MM : u < 3 ? FAR_MM * (1 - smoothstep((u - 1) / 2)) : u < 5 ? 0 : u < 7 ? FAR_MM * smoothstep((u - 5) / 2) : FAR_MM
 }
 
 function touchSetup(p: Params) {

@@ -45,6 +45,13 @@ export function presence(o: THREE.Object3D, p: number) {
 /** One eased step from `from` toward `to`. */
 export const glide = (dt: number, from: number, to: number, k = 14) => from + (to - from) * ease(dt, k)
 export const frac = (x: number) => x - Math.floor(x)
+/** Repeatable 0…1 noise for `x` (sine hash). */
+export const sineHash = (x: number) => frac(Math.sin(x * 127.1) * 43758.5453)
+/** 0 → 1 with flat ends, clamped. */
+export const smoothstep = (u: number) => {
+  const x = clamp01(u)
+  return x * x * (3 - 2 * x)
+}
 
 /** Caches `compute(p)` until `key(p)` changes. */
 export function memoBy<P, T>(key: (p: P) => string, compute: (p: P) => T) {
@@ -55,4 +62,5 @@ export function memoBy<P, T>(key: (p: P) => string, compute: (p: P) => T) {
     return last.value
   }
 }
+export const add3 = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
 export const peakToPeak = (v: number[]) => Math.max(...v) - Math.min(...v)

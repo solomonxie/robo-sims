@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `msText`, `mAText`, `dbmText`, `hoursText`, `spanText`, `bytesText`, …) and `core/numbers.ts` (`binary`, `hex`); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
+- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace, so names must be unique. Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`); diodes via `diodeNode`/`ledStringAmps`. Formatters in `core/units.ts` (`secs`, `hertz`, `hexByte`, `msText`, `mAText`, `dbmText`, `hoursText`, `spanText`, `bytesText`, `signed`, …) and `core/numbers.ts` (`binary`, `hex`); param/control helpers (`n`, `pick`, `e12`, `resistorSlider`, `bitChoice`) in `lessons/types.ts`.
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -15,16 +15,16 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
 `lessons/fx/` (import `'../fx'`; model in brackets):
-- `util` — `ease`/`glide`, `lerp`, `frac`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`, `peakToPeak`.
-- `colors` — palette (`HEAT`, `INK`, …), `glowMat`, `setGlow`, `potentialColor`.
+- `util` — `ease`/`glide`, `lerp`, `frac`, `smoothstep`, `sineHash`, `add3`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`, `peakToPeak`.
+- `colors` — palette (`HEAT`, `INK`, …), `glowMat`, `setGlow`, `potentialColor`, `toneColor` (readout tone → colour).
 - `shapes` — `arrow`, `plusGeometry`, `glowBox`, `flatBox` (shadowless), `trayMat`.
-- `text` — `label`, `addLabel` (shadowless, at a point), `liveLabel` (changing text) [`core/strokeFont`].
-- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`shadowlessRod`/`stretchRod`.
+- `text` — `label`, `addLabel` (shadowless, at a point), `liveLabel` (changing text), `textLines` (3 lines + status) [`core/strokeFont`].
+- `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`shadowlessRod`/`stretchRod`, `addRod`, `rodBetween`.
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
 - `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `esp32Board` (face-on, `pin(i, top)`), `esp32Cam` (OV2640 lens, `lens()`, `iris`), `i2cBreakout` (sensor board, `pin(name)`) [`physics/power`].
-- `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
+- `cells` — `cellCutaway`, `cell18650`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot, `speaker`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
@@ -41,14 +41,15 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 `core/physics/` (flat files: dc, ac, circuits, semiconductors, … timing, levels) + subfolders:
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
-- `mcu/` (ESP32) — `gpio` pads/pulls/polling; `pwm` LEDC/ripple/servo; `adc` SAR/noise/attenuation; `dac` R-2R/tones/reconstruction; `timers` alarms/ISRs/millis; `uart` framing/links/NMEA; `i2c` addresses/pull-ups/MPU-6050; `spi` shift ring/MISO/TFT+SD; `can` link/arbitration/frames; `wireless` Wi-Fi/HTTP vs WS/BLE/ESP-NOW; `sleep` domains/wake/battery years; `memory` partitions/stack+heap/flash wear; `rtos` two-core tick scheduler; `boot` straps/esptool/OTA.
-- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering; `lidar` RPLIDAR scan/de-skew, glass/mirror/black returns, VLP-16 cloud + clustering; `encoder` quadrature/Gray-code ISR, CPR × gear → mm/tick, window vs period speed, diff-drive `odoStep`; `imu` specific force/proof mass, Coriolis + range clipping, complementary filter + `balanceRun`, ZRO tempco/calibration drift; `magnetometer` Earth field/`toBody`, atan2 + tilt-comp heading, declination, hard-iron circle/sphere fit; `gps` pseudorange Gauss–Newton fix + clock, DOP, canyon NLOS, parked scatter, RTK float/fixed ratio test; `camera` OV2640 pinhole, rolling/global row times + `propellerAt`, exposure e⁻/noise/DN/histogram, Brown k1/k2 distort/undistort; `temperature` NTC Beta/Steinhart–Hart/count table, self-heating, thermal τ, DS18B20 1-Wire slots/ROM CRC-8/1/16 °C register; `current` shunt + op-amp → ADC, pack divider, INA219 registers/Cal, SoC voltage lookup vs coulomb count (`socRun`); `force` load-cell strain/bridge (`solveNodal`)/HX711 tare+cal, ESP32 touch count vs finger/cover/water C, hysteresis; `microphone` INMP441 SPL→dBFS/code, diaphragm C, I²S SCK, PDM bits, clap vs whine spectrum + flatness, TDOA cross-correlation `locate` (2/4 mics, front/back, spatial aliasing); `fusion` 1D Kalman (`kfPredict`/`kfUpdate`/`kfSteady`, `kalmanRun`), odometry+GPS+posts `fuseRun`, odometry+compass `headingBlend`/`compRun`, crossover gains.
-- `room.ts` — walled rooms (boxes, posts), `castRoom` ray cast with normals, `toRoom`, `shuttle`: shared by mobile-robot lessons.
+- `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot.
+- `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
+- `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt` (sample of a fixed-step run).
+- `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
 
 - Serial: one agent at a time; next starts only after the last finishes.
-- Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 25 for one agent (raised from 15: background load from other apps sat at ~20 for hours; agent work is niced) (< 10 for two). Else wait for the hourly check.
+- Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 25 for one agent (< 10 for two). Else wait for the hourly check.
 - After each section (category) is done: one cleanup agent before the next topic — split/dedupe shared code (`lessons/fx/`, `core/`), drop dead code, compact this file and `DESIGN.md`. No behaviour change.
 - Hourly check: read git log + this file, check load; speed up (2 agents in parallel, on different categories) only if the Mac is idle and the last runs were clean; pause on red tests or overload.
 - Builds/tests run with `nice -n 10`.
@@ -64,21 +65,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 4 — Microcontrollers, Sensors, Software
 - Microcontrollers ✓ 14/14
-- Sensors:
-  - [x] Ultrasonic
-  - [x] Infrared
-  - [x] Time-of-flight laser
-  - [x] LiDAR
-  - [x] Encoder
-  - [x] IMU
-  - [x] Magnetometer
-  - [x] GPS
-  - [x] Camera
-  - [x] Temperature & humidity
-  - [x] Current & voltage sensing
-  - [x] Force & touch
-  - [x] Microphone & sound
-  - [x] Sensor fusion
+- Sensors ✓ 14/14
 - Software:
   - [ ] Firmware structure
   - [ ] ROS 2 concepts

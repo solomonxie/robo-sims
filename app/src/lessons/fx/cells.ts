@@ -127,7 +127,7 @@ const WELD_FLASH = '#bfe0ff'
 
 /** Nickel strip `w` × `d` lying flat at `at` (y = its underside), with `dots` weld points to animate via `weld(i, f)`:
  *  0 = not welded, (0, 1) = spark, 1 = cold weld. */
-export function nickelStrip(parent: THREE.Object3D, at: V3, w: number, d: number, dots: [number, number][]) {
+function nickelStrip(parent: THREE.Object3D, at: V3, w: number, d: number, dots: [number, number][]) {
   const g = add(parent, new THREE.Group(), at)
   box(g, [w, 0.08, d], mat(NICKEL, { metal: 0.35, rough: 0.35 }), [0, 0.04, 0])
   const welds = dots.map(([x, z]) => {

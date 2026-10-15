@@ -1,5 +1,6 @@
 // Wheel encoders: quadrature decoding, counts per wheel turn, speed from ticks, two-wheel odometry.
 import { ISR_LATENCY_S } from '../mcu/timers'
+import { Pose } from '../room'
 
 /** Quadrature states in forward order (A leads B by 90°): index 0..3 = AB 00, 10, 11, 01. */
 export const QUAD_STATES = ['00', '10', '11', '01'] as const
@@ -105,13 +106,8 @@ export function periodSpeed(periodS: number, mmTick: number, timerS = 1e-6) {
 /** Period-method step at speed `v`: one timer count's worth of change. */
 export const periodResolution = (v: number, mmTick: number, timerS = 1e-6) => (v * v * timerS) / mmTick
 
-export interface Pose2 {
-  x: number
-  y: number
-  th: number
-}
 /** Differential-drive odometry step from wheel travels (m) and track width (m). */
-export function odoStep(p: Pose2, dL: number, dR: number, track: number): Pose2 {
+export function odoStep(p: Pose, dL: number, dR: number, track: number): Pose {
   const ds = (dL + dR) / 2
   const dth = (dR - dL) / track
   const mid = p.th + dth / 2

@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   CalMode,
+  DEG,
   GYRO_RANGES,
   GYRO_ZRO,
   GyroRange,
@@ -20,6 +21,7 @@ import {
   integrateRate,
   proofShift,
   residualBias,
+  toDeg,
   yawProfile,
 } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
@@ -47,10 +49,8 @@ import {
   ticks,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
+import { signed } from '../../core/units'
 
-const DEG = Math.PI / 180
-const deg = (r: number) => r / DEG
-const sgn = (v: number, d = 1) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(d)}`
 const MPU_F0 = 2500
 const COMB_GAP = 2e-6
 const BOARD = '#2c6e3a'
@@ -145,7 +145,7 @@ export const accelerometer: Lesson = {
   tagline: 'A mass on springs feels gravity, which gives tilt, and every push, which spoils it',
   formula: (p) => {
     const S = accSetup(p)
-    return `ax = sin θ + a = sin ${n(p, 'slope')}° ${sgn(S.peak, 2)} g = ${sgn(S.f[0], 3)} g · az = cos θ = ${S.f[2].toFixed(3)} g · tilt = atan2(ax, az) = ${deg(S.est).toFixed(1)}° · mass shift = a / ω₀² = ${(proofShift(1, MPU_F0) * 1e9).toFixed(0)} nm per g at ${MPU_F0 / 1000} kHz`
+    return `ax = sin θ + a = sin ${n(p, 'slope')}° ${signed(S.peak, 2)} g = ${signed(S.f[0], 3)} g · az = cos θ = ${S.f[2].toFixed(3)} g · tilt = atan2(ax, az) = ${toDeg(S.est).toFixed(1)}° · mass shift = a / ω₀² = ${(proofShift(1, MPU_F0) * 1e9).toFixed(0)} nm per g at ${MPU_F0 / 1000} kHz`
   },
   legend: [
     { color: GREY, label: 'True tilt of the robot', shape: 'dot' },
@@ -216,23 +216,23 @@ export const accelerometer: Lesson = {
         holder.rotation.z = S.slope
         cell.set(-s.f[0] * ACC.mm, -(s.f[2] - 1) * ACC.mm - 0.6)
         plates.forEach((m, i) => setGlow(m, CLK_COLOR, 0.3 + Math.max(0, (i ? -1 : 1) * s.f[0]) * 2.2))
-        tiltText.set(`true tilt ${deg(S.slope).toFixed(1)}°`, GREY)
+        tiltText.set(`true tilt ${toDeg(S.slope).toFixed(1)}°`, GREY)
         const bad = Math.abs(est - S.slope) > 1 * DEG
-        estText.set(`accel says ${deg(est).toFixed(1)}°${bad ? `  (off ${sgn(deg(est - S.slope))}°)` : ''}`, bad ? HIGH_V : POWER)
+        estText.set(`accel says ${toDeg(est).toFixed(1)}°${bad ? `  (off ${signed(toDeg(est - S.slope))}°)` : ''}`, bad ? HIGH_V : POWER)
         const x = proofShift(s.f[0], MPU_F0)
-        shiftText.set(`ax ${sgn(s.f[0], 2)} g · mass ${sgn(-x * 1e9, 1)} nm · ΔC/C ${sgn(combChange(x, COMB_GAP) * 100)} %`, CLK_COLOR)
+        shiftText.set(`ax ${signed(s.f[0], 2)} g · mass ${signed(-x * 1e9, 1)} nm · ΔC/C ${signed(combChange(x, COMB_GAP) * 100)} %`, CLK_COLOR)
         const phase = S.move !== 'brake' ? MOVES[S.move].toLowerCase() : M.a ? 'braking' : (s.t % ACC.cycle) < ACC.cruise ? 'cruising' : 'stopped'
         status.set(`t = ${(s.t % ACC.cycle).toFixed(1)} s · ${phase} · real time`, LABEL)
       },
       readouts: (p) => {
         const S = accSetup(p)
-        const err = deg(S.est - S.slope)
+        const err = toDeg(S.est - S.slope)
         const tag = S.move === 'brake' ? ' (braking)' : ''
         return [
-          { label: `Accel X${tag}`, value: `${sgn(S.f[0], 3)} g` },
+          { label: `Accel X${tag}`, value: `${signed(S.f[0], 3)} g` },
           { label: 'Accel Z', value: `${S.f[2].toFixed(3)} g` },
-          { label: 'Tilt from accel', value: `${deg(S.est).toFixed(1)}°`, tone: Math.abs(err) > 1 ? 'warn' : 'ok' },
-          { label: 'Tilt error', value: `${sgn(err)}°`, tone: Math.abs(err) > 1 ? 'bad' : 'ok' },
+          { label: 'Tilt from accel', value: `${toDeg(S.est).toFixed(1)}°`, tone: Math.abs(err) > 1 ? 'warn' : 'ok' },
+          { label: 'Tilt error', value: `${signed(err)}°`, tone: Math.abs(err) > 1 ? 'bad' : 'ok' },
         ]
       },
     }
@@ -339,18 +339,18 @@ export const gyroscope: Lesson = {
         stretchRod(measNeedle, [base[0] + Math.cos(mh) * 7.2, base[1] + Math.sin(mh) * 7.2, 0.6], tip, 0.12)
         measTip.position.set(...tip)
         const err = R.measAng[k] - R.trueAng[k]
-        headText.set(`true ${sgn(R.trueAng[k], 0)}° · summed ${sgn(R.measAng[k], 0)}° · off ${sgn(err, 0)}°`, Math.abs(err) > 2 ? HIGH_V : POWER)
+        headText.set(`true ${signed(R.trueAng[k], 0)}° · summed ${signed(R.measAng[k], 0)}° · off ${signed(err, 0)}°`, Math.abs(err) > 2 ? HIGH_V : POWER)
         const at = (arr: number[]) => (u: number) => yOf(arr[Math.max(0, Math.min(arr.length - 1, Math.round((s.t - (1 - u) * GY.window) / GY.dt)))])
         trueTrace.draw(at(R.truth))
         measTrace.draw(at(R.meas))
         clipHi.set(yOf(R.fs))
         clipLo.set(yOf(-R.fs))
         const clipped = Math.abs(R.meas[k]) < Math.abs(rate) - 0.5
-        rateText.set(`ω ${sgn(rate, 0)} °/s → reads ${sgn(R.meas[k], 0)}${clipped ? ' (clipped)' : ''}`, clipped ? HEAT : RING)
+        rateText.set(`ω ${signed(rate, 0)} °/s → reads ${signed(R.meas[k], 0)}${clipped ? ' (clipped)' : ''}`, clipped ? HEAT : RING)
         code([
           `int16_t gz = Wire.read() << 8 | Wire.read();  // ${gyroCounts(rate, R.fs)}`,
           `float rate = gz / ${GYRO_RANGES[R.fs].toFixed(1)};  // °/s at ±${R.fs}`,
-          `heading += rate * 0.01;  // ${sgn(R.measAng[k], 1)}°`,
+          `heading += rate * 0.01;  // ${signed(R.measAng[k], 1)}°`,
         ])
         status.set(`t = ${s.t.toFixed(1)} s · real time · drive shown at ${GY.visHz} Hz, really ${GY.drive[1] / 1000} kHz`, LABEL)
       },
@@ -359,7 +359,7 @@ export const gyroscope: Lesson = {
         return [
           { label: 'Peak reading', value: `${gyroCounts(R.peak, R.fs)} LSB` },
           { label: 'Reads as', value: `${countsToDps(gyroCounts(R.peak, R.fs), R.fs).toFixed(0)} °/s`, tone: R.clips ? 'bad' : 'ok' },
-          { label: 'Heading error / turn', value: `${sgn(R.perCycle)}°`, tone: Math.abs(R.perCycle) > 1 ? 'bad' : 'ok' },
+          { label: 'Heading error / turn', value: `${signed(R.perCycle)}°`, tone: Math.abs(R.perCycle) > 1 ? 'bad' : 'ok' },
           { label: 'Coriolis at peak', value: `${R.coriolis.toFixed(1)} m/s²` },
         ]
       },
@@ -376,7 +376,7 @@ const cfRun = memoBy(
     const alpha = n(p, 'alpha')
     const bias = n(p, 'bias')
     const r = balanceRun(alpha, bias, CF.seconds, CF.dt)
-    const e = (x: number[]) => deg(angleRms(x, r.truth))
+    const e = (x: number[]) => toDeg(angleRms(x, r.truth))
     return { alpha, bias, r, tau: compTau(alpha, CF.dt), accelErr: e(r.accel), gyroErr: e(r.gyro), fusedErr: e(r.fused) }
   },
 )
@@ -445,20 +445,20 @@ export const complementaryFilter: Lesson = {
           const a = Math.PI / 2 - arr[k]
           stretchRod(needles[i], [axle[0] + x, axle[1], 2.4 + i * 0.1], [axle[0] + x + Math.cos(a) * CF.needle, axle[1] + Math.sin(a) * CF.needle, 2.4 + i * 0.1], 0.08)
         })
-        const yOf = (rad: number) => (deg(rad) / CF.plotDeg) * 4
+        const yOf = (rad: number) => (toDeg(rad) / CF.plotDeg) * 4
         ;[r.truth, r.accel, r.gyro, r.fused].forEach((arr, i) =>
           traces[i].draw((u) => {
             const j = Math.round((s.t - (1 - u) * CF.window) / CF.dt)
             return j < 0 ? 0 : yOf(arr[j])
           }),
         )
-        const e = (arr: number[]) => deg(arr[k] - tilt)
-        errText.set(`error now: accel ${sgn(e(r.accel))}° · gyro ${sgn(e(r.gyro))}° · fused ${sgn(e(r.fused))}°`, LABEL)
+        const e = (arr: number[]) => toDeg(arr[k] - tilt)
+        errText.set(`error now: accel ${signed(e(r.accel))}° · gyro ${signed(e(r.gyro))}° · fused ${signed(e(r.fused))}°`, LABEL)
         code([
           `angle = ${R.alpha.toFixed(3)} * (angle + gyroY * 0.01)`,
-          `      + ${(1 - R.alpha).toFixed(3)} * atan2(ax, az);  // ${sgn(deg(r.fused[k]))}°`,
+          `      + ${(1 - R.alpha).toFixed(3)} * atan2(ax, az);  // ${signed(toDeg(r.fused[k]))}°`,
         ])
-        status.set(`t = ${s.t.toFixed(1)} s · real time · 100 Hz loop · true tilt ${sgn(deg(tilt))}°`, LABEL)
+        status.set(`t = ${s.t.toFixed(1)} s · real time · 100 Hz loop · true tilt ${signed(toDeg(tilt))}°`, LABEL)
       },
       readouts: (p) => {
         const R = cfRun(p)
@@ -498,7 +498,7 @@ export const drift: Lesson = {
   tagline: 'A gyro never reads exactly zero; summed for a minute, a little offset becomes a big turn',
   formula: (p) => {
     const R = drRun(p)
-    return `bias(T) = ${GYRO_ZRO.b25} + ${GYRO_ZRO.tc} × (T − 25) = ${R.bias.toFixed(2)} °/s at ${R.temp} °C · residual after ${CAL[R.cal].toLowerCase()} = ${sgn(R.res, 3)} °/s · heading error ≈ residual × t = ${sgn(R.endErr)}° after ${DR.seconds} s`
+    return `bias(T) = ${GYRO_ZRO.b25} + ${GYRO_ZRO.tc} × (T − 25) = ${R.bias.toFixed(2)} °/s at ${R.temp} °C · residual after ${CAL[R.cal].toLowerCase()} = ${signed(R.res, 3)} °/s · heading error ≈ residual × t = ${signed(R.endErr)}° after ${DR.seconds} s`
   },
   legend: [
     { color: GREY, label: 'Where the robot means to go', shape: 'dot' },
@@ -568,8 +568,8 @@ export const drift: Lesson = {
         if (calibrating) {
           const got = Math.round((s.T / calS) * DR.samples)
           calText.set(`calibrating at rest: ${got} / ${DR.samples} samples, hold still`, CLK_COLOR)
-        } else calText.set(`gyro says heading 0° · really ${sgn(head, 0)}°`, Math.abs(head) > 5 ? HIGH_V : POWER)
-        biasText.set(`chip ${R.temp} °C · bias ${sgn(R.bias, 2)} °/s${R.cal === 'none' ? ', uncorrected' : ` · left after correction ${sgn(R.res, 3)} °/s`}`, HEAT)
+        } else calText.set(`gyro says heading 0° · really ${signed(head, 0)}°`, Math.abs(head) > 5 ? HIGH_V : POWER)
+        biasText.set(`chip ${R.temp} °C · bias ${signed(R.bias, 2)} °/s${R.cal === 'none' ? ', uncorrected' : ` · left after correction ${signed(R.res, 3)} °/s`}`, HEAT)
         code(
           R.cal === 'none'
             ? ['float rate = gz / 131.0;  // raw, bias included', 'heading += rate * dt;']
@@ -580,9 +580,9 @@ export const drift: Lesson = {
       readouts: (p) => {
         const R = drRun(p)
         return [
-          { label: 'Raw bias', value: `${sgn(R.bias, 2)} °/s`, tone: 'warn' },
-          { label: 'After correction', value: `${sgn(R.res, R.cal === 'none' ? 2 : 3)} °/s`, tone: Math.abs(R.res) > 0.1 ? 'bad' : 'ok' },
-          { label: `Heading error @ ${DR.seconds} s`, value: `${sgn(R.endErr)}°`, tone: Math.abs(R.endErr) > 5 ? 'bad' : 'ok' },
+          { label: 'Raw bias', value: `${signed(R.bias, 2)} °/s`, tone: 'warn' },
+          { label: 'After correction', value: `${signed(R.res, R.cal === 'none' ? 2 : 3)} °/s`, tone: Math.abs(R.res) > 0.1 ? 'bad' : 'ok' },
+          { label: `Heading error @ ${DR.seconds} s`, value: `${signed(R.endErr)}°`, tone: Math.abs(R.endErr) > 5 ? 'bad' : 'ok' },
           { label: 'Miss at the end', value: `${R.miss.toFixed(2)} m`, tone: R.miss > 0.3 ? 'bad' : 'ok' },
         ]
       },

@@ -11,7 +11,7 @@ import {
   missionAmps,
   packDivider,
   regWord,
-  socAt,
+  fixedStepAt,
   shuntSense,
   socRun,
   stateAmps,
@@ -44,8 +44,8 @@ import {
   i2cBreakout,
   junction,
   lane,
-  liveLabel,
   litWire,
+  liveLabel,
   loopBeads,
   memoBy,
   meterBar,
@@ -55,21 +55,17 @@ import {
   robotCar,
   scope,
   terminal,
+  textLines,
+  toneColor,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
 const LI = CHEMISTRIES.liion
-const textLines = (scene: THREE.Scene, T0: V3) => {
-  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
-  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
-  return { a, b, c, status }
-}
 const ampsText = (a: number) => (Math.abs(a) < 1 ? `${(a * 1000).toFixed(Math.abs(a) < 0.01 ? 2 : 1)} mA` : `${a.toFixed(3)} A`)
 const voltsText = (v: number, d = 2) => `${v.toFixed(d)} V`
 const mv = (v: number) => (v >= 1 ? voltsText(v) : v < 0.01 ? `${(v * 1000).toFixed(2)} mV` : millivolts(v))
 const word = (v: number) => `0x${regWord(v).toString(16).toUpperCase().padStart(4, '0')}`
-const toneColor = { ok: POWER, warn: HEAT, bad: HIGH_V }
 
 /** A 2512 metal-strip shunt from `a` to `b` (horizontal): copper ends, alloy middle that glows with heat, code in silk. */
 function shuntPart(parent: THREE.Object3D, a: V3, b: V3) {
@@ -610,7 +606,7 @@ export const stateOfCharge: Lesson = {
         const idx = Math.floor(s.sim / DT)
         if (idx !== s.shown) {
           s.shown = idx
-          const at = (u: number) => socAt(run, u * uNow * T, DT)
+          const at = (u: number) => fixedStepAt(run, u * uNow * T, DT)
           traces[0].draw((u) => yS(at(u).soc), null)
           traces[1].draw((u) => yS(at(u).vSoc), null)
           traces[2].draw((u) => yS(at(u).ccSoc), null)
@@ -620,7 +616,7 @@ export const stateOfCharge: Lesson = {
           }
         }
         cursor.position.x = -sw / 2 + uNow * sw
-        const now = socAt(run, s.sim, DT)
+        const now = fixedStepAt(run, s.sim, DT)
         const { parked } = cycleAmps(s.sim, S.driveA, PARK_A)
         const driving = !parked && s.sim < T
         s.phase += driving ? dt * 1.6 : 0

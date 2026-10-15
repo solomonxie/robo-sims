@@ -177,7 +177,7 @@ export function crc8(bytes: number[]) {
   return crc
 }
 
-export const DS18B20_FAMILY = 0x28
+const DS18B20_FAMILY = 0x28
 
 /** 64-bit ROM as sent (LSB first): family 0x28, 48-bit serial, CRC. */
 export function romId(serial: number[]) {

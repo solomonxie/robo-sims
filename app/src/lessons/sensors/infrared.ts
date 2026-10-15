@@ -24,7 +24,7 @@ import {
   trackPoint,
   vs1838Floor,
 } from '../../core/physics'
-import { amps } from '../../core/units'
+import { amps, signed } from '../../core/units'
 import { buildLed } from '../../models/passives'
 import { V3, add, box, cylinder, mat, tube } from '../../models/kit'
 import { createStage } from '../../scene/stage'
@@ -38,6 +38,7 @@ import {
   POWER,
   RING,
   SUN_TINT,
+  addRod,
   beamCone,
   codeBlock,
   glide,
@@ -49,13 +50,11 @@ import {
   partLetter,
   scope,
   setGlow,
-  shadowlessRod,
+  sineHash,
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const rodTo = (parent: THREE.Object3D, m: THREE.Material) => add(parent, shadowlessRod(m))
-const signed = (x: number, digits = 1) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(digits)}`
 
 /** 5 mm LED lying in the screen plane, dome toward `dir` (±1 on x); → its tip and glow. */
 function sideLed(parent: THREE.Object3D, color: string, at: V3, dir: 1 | -1, k: number) {
@@ -159,7 +158,7 @@ export const obstacleSensor: Lesson = {
     const cone = beamCone(scene, IR_TINT)
     const outRays = [0, 1, 2].map(() => lightRay(scene, 12, 0.12))
     const backRays = [0, 1, 2].map(() => lightRay(scene, 12, 0.12))
-    const ruler = rodTo(scene, glowMat(GREY, 0.4))
+    const ruler = addRod(scene, glowMat(GREY, 0.4))
     const rulerText = liveLabel(scene, [0, OB.y - 6.6, 0.3], { size: 0.4 })
     // Plot: photodiode volts vs distance for each surface, with the pot line.
     const PW = 34
@@ -170,7 +169,7 @@ export const obstacleSensor: Lesson = {
     const yOf = (v: number) => -PH / 2 + (v / FC51.vcc) * PH
     const curves = (Object.keys(SURFACES) as Surface[]).map((s) => ({ s, tr: plot.trace(CURVE_COLOR[s], { samples: 120, radius: 0.08 }) }))
     curves.forEach(({ s, tr }) => tr.draw((u) => yOf(photoVolts(reflectedAmps(2 + u * (OB.maxCm - 2), SURFACES[s], obstacleReading(10, 'white', 1).ledA))), null))
-    const potLine = rodTo(scene, glowMat(RING, 1))
+    const potLine = addRod(scene, glowMat(RING, 1))
     const marker = add(scene, new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), glowMat(IR_TINT, 1.2)))
     partLetter(scene, '5 V', [1 - PW / 2 - 0.8, PY + PH / 2, 0], 0.32, GREY, 'right')
     partLetter(scene, '0', [1 - PW / 2 - 0.8, PY - PH / 2, 0], 0.32, GREY, 'right')
@@ -305,7 +304,7 @@ export const lineFollower: Lesson = {
       return m
     })
     const arrowMat = glowMat(RING, 0.9)
-    const steer = rodTo(scene, arrowMat)
+    const steer = addRod(scene, arrowMat)
     const trailMat = glowMat(RING, 0.5)
     const trail = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 6, 4), trailMat, TRAIL)
     trail.frustumCulled = false
@@ -325,7 +324,7 @@ export const lineFollower: Lesson = {
       cylinder(scene, 0.32, 0.3, mat('#0d0d10', { rough: 0.3 }), [x + 0.4, LF.py, 0.8], 'z', 12)
       const halo = glowHalo(scene, [x, LF.py - 1.2, 0.2], 0.5)
       const barMat = glowMat(DATA_COLOR, 0.9)
-      const bar = rodTo(scene, barMat)
+      const bar = addRod(scene, barMat)
       const val = liveLabel(scene, [x, LF.py + 6.9, 0.3], { size: 0.3 })
       return { x, halo, bar, val }
     })
@@ -371,12 +370,12 @@ export const lineFollower: Lesson = {
         }
         const { pose, adc, err, left, right } = s.f
         car.position.set(fx(pose.x), fy(pose.y), 0)
-        car.rotation.z = pose.heading
+        car.rotation.z = pose.th
         for (let i = 0; i < TRAIL; i++) trail.setMatrixAt(i, i < s.trail.length ? m4.makeTranslation(...s.trail[i]) : m4.makeScale(0, 0, 0))
         trail.instanceMatrix.needsUpdate = true
         const turn = (left - right) / Math.max(0.05, left + right)
         const nose = sensorAt(pose, 2)
-        const h = pose.heading - turn * 1.2
+        const h = pose.th - turn * 1.2
         stretchRod(steer, [fx(nose.x), fy(nose.y), 1], [fx(nose.x) + 2.2 * Math.cos(h), fy(nose.y) + 2.2 * Math.sin(h), 1], 0.09)
         // Panel: the tape where it really is under the bar, each sensor's spot and reading.
         const bar = sensorAt(pose, 2)
@@ -428,10 +427,6 @@ const SL = { tx: -17, y: 1.2, sx: -2, sy: 10.4, w: 6e-3, slow: 600 }
 const BURSTS: [number, number][] = [[0.3, 1.2], [1.8, 2.4], [3.0, 4.2], [4.8, 5.4]].map(([a, b]) => [a * 1e-3, b * 1e-3])
 const burstOn = (t: number) => BURSTS.some(([a, b]) => t >= a && t < b)
 const rxX = (m: number) => SL.tx + 6 + 22 * (Math.log(m / 0.1) / Math.log(80))
-const hash = (x: number) => {
-  const v = Math.sin(x * 127.1) * 43758.5453
-  return v - Math.floor(v)
-}
 
 const slRun = memoBy(
   (p: Params) => `${p.klux}|${p.rx}|${p.m}`,
@@ -502,7 +497,7 @@ export const sunlightInterference: Lesson = {
     const rxName = liveLabel(scene, [0, SL.y - 4, 0.3], { size: 0.34 })
     const rxHalo = glowHalo(scene, [0, SL.y, 0.4], 0.8)
     const outLed = smdLed(rx, [1.2, 3, 0.6], POWER)
-    const ruler = rodTo(scene, glowMat(GREY, 0.4))
+    const ruler = addRod(scene, glowMat(GREY, 0.4))
     const rulerText = liveLabel(scene, [0, SL.y - 5.4, 0.3], { size: 0.36 })
     // Scope: input to the decision and OUT.
     const W = 40
@@ -512,12 +507,12 @@ export const sunlightInterference: Lesson = {
     plot.group.position.set(0, Y, 0)
     const inTrace = plot.trace(IR_TINT, { samples: 480, radius: 0.06 })
     const outTrace = plot.trace(POWER, { samples: 240, radius: 0.08 })
-    const thrLine = rodTo(scene, glowMat(RING, 1))
+    const thrLine = addRod(scene, glowMat(RING, 1))
     const thrText = liveLabel(scene, [W / 2 + 0.6, 0, 0.3], { size: 0.3, align: 'left' })
     const inName = liveLabel(scene, [-W / 2 - 0.8, Y + 1.8, 0], { size: 0.32, align: 'right' })
     partLetter(scene, 'OUT', [-W / 2 - 0.8, Y - 2, 0], 0.34, POWER, 'right')
     partLetter(scene, '6 ms', [W / 2, Y - H / 2 - 1, 0], 0.32, GREY, 'right')
-    const cursor = rodTo(scene, glowMat(LABEL, 1))
+    const cursor = addRod(scene, glowMat(LABEL, 1))
     const code = codeBlock(scene, [-25, 15.2, 0], 0.36, 4)
     const status = liveLabel(scene, [-25, -17, 0.3], { size: 0.4, align: 'left' })
     const s = { key: '', t: 0, x: 0, wall: 0 }
@@ -564,7 +559,7 @@ export const sunlightInterference: Lesson = {
             const full = Math.max(R.sigA, 1.5 * floor)
             const a = (R.sigA / full) * 1.5
             const nz = (floor / full) * 1.5
-            inTrace.draw((u) => 1.8 + (burstOn(u * SL.w) ? a * Math.sin(u * 2 * Math.PI * 57) : 0) + 0.6 * nz * (hash(u * 977) - 0.5) * 2, null)
+            inTrace.draw((u) => 1.8 + (burstOn(u * SL.w) ? a * Math.sin(u * 2 * Math.PI * 57) : 0) + 0.6 * nz * (sineHash(u * 977) - 0.5) * 2, null)
             stretchRod(thrLine, [-W / 2, Y + 1.8 + nz, 0.3], [W / 2, Y + 1.8 + nz, 0.3], 0.04)
             thrText.group.position.y = Y + 1.8 + nz
             thrText.set('AGC', RING)

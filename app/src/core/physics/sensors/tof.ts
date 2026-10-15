@@ -1,7 +1,7 @@
 // Laser time of flight: VL53L0X single-zone ranging (photon counts, sigma, limits) and VL53L5CX-style multi-zone depth grids.
+import { LIGHT_C } from '../common'
 import { speedOfSound } from './ultrasonic'
 
-export const LIGHT_C = 299_792_458
 
 /** Out and back at the speed of light. */
 export const lightRoundTrip = (m: number) => (2 * m) / LIGHT_C
@@ -27,8 +27,8 @@ export type TofTarget = keyof typeof TOF_TARGETS
 
 /** Return photon rate (Mcps): ∝ reflectance / d². */
 export const signalMcps = (m: number, refl: number) => (VL53L0X.k * refl) / Math.max(m, 0.01) ** 2
-export const ambientMcps = (klux: number) => VL53L0X.ambPerKlux * klux
-export const spadCounts = (mcps: number, budgetMs: number) => mcps * budgetMs * VL53L0X.countsPer
+const ambientMcps = (klux: number) => VL53L0X.ambPerKlux * klux
+const spadCounts = (mcps: number, budgetMs: number) => mcps * budgetMs * VL53L0X.countsPer
 
 /** Range noise: pulse width / √N, widened by ambient shot noise. */
 export const sigmaMm = (sigCounts: number, ambCounts: number) => (VL53L0X.pulseMm * Math.sqrt(sigCounts + 2 * ambCounts)) / Math.max(sigCounts, 1e-9)

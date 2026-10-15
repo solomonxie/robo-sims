@@ -62,6 +62,8 @@ export const msText = (s: number, digits = 1) => `${+(s * 1000).toFixed(s < 0.01
 export const mAText = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 export const dbmText = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 export const pct = (f: number) => `${Math.round(f * 100)} %`
+/** Always-signed fixed-point text: +1.0, −0.5. */
+export const signed = (v: number, digits = 1) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(digits)}`
 export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 /** Minutes under an hour, else hours to `digits` decimals. */
 export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)

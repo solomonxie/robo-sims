@@ -1,9 +1,9 @@
 // IMU: MEMS accelerometer proof mass, Coriolis gyro, complementary filter, gyro bias drift.
+import { DEG } from '../common'
 import { Vec3 } from '../../fields'
 import { gaussAt } from '../mcu/adc'
 
 const G = 9.81
-const DEG = Math.PI / 180
 
 // --- Accelerometer: the proof mass feels specific force (acceleration minus gravity), in g. ---
 
@@ -54,7 +54,7 @@ export const compTau = (alpha: number, dt: number) => (alpha * dt) / (1 - alpha)
 export const compStep = (angle: number, rate: number, accelAngle: number, dt: number, alpha: number) => alpha * (angle + rate * dt) + (1 - alpha) * accelAngle
 
 /** A balancing robot's wobble at `t` s: tilt (rad), tilt rate (rad/s) and the wheel acceleration (g) that catches it. */
-export function balanceWobble(t: number) {
+function balanceWobble(t: number) {
   const w1 = 2 * Math.PI * 0.35
   const w2 = 2 * Math.PI * 1.1
   const tilt = 0.14 * Math.sin(w1 * t) + 0.05 * Math.sin(w2 * t + 1)

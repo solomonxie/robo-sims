@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Vec3, norm } from '../../core/fields'
 import {
   CalMotion,
+  DEG,
   MAGNET_BR,
   MAG_SITES,
   MagSite,
@@ -18,6 +19,7 @@ import {
   tiltAccel,
   tiltCompHeading,
   toBody,
+  toDeg,
   toLevel,
   trueHeading,
   worstHeadingError,
@@ -35,6 +37,7 @@ import {
   NORTH,
   POWER,
   RING,
+  add3,
   compass,
   frac,
   glowMat,
@@ -47,11 +50,9 @@ import {
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
+import { signed } from '../../core/units'
 
-const DEG = Math.PI / 180
-const deg = (r: number) => r / DEG
-const sgn = (v: number, d = 0) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(d)}`
-const hdg = (r: number) => `${String(Math.round(deg(wrap2pi(r))) % 360).padStart(3, '0')}°`
+const hdg = (r: number) => `${String(Math.round(toDeg(wrap2pi(r))) % 360).padStart(3, '0')}°`
 const uT = (v: number, d = 1) => `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(d)}`
 /** (north, west, up) → stage: north is −z (away from the camera), east +x, up +y. */
 const T = ([nn, w, u]: Vec3, k = 1): V3 => [-w * k, u * k, -nn * k]
@@ -154,7 +155,7 @@ export const heading: Lesson = {
   formula: (p) => {
     const S = headSetup(p)
     const lv = toLevel(S.m, S.pitch)
-    return `heading = atan2(Y, X) = atan2(${uT(S.m[1])}, ${uT(S.m[0])}) = ${hdg(S.raw)} · level first: Xh = X cos θ − Z sin θ = ${uT(lv[0])} µT, θ from accel → ${hdg(S.fixed)} · true = magnetic + D = ${hdg(S.shown)} ${sgn(S.site.decl)}° = ${hdg(trueHeading(S.shown, S.site.decl))}`
+    return `heading = atan2(Y, X) = atan2(${uT(S.m[1])}, ${uT(S.m[0])}) = ${hdg(S.raw)} · level first: Xh = X cos θ − Z sin θ = ${uT(lv[0])} µT, θ from accel → ${hdg(S.fixed)} · true = magnetic + D = ${hdg(S.shown)} ${signed(S.site.decl, 0)}° = ${hdg(trueHeading(S.shown, S.site.decl))}`
   },
   legend: [
     { color: B_FIELD, label: "Earth's field: level H + vertical Z", shape: 'dot' },
@@ -271,11 +272,11 @@ export const heading: Lesson = {
 
         const ok = (e: number) => Math.abs(e) < 2 * DEG
         const rawErr = wrapPi(R.raw - s.yaw)
-        truthText.set(`nose ${hdg(s.yaw)} · pitch ${sgn(deg(s.pitch))}°`, GREY)
-        rawText.set(`atan2(Y, X) → ${hdg(R.raw)}${ok(rawErr) ? '' : `  (off ${sgn(deg(rawErr))}°)`}`, ok(rawErr) ? POWER : HIGH_V)
+        truthText.set(`nose ${hdg(s.yaw)} · pitch ${signed(toDeg(s.pitch), 0)}°`, GREY)
+        rawText.set(`atan2(Y, X) → ${hdg(R.raw)}${ok(rawErr) ? '' : `  (off ${signed(toDeg(rawErr), 0)}°)`}`, ok(rawErr) ? POWER : HIGH_V)
         fixText.set(S.mode === 'tilt' ? `levelled by accel → ${hdg(R.fixed)}` : 'no tilt compensation', S.mode === 'tilt' ? POWER : GREY)
-        mapText.set(`${sgn(S.site.decl)}° declination → map ${hdg(trueHeading(R.shown, S.site.decl))}`, LABEL)
-        const turning = Math.abs(dy) > 0.01 ? ` · turning ${deg(HD.turn).toFixed(0)}°/s` : ''
+        mapText.set(`${signed(S.site.decl, 0)}° declination → map ${hdg(trueHeading(R.shown, S.site.decl))}`, LABEL)
+        const turning = Math.abs(dy) > 0.01 ? ` · turning ${toDeg(HD.turn).toFixed(0)}°/s` : ''
         status.set(`${S.site.name} · |B| ${S.site.fUT} µT${turning} · real time`, GREY)
       },
       readouts: (p) => {
@@ -284,7 +285,7 @@ export const heading: Lesson = {
         return [
           { label: 'Mag X · Y · Z', value: `${S.m.map((v) => uT(v, 0)).join(' · ')} µT` },
           { label: 'Raw counts (120/µT)', value: qmcCounts(S.m).join(' · ') },
-          { label: S.mode === 'tilt' ? 'Tilt-compensated heading' : 'Heading atan2(Y, X)', value: `${hdg(S.shown)}${bad ? ` (${sgn(deg(S.err))}°)` : ''}`, tone: bad ? 'bad' : 'ok' },
+          { label: S.mode === 'tilt' ? 'Tilt-compensated heading' : 'Heading atan2(Y, X)', value: `${hdg(S.shown)}${bad ? ` (${signed(toDeg(S.err), 0)}°)` : ''}`, tone: bad ? 'bad' : 'ok' },
           { label: 'True (map) heading', value: hdg(trueHeading(S.shown, S.site.decl)) },
         ]
       },
@@ -292,7 +293,6 @@ export const heading: Lesson = {
   },
 }
 
-const add3 = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 
 // --- Hard-iron calibration: magnets riding on the robot shift every reading; spin, fit the centre, subtract. ---
 
@@ -488,8 +488,8 @@ export const hardIronCalibration: Lesson = {
         return [
           { label: 'Hard-iron offset', value: `${norm(R.hard).toFixed(0)} µT`, tone: R.clipped ? 'bad' : norm(R.hard) > CAL.site.fUT ? 'warn' : 'ok' },
           { label: 'Fit misses by', value: `${miss.toFixed(1)} µT`, tone: miss < 1 ? 'ok' : 'warn' },
-          { label: 'Heading error, raw', value: `±${deg(R.before).toFixed(0)}°`, tone: R.before > 5 * DEG ? 'bad' : 'ok' },
-          { label: 'After calibration', value: `±${deg(R.after).toFixed(1)}°`, tone: R.after > 2 * DEG ? 'warn' : 'ok' },
+          { label: 'Heading error, raw', value: `±${toDeg(R.before).toFixed(0)}°`, tone: R.before > 5 * DEG ? 'bad' : 'ok' },
+          { label: 'After calibration', value: `±${toDeg(R.after).toFixed(1)}°`, tone: R.after > 2 * DEG ? 'warn' : 'ok' },
         ]
       },
     }

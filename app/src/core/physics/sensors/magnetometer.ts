@@ -1,4 +1,5 @@
 // Magnetometer: Earth's field on three axes, atan2 heading, tilt compensation, declination, hard/soft-iron calibration.
+import { DEG } from '../common'
 import { Vec3 } from '../../fields'
 import { gaussSolve } from '../../nodal'
 import { MU_0 } from '../electromagnetism'
@@ -6,7 +7,6 @@ import { accelPitch } from '../mcu/i2c'
 import { gaussAt } from '../mcu/adc'
 
 const TAU = 2 * Math.PI
-const DEG = Math.PI / 180
 
 /** Field strength (µT), dip (°, + = field points down: northern hemisphere) and declination (°, + = magnetic north east of true). */
 export const MAG_SITES = {
@@ -41,7 +41,7 @@ export const wrapPi = (a: number) => wrap2pi(a + Math.PI) - Math.PI
 /** Heading clockwise from magnetic north for a level sensor (X forward, Y left): atan2(y, x). */
 export const magHeading = ([x, y]: Vec3) => wrap2pi(Math.atan2(y, x))
 /** Left-side-up roll from an accel reading. */
-export const accelRoll = ([, y, z]: Vec3) => Math.atan2(y, z)
+const accelRoll = ([, y, z]: Vec3) => Math.atan2(y, z)
 /** Tilt-compensated heading: pitch and roll from the accelerometer level the magnetometer reading first. */
 export const tiltCompHeading = (m: Vec3, accel: Vec3) => magHeading(toLevel(m, accelPitch(accel), accelRoll(accel)))
 /** True (map) heading from a magnetic one. */
@@ -49,7 +49,7 @@ export const trueHeading = (magRad: number, declDeg: number) => wrap2pi(magRad +
 
 /** QMC5883L at ±2 G: 12 000 LSB per gauss = 120 LSB per µT; inputs past ±200 µT saturate. */
 export const QMC5883L = { addr: 0x0d, lsbPerUT: 120, rangeUT: 200 }
-export const qmcClip = (v: Vec3): Vec3 => v.map((c) => Math.max(-QMC5883L.rangeUT, Math.min(QMC5883L.rangeUT, c))) as Vec3
+const qmcClip = (v: Vec3): Vec3 => v.map((c) => Math.max(-QMC5883L.rangeUT, Math.min(QMC5883L.rangeUT, c))) as Vec3
 export const qmcCounts = (v: Vec3): Vec3 => qmcClip(v).map((c) => Math.round(c * QMC5883L.lsbPerUT)) as Vec3
 
 // --- Hard and soft iron: magnets and steel riding on the robot. ---

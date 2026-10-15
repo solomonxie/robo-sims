@@ -46,9 +46,9 @@ import {
   pushButton,
   ripples,
   robotCar,
+  rodBetween,
   routerModel,
   setGlow,
-  shadowlessRod,
   stretchRod,
   trayMat,
 } from '../fx'
@@ -56,11 +56,6 @@ import { Lesson, Params, Stage, n, pick } from '../types'
 
 const HOLD_S = 2.5
 const hex8 = (b: number) => `0x${b.toString(16).padStart(8, '0')}`
-const rodTo = (parent: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.08) => {
-  const o = add(parent, shadowlessRod(m))
-  stretchRod(o, a, b, r)
-  return o
-}
 
 /** On-screen seconds per phase: short ones slowed to be seen, long ones (uploads, downloads) sped up. */
 const showS = (s: number) => (s < 1 ? 0.9 + 2.5 * s : Math.min(5, 1.6 + Math.log2(s)))
@@ -189,17 +184,17 @@ export const bootModes: Lesson = {
     partLetter(scene, 'DTR', [-19.1, pinY.dtr + 0.45, 0], 0.3, DATA_COLOR, 'left')
     partLetter(scene, 'RTS', [-19.1, pinY.rts + 0.45, 0], 0.3, CLK_COLOR, 'left')
     partLetter(scene, 'TX RX', [-19.1, pinY.tx + 0.45, 0], 0.3, POWER, 'left')
-    rodTo(scene, [-19.3, pinY.dtr, 0], [-15.2, pinY.dtr, 0], lineMat.dtr)
-    rodTo(scene, [-19.3, pinY.rts, 0], [-15.2, pinY.rts, 0], lineMat.rts)
+    rodBetween(scene, [-19.3, pinY.dtr, 0], [-15.2, pinY.dtr, 0], lineMat.dtr)
+    rodBetween(scene, [-19.3, pinY.rts, 0], [-15.2, pinY.rts, 0], lineMat.rts)
     box(scene, [3.6, 4.6, 0.4], trayMat(), [-13.4, 4.9, -0.45])
     partLetter(scene, 'auto-reset', [-13.4, 7.8, 0], 0.32, GREY)
     const q1 = tile(scene, [-13.4, 6.1, 0], 2.6, 1.3, 'Q1')
     const q2 = tile(scene, [-13.4, 3.7, 0], 2.6, 1.3, 'Q2')
-    rodTo(scene, [-14.6, 5.4, 0.3], [-12.2, 4.4, 0.3], glowMat(GREY, 0.3), 0.05)
-    rodTo(scene, [-14.6, 4.4, 0.3], [-12.2, 5.4, 0.3], glowMat(GREY, 0.3), 0.05)
-    rodTo(scene, [-11.6, pinY.en, 0], [-3.6, pinY.en, 0], lineMat.en)
-    rodTo(scene, [-11.6, pinY.io0, 0], [-3.6, pinY.io0, 0], lineMat.io0)
-    rodTo(scene, [-19.3, pinY.tx, 0], [-3.6, pinY.tx, 0], lineMat.tx)
+    rodBetween(scene, [-14.6, 5.4, 0.3], [-12.2, 4.4, 0.3], glowMat(GREY, 0.3), 0.05)
+    rodBetween(scene, [-14.6, 4.4, 0.3], [-12.2, 5.4, 0.3], glowMat(GREY, 0.3), 0.05)
+    rodBetween(scene, [-11.6, pinY.en, 0], [-3.6, pinY.en, 0], lineMat.en)
+    rodBetween(scene, [-11.6, pinY.io0, 0], [-3.6, pinY.io0, 0], lineMat.io0)
+    rodBetween(scene, [-19.3, pinY.tx, 0], [-3.6, pinY.tx, 0], lineMat.tx)
     const enBtn = pushButton(scene, [-8.6, pinY.en + 0.5, 0], [-6.6, pinY.en + 0.5, 0])
     const bootBtn = pushButton(scene, [-8.6, pinY.io0 + 0.5, 0], [-6.6, pinY.io0 + 0.5, 0])
     enBtn.group.scale.setScalar(0.55)
@@ -229,11 +224,11 @@ export const bootModes: Lesson = {
     const app = tile(scene, [20.4, CHAIN_Y, 0], 4.6, 2.2, 'app')
     const dl = tile(scene, [11.2, 4, 0], 6.2, 2, 'download mode')
     const arrowMat = glowMat(GREY, 0.3)
-    rodTo(scene, [10.6, CHAIN_Y, 0], [11.9, CHAIN_Y, 0], arrowMat)
-    rodTo(scene, [16.7, CHAIN_Y, 0], [18, CHAIN_Y, 0], arrowMat)
+    rodBetween(scene, [10.6, CHAIN_Y, 0], [11.9, CHAIN_Y, 0], arrowMat)
+    rodBetween(scene, [16.7, CHAIN_Y, 0], [18, CHAIN_Y, 0], arrowMat)
     const dlArrow = glowMat(GREY, 0.3)
-    rodTo(scene, [8.2, CHAIN_Y - 1.3, 0], [8.2, 4, 0], dlArrow)
-    rodTo(scene, [8.2, 4, 0], [8, 4, 0], dlArrow)
+    rodBetween(scene, [8.2, CHAIN_Y - 1.3, 0], [8.2, 4, 0], dlArrow)
+    rodBetween(scene, [8.2, 4, 0], [8, 4, 0], dlArrow)
     const fw = FLASH.x1 - FLASH.x0
     box(scene, [fw + 0.4, 1.8, 0.4], trayMat(), [FLASH.x0 + fw / 2, FLASH.y, -0.45])
     const seg = (x0: number, x1: number, color: string, name: string, addr: string) => {
@@ -257,7 +252,7 @@ export const bootModes: Lesson = {
     ROWS.forEach((r, k) => partLetter(scene, r.name, [TR.x0 - 0.6, rowY(k), 0], 0.36, r.color, 'right'))
     partLetter(scene, 'UART0', [TR.x0 - 0.6, rowY(ROWS.length), 0], 0.36, POWER, 'right')
     const g = add(scene, new THREE.Group())
-    const cursor = rodTo(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.06)
+    const cursor = rodBetween(scene, [0, 0, 0], [0, 1, 0], glowMat(LABEL, 1), 0.06)
     let segs: { x0: number; x1: number; o: THREE.Object3D; text?: THREE.Object3D }[] = []
     const status = liveLabel(scene, [-24, -10.6, 0.3], { size: 0.44, align: 'left' })
     const code = codeBlock(scene, [-24.5, 12.6, 0], 0.36, 4)
@@ -518,7 +513,7 @@ export const otaUpdates: Lesson = {
       return { m, t: liveLabel(scene, [at[0], at[1] + 0.35, 0.3], { size: 0.38 }), s: liveLabel(scene, [at[0], at[1] - 0.45, 0.3], { size: 0.32 }) }
     })
     const pick2 = liveLabel(scene, [MAP.x0 + 18, 1.6, 0.3], { size: 0.34 })
-    rodTo(scene, [MAP.x0 + 5.8, MAP.y - 1.3, -0.1], [MAP.x0 + 6.7, 2.9, -0.1], glowMat(FORCE, 0.3), 0.05)
+    rodBetween(scene, [MAP.x0 + 5.8, MAP.y - 1.3, -0.1], [MAP.x0 + 6.7, 2.9, -0.1], glowMat(FORCE, 0.3), 0.05)
     // Pipeline chips.
     const chips = PIPE.map(([, name], k) => tile(scene, [-17 + k * 7.6, -5.4, 0], 6.8, 1.5, name))
     const status = liveLabel(scene, [-24, -8.4, 0.3], { size: 0.44, align: 'left' })

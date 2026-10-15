@@ -2,10 +2,8 @@
 
 /** Speed of sound in dry air, m/s. */
 export const speedOfSound = (tempC: number) => 331.3 * Math.sqrt(1 + tempC / 273.15)
-/** The textbook constant most sketches bake in (20 °C). */
-export const C_FIXED = 343
 /** Arduino's `us / 58` divisor: µs of round trip per cm at 343 m/s. */
-export const US_PER_CM = 58
+const US_PER_CM = 58
 
 export const HCSR04 = {
   hz: 40e3,
@@ -18,7 +16,6 @@ export const HCSR04 = {
   noEchoS: 0.038,
 }
 export const burstS = () => HCSR04.cycles / HCSR04.hz
-export const soundWavelength = (tempC: number) => speedOfSound(tempC) / HCSR04.hz
 
 /** Round-trip time to a target `m` away. */
 export const echoSeconds = (m: number, tempC: number) => (2 * m) / speedOfSound(tempC)
@@ -37,7 +34,7 @@ export function pingTimeline(echoS: number | null) {
 // --- Beam and echo strength. ---
 
 /** Air absorption at 40 kHz, dB/m. */
-export const AIR_DB_PER_M = 1.3
+const AIR_DB_PER_M = 1.3
 /** One-way transducer gain off axis: −6 dB at the half-angle. */
 export const beamGain = (offRad: number, halfRad = (HCSR04.halfDeg * Math.PI) / 180) => 2 ** -((offRad / halfRad) ** 2)
 /** Spreading (1/path) and air loss over a round-trip `path`, m. */
@@ -62,7 +59,7 @@ const angleOff = (s: Sonar, p: Pt) => {
 const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
 
 /** Share of the beam a narrow target `width` wide catches at `m`. */
-export const postShare = (width: number, m: number, halfRad = (HCSR04.halfDeg * Math.PI) / 180) =>
+const postShare = (width: number, m: number, halfRad = (HCSR04.halfDeg * Math.PI) / 180) =>
   Math.min(1, width / (2 * Math.max(m, 0.01) * Math.tan(halfRad)))
 
 export interface Echo {
@@ -124,7 +121,7 @@ export function pairReading(a: Sonar, b: Sonar, rs: Reflector[], together: boole
 
 export type Target = 'wall' | 'cardboard' | 'curtain' | 'foam' | 'chairLeg'
 /** Share of the sound sent back: hard surfaces near 1, soft and porous ones soak it up. */
-export const TARGETS: Record<Target, { refl: number; width?: number }> = {
+const TARGETS: Record<Target, { refl: number; width?: number }> = {
   wall: { refl: 1 },
   cardboard: { refl: 0.7 },
   curtain: { refl: 0.25 },

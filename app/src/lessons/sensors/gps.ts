@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { Vec3 } from '../../core/fields'
 import {
+  DEG,
   EARTH_R,
   GPS_SKY,
   L1_HZ,
@@ -34,6 +35,7 @@ import {
   LABEL,
   POWER,
   RING,
+  add3,
   arcAt,
   glowMat,
   label,
@@ -44,15 +46,14 @@ import {
   ripples,
   setGlow,
   shadowlessRod,
+  smoothstep,
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const DEG = Math.PI / 180
 const SAT_COLORS = [RING, B_FIELD, FORCE, DATA_COLOR]
 /** Local (east, north, up) → stage: east +x, up +y, north −z (away from the camera). */
 const enu = ([e, nn, u]: Vec3, k = 1): V3 => [e * k, u * k, -nn * k]
-const add3 = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
 const sub3 = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 const len3 = (v: V3 | Vec3) => Math.hypot(v[0], v[1], v[2])
 const lenText = (m: number) => {
@@ -60,10 +61,6 @@ const lenText = (m: number) => {
   if (a >= 1000) return `${(m / 1000).toFixed(a >= 1e4 ? 0 : 1)} km`
   if (a >= 1) return `${m.toFixed(a >= 10 ? 0 : 1)} m`
   return `${(m * 100).toFixed(a >= 0.1 ? 0 : 1)} cm`
-}
-const smooth = (u: number) => {
-  const x = Math.min(1, Math.max(0, u))
-  return x * x * (3 - 2 * x)
 }
 
 /** GPS satellite: gold bus, two blue solar wings, an antenna toward Earth (`aim` turns it). */
@@ -266,7 +263,7 @@ export const trilateration: Lesson = {
         const shown = S.count === 3 ? solveFix(at, trueR.map((r) => r + B), { bias: 0 }).pos : ([0, 0, 0] as Vec3)
         const target = add3(rx, shown as V3)
         const speed = Math.max(...trueR.map((r) => r + B)) / (TRI.send * 0.9)
-        const solveU = S.count === 4 ? smooth((t - TRI.send - TRI.hold) / TRI.solve) : 0
+        const solveU = S.count === 4 ? smoothstep((t - TRI.send - TRI.hold) / TRI.solve) : 0
         const solved = S.count === 4 && t >= TRI.send + TRI.hold + TRI.solve
 
         sats.forEach((q, i) => {

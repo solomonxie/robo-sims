@@ -1,8 +1,9 @@
 // Radio: wavelength, antennas, path loss, link budget, keying and LoRa.
-const C = 299_792_458
+import { LIGHT_C } from '../common'
 const TAU = 2 * Math.PI
 
-export const wavelength = (hz: number) => C / hz
+/** Wavelength at `hz` for a wave moving at `speed` (light by default). */
+export const wavelength = (hz: number, speed = LIGHT_C) => speed / hz
 
 /** Length of a λ/4 whip; real wire runs ~5 % short (`vf` 0.95). */
 export const quarterWave = (hz: number, vf = 0.95) => (vf * wavelength(hz)) / 4
@@ -11,7 +12,7 @@ export const wattsToDbm = (w: number) => 10 * Math.log10(w * 1000)
 export const dbmToWatts = (dbm: number) => 10 ** (dbm / 10) / 1000
 
 /** Log-distance path loss: free space (Friis) out to 1 m, then 10·n·log10(d); n = 2 is the inverse-square law. */
-export const pathLossDb = (meters: number, hz: number, n = 2) => 20 * Math.log10((4 * Math.PI * hz) / C) + 10 * n * Math.log10(meters)
+export const pathLossDb = (meters: number, hz: number, n = 2) => 20 * Math.log10((4 * Math.PI * hz) / LIGHT_C) + 10 * n * Math.log10(meters)
 
 /** Received power: transmit power plus antenna gains minus path and wall losses. */
 export const rssiDbm = (txDbm: number, gainDb: number, meters: number, hz: number, lossDb = 0, n = 2) =>

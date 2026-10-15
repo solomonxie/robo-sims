@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   P3,
-  RobotPose,
+  Pose,
   RPLIDAR_A1,
   Room,
   RoomSolid,
@@ -78,7 +78,7 @@ const ROOM_A = walledRoom(6, 4, 1, [
   { kind: 'post', name: 'bin', at: [4.7, 3.3], r: 0.16, h: 0.6, refl: 0.3 },
 ])
 const MOVE = { v: 1, a: 1.0, b: 4.4, y: 2.2, omegaDeg: 90 }
-const poseAt = (motion: keyof typeof MOTION) => (t: number): RobotPose =>
+const poseAt = (motion: keyof typeof MOTION) => (t: number): Pose =>
   motion === 'drive'
     ? { x: shuttle(t, MOVE.v, MOVE.a, MOVE.b), y: MOVE.y, th: 0 }
     : { x: motion === 'spin' ? 3 : MOVE.a + 0.6, y: MOVE.y, th: motion === 'spin' ? (MOVE.omegaDeg * Math.PI * t) / 180 : 0 }

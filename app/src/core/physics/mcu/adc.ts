@@ -1,5 +1,5 @@
 // SAR ADC on an ESP32: quantisation vs bits and range, the binary search, noise vs averaging, the real chip's attenuation curves.
-const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
+import { clamp } from '../common'
 
 export const ADC_BITS = 12
 

@@ -17,7 +17,7 @@ import {
   uere,
   wander,
 } from './gps'
-import { LIGHT_C } from './tof'
+import { LIGHT_C } from '../common'
 
 const sats = (n: number) => GPS_SKY.slice(0, n).map((s) => skyPos(s.az, s.el))
 const len = (v: Vec3) => Math.hypot(...v)

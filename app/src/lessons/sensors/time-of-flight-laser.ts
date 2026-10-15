@@ -29,8 +29,9 @@ import {
   LABEL,
   POWER,
   RING,
-  addLabel,
   SUN_TINT,
+  addLabel,
+  addRod,
   beamCone,
   codeBlock,
   glide,
@@ -43,18 +44,13 @@ import {
   potentialColor,
   scope,
   setGlow,
-  shadowlessRod,
+  sineHash,
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const rodTo = (parent: THREE.Object3D, m: THREE.Material) => add(parent, shadowlessRod(m))
-const hash = (x: number) => {
-  const v = Math.sin(x * 127.1) * 43758.5453
-  return v - Math.floor(v)
-}
 /** Standard normal from two hashes (Box–Muller). */
-const gauss = (k: number) => Math.sqrt(-2 * Math.log(Math.max(1e-6, hash(k)))) * Math.cos(2 * Math.PI * hash(k + 0.5))
+const gauss = (k: number) => Math.sqrt(-2 * Math.log(Math.max(1e-6, sineHash(k)))) * Math.cos(2 * Math.PI * sineHash(k + 0.5))
 const ns = (s: number) => `${(s * 1e9).toFixed(2)} ns`
 const STATUS: Record<number, string> = { 0: 'valid', 1: 'sigma fail', 2: 'signal fail', 4: 'out of range' }
 
@@ -150,7 +146,7 @@ export const vl53l0x: Lesson = {
     add(scene, new THREE.Mesh(new THREE.SphereGeometry(1.2, 20, 14), sunMat), [-7, 11.4, 0])
     const sunRays = [0, 1, 2].map(() => lightRay(scene, 10, 0.13, 0.6))
     const sunText = liveLabel(scene, [-5.2, 11.4, 0.3], { size: 0.34, align: 'left' })
-    const ruler = rodTo(scene, glowMat(GREY, 0.4))
+    const ruler = addRod(scene, glowMat(GREY, 0.4))
     const rulerText = liveLabel(scene, [0, L0.y - 6.6, 0.3], { size: 0.38 })
     const flight = liveLabel(scene, [0, L0.y + 6.6, 0.3], { size: 0.38 })
     // SPAD array, magnified.
@@ -170,7 +166,7 @@ export const vl53l0x: Lesson = {
     const plot = scope(scene, PW, PH, { divs: [16, 4], zeroAt: 0 })
     plot.group.position.set(PX, PY, 0)
     const hist = plot.trace(RING, { samples: L0.bins * 2, radius: 0.07 })
-    const cursor = rodTo(scene, glowMat(IR_TINT, 1.2))
+    const cursor = addRod(scene, glowMat(IR_TINT, 1.2))
     const peakText = liveLabel(scene, [0, PY + PH / 2 + 0.9, 0.3], { size: 0.32 })
     partLetter(scene, '0', [PX - PW / 2, PY - PH / 2 - 1, 0], 0.32, GREY, 'left')
     partLetter(scene, `${L0.win} ns`, [PX + PW / 2, PY - PH / 2 - 1, 0], 0.32, GREY, 'right')
@@ -223,12 +219,12 @@ export const vl53l0x: Lesson = {
         const arrived = !flying && s.t - trip < 0.25
         const hitFrac = Math.min(1, R.sig / 2)
         cells.forEach((c, i) => {
-          const r = hash(i * 7.31 + Math.floor(s.wall * 30) * 0.913)
+          const r = sineHash(i * 7.31 + Math.floor(s.wall * 30) * 0.913)
           if (r < f * 0.12) {
             c.k = 1.6
             c.color = SUN_TINT
           }
-          if (arrived && hash(i * 3.7 + s.cycle) < 0.08 + 0.9 * hitFrac) {
+          if (arrived && sineHash(i * 3.7 + s.cycle) < 0.08 + 0.9 * hitFrac) {
             c.k = 2
             c.color = IR_TINT
           }
@@ -364,13 +360,13 @@ export const multiZoneRanging: Lesson = {
     const cone = beamCone(scene, IR_TINT)
     const half = (VL53L5CX.fovDeg * Math.PI) / 360
     const fanMat = glowMat(IR_TINT, 0.35)
-    const fans = Array.from({ length: 9 }, () => rodTo(scene, fanMat))
+    const fans = Array.from({ length: 9 }, () => addRod(scene, fanMat))
     const beams = Array.from({ length: 8 }, () => lightRay(scene, 8, 0.12, 0.9))
     const hits = Array.from({ length: 8 }, () => add(scene, new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), glowMat(IR_TINT, 1.2))))
     const steerMat = glowMat(RING, 1)
-    const steer = rodTo(scene, steerMat)
+    const steer = addRod(scene, steerMat)
     const steerText = liveLabel(scene, [MZ.sx - 2, MZ.sy + 2.6, 1.2], { size: 0.38 })
-    const ruler = rodTo(scene, glowMat(GREY, 0.4))
+    const ruler = addRod(scene, glowMat(GREY, 0.4))
     const rulerText = liveLabel(scene, [0, MZ.sy - 9.4, 0.3], { size: 0.34 })
     // Depth image, as seen from behind the robot.
     box(scene, [MZ.gw + 0.8, MZ.gw + 0.8, 0.4], mat('#2a2c32', { rough: 0.5 }), [MZ.gx, MZ.gy, -0.3])

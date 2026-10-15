@@ -24,7 +24,7 @@ import {
   tdoa,
 } from '../../core/physics'
 import type { MicSet, Sound } from '../../core/physics'
-import { hertz, si } from '../../core/units'
+import { hertz, secs, si } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -52,19 +52,14 @@ import {
   scope,
   setGlow,
   speaker,
+  textLines,
   wavePool,
   wire,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
-const textLines = (scene: THREE.Scene, T0: V3) => {
-  const [a, b, c] = [0, 1, 2].map((i) => liveLabel(scene, [T0[0], T0[1] - i * 1.2, 0], { size: 0.5, align: 'left' }))
-  const status = liveLabel(scene, [T0[0], T0[1] - 3.7, 0], { size: 0.38, align: 'left' })
-  return { a, b, c, status }
-}
 const deg = (r: number) => (r * 180) / Math.PI
 const degText = (r: number) => `${Math.round(deg(r))}°`.replace("-", "−")
-const us = (s: number) => si(s, 's', 3)
 
 // --- MEMS mic: sound through the bottom port bends a diaphragm under a perforated backplate (a capacitor), the ASIC's
 // sigma-delta + decimation filter turn it into 24-bit samples, clocked out over I²S to an ESP32; spectrum of a clap vs a motor whine. ---
@@ -305,8 +300,8 @@ const angDiff = (a: number, b: number) => Math.abs(deg(Math.atan2(Math.sin(a - b
 function dirHeadline(D: DirSetup, R: ReturnType<typeof located>) {
   if (R.candidates.length > 2 || (D.set === 'four' && R.candidates.length > 1)) return `Mics ${Math.round(D.d * 100)} cm apart ≥ λ/2 = ${si(SOUND_C / TONE_HZ / 2, 'm', 2)}: ${R.candidates.length} bearings fit`
   if (angDiff(R.estimate, D.bearing) > 8) return `Behind! Two mics hear ${degText(R.estimate)}: same delay as ${degText(D.bearing)}`
-  if (D.set === 'two' && R.candidates.length === 1) return `Delay ${us(R.dtLR)} → ${degText(R.estimate)}: on the mic axis, front = back`
-  if (D.set === 'two') return `Delay ${us(R.dtLR)} → ${degText(R.estimate)}, or ${degText(R.candidates[1] ?? R.estimate)} behind`
+  if (D.set === 'two' && R.candidates.length === 1) return `Delay ${secs(R.dtLR)} → ${degText(R.estimate)}: on the mic axis, front = back`
+  if (D.set === 'two') return `Delay ${secs(R.dtLR)} → ${degText(R.estimate)}, or ${degText(R.candidates[1] ?? R.estimate)} behind`
   return `Two pairs, atan2 → ${degText(R.estimate)} (true ${degText(D.bearing)})`
 }
 
@@ -318,7 +313,7 @@ export const soundSourceDirection: Lesson = {
     const D = dirSetup(p)
     const R = located(D)
     const dt = tdoa(D.bearing, D.d)
-    return `Δt = d·sin θ / c = ${Math.round(D.d * 100)} cm × sin ${degText(D.bearing)} / ${SOUND_C} m/s = ${us(dt)} = ${(dt * FS).toFixed(1)} samples at 48 kHz · peak at ${R.lagLR.toFixed(1)} → θ = asin(c·Δt / d) = ${degText(Math.asin(Math.max(-1, Math.min(1, (SOUND_C * R.dtLR) / D.d))))}${D.set === 'four' ? ` · 4 mics: θ = atan2(Δt_LR, Δt_FB) = ${degText(R.estimate)}` : ' (or 180° − θ)'}`
+    return `Δt = d·sin θ / c = ${Math.round(D.d * 100)} cm × sin ${degText(D.bearing)} / ${SOUND_C} m/s = ${secs(dt)} = ${(dt * FS).toFixed(1)} samples at 48 kHz · peak at ${R.lagLR.toFixed(1)} → θ = asin(c·Δt / d) = ${degText(Math.asin(Math.max(-1, Math.min(1, (SOUND_C * R.dtLR) / D.d))))}${D.set === 'four' ? ` · 4 mics: θ = atan2(Δt_LR, Δt_FB) = ${degText(R.estimate)}` : ' (or 180° − θ)'}`
   },
   legend: [
     { color: RING, label: 'Wavefront from a far source (slowed)', shape: 'dot' },
@@ -488,7 +483,7 @@ export const soundSourceDirection: Lesson = {
         const ambiguous = R.candidates.length > (D.set === 'two' ? 2 : 1)
         const wrong = angDiff(R.estimate, D.bearing) > 8
         text.a.set(dirHeadline(D, R), ambiguous || wrong ? HEAT : POWER)
-        text.b.set(`Δt = ${Math.round(D.d * 100)} cm × sin ${degText(D.bearing)} / c = ${us(dt0)} = ${(dt0 * FS).toFixed(1)} samples (max ±${valid.toFixed(1)})`, LABEL)
+        text.b.set(`Δt = ${Math.round(D.d * 100)} cm × sin ${degText(D.bearing)} / c = ${secs(dt0)} = ${(dt0 * FS).toFixed(1)} samples (max ±${valid.toFixed(1)})`, LABEL)
         text.c.set(`${D.kind === 'tone' ? `λ = ${si(SOUND_C / TONE_HZ, 'm', 2)}, ${spatialAliasing(D.d, TONE_HZ) ? 'mics ≥ λ/2: aliased' : 'mics < λ/2: one peak'} · ` : ''}≈ ${deg(bearingStep(D.d, FS)).toFixed(1)}° per sample ahead`, D.kind === 'tone' && spatialAliasing(D.d, TONE_HZ) ? HEAT : B_FIELD)
         text.status.set(`slowed ×${DIR_SLOW} · sim ${si(tc / DIR_SLOW, 's', 3)} · 48 kHz · far source, mics to scale`, GREY)
       },
@@ -497,7 +492,7 @@ export const soundSourceDirection: Lesson = {
         const R = located(D)
         const ambiguous = R.candidates.length > (D.set === 'two' ? 2 : 1)
         return [
-          { label: 'Delay L→R', value: us(R.dtLR), tone: 'ok' },
+          { label: 'Delay L→R', value: secs(R.dtLR), tone: 'ok' },
           { label: 'Peak lag', value: `${R.lagLR.toFixed(1)} smp`, tone: Math.abs(R.lagLR) < 2 && D.d < 0.05 ? 'warn' : 'ok' },
           { label: 'Bearing', value: degText(R.estimate), tone: angDiff(R.estimate, D.bearing) > 8 ? 'bad' : 'ok' },
           { label: 'Candidates', value: `${R.candidates.length}`, tone: ambiguous ? 'bad' : R.candidates.length > 1 ? 'warn' : 'ok' },

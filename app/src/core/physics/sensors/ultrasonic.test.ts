@@ -1,5 +1,4 @@
 import {
-  C_FIXED,
   HCSR04,
   Reflector,
   arduinoCm,
@@ -14,8 +13,9 @@ import {
   softPing,
   speedOfSound,
   targetEcho,
-  soundWavelength,
 } from './ultrasonic'
+import { SOUND_C } from '../common'
+import { wavelength } from '../signals/radio'
 
 const deg = (d: number) => (d * Math.PI) / 180
 const wall = (x: number, tiltDeg: number, half = 2): Reflector => {
@@ -28,7 +28,7 @@ describe('ultrasonic time of flight', () => {
     expect(speedOfSound(0)).toBeCloseTo(331.3, 1)
     expect(speedOfSound(20)).toBeCloseTo(343.2, 0)
     expect(speedOfSound(35)).toBeGreaterThan(speedOfSound(20))
-    expect(soundWavelength(20) * 1000).toBeCloseTo(8.6, 1)
+    expect(wavelength(HCSR04.hz, speedOfSound(20)) * 1000).toBeCloseTo(8.6, 1)
   })
   it('d = c·t/2 round-trips; 1 m is ~5.8 ms, which /58 reads as ~100 cm', () => {
     const t = echoSeconds(1, 20)
@@ -37,8 +37,8 @@ describe('ultrasonic time of flight', () => {
     expect(arduinoCm(t)).toBeCloseTo(100.5, 0)
   })
   it('a fixed 343 m/s overreads in the cold and underreads in the heat', () => {
-    expect(rangeFromEcho(echoSeconds(2, -10), C_FIXED)).toBeGreaterThan(2.07)
-    expect(rangeFromEcho(echoSeconds(2, 40), C_FIXED)).toBeLessThan(1.94)
+    expect(rangeFromEcho(echoSeconds(2, -10), SOUND_C)).toBeGreaterThan(2.07)
+    expect(rangeFromEcho(echoSeconds(2, 40), SOUND_C)).toBeLessThan(1.94)
   })
   it('ECHO rises after the 200 µs burst; stays up 38 ms when nothing comes back', () => {
     const p = pingTimeline(0.005)

@@ -62,6 +62,14 @@ export const shadowlessRod = (m: THREE.Material) => {
   o.castShadow = false
   return o
 }
+/** A shadowless rod added to `parent`, ready for `stretchRod`. */
+export const addRod = (parent: THREE.Object3D, m: THREE.Material) => add(parent, shadowlessRod(m))
+/** A shadowless rod from a to b. */
+export function rodBetween(parent: THREE.Object3D, a: V3, b: V3, m: THREE.Material, r = 0.08) {
+  const o = addRod(parent, m)
+  stretchRod(o, a, b, r)
+  return o
+}
 const rodDir = new THREE.Vector3()
 
 /** Stretches a `UNIT_ROD` mesh of radius `r` from a to b; hidden when a = b. */

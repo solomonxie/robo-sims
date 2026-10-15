@@ -1,10 +1,10 @@
 // Sensor fusion: three error characters on one robot, odometry + magnetometer complementary heading, 1D Kalman filter.
+import { DEG } from '../common'
 import { gaussAt } from '../mcu/adc'
 import { compAlpha } from './imu'
 import { headingDrift, TT_TRACK_M } from './encoder'
 import { wrap2pi, wrapPi } from './magnetometer'
 
-const DEG = Math.PI / 180
 
 // --- 1D Kalman filter: a mean and a variance per estimate. ---
 
@@ -57,7 +57,7 @@ export function kalmanRun(sigmaQ: number, sigmaR: number, steps: number, u = 1, 
 
 export const FUSE = { seconds: 36, dt: 0.05, posts: 5, postSigma: 0.05, odoVar: 0.02, gpsHz: 1 }
 /** Robot speed (m/s) along the track at time `t`: 0.5 m/s with a gentle surge. */
-export const fuseSpeed = (t: number) => 0.5 + 0.18 * Math.sin(0.4 * t)
+const fuseSpeed = (t: number) => 0.5 + 0.18 * Math.sin(0.4 * t)
 const rms = (a: number[], b: number[]) => Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0) / a.length)
 
 export interface FuseRun {

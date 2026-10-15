@@ -18,7 +18,7 @@ import {
   rcStep,
 } from '../../core/physics'
 import { GRADES, Grade, batchPart, nearestIn, seriesStep, toleranceRange } from '../../core/resistorColors'
-import { amps, fitDigits, ohms, si, volts, watts } from '../../core/units'
+import { amps, fitDigits, ohms, si, signed, volts, watts } from '../../core/units'
 import { TIN, V3, add, box, lead, mat, mesh, rod } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { RESISTOR_MM, resistorBody, resistorBodyFor } from '../../models/passives'
@@ -56,7 +56,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, e12, n, resistorSlider } from '../types'
 
-const signed = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`
 const SCORCHED = new THREE.Color('#4a3428')
 
 // --- Value and tolerance: a batch measured one by one piles into a bell inside the ±tolerance window. ---

@@ -28,7 +28,7 @@ import {
   tiltAccel,
 } from '../../core/physics'
 import { Bit } from '../../core/logic'
-import { hexByte, ohms, secs, volts } from '../../core/units'
+import { hexByte, ohms, secs, signed, volts } from '../../core/units'
 import { hex } from '../../core/numbers'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
@@ -536,7 +536,6 @@ const imuReadout = memoBy(
   },
 )
 const deg = (r: number) => `${((r * 180) / Math.PI).toFixed(1)}°`
-const signed = (v: number, d: number) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(d)}`
 
 export const readingAnImu: Lesson = {
   id: 'i2c-reading-an-imu',
