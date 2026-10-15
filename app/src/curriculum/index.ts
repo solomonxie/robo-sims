@@ -72,6 +72,7 @@ import { mutexes, queues, tasksAndPriorities } from '../lessons/microcontrollers
 import { bootModes, otaUpdates } from '../lessons/microcontrollers/bootloader-flashing'
 import { beamAngle, softTargetErrors, timeOfFlight } from '../lessons/sensors/ultrasonic'
 import { lineFollower, obstacleSensor, sunlightInterference } from '../lessons/sensors/infrared'
+import { multiZoneRanging, vl53l0x } from '../lessons/sensors/time-of-flight-laser'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -316,6 +317,8 @@ const READY: Record<string, Lesson> = {
   'sensors/infrared/obstacle-sensor': obstacleSensor,
   'sensors/infrared/line-follower': lineFollower,
   'sensors/infrared/sunlight-interference': sunlightInterference,
+  'sensors/time-of-flight-laser/vl53l0x': vl53l0x,
+  'sensors/time-of-flight-laser/multi-zone-ranging': multiZoneRanging,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

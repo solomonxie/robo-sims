@@ -77,6 +77,8 @@ export function wavePool(parent: THREE.Object3D, arcs: number, dots = 40, bead =
 
 /** Invisible IR drawn as a visible tint. */
 export const IR_TINT = '#ff5c9d'
+/** Sunlight / ambient light. */
+export const SUN_TINT = '#ffc04d'
 
 /** Light streaming along a polyline as `beads` glowing dots; `set(points, t, f, color)`: `t` in s, `f` brightness (≤ 0 hides). */
 export function lightRay(parent: THREE.Object3D, beads = 16, bead = 0.13, speed = 0.8) {

@@ -37,6 +37,7 @@ import {
   LABEL,
   POWER,
   RING,
+  SUN_TINT,
   beamCone,
   codeBlock,
   glide,
@@ -54,7 +55,6 @@ import {
 import { Lesson, Params, Stage, n, pick } from '../types'
 
 const rodTo = (parent: THREE.Object3D, m: THREE.Material) => add(parent, shadowlessRod(m))
-const SUN_TINT = '#ffc04d'
 const signed = (x: number, digits = 1) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(digits)}`
 
 /** 5 mm LED lying in the screen plane, dome toward `dir` (±1 on x); → its tip and glow. */

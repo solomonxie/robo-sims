@@ -27,7 +27,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot, `speaker`.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
-- `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `IR_TINT` [`physics/sensors`].
+- `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `IR_TINT`, `SUN_TINT` [`physics/sensors`].
 - `screens` — `scope`, `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `captureScreen` (analyser + decoder), `I2C_TEXT` [`physics/signals/buses`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`].
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
@@ -40,7 +40,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — `gpio` pads/pulls/polling; `pwm` LEDC/ripple/servo; `adc` SAR/noise/attenuation; `dac` R-2R/tones/reconstruction; `timers` alarms/ISRs/millis; `uart` framing/links/NMEA; `i2c` addresses/pull-ups/MPU-6050; `spi` shift ring/MISO/TFT+SD; `can` link/arbitration/frames; `wireless` Wi-Fi/HTTP vs WS/BLE/ESP-NOW; `sleep` domains/wake/battery years; `memory` partitions/stack+heap/flash wear; `rtos` two-core tick scheduler; `boot` straps/esptool/OTA.
-- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver.
+- `sensors/` — `ultrasonic` speed of sound/echo timing/beam gain/mirror-image echoes/soft targets; `infrared` FC-51 reflection/LM393, TCRT5000 bar + line-follower sim, sunlight vs 38 kHz receiver; `tof` VL53L0X counts/sigma/status, multi-zone depth grid + steering.
 
 ## Pacing
 
@@ -64,7 +64,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Sensors:
   - [x] Ultrasonic
   - [x] Infrared
-  - [ ] Time-of-flight laser
+  - [x] Time-of-flight laser
   - [ ] LiDAR
   - [ ] Encoder
   - [ ] IMU
