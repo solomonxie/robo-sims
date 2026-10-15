@@ -34,7 +34,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; `spi`: shift ring, shared MISO, TFT/SD throughput; `can`: differential link + terminations, arbitration, frames (CRC-15, stuffing); register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -63,7 +63,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] UART serial
   - [x] I²C
   - [x] SPI
-  - [ ] CAN bus
+  - [x] CAN bus
   - [ ] Wi-Fi & Bluetooth
   - [ ] Power modes
   - [ ] Memory & storage

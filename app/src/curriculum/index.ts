@@ -64,6 +64,7 @@ import { hardwareTimers, isrRules, millisWithoutDelay } from '../lessons/microco
 import { framingAndBaud, gpsAndModules, levelAndNoise } from '../lessons/microcontrollers/uart-serial'
 import { addresses, busScan, pullUpResistors, readingAnImu } from '../lessons/microcontrollers/i2c'
 import { chipSelect, clockModes, sdCardsAndDisplays } from '../lessons/microcontrollers/spi'
+import { arbitration, differentialSignalling } from '../lessons/microcontrollers/can-bus'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -285,6 +286,8 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/spi/clock-modes': clockModes,
   'microcontrollers/spi/chip-select': chipSelect,
   'microcontrollers/spi/sd-cards-and-displays': sdCardsAndDisplays,
+  'microcontrollers/can-bus/differential-signalling': differentialSignalling,
+  'microcontrollers/can-bus/arbitration': arbitration,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

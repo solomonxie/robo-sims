@@ -62,6 +62,7 @@ import { hardwareTimers, isrRules, millisWithoutDelay } from './microcontrollers
 import { framingAndBaud, gpsAndModules, levelAndNoise } from './microcontrollers/uart-serial'
 import { addresses, busScan, pullUpResistors, readingAnImu } from './microcontrollers/i2c'
 import { chipSelect, clockModes, sdCardsAndDisplays } from './microcontrollers/spi'
+import { arbitration, differentialSignalling } from './microcontrollers/can-bus'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -71,5 +72,5 @@ export const UNITS: Unit[] = [
   { title: 'Digital', lessons: [binaryCounting, hexShorthand, twosComplement, tableToCircuit, multiplexer, decoder, halfAndFullAdder, srLatch, dFlipFlop, registers, rippleCounter, shiftRegister, hc595, mooreVsMealy, trafficLight, robotBehaviour, propagationDelay, metastability, clockDividers, logicThresholds, dividerShifter, bidirectionalShifter, luts, blinkyInHardware] },
   { title: 'Power', lessons: [cellVoltageCurve, capacityAndCRate, internalResistance, oneSToFourS, bmsProtection, balancing, tp4056, chargeCurveLesson, thermalLimits, inductorRipple, efficiency, choosingAModule, addUpTheLoads, runtimeEstimate, peakVsAverage, voltageDrop, connectorRatings, starGround, motorNoise, bulkCapacitors, separateRails, currentSpikes, diagnosingResets] },
   { title: 'Signals', lessons: [rcLowPass, highPass, bodePlot, spectrum, aliasing, nyquistLimit, triggering, probing, decodingBus, sampleRate, patternTrigger, captureI2c, captureSpi, reflections, termination, twoFourGhz, antennaTypes, lora, groundLoops, twistedPairs, cableShields, schematicCapture, layoutRules, tracesAndVias, manufacturing] },
-  { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts, dutyCycle, frequencyChoice, servoPulses, averageVoltage, resolutionAndRange, sampling, noiseAndAveraging, esp32AdcQuirks, r2rLadder, audioOut, hardwareTimers, isrRules, millisWithoutDelay, framingAndBaud, levelAndNoise, gpsAndModules, addresses, pullUpResistors, readingAnImu, busScan, clockModes, chipSelect, sdCardsAndDisplays] },
+  { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts, dutyCycle, frequencyChoice, servoPulses, averageVoltage, resolutionAndRange, sampling, noiseAndAveraging, esp32AdcQuirks, r2rLadder, audioOut, hardwareTimers, isrRules, millisWithoutDelay, framingAndBaud, levelAndNoise, gpsAndModules, addresses, pullUpResistors, readingAnImu, busScan, clockModes, chipSelect, sdCardsAndDisplays, differentialSignalling, arbitration] },
 ]
