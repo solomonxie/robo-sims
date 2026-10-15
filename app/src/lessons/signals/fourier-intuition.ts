@@ -319,8 +319,11 @@ export const aliasing: Lesson = {
     const strip = scope(scene, AS_W, FL_H, { divs: [6, 1], zeroAt: 0 })
     strip.group.position.set(AS_X, FL_Y, 0)
     const fx = (f: number) => strip.xAt(Math.min(1, Math.max(0, f / AL_F_MAX)))
-    const shade = glowBox(strip.group, [1, FL_H, 0.1], [0, 0, 0.2], HIGH_V, 0.05)
-    shade.m.emissiveIntensity = 0.05
+    const shade = glowBox(strip.group, [1, FL_H, 0.1], [0, 0, 0.2], HIGH_V, 0.1)
+    shade.m.emissiveIntensity = 1
+    const rim = add(shade.mesh, mesh(new THREE.BoxGeometry(1, 0.12, 0.12), glowMat(HIGH_V, 1.2)), [0, FL_H / 2 - 0.06, 0.1])
+    rim.castShadow = false
+    const foldText = add(strip.group, label('FOLDS BACK', { size: 0.55, color: '#ffb0b0', align: 'right' }))
     const halfLine = vMarker(strip.group, RING, -FL_H / 2, FL_H / 2 + 0.6)
     const fsLine = vMarker(strip.group, GREY, -FL_H / 2, FL_H / 2)
     const realBar = bar(strip.group, HIGH_V, 0.4)
@@ -367,6 +370,8 @@ export const aliasing: Lesson = {
         const right = AS_W / 2
         shade.mesh.scale.x = Math.max(0.01, right - hx)
         shade.mesh.position.x = (right + hx) / 2
+        foldText.position.set(right - 0.4, FL_H / 2 - 0.8, 0.5)
+        foldText.visible = hx < right - 6
         realBar.set(fx(a.f), FL_H * 0.85, -FL_H / 2)
         aliasBar.set(fx(Math.abs(a.fa)), FL_H * 0.6, -FL_H / 2)
         seenLabel.show(fitDigits(Math.abs(a.fa), 3))
