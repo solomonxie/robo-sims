@@ -1,6 +1,6 @@
 // node tools/preview/shoot.mjs <lesson> <out.png> [query...]  e.g. params='{"amps":2}' polar=1.3
 import { build } from 'esbuild'
-import { mkdtempSync, writeFileSync } from 'fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -39,8 +39,11 @@ await page.waitForFunction('window.ready || window.error', { timeout: 60000 })
 const error = await page.evaluate('window.error')
 if (error) {
   console.error(error)
+  await browser.close()
+  rmSync(dir, { recursive: true, force: true })
   process.exit(1)
 }
 await page.screenshot({ path: out })
 console.log(`${out} (${await page.title()})`)
 await browser.close()
+rmSync(dir, { recursive: true, force: true })
