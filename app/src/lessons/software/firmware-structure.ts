@@ -190,7 +190,7 @@ export const superLoopVsRtos: Lesson = {
     const staleM = glowMat(HIGH_V, 1)
     const held = Array.from({ length: FW_TICKS }, () => ({ h: add(scene, shadowlessRod(heldM)), v: add(scene, shadowlessRod(heldM)), jump: false }))
     const status = liveLabel(scene, [-24, -13.6, 0.3], { size: 0.46, align: 'left' })
-    const code = codeBlock(scene, [-24.5, 14.6, 0], 0.38, 4)
+    const code = codeBlock(scene, [-24.5, 14.6, 0], 0.46, 4)
     const clock = simClock(FW_SLOW)
     let key = ''
     return {
@@ -373,7 +373,7 @@ export const hardwareAbstraction: Lesson = {
       return { g, text: liveLabel(g, [0, -0.6, 0.2], { size: 0.36 }) }
     })
     const packets = packetPool(scene, 2, 0.7)
-    const code = codeBlock(scene, [-24.5, -8.2, 0], 0.42, 4)
+    const code = codeBlock(scene, [-24.5, -8.2, 0], 0.5, 4)
     let tm = 0
     return {
       scene,
@@ -536,7 +536,7 @@ export const fixedRateControlLoop: Lesson = {
     stretchRod(add(scene, shadowlessRod(glowMat(POWER, 0.5))), ROBOT, [ROBOT[0], ROBOT[1] + 6, 0], 0.06)
     partLetter(scene, '90°', [ROBOT[0], ROBOT[1] + 6.7, 0], 0.4, POWER)
     const headText = liveLabel(scene, [ROBOT[0], ROBOT[1] - 4.2, 0.3], { size: 0.42 })
-    const code = codeBlock(scene, [-24.5, 14, 0], 0.36, 4)
+    const code = codeBlock(scene, [-24.5, 14.2, 0], 0.44, 4)
     const clock = simClock(LOOP_SLOW)
     let key = ''
     return {

@@ -152,8 +152,8 @@ export const publishAndSubscribe: Lesson = {
     const odomPts: V3[] = [[SUB_X + NODE[0] / 2, -5, 0], [13.5, -5, 0], [13.5, SUB_Y[1], 0], [SUB_X + NODE[0] / 2 + 0.3, SUB_Y[1], 0]]
     const odom = topicPipe(scene, odomPts, '/odom', HEAT)
     const pool = packetPool(scene, 70, 0.6)
-    const status = liveLabel(scene, [-20.5, -12.2, 0.3], { size: 0.46, align: 'left' })
-    const code = codeBlock(scene, [-20.5, -8, 0], 0.36, 4, rosTint)
+    const status = liveLabel(scene, [-20.5, -12.6, 0.3], { size: 0.46, align: 'left' })
+    const code = codeBlock(scene, [-20.5, -8, 0], 0.42, 4, rosTint)
     const clock = simClock(PS_SLOW)
     const ticks = (PUBSUB_MS + FLY) / PS_TICK
     let key = ''
@@ -344,8 +344,8 @@ export const servicesAndActions: Lesson = {
     chart.name(1, 'bt_navigator', LABEL)
     for (let s = 0; s * 1000 <= NAV_TICKS * NAV_TICK_MS; s += 2) partLetter(scene, `${s} s`, [SA_GANTT.x0 + ((s * 1000) / NAV_TICK_MS / NAV_TICKS) * (SA_GANTT.x1 - SA_GANTT.x0), chart.rowY(1) - 1.4, 0], 0.32, GREY)
     const pool = packetPool(scene, 12, 0.6)
-    const status = liveLabel(scene, [-20.5, -12.8, 0.3], { size: 0.46, align: 'left' })
-    const code = codeBlock(scene, [-20.5, -9.2, 0], 0.36, 4, rosTint)
+    const status = liveLabel(scene, [-20.5, -13.4, 0.3], { size: 0.46, align: 'left' })
+    const code = codeBlock(scene, [-20.5, -9.2, 0], 0.42, 4, rosTint)
     const clock = simClock(SA_SLOW)
     let key = ''
     return {
@@ -518,8 +518,8 @@ export const launchFiles: Lesson = {
     for (let s = 0; s * 1000 <= LAUNCH_TICKS * LAUNCH_TICK_MS; s += 2)
       partLetter(scene, `${s} s`, [LA_GANTT.x0 + ((s * 1000) / LAUNCH_TICK_MS / LAUNCH_TICKS) * (LA_GANTT.x1 - LA_GANTT.x0), chart.rowY(3) - 1.3, 0], 0.32, GREY)
     const pool = packetPool(scene, 30, 0.55)
-    const status = liveLabel(scene, [-20.5, -15.6, 0.3], { size: 0.46, align: 'left' })
-    const code = codeBlock(scene, [-20.5, -11.8, 0], 0.32, 5, rosTint)
+    const status = liveLabel(scene, [-20.5, -17, 0.3], { size: 0.46, align: 'left' })
+    const code = codeBlock(scene, [-20.5, -12.4, 0], 0.38, 5, rosTint)
     const clock = simClock(LA_SLOW)
     let key = ''
     return {
