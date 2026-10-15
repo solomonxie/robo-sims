@@ -45,6 +45,9 @@ export function i2cScan(present: number[], from = SCAN_FIRST, to = SCAN_LAST) {
 /** Bus time per probe: START + 8 bits + ACK + STOP ≈ 11.25 clocks. */
 export const probeTime = (hz: number) => 45 / (4 * hz)
 
+/** Streaming data bytes per second: 8 bits + ACK each (address and START amortised away). */
+export const i2cByteRate = (hz: number) => hz / 9
+
 // --- Pull-ups: open-drain lines rise through R into the bus capacitance; falls are fast. ---
 
 export interface I2cMode {

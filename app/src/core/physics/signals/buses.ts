@@ -176,6 +176,8 @@ export type SpiMode = 0 | 1 | 2 | 3
 export const spiPol = (mode: SpiMode): Bit => bit(mode >= 2)
 /** CPHA: 0 reads on the leading clock edge, 1 on the trailing one. */
 export const spiPha = (mode: SpiMode): Bit => bit(mode % 2)
+/** Bits are read on the rising clock edge when CPOL = CPHA, else on the falling one. */
+export const spiSamplesRising = (mode: SpiMode) => spiPol(mode) === spiPha(mode)
 
 /** CS low around `mosi.length` bytes clocked at `hz`, MSB first, half a clock of setup and hold; MISO idles high, MOSI low. */
 export function spiLines(mosi: number[], miso: number[], mode: SpiMode, hz: number) {
@@ -210,7 +212,7 @@ export function spiLines(mosi: number[], miso: number[], mode: SpiMode, hz: numb
 /** Decoder set to `mode`: while CS is low, reads MOSI and MISO on each sampling edge (rising when CPOL = CPHA, else falling), MSB first.
  *  `at` holds the sample index of every read. */
 export function spiDecode(cs: Bit[], sck: Bit[], mosi: Bit[], miso: Bit[], mode: SpiMode) {
-  const rising = spiPol(mode) === spiPha(mode)
+  const rising = spiSamplesRising(mode)
   const out = { mosi: [] as number[], miso: [] as number[], at: [] as number[] }
   let a = 0
   let b = 0

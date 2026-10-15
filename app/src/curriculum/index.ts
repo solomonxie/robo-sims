@@ -63,6 +63,7 @@ import { audioOut, r2rLadder } from '../lessons/microcontrollers/dac'
 import { hardwareTimers, isrRules, millisWithoutDelay } from '../lessons/microcontrollers/timers-interrupts'
 import { framingAndBaud, gpsAndModules, levelAndNoise } from '../lessons/microcontrollers/uart-serial'
 import { addresses, busScan, pullUpResistors, readingAnImu } from '../lessons/microcontrollers/i2c'
+import { chipSelect, clockModes, sdCardsAndDisplays } from '../lessons/microcontrollers/spi'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -281,6 +282,9 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/i2c/pull-up-resistors': pullUpResistors,
   'microcontrollers/i2c/reading-an-imu': readingAnImu,
   'microcontrollers/i2c/bus-scan': busScan,
+  'microcontrollers/spi/clock-modes': clockModes,
+  'microcontrollers/spi/chip-select': chipSelect,
+  'microcontrollers/spi/sd-cards-and-displays': sdCardsAndDisplays,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
