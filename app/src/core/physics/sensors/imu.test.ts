@@ -20,6 +20,7 @@ import {
   angleRms,
   yawProfile,
 } from './imu'
+import { tiltAccel } from '../mcu/i2c'
 
 const DEG = Math.PI / 180
 
@@ -27,6 +28,7 @@ describe('IMU', () => {
   it('flat and still reads 1 g up; tilt comes back from gravity', () => {
     expect(bodyAccel(0, 0)).toEqual([0, 0, 1])
     expect(accelTilt(bodyAccel(20 * DEG, 0))).toBeCloseTo(20 * DEG, 9)
+    bodyAccel(20 * DEG, 0).forEach((v, i) => expect(v).toBeCloseTo(tiltAccel(20 * DEG, 0)[i], 12))
   })
 
   it('forward acceleration reads as tilt: error = atan(a)', () => {

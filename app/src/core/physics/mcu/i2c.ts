@@ -111,10 +111,10 @@ export function int16Bytes(v: number): [number, number] {
   return [Math.floor(u / 256), u % 256]
 }
 
-/** Gravity as the sensor sees it (g) when pitched about Y and rolled about X; flat reads (0, 0, 1). */
-export const tiltAccel = (pitch: number, roll: number): Vec3 => [-Math.sin(pitch), Math.sin(roll) * Math.cos(pitch), Math.cos(roll) * Math.cos(pitch)]
-/** Pitch back from an accel reading. */
-export const accelPitch = ([x, y, z]: Vec3) => Math.atan2(-x, Math.hypot(y, z))
+/** Gravity as the sensor sees it (g); X forward, Z up, pitch > 0 = nose up (same as `bodyAccel`); flat reads (0, 0, 1). */
+export const tiltAccel = (pitch: number, roll: number): Vec3 => [Math.sin(pitch), Math.sin(roll) * Math.cos(pitch), Math.cos(roll) * Math.cos(pitch)]
+/** Nose-up pitch back from an accel reading. */
+export const accelPitch = ([x, y, z]: Vec3) => Math.atan2(x, Math.hypot(y, z))
 
 /** The 14-byte burst for accel (g), gyro (°/s) and die temperature (°C), at ±2 g and ±250 °/s. */
 export function mpu6050Burst(accel: Vec3, gyro: Vec3, tempC: number) {

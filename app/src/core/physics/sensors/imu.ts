@@ -7,7 +7,7 @@ const DEG = Math.PI / 180
 
 // --- Accelerometer: the proof mass feels specific force (acceleration minus gravity), in g. ---
 
-/** Body-frame reading (g) of a robot pitched nose-up by `pitch` (rad) while accelerating `ah` forward and `av` up (g, world). */
+/** Body-frame reading (g), X forward, Z up, pitch > 0 = nose up (same as `tiltAccel`), of a robot pitched by `pitch` (rad) while accelerating `ah` forward and `av` up (g, world). */
 export function bodyAccel(pitch: number, ah: number, av = 0): Vec3 {
   const c = Math.cos(pitch)
   const s = Math.sin(pitch)
