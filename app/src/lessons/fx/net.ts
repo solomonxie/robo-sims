@@ -2,8 +2,10 @@
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod } from '../../models/kit'
 import { GREY, LABEL, glowMat, setGlow } from './colors'
+import { shadowlessRod, stretchRod } from './layout'
 import { esp32Board } from './modules'
-import { liveLabel } from './text'
+import { addLabel, liveLabel } from './text'
+import { path } from './util'
 
 /** Phone standing face-on, `k` = height / 3.2; `screen(color, f)` lights the display, `lines` are text rows on it. */
 export function phoneModel(parent: THREE.Object3D, at: V3, k = 1, rows = 3) {
@@ -116,5 +118,26 @@ export function packetPool(parent: THREE.Object3D, n: number, h = 0.55) {
     end() {
       for (let i = used; i < n; i++) items[i].g.visible = false
     },
+  }
+}
+
+/** ROS topic as a glowing pipe along `points`, name at the middle segment; `at(u)` = point `u` of the way, `glow(f)` lights it. */
+export function topicPipe(parent: THREE.Object3D, points: V3[], name: string, color: string, { r = 0.32, text = 0.5, side = 1 } = {}) {
+  const m = glowMat(color, 0.25)
+  m.transparent = true
+  m.opacity = 0.45
+  m.depthWrite = false
+  for (let i = 1; i < points.length; i++) stretchRod(add(parent, shadowlessRod(m)), points[i - 1], points[i], r)
+  const curve = path(points)
+  const mid = curve.getPointAt(0.5)
+  const vert = Math.abs(points[points.length - 1][1] - points[0][1]) > Math.abs(points[points.length - 1][0] - points[0][0])
+  if (name) addLabel(parent, name, vert ? [mid.x + side * (r + 0.3), mid.y, mid.z] : [mid.x, mid.y + side * (r + 0.5), mid.z], color, text, vert ? (side > 0 ? 'left' : 'right') : 'center')
+  const v = new THREE.Vector3()
+  return {
+    at(u: number): V3 {
+      curve.getPointAt(Math.min(1, Math.max(0, u)), v)
+      return [v.x, v.y, v.z]
+    },
+    glow: (f: number) => setGlow(m, color, 0.25 + 0.6 * f),
   }
 }

@@ -17,9 +17,8 @@ export const CODE_LEGEND = { color: ARDUINO, label: 'Code: Arduino green, ESP-ID
 const isIdf = (l: string) => /\b[a-z][a-z0-9]*_[a-z0-9_]*\(|\b(?!u?int\d+_t\b|size_t\b)[a-z][a-z0-9_]*_t\b|\b(esp|twai|gpio|wifi|ble)_\w+/.test(l)
 
 /** Left-aligned code lines: snake_case calls are ESP-IDF (blue), `//` comments grey, the rest Arduino; indented lines continue the one above. */
-export function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72, rows = 3) {
+export function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72, rows = 3, tint: (l: string) => string = (l) => (l.startsWith('//') ? GREY : isIdf(l) ? IDF : ARDUINO)) {
   const lines = Array.from({ length: rows }, (_, k) => liveLabel(parent, [at[0], at[1] - k * size * 2, at[2]], { size, align: 'left', glow: 0.7 }))
-  const tint = (l: string) => (l.startsWith('//') ? GREY : isIdf(l) ? IDF : ARDUINO)
   return (text: string[]) => {
     let color = ARDUINO
     lines.forEach((r, k) => {
@@ -29,6 +28,12 @@ export function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72, rows = 3)
     })
   }
 }
+
+const PYTHON = '#ffd56b'
+const SHELL = '#5ce1a0'
+export const ROS_CODE_LEGEND = { color: PYTHON, label: 'Code: rclpy yellow, rclcpp blue, $ ros2 CLI green', shape: 'dot' } as const
+/** `codeBlock` tint for ROS 2: `$ ` shell, `#`/`//` comments, `::`/`;`/`->` C++, else Python. */
+export const rosTint = (l: string) => (l.startsWith('$') ? SHELL : /^(#|\/\/)/.test(l) ? GREY : /::|;|->/.test(l) ? IDF : PYTHON)
 
 /** MOSFET as a 3D symbol from drain `a` down to `b` (vertical), gate plate and lead on its left, bubble on a P-FET.
  *  `set(on, heat)` lights the channel, tinting it from green to orange with heat 0..1. */

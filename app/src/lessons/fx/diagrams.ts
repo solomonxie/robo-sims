@@ -8,7 +8,27 @@ import { partLetter } from './parts'
 import { scope } from './screens'
 import { flatBox, trayMat } from './shapes'
 import { liveLabel } from './text'
-import { ease, emptyGroup } from './util'
+import { ease, emptyGroup, glide } from './util'
+
+const DIM = new THREE.Color('#2c2f36')
+
+/** Code module: a slab that lights up in `color` as `on` → 1, name on its face. */
+export function moduleBlock(parent: THREE.Object3D, at: V3, size: V3, name: string) {
+  const m = new THREE.MeshStandardMaterial({ color: DIM, emissive: '#000000', roughness: 0.5 })
+  box(parent, size, m, at)
+  const text = liveLabel(parent, [at[0], at[1], at[2] + size[2] / 2 + 0.05], { size: Math.min(0.5, size[1] * 0.3) })
+  text.set(name, LABEL)
+  const c = new THREE.Color()
+  let k = 0
+  return (dt: number, color: string, on: number, title = name) => {
+    k = glide(dt, k, on, 10)
+    c.set(color)
+    m.color.copy(DIM).lerp(c, 0.2 + 0.8 * k)
+    m.emissive.copy(c)
+    m.emissiveIntensity = 0.8 * k
+    text.set(title, k > 0.5 ? INK : LABEL)
+  }
+}
 
 /** Logic-analyser screen: one row per signal (label left), `window` s of history scrolling in from the right.
  *  `frame(dt, levels)` records the current levels 0..1, row order. */
