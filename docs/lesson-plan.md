@@ -22,7 +22,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
-- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `esp32Board` (face-on, `pin(i, top)`) [`physics/power`].
+- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `esp32Board` (face-on, `pin(i, top)`), `i2cBreakout` (sensor board, `pin(name)`) [`physics/power`].
 - `cells` — `cellCutaway`, `cell18650`, `nickelStrip`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, switches, pot, `speaker`.
@@ -34,7 +34,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
+`core/physics/` by domain (`gpio`: pad drivers, pulls, polling; `uart`: framing/parity, 16× receiver, TTL/RS-232/RS-485 links, NMEA; `pwm`: LEDC bits, ripple, switching loss, servo; `adc`: SAR steps, quantise, noise/averaging, ESP32 attenuation curves; `dac`: R-2R solve, held tones, RC/PWM reconstruction; `i2c`: addresses, scan, pull-up rise, MPU-6050 burst; register-read frames in `signals/buses`); subfolders `power/` (batteries … brownout) and `signals/` (filters, fourier, scope, buses, transmission, radio, interference, pcb).
 
 ## Pacing
 
@@ -61,7 +61,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] DAC
   - [x] Timers & interrupts
   - [x] UART serial
-  - [ ] I²C
+  - [x] I²C
   - [ ] SPI
   - [ ] CAN bus
   - [ ] Wi-Fi & Bluetooth

@@ -1,6 +1,6 @@
-// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo.
+// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, I²C breakouts.
 import * as THREE from 'three/webgpu'
-import { V3, add, box, cylinder, mat, mesh, STEEL, TIN } from '../../models/kit'
+import { V3, add, box, cylinder, GOLD, mat, mesh, STEEL, TIN } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { glowHalo } from './circuit'
 import { LED_RED, glowMat } from './colors'
@@ -218,4 +218,35 @@ export function esp32Board(parent: THREE.Object3D, at: V3, scale: number) {
   board.scale.setScalar(scale)
   board.rotation.x = Math.PI / 2
   return (i: number, top = true): V3 => [at[0] + i * scale, at[1] + (top ? 5 : -5) * scale, 3.5 * scale]
+}
+
+/** I²C sensor breakout face-on, `k` units per mm (20 × 16 mm PCB): a chip, the name in silk and a VCC GND SCL SDA header
+ *  along the top edge. `pin(name)` is a header pin tip in `parent` space (while `group` isn't moved); `led(on)` lights
+ *  the power LED, `chip(color, f)` glows the chip. */
+export function i2cBreakout(parent: THREE.Object3D, at: V3, { name = '', color = '#5b2a86', k = 0.25, pins = ['VCC', 'GND', 'SCL', 'SDA'] } = {}) {
+  const g = add(parent, new THREE.Group(), at)
+  const W = 20 * k
+  const H = 16 * k
+  box(g, [W, H, 1.6 * k], mat(color, { rough: 0.55 }), [0, 0, -0.8 * k])
+  const chipMat = new THREE.MeshStandardMaterial({ color: '#16171b', roughness: 0.5, emissive: '#000000' })
+  box(g, [5 * k, 5 * k, 1.2 * k], chipMat, [0, -1 * k, 0.6 * k])
+  if (name) add(g, label(name, { ...SILK, size: 1.7 * k }), [0, -H / 2 + 2 * k, 0.05 * k])
+  const tips = pins.map((p, i) => {
+    const x = (i - (pins.length - 1) / 2) * 2.54 * k * 1.6
+    box(g, [2.4 * k, 2.4 * k, 2.4 * k], mat('#141416', { rough: 0.7 }), [x, H / 2 - 1.6 * k, 1.2 * k])
+    box(g, [0.6 * k, 0.6 * k, 6 * k], GOLD(), [x, H / 2 - 1.6 * k, 4 * k])
+    add(g, label(p, { ...SILK, size: 1 * k }), [x, H / 2 - 4.2 * k, 0.05 * k])
+    return [p, [at[0] + x, at[1] + H / 2 - 1.6 * k, at[2] + 7 * k] as V3] as const
+  })
+  const ledMat = glowMat(LED_RED, 0)
+  add(g, mesh(new THREE.SphereGeometry(0.8 * k, 10, 8), ledMat), [W / 2 - 2 * k, -H / 2 + 2 * k, 0.4 * k])
+  return {
+    group: g,
+    pin: (p: string) => tips.find(([q]) => q === p)![1],
+    led: (on: number) => (ledMat.emissiveIntensity = 1.4 * on),
+    chip(c: string, f: number) {
+      chipMat.emissive.set(c)
+      chipMat.emissiveIntensity = f
+    },
+  }
 }

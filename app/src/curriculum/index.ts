@@ -62,6 +62,7 @@ import { esp32AdcQuirks, noiseAndAveraging, resolutionAndRange, sampling } from 
 import { audioOut, r2rLadder } from '../lessons/microcontrollers/dac'
 import { hardwareTimers, isrRules, millisWithoutDelay } from '../lessons/microcontrollers/timers-interrupts'
 import { framingAndBaud, gpsAndModules, levelAndNoise } from '../lessons/microcontrollers/uart-serial'
+import { addresses, busScan, pullUpResistors, readingAnImu } from '../lessons/microcontrollers/i2c'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -276,6 +277,10 @@ const READY: Record<string, Lesson> = {
   'microcontrollers/uart-serial/framing-and-baud': framingAndBaud,
   'microcontrollers/uart-serial/level-and-noise': levelAndNoise,
   'microcontrollers/uart-serial/gps-and-modules': gpsAndModules,
+  'microcontrollers/i2c/addresses': addresses,
+  'microcontrollers/i2c/pull-up-resistors': pullUpResistors,
+  'microcontrollers/i2c/reading-an-imu': readingAnImu,
+  'microcontrollers/i2c/bus-scan': busScan,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

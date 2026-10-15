@@ -50,10 +50,10 @@ export interface I2cWrite {
   ack: boolean
 }
 
-/** SCL/SDA at quarter-clock steps: idle, START (SDA falls, SCL high), address + R/W, ACK slot, each data byte + ACK,
- *  STOP (SDA rises, SCL high). With no ACK the master stops after the address. Bits MSB first, SDA changes only while SCL is low. */
-export function i2cSteps({ addr, data, read = false, ack }: I2cWrite) {
-  const out: { scl: Bit; sda: Bit }[] = []
+type I2cStep = { scl: Bit; sda: Bit }
+
+function stepWriter() {
+  const out: I2cStep[] = []
   const push = (scl: Bit, sda: Bit, n = 1) => {
     for (let i = 0; i < n; i++) out.push({ scl, sda })
   }
@@ -65,29 +65,67 @@ export function i2cSteps({ addr, data, read = false, ack }: I2cWrite) {
   const sendByte = (byte: number) => {
     for (let k = 7; k >= 0; k--) sendBit(bit(Math.floor(byte / 2 ** k) % 2))
   }
-  push(1, 1, 2)
-  push(1, 0, 2)
-  sendByte(addr * 2 + (read ? 1 : 0))
-  sendBit(ack ? 0 : 1)
-  if (ack) {
-    for (const d of data) {
-      sendByte(d)
-      sendBit(0)
-    }
+  const start = () => {
+    push(0, 1)
+    push(1, 1, 2)
+    push(1, 0, 2)
   }
-  push(0, 0)
-  push(1, 0, 2)
-  push(1, 1, 2)
-  return out
+  const stop = () => {
+    push(0, 0)
+    push(1, 0, 2)
+    push(1, 1, 2)
+  }
+  return { out, push, sendBit, sendByte, start, stop }
 }
 
-/** The frame as lines at `hz` SCL, from t = 0; idle high outside. */
-export function i2cLines(frame: I2cWrite, hz: number) {
-  const steps = i2cSteps(frame)
+/** SCL/SDA at quarter-clock steps: idle, START (SDA falls, SCL high), address + R/W, ACK slot, each data byte + ACK,
+ *  STOP (SDA rises, SCL high). With no ACK the master stops after the address. Bits MSB first, SDA changes only while SCL is low. */
+export function i2cSteps({ addr, data, read = false, ack }: I2cWrite) {
+  const w = stepWriter()
+  w.push(1, 1, 2)
+  w.push(1, 0, 2)
+  w.sendByte(addr * 2 + (read ? 1 : 0))
+  w.sendBit(ack ? 0 : 1)
+  if (ack) {
+    for (const d of data) {
+      w.sendByte(d)
+      w.sendBit(0)
+    }
+  }
+  w.stop()
+  return w.out
+}
+
+/** Register read: START, address + W, register pointer, repeated START, address + R, then the device sends `data` while the
+ *  master ACKs every byte but the last (NACK), STOP. */
+export function i2cRegisterSteps(addr: number, reg: number, data: number[]) {
+  const w = stepWriter()
+  w.push(1, 1, 2)
+  w.push(1, 0, 2)
+  w.sendByte(addr * 2)
+  w.sendBit(0)
+  w.sendByte(reg)
+  w.sendBit(0)
+  w.start()
+  w.sendByte(addr * 2 + 1)
+  w.sendBit(0)
+  data.forEach((d, i) => {
+    w.sendByte(d)
+    w.sendBit(i === data.length - 1 ? 1 : 0)
+  })
+  w.stop()
+  return w.out
+}
+
+/** Quarter-clock steps as lines at `hz` SCL, from t = 0; idle high outside. */
+export function stepLines(steps: I2cStep[], hz: number) {
   const q = 1 / (4 * hz)
   const at = (t: number) => steps[Math.floor(t / q)] ?? { scl: 1 as Bit, sda: 1 as Bit }
   return { scl: (t: number) => at(t).scl, sda: (t: number) => at(t).sda, duration: steps.length * q }
 }
+
+/** The frame as lines at `hz` SCL, from t = 0; idle high outside. */
+export const i2cLines = (frame: I2cWrite, hz: number) => stepLines(i2cSteps(frame), hz)
 
 export type I2cEvent = {
   kind: 'start' | 'stop' | 'addr' | 'data' | 'ack' | 'nack'
