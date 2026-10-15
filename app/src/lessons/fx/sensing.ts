@@ -1,4 +1,4 @@
-// Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, and wavefronts as arcs of dots.
+// Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, and light rays.
 import * as THREE from 'three/webgpu'
 import { V3, add, mesh } from '../../models/kit'
 import { buildHcSr04 } from '../../models/modules'
@@ -72,5 +72,35 @@ export function wavePool(parent: THREE.Object3D, arcs: number, dots = 40, bead =
     end() {
       for (let i = used; i < arcs; i++) pool[i].im.visible = false
     },
+  }
+}
+
+/** Invisible IR drawn as a visible tint. */
+export const IR_TINT = '#ff5c9d'
+
+/** Light streaming along a polyline as `beads` glowing dots; `set(points, t, f, color)`: `t` in s, `f` brightness (≤ 0 hides). */
+export function lightRay(parent: THREE.Object3D, beads = 16, bead = 0.13, speed = 0.8) {
+  const material = glowMat(IR_TINT, 0)
+  const im = new THREE.InstancedMesh(new THREE.SphereGeometry(bead, 8, 6), material, beads)
+  im.frustumCulled = false
+  im.castShadow = false
+  parent.add(im)
+  const m4 = new THREE.Matrix4()
+  return (pts: V3[], t: number, f: number, color = IR_TINT) => {
+    im.visible = f > 0.01 && pts.length > 1
+    if (!im.visible) return
+    setGlow(material, color, f)
+    const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1], p[2] - pts[i][2]))
+    const total = lens.reduce((a, b) => a + b, 0) || 1
+    for (let k = 0; k < beads; k++) {
+      let d = (((k / beads + t * speed) % 1) + 1) % 1 * total
+      let i = 0
+      while (i < lens.length - 1 && d > lens[i]) d -= lens[i++]
+      const u = Math.min(1, d / (lens[i] || 1))
+      const a = pts[i]
+      const b = pts[i + 1]
+      im.setMatrixAt(k, m4.makeTranslation(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u))
+    }
+    im.instanceMatrix.needsUpdate = true
   }
 }
