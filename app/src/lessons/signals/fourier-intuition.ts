@@ -494,8 +494,11 @@ export const nyquistLimit: Lesson = {
     const perAmp = (PH * 0.9) / 0.85
     const px = (f: number) => pinPlot.xAt(Math.min(1, f / SPEC_MAX))
     const toneBars = TONES.map((t) => bar(pinPlot.group, t.motor ? HEAT : POWER, 0.34))
-    const shade = glowBox(pinPlot.group, [1, PH, 0.1], [0, 0, 0.2], HIGH_V, 0.05)
-    shade.m.emissiveIntensity = 0.05
+    const shade = glowBox(pinPlot.group, [1, PH, 0.1], [0, 0, 0.2], HIGH_V, 0.1)
+    shade.m.emissiveIntensity = 1
+    const rim = add(shade.mesh, mesh(new THREE.BoxGeometry(1, 0.12, 0.12), glowMat(HIGH_V, 1.2)), [0, PH / 2 - 0.06, 0.1])
+    rim.castShadow = false
+    const foldText = add(pinPlot.group, label('FOLDS BACK', { size: 0.45, color: '#ffb0b0', align: 'right' }), [PW / 2 - 0.3, PH / 2 - 0.6, 0.5])
     const half = vMarker(pinPlot.group, RING, -PH / 2, PH / 2 + 0.5)
     ticks(pinPlot, [0, 800, 1600, 2400].map((f) => [f / SPEC_MAX, String(f)] as [number, string]), [], 0.55)
     text(scene, 'AT THE PIN', [PX - PW / 2, 3.6 + PH / 2 + 1.1, 0], LABEL, 0.7, 'left')
@@ -558,6 +561,7 @@ export const nyquistLimit: Lesson = {
         shade.mesh.visible = hx < PW / 2 - 0.05
         shade.mesh.scale.x = Math.max(0.01, PW / 2 - hx)
         shade.mesh.position.x = (PW / 2 + hx) / 2
+        foldText.visible = hx < PW / 2 - 4.5
         const last = s.spectrum.length - 1
         specTrace.draw((u) => -PH / 2 + Math.min(PH, s.spectrum[Math.round(u * last)] * perAmp), null)
         humMark.position.x = readPlot.xAt(Math.min(1, s.humAt / nyquist(s.fs)))

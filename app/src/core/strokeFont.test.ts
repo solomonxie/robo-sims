@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\''
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {

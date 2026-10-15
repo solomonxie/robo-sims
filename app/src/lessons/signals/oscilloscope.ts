@@ -18,6 +18,7 @@ import {
   uartDecode,
   uartLevel,
 } from '../../core/physics'
+import { hasGlyph } from '../../core/strokeFont'
 import { pct, si } from '../../core/units'
 import { STEEL, V3, add, box, mat, mesh, rod, tube } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
@@ -410,8 +411,8 @@ const SEND_S = 1.8
 const REVEAL_S = 1.1
 const BAUDS = [9600, 57600, 115200, 230400]
 const charOf = (b: number) => (b > 32 && b < 127 ? `'${String.fromCharCode(b)}'` : '--')
-/** The stroke font draws letters, digits and a few signs; others show as --. */
-const glyphOf = (b: number) => (/[A-Za-z0-9+\-=.,:/%()<>]/.test(String.fromCharCode(b)) ? charOf(b) : '--')
+/** Bytes the stroke font can't draw show as --. */
+const glyphOf = (b: number) => (hasGlyph(String.fromCharCode(b)) ? charOf(b) : '--')
 const hex = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 
 const solveBus = (p: Params) => {
