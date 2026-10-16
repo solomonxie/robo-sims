@@ -2,13 +2,12 @@ import * as THREE from 'three/webgpu'
 import { DEG, SERVO_ARM, ScaleKind, V2, ViaKind, armFk, cartesianLine, chordTimes, jointLine, jointScale, lerpJoints, lineDeviation, planarArm, quinticCoeffs, polyAt, syncScale, toDeg, toolOf, twoLinkIk, unwrapPath, viaAt, viaPath } from '../../core/physics'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, SIDE_SCOPE, addLabel, dotPen, floorMat, ghostRig, liveLabel, memoBy, scopeLabels, serialArm, sideScope, statusHeader, zUp } from '../fx'
+import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, SIDE_SCOPE, addLabel, dotPen, floorMat, ghostRig, liveLabel, memoBy, scopeLabels, serialArm, sideScope, statusHeader, zUp, armPlate, PLINTH, SERVO_ARM_LOOK, SERVO_JOINT_NAMES } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const cm = (m: number) => `${(m * 100).toFixed(m < 0.1 ? 1 : 0)} cm`
 const dps = (w: number) => `${Math.round(toDeg(w))}°/s`
 const secs = (t: number) => `${t.toFixed(t < 10 ? 2 : 1)} s`
-const plate = (g: THREE.Object3D, w = 0.11, h = 0.16) => box(g, [w, h, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
 const L2: [number, number] = [0.26, 0.18]
 const HOLE = L2[0] - L2[1]
 /** Index-interpolated sample of a path stored on a uniform grid over [0, 1]. */
@@ -89,7 +88,7 @@ export const trajectoriesLinear: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), LI.at)
     g.scale.setScalar(LI.k)
-    plate(g)
+    armPlate(g)
     const ghost = serialArm(g, planarArm(L2), { w: 0.04, t: 0.028, axes: false })
     const ghostMat = ghostRig(ghost.group, B_FIELD, 0.22)
     const rig = serialArm(g, planarArm(L2), { w: 0.04, t: 0.028 })
@@ -255,7 +254,7 @@ export const trajectoriesSplines: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), SP.at)
     g.scale.setScalar(SP.k)
-    plate(g)
+    armPlate(g)
     box(g, [0.5, 0.012, 0.08], mat('#4a3b2c', { rough: 0.8 }), [0.17, SP.table - 0.006, 0])
     const w = SP.wall
     box(g, [w.x1 - w.x0, w.top - SP.table, 0.06], mat('#6a4e3a', { rough: 0.7 }), [(w.x0 + w.x1) / 2, (w.top + SP.table) / 2, 0])
@@ -349,7 +348,7 @@ export const trajectoriesSplines: Lesson = {
 
 // --- Time scaling: one path, different s(t); all joints finish together. ---
 
-const TS = { at: [-9.4, -6.2, 0] as V3, k: 24, plinth: 0.014, hold: 1.2, M: 360, scope: { y: -4.7, h: 3.6 } }
+const TS = { at: [-9.4, -6.2, 0] as V3, k: 24, hold: 1.2, M: 360, scope: { y: -4.7, h: 3.6 } }
 const QA = [-70, 30, -20, -40].map((d) => d * DEG)
 const QB = [60, 110, -120, 20].map((d) => d * DEG)
 const DQ = QB.map((b, i) => b - QA[i])
@@ -359,7 +358,6 @@ const J_MAX = A_MAX.map((a) => a * 5)
 const PROFILES: Record<ScaleKind, string> = { linear: 'Linear', cubic: 'Cubic', quintic: 'Quintic', trapezoid: 'Trapezoid', scurve: 'S-curve' }
 const SYNC = { sync: 'Synchronised', free: 'Each joint flat out' }
 const PLOTS = { q: 'q (share done)', qd: 'q̇ / limit', qdd: 'q̈ / limit' }
-const JOINT_NAMES = ['base', 'shoulder', 'elbow', 'wrist']
 const tsParams = (p: Params) => ({ kind: pick(PROFILES, p.kind, 'trapezoid'), sync: pick(SYNC, p.sync, 'sync'), plot: pick(PLOTS, p.plot, 'qd'), k: n(p, 'speed') / 100 })
 type TsP = ReturnType<typeof tsParams>
 const tsRun = memoBy(
@@ -420,11 +418,10 @@ export const trajectoriesTimeScaling: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, TS.at, TS.k, 0.32, -0.6)
     floorMat(g, [-0.28, 0.3], [-0.3, 0.3])
-    const lifted = add(g, new THREE.Group(), [0, 0, TS.plinth])
-    const look = { w: 0.022, t: 0.017 }
-    const ghost = serialArm(lifted, SERVO_ARM, { ...look, axes: false })
+    const lifted = add(g, new THREE.Group(), [0, 0, PLINTH])
+    const ghost = serialArm(lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, axes: false })
     ghostRig(ghost.group, B_FIELD, 0.2)
-    const rig = serialArm(lifted, SERVO_ARM, { ...look, pedestal: TS.plinth })
+    const rig = serialArm(lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, pedestal: PLINTH })
     const pen = dotPen(lifted, 900, 0.0026)
 
     const X = 1.4
@@ -477,9 +474,9 @@ export const trajectoriesTimeScaling: Lesson = {
         const slow = r.sync.slowest.v
         lines[0].set(`synchronised: all joints ${secs(r.sync.scale.T)}`, q.sync === 'sync' ? RING : GREY)
         lines[1].set(`flat out: ${own.map(secs).join(', ')}`, q.sync === 'free' ? RING : GREY)
-        lines[2].set(`speed limit set by the ${JOINT_NAMES[slow]} (moves ${Math.round(Math.abs(toDeg(DQ[slow])))}° at ${Math.round(toDeg(vm[slow]))}°/s)`, JOINT_COLORS[slow])
+        lines[2].set(`speed limit set by the ${SERVO_JOINT_NAMES[slow]} (moves ${Math.round(Math.abs(toDeg(DQ[slow])))}° at ${Math.round(toDeg(vm[slow]))}°/s)`, JOINT_COLORS[slow])
         const done = DQ.map((_, j) => (q.sync === 'sync' ? r.sync.scale.T : own[j]) <= t + 1e-9)
-        lines[3].set(`arrived: ${done.map((d, j) => (d ? JOINT_NAMES[j] : null)).filter(Boolean).join(', ') || 'none yet'}`, done.every(Boolean) ? POWER : LABEL)
+        lines[3].set(`arrived: ${done.map((d, j) => (d ? SERVO_JOINT_NAMES[j] : null)).filter(Boolean).join(', ') || 'none yet'}`, done.every(Boolean) ? POWER : LABEL)
 
         const partial = done.some(Boolean) && !done.every(Boolean)
         status.set(`${PROFILES[q.kind]} · ${SYNC[q.sync].toLowerCase()} · ${Math.round(Math.min(1, t / Math.max(1e-9, q.sync === 'sync' ? r.sync.scale.T : Math.max(...own))) * 100)} % of the move`, LABEL)
@@ -495,8 +492,8 @@ export const trajectoriesTimeScaling: Lesson = {
         const own = r.own.map((s) => s.T)
         return [
           { label: 'Synchronised time', value: secs(r.sync.scale.T) },
-          { label: 'Slowest joint alone', value: `${secs(Math.max(...own))} (${JOINT_NAMES[own.indexOf(Math.max(...own))]})` },
-          { label: 'Fastest joint alone', value: `${secs(Math.min(...own))} (${JOINT_NAMES[own.indexOf(Math.min(...own))]})`, tone: q.sync === 'free' ? 'warn' : 'ok' },
+          { label: 'Slowest joint alone', value: `${secs(Math.max(...own))} (${SERVO_JOINT_NAMES[own.indexOf(Math.max(...own))]})` },
+          { label: 'Fastest joint alone', value: `${secs(Math.min(...own))} (${SERVO_JOINT_NAMES[own.indexOf(Math.min(...own))]})`, tone: q.sync === 'free' ? 'warn' : 'ok' },
           { label: 'End acceleration', value: q.kind === 'linear' ? '∞ (jump)' : q.kind === 'cubic' || q.kind === 'trapezoid' ? 'steps' : 'smooth', tone: q.kind === 'linear' ? 'bad' : q.kind === 'quintic' || q.kind === 'scurve' ? 'ok' : 'warn' },
         ]
       },

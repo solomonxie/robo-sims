@@ -2,7 +2,7 @@
 import { DEG } from '../common'
 import { P3 } from '../room'
 import { IDENTITY4, Mat4, mul4 } from '../software/urdf'
-import { V2 } from './transforms'
+import { V2, originOf } from './transforms'
 
 export type JointKind = 'revolute' | 'prismatic'
 
@@ -45,10 +45,7 @@ export function armFk(arm: SerialArm, q: readonly number[]): Mat4[] {
   return out
 }
 
-export const toolOf = (frames: Mat4[]): P3 => {
-  const m = frames[frames.length - 1]
-  return [m[3], m[7], m[11]]
-}
+export const toolOf = (frames: Mat4[]): P3 => originOf(frames[frames.length - 1])
 
 /** Planar arm in the base x–y plane: every row a = L, α = d = θ = 0. */
 export const planarArm = (lengths: readonly number[], name = `${lengths.length}-link planar`): SerialArm => ({

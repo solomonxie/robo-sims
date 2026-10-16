@@ -3,21 +3,18 @@ import {
   ARM_BUILD, ARM_CAL, ARM_SERVOS, ARM_SUPPLIES, ArmServo, ArmSupply, DEG, HORN_TEETH, Mat4, P3, SERVO_ARM, TOOTH_DEG, actualJoints, armBudget, armFk, armMasses, clamp, driveAt, handGap,
   holdTorques, hornShift, logicMinVolts, originOf, pcaTicks, pulseUs, reversed, sagJoints, servoArmIk, syncScale, toDeg, toolOf, wrapPi,
 } from '../../core/physics'
-import { degText, mmTenths, pct } from '../../core/units'
+import { mmTenths, pct, radText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import {
-  B_FIELD, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, cableRun, dotPen, floorMat, ghostRig, glide, liveLabel, meterBar, pca9685Board, serialArm, servoArmBuild, statusHeader, toneColor, zUp,
-} from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, cableRun, dotPen, floorMat, ghostRig, glide, liveLabel, meterBar, pca9685Board, serialArm, servoArmBuild, statusHeader, toneColor, zUp, SERVO_ARM_LOOK, SERVO_JOINT_NAMES } from '../fx'
 import { buildEsp32 } from '../../models/modules'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const deg = (a: number) => degText(Math.abs(a) < 0.05 * DEG ? 0 : toDeg(a), 1)
+const deg = (a: number) => radText(a, 1)
 const nm = (v: number) => `${Math.abs(v).toFixed(2)} N·m`
 const amps = (a: number) => `${a.toFixed(a < 10 ? 2 : 1)} A`
 const volts = (v: number) => `${v.toFixed(2)} V`
 const gSlider = { kind: 'slider' as const, key: 'payload', label: 'Payload in the gripper', min: 0, max: 250, step: 10, initial: 100, format: (v: number) => `${v} g` }
-const JOINT_NAMES = ['base', 'shoulder', 'elbow', 'wrist']
 const LEAD = '#d9822b'
 const short = (k: ArmServo) => ARM_SERVOS[k].name.split(' ')[0]
 const BASE_H = 0.05
@@ -135,7 +132,7 @@ export const armBuildAssemble: Lesson = {
     const X = 1.6
     const bars = add(scene, new THREE.Group(), [X + 2.6, 2.6, 0.2])
     bars.scale.setScalar(0.42)
-    const meters = JOINT_NAMES.map((name, i) =>
+    const meters = SERVO_JOINT_NAMES.map((name, i) =>
       meterBar(bars, [0, -i * 3.1, 0], 11, 1.5, i === 0 ? [[0.5, '½', GREY], [1, 'stall', HIGH_V]] : [[0.5, '', GREY], [1, '', HIGH_V]], `${i + 1} ${name}`),
     )
     addLabel(scene, 'hold torque / stall torque', [X, 3.75, 0.2], GREY, 0.28, 'left')
@@ -180,11 +177,11 @@ export const armBuildAssemble: Lesson = {
         lines[2].set(sup.sharedLogic ? `ESP32 shares it, needs ≥ ${volts(logicMinVolts)}: ${b.restVolts < logicMinVolts ? 'browns out even holding' : b.resets ? 'resets on every start' : 'ok'}` : 'ESP32 on its own USB: servo surges cannot reset it', b.resets ? HIGH_V : GREY)
         lines[3].set(`masses: ${Math.round(armMasses(goal, q.payload, build).reduce((s, m) => s + m.kg, 0) * 1000)} g moving, ${Math.round(q.payload * 1000)} g of it payload`, GREY)
         if (b.joints[worst].share < 0.01) status.set('straight up: every weight sits on a joint axis, no joint holds any torque', LABEL)
-        else status.set(`${JOINT_NAMES[worst]} works hardest: ${nm(b.joints[worst].tau)} of ${nm(b.drives[worst].stallNm)} stall (${short(build.servos[worst])} at ${sup.volts} V)`, LABEL)
+        else status.set(`${SERVO_JOINT_NAMES[worst]} works hardest: ${nm(b.joints[worst].tau)} of ${nm(b.drives[worst].stallNm)} stall (${short(build.servos[worst])} at ${sup.volts} V)`, LABEL)
         sub.set(`MG996R base + elbow · ${short(q.shoulder)} shoulder · SG90 wrist + gripper · PCA9685 on I²C`, GREY)
         const weak = b.joints.findIndex((j) => j.verdict === 'weak')
         event.set(
-          weak >= 0 ? `${JOINT_NAMES[weak]} past stall: the arm sags until the stop, pick a stronger servo` : b.resets ? 'holds, but a start-up surge resets the ESP32: give the servos their own supply' : b.joints.some((j) => j.verdict === 'thin') ? 'holds, but above ½ stall: hot servo and visible droop' : 'every joint under ½ stall: cool and steady',
+          weak >= 0 ? `${SERVO_JOINT_NAMES[weak]} past stall: the arm sags until the stop, pick a stronger servo` : b.resets ? 'holds, but a start-up surge resets the ESP32: give the servos their own supply' : b.joints.some((j) => j.verdict === 'thin') ? 'holds, but above ½ stall: hot servo and visible droop' : 'every joint under ½ stall: cool and steady',
           weak >= 0 || b.resets ? HIGH_V : b.joints.some((j) => j.verdict === 'thin') ? HEAT : POWER,
         )
       },
@@ -265,13 +262,13 @@ export const armBuildDriveIk: Lesson = {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
     const d = deskBuild(scene, [-11, -7.6, 0], 28, [...ARM_BUILD.servos, ARM_BUILD.gripper])
-    const ghost = serialArm(d.lifted, SERVO_ARM, { w: 0.022, t: 0.017, axes: false })
+    const ghost = serialArm(d.lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, axes: false })
     ghostRig(ghost.group, B_FIELD, 0.18)
     const paper = flatPaper(d.g)
     const trail = dotPen(d.g, 600, 0.0022)
     const X = 1.6
     addLabel(scene, 'PCA9685 channel ← joint angle', [X, 3.75, 0.2], GREY, 0.28, 'left')
-    const chans = JOINT_NAMES.map((_, i) => liveLabel(scene, [X, 2.95 - i * 0.78, 0.2], { size: 0.3, align: 'left' }))
+    const chans = SERVO_JOINT_NAMES.map((_, i) => liveLabel(scene, [X, 2.95 - i * 0.78, 0.2], { size: 0.3, align: 'left' }))
     addLabel(scene, 'hand error, one cause at a time:', [X, -0.6, 0.2], GREY, 0.28, 'left')
     const parts = Array.from({ length: 4 }, (_, i) => liveLabel(scene, [X, -1.4 - i * 0.78, 0.2], { size: 0.3, align: 'left' }))
 
@@ -320,7 +317,7 @@ export const armBuildDriveIk: Lesson = {
           const us = pulseUs(q, CODE[x.cal][i])
           const ticks = pcaTicks(us)
           d.board.lit(i, (us - 500) / 2000)
-          chans[i].set(`CH${i} ${JOINT_NAMES[i].padEnd(8)} ${deg(q).padStart(7)} → ${Math.round(us)} µs = ${ticks} ticks`, JOINT_COLORS[i])
+          chans[i].set(`CH${i} ${SERVO_JOINT_NAMES[i].padEnd(8)} ${deg(q).padStart(7)} → ${Math.round(us)} µs = ${ticks} ticks`, JOINT_COLORS[i])
         })
         const err = handGap(cmd.q, real.q)
         const worst = Math.max(...st.loop.map((s) => s.err))

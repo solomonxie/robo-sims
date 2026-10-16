@@ -107,7 +107,7 @@ export const PID_COLORS = { p: HEAT, i: DATA_COLOR, d: FORCE, u: POWER }
 export const MEAS_COLOR = LABEL
 
 /** Signed terms and their sum (last row) as bars from a centre zero, ±100 % across `w`; the sum turns red when clipped. */
-export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: string; color: string }[], w = 7) {
+export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: string; color: string }[], w = 7, satText = ' clipped') {
   const last = rows.length - 1
   const bars = rows.map(({ label, color }, j) => {
     const y = at[1] - j * 0.62
@@ -129,7 +129,7 @@ export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: 
         const sum = j === last
         const hot = sum ? sat : Math.abs(v) > 1
         setGlow(r.m, hot && sum ? HIGH_V : r.color, 0.9)
-        r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && sum ? ' clipped' : ''}`, hot ? HIGH_V : r.color)
+        r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && sum ? satText : ''}`, hot ? HIGH_V : r.color)
       })
     },
   }

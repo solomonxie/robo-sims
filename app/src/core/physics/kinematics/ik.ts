@@ -3,8 +3,7 @@ import { clamp, wrapPi } from '../common'
 import { Mat, eye, matAdd, matInv, matMul, matScale, transpose } from '../control/linalg'
 import { P3 } from '../room'
 import { SERVO_ARM, SERVO_ARM_DIMS, SerialArm, armFk } from './chain'
-import { originOf } from './transforms'
-import { V2 } from './transforms'
+import { V2, originOf } from './transforms'
 
 export interface TwoLinkIk {
   reachable: boolean
@@ -100,7 +99,7 @@ export interface IkOpts {
 }
 
 /** Jacobian transpose step: Δq = α·Jᵀe with the line-search α = (e·JJᵀe)/|JJᵀe|². */
-export function transposeStep(J: Mat, e: readonly number[]): number[] {
+function transposeStep(J: Mat, e: readonly number[]): number[] {
   const Jt = transpose(J)
   const dq = Jt.map((r) => r.reduce((s, v, k) => s + v * e[k], 0))
   const jje = J.map((r) => r.reduce((s, v, k) => s + v * dq[k], 0))
@@ -110,7 +109,7 @@ export function transposeStep(J: Mat, e: readonly number[]): number[] {
 }
 
 /** Damped least squares: Δq = Jᵀ(JJᵀ + λ²I)⁻¹e. */
-export function dlsStep(J: Mat, e: readonly number[], lambda: number): number[] {
+function dlsStep(J: Mat, e: readonly number[], lambda: number): number[] {
   const A = matAdd(matMul(J, transpose(J)), matScale(eye(J.length), lambda * lambda))
   const w = matInv(A).map((r) => r.reduce((s, v, k) => s + v * e[k], 0))
   return transpose(J).map((r) => r.reduce((s, v, k) => s + v * w[k], 0))

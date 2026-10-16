@@ -58,7 +58,7 @@ export const squeezesOut = (mu: number, tiltDeg: number) => -tiltDeg * DEG > Mat
 /** F = ΔP·A: kPa on a cup of Ø d mm, N. */
 export const suctionForceN = (vacKPa: number, diaMm: number) => (vacKPa * circleAreaMm2(diaMm)) / 1000
 
-export const ATM_KPA = 101.3
+const ATM_KPA = 101.3
 /** Small 6 V diaphragm pump (linear curve), cup + hose volume; leak conductance per surface, ml/s per kPa; cup rubber μ. */
 export const VAC_PUMP = { maxKPa: 65, maxMlS: 83, volMl: 60, muCup: 0.5 }
 export const VAC_SURFACES = { glass: 0, cardboard: 0.8, textured: 3 }

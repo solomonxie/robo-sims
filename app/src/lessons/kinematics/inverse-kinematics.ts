@@ -1,17 +1,15 @@
 import * as THREE from 'three/webgpu'
-import { DEG, IkStep, P3, SERVO_ARM, SERVO_ARM_DIMS, armFk, ikIterate, originOf, planarArm, poseGroups, planarFk, planarJacobian, servoArmIk, toDeg, toolOf, twoLinkIk, twoLinkTip, wrapPi } from '../../core/physics'
-import { degText } from '../../core/units'
-import { V3, add, box, mat } from '../../models/kit'
+import { DEG, IkStep, P3, SERVO_ARM, SERVO_ARM_DIMS, armFk, ikIterate, originOf, planarArm, poseGroups, planarFk, planarJacobian, servoArmIk, toolOf, twoLinkIk, twoLinkTip, wrapPi } from '../../core/physics'
+import { fixedText, radText } from '../../core/units'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, addLabel, dotPen, floorMat, frameTriad, ghostRig, glide, liveLabel, matrixGrid, memoBy, pointCloud, scopeLabels, serialArm, sideScope, SIDE_SCOPE, statusHeader, stretchArrow, zUp } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, addLabel, dotPen, floorMat, frameTriad, ghostRig, liveLabel, matrixGrid, memoBy, pointCloud, scopeLabels, serialArm, sideScope, SIDE_SCOPE, statusHeader, stretchArrow, zUp, glideAngle, armPlate, PLINTH, SERVO_ARM_LOOK } from '../fx'
+import { Lesson, Params, Stage, n, opts, pick, angleSlider } from '../types'
 
-const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−'))
+const f2 = (v: number) => fixedText(v)
 const xy = (p: readonly number[]) => `(${p.map(f2).join(', ')})`
-const deg = (a: number) => degText(Math.abs(a) < 0.5 * DEG ? 0 : toDeg(a), 0)
-const glideAngle = (dt: number, from: number, to: number, k = 5) => from + glide(dt, 0, wrapPi(to - from), k)
+const deg = (a: number) => radText(a)
 const mSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 0.01, initial, format: (v: number) => `${v.toFixed(2)} m` })
-const angleSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 5, initial, format: (v: number) => `${v}°` })
 const PSI = JOINT_COLORS[2]
 
 const tagAt = (t: { group: THREE.Object3D }, o: V3, r: number, a: number) => t.group.position.set(o[0] + r * Math.cos(a), o[1] + r * Math.sin(a), o[2])
@@ -56,7 +54,7 @@ export const analyticIk: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), AN.at)
     g.scale.setScalar(AN.k)
-    box(g, [0.11, 0.16, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
+    armPlate(g)
     const base = frameTriad(g, 0.1, '', LABEL, 0.003, { letters: 'xy', size: 0.03, planar: true })
     base.group.position.z = -0.02
     const rig = serialArm(g, planarArm([AN.l1, AN.l2]), { w: 0.05, t: 0.034 })
@@ -156,7 +154,7 @@ export const analyticIk: Lesson = {
 
 // --- Multiple solutions: the servo arm's four IK branches, pruned by joint limits. ---
 
-const MS = { at: [-8.6, -6.2, 0] as V3, k: 24, plinth: 0.014 }
+const MS = { at: [-8.6, -6.2, 0] as V3, k: 24 }
 const BRANCHES = { up: 'Elbow up', down: 'Elbow down', 'flip-up': 'Flip, elbow up', 'flip-down': 'Flip, elbow down' }
 const BRANCH_KEYS = Object.keys(BRANCHES) as (keyof typeof BRANCHES)[]
 const msParams = (p: Params) => {
@@ -205,13 +203,12 @@ export const multipleSolutions: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, MS.at, MS.k, 0.32, -0.6)
     floorMat(g, [-0.3, 0.4], [-0.32, 0.36])
-    const lifted = add(g, new THREE.Group(), [0, 0, MS.plinth])
-    const look = { w: 0.022, t: 0.017 }
+    const lifted = add(g, new THREE.Group(), [0, 0, PLINTH])
     const ghosts = [0, 1, 2].map(() => {
-      const r = serialArm(lifted, SERVO_ARM, { ...look, axes: false })
+      const r = serialArm(lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, axes: false })
       return { r, m: ghostRig(r.group, B_FIELD, 0.2) }
     })
-    const rig = serialArm(lifted, SERVO_ARM, { ...look, pedestal: MS.plinth })
+    const rig = serialArm(lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, pedestal: PLINTH })
     const pen = dotPen(lifted, 900, 0.0024)
     const tgt = pointCloud(lifted, 2, 0.008)
     const ghostTags = [0, 1, 2].map(() => liveLabel(lifted, [0, 0, 0], { size: 0.035 }))
@@ -351,7 +348,7 @@ export const jacobianMethod: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), JM.at)
     g.scale.setScalar(JM.k)
-    box(g, [0.11, 0.16, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
+    armPlate(g)
     const arm = planarArm(JM.L)
     const ghost = serialArm(g, arm, { w: 0.044, t: 0.03, gripper: false, axes: false })
     ghostRig(ghost.group, B_FIELD, 0.22)

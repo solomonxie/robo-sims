@@ -1,3 +1,5 @@
+import { DEG, toDeg } from './physics/common'
+
 const PREFIXES: [number, string][] = [
   [1e9, 'G'],
   [1e6, 'M'],
@@ -69,6 +71,10 @@ export const mmText = (m: number) => `${Math.round(m * 1000)} mm`
 export const mmTenths = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 ? 1 : 0)} mm`
 export const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
 export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
+/** Radians as degrees, values that round to zero shown as 0. */
+export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)
+/** Fixed digits with a true minus, values that round to zero unsigned. */
+export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -digits ? (0).toFixed(digits) : v.toFixed(digits).replace('-', '−'))
 /** Two decimals, '—' when missing. */
 export const secsText = (s: number | null) => (s === null || !Number.isFinite(s) ? '—' : `${s.toFixed(2)} s`)
 /** PID gains in duty per degree. */

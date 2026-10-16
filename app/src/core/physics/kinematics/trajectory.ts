@@ -136,7 +136,7 @@ export interface ScaleState { s: number; sd: number; sdd: number }
 export interface TimeScale { kind: ScaleKind; T: number; at: (t: number) => ScaleState }
 
 /** Peak ṡ·T and s̈·T² of each rest-to-rest polynomial. */
-export const POLY_PEAKS = { cubic: { v: 1.5, a: 6 }, quintic: { v: 1.875, a: 10 / Math.sqrt(3) } }
+const POLY_PEAKS = { cubic: { v: 1.5, a: 6 }, quintic: { v: 1.875, a: 10 / Math.sqrt(3) } }
 
 /** Shortest s(t) whose ṡ, s̈ (and jerk, S-curve) stay within the limits; linear jumps straight to ṡ = vMax. */
 export function timeScale(kind: ScaleKind, vMax: number, aMax: number, jMax = Infinity): TimeScale {

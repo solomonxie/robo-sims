@@ -76,6 +76,9 @@ export const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(r
 /** Param `k` snapped to the nearest E12 resistor value. */
 export const e12 = (p: Params, k: string) => nearestE12(n(p, k))
 
+export const angleSlider = (key: string, label: string, min: number, max: number, initial: number) =>
+  ({ kind: 'slider', key, label, min, max, step: 5, initial, format: (v: number) => `${v}°` }) as const
+
 export const resistorSlider = (key: string, label: string, initial: number) =>
   ({ kind: 'slider', key, label, min: 47, max: 1000, initial, log: true, format: (v: number) => ohms(nearestE12(v)) }) as const
 

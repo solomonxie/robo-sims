@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu'
+import { wrapPi } from '../../core/physics/common'
 import { V3 } from '../../models/kit'
 
 export function path(points: V3[], closed = false): THREE.CurvePath<THREE.Vector3> {
@@ -44,6 +45,8 @@ export function presence(o: THREE.Object3D, p: number) {
 
 /** One eased step from `from` toward `to`. */
 export const glide = (dt: number, from: number, to: number, k = 14) => from + (to - from) * ease(dt, k)
+/** `glide` for angles: the short way round. */
+export const glideAngle = (dt: number, from: number, to: number, k = 5) => from + glide(dt, 0, wrapPi(to - from), k)
 export const frac = (x: number) => x - Math.floor(x)
 /** Repeatable 0…1 noise for `x` (sine hash). */
 export const sineHash = (x: number) => frac(Math.sin(x * 127.1) * 43758.5453)

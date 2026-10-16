@@ -1,8 +1,8 @@
 import * as THREE from 'three/webgpu'
-import { DEG, Mat4, ReachSample, SERVO_ARM, SERVO_ARM_DIMS, SerialArm, armJacobian, cellMeasure, dexterity, dexterityGrid, dexterousBand, headingReach, headingSet, manipulability, planarArm, reachCloud, toDeg, twoLinkIk, twoLinkRadii, wrapPi } from '../../core/physics'
+import { DEG, Mat4, ReachSample, SERVO_ARM, SERVO_ARM_DIMS, SerialArm, armJacobian, cellMeasure, dexterity, dexterityGrid, dexterousBand, headingReach, headingSet, manipulability, planarArm, reachCloud, toDeg, twoLinkIk, twoLinkRadii, wrapPi, lerpJoints } from '../../core/physics'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, HIGH_V, LABEL, LOW_V, POWER, RING, SIDE_SCOPE, addLabel, dotPen, floorMat, liveLabel, memoBy, pointCloud, scopeLabels, serialArm, sideScope, statusHeader, stretchArrow, zUp } from '../fx'
+import { GREY, HIGH_V, LABEL, LOW_V, POWER, RING, SIDE_SCOPE, addLabel, dotPen, floorMat, liveLabel, memoBy, pointCloud, scopeLabels, serialArm, sideScope, statusHeader, stretchArrow, zUp, armPlate, SERVO_ARM_LOOK } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const cm = (m: number) => `${Math.round(m * 100)} cm`
@@ -10,12 +10,10 @@ const cm2 = (a: number) => `${Math.round(a * 1e4)} cm²`
 const deg0 = (a: number) => `${Math.round(toDeg(a)).toString().replace('-', '−')}°`
 const cmSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 1, initial, format: (v: number) => `${v} cm` })
 const degSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 5, initial, format: (v: number) => `±${v}°` })
-const plate = (g: THREE.Object3D) => box(g, [0.1, 0.14, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
 const ramp = (f: number, out: THREE.Color) => {
   const u = Math.max(0, Math.min(1, f))
   return out.setHSL((0.63 + u * 0.51) % 1, 0.9, 0.55 + u * 0.08)
 }
-const lerpQ = (a: readonly number[], b: readonly number[], u: number) => a.map((v, i) => v + (b[i] - v) * u)
 
 /** Colour bar dots low → high with end labels. */
 function colorBar(scene: THREE.Object3D, at: V3, w: number, lo: string, hi: string) {
@@ -72,7 +70,7 @@ const reCloud = memoBy(reKey, (q: ReP) => {
 const reTour = (c: ReturnType<typeof reCloud>, t: number) => {
   const u = Math.min(1, t / RE.sweep) * (c.tour.length - 1)
   const i = Math.min(c.tour.length - 2, Math.floor(u))
-  return c.tour.length < 2 ? (c.tour[0]?.q ?? [0, 0, 0, 0]) : lerpQ(c.tour[i].q, c.tour[i + 1].q, u - i)
+  return c.tour.length < 2 ? (c.tour[0]?.q ?? [0, 0, 0, 0]) : lerpJoints(c.tour[i].q, c.tour[i + 1].q, u - i)
 }
 
 export const workspaceReach: Lesson = {
@@ -108,7 +106,7 @@ export const workspaceReach: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const pg = add(scene, new THREE.Group(), RE.planar.at)
     pg.scale.setScalar(RE.planar.k)
-    plate(pg)
+    armPlate(pg, 0.1, 0.14)
     const table = box(pg, [1.1, 0.01, 0.1], mat('#4a3b2c', { rough: 0.8 }), [0, -0.012, 0])
     const sg = zUp(scene, RE.servo.at, RE.servo.k, 0.32, -0.6)
     floorMat(sg, [-0.55, 0.55], [-0.55, 0.55])
@@ -142,7 +140,7 @@ export const workspaceReach: Lesson = {
         const isP = q.arm === 'planar'
         if (!rigs || rigs.key !== `${q.l1}|${q.l2}`) {
           if (rigs) [rigs.planar, rigs.servo].forEach((r) => r.group.removeFromParent())
-          rigs = { key: `${q.l1}|${q.l2}`, planar: serialArm(pg, reArm({ ...q, arm: 'planar' }), { w: 0.04, t: 0.028 }), servo: serialArm(lifted, reArm({ ...q, arm: 'servo' }), { w: 0.022, t: 0.017 }) }
+          rigs = { key: `${q.l1}|${q.l2}`, planar: serialArm(pg, reArm({ ...q, arm: 'planar' }), { w: 0.04, t: 0.028 }), servo: serialArm(lifted, reArm({ ...q, arm: 'servo' }), SERVO_ARM_LOOK) }
         }
         const cloud = isP ? pCloud : sCloud
         if (key !== st.key) {
@@ -264,7 +262,7 @@ export const workspaceDexterity: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), DX.at)
     g.scale.setScalar(DX.k)
-    plate(g)
+    armPlate(g, 0.1, 0.14)
     const cloud = pointCloud(g, 8000, DX.dot)
     const pen = dotPen(g, 1600, 0.004)
     const heading = stretchArrow(g, RING, 0.005)

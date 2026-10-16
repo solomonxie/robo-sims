@@ -1,18 +1,16 @@
 import * as THREE from 'three/webgpu'
 import { DEG, Mat, SERVO_ARM, armJacobian, handVelocity, jointTorques, manipulability, planarArm, planarJacobian, resolvedRateRun, toDeg, toolOf, twoLinkIk, weightN, wrapPi } from '../../core/physics'
-import { degText } from '../../core/units'
-import { V3, add, box, mat } from '../../models/kit'
+import { fixedText, radText } from '../../core/units'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, SIDE_SCOPE, addLabel, dotPen, flatBox, floorMat, glide, glowMat, liveLabel, matrixGrid, memoBy, scopeLabels, serialArm, setGlow, sideScope, statusHeader, stretchArrow, zUp } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, SIDE_SCOPE, addLabel, dotPen, flatBox, floorMat, glide, glowMat, liveLabel, matrixGrid, memoBy, scopeLabels, serialArm, setGlow, sideScope, statusHeader, stretchArrow, zUp, armPlate, PLINTH, SERVO_ARM_LOOK } from '../fx'
+import { Lesson, Params, Stage, n, opts, pick, angleSlider } from '../types'
 
-const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−'))
-const f3 = (v: number) => (Math.abs(v) < 0.0005 ? '0.000' : v.toFixed(3).replace('-', '−'))
+const f2 = (v: number) => fixedText(v)
+const f3 = (v: number) => fixedText(v, 3)
 const fw = (w: number) => (w < 5e-5 ? '0' : w.toPrecision(2))
-const deg = (a: number) => degText(Math.abs(a) < 0.5 * DEG ? 0 : toDeg(a), 0)
+const deg = (a: number) => radText(a)
 const dps = (w: number) => `${Math.round(toDeg(w)).toString().replace('-', '−')}°/s`
-const angleSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 5, initial, format: (v: number) => `${v}°` })
-const plate = (g: THREE.Object3D) => box(g, [0.11, 0.16, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
 const toward = (a: V3, d: readonly number[], k: number, cap: number): V3 => {
   const len = Math.hypot(...d) * k
   const s = len > cap ? cap / len : 1
@@ -112,7 +110,7 @@ export const jacobianSingularities: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), SG.at)
     g.scale.setScalar(SG.k)
-    plate(g)
+    armPlate(g)
     const rig = serialArm(g, planarArm(SG.L), { w: 0.046, t: 0.032 })
     const pen = dotPen(g, 1600, 0.0035)
     const cmd = stretchArrow(g, RING, 0.0028)
@@ -261,12 +259,12 @@ export const jacobianManipulability: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const pg = add(scene, new THREE.Group(), MP.planar.at)
     pg.scale.setScalar(MP.planar.k)
-    plate(pg)
+    armPlate(pg)
     const planar = serialArm(pg, planarArm(MP.planar.L), { w: 0.046, t: 0.032 })
     const sg = zUp(scene, MP.servo.at, MP.servo.k, 0.32, -0.6)
     floorMat(sg, [-0.15, 0.3], [-0.2, 0.25])
-    const lifted = add(sg, new THREE.Group(), [0, 0, 0.014])
-    const servo = serialArm(lifted, SERVO_ARM, { w: 0.022, t: 0.017, pedestal: 0.014 })
+    const lifted = add(sg, new THREE.Group(), [0, 0, PLINTH])
+    const servo = serialArm(lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, pedestal: PLINTH })
 
     const parts = (parent: THREE.Object3D, r: number) => {
       const m = new THREE.MeshBasicMaterial({ color: RING, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })

@@ -1,9 +1,8 @@
 import * as THREE from 'three/webgpu'
 import {
-  DEG, FeedForward, PointMass, SERVO_ARM_DIMS, SERVO_DRIVES, SERVO_GEAR, TrackFrame, V2n, couplingTorque, fastestMove, gravity, inverseDynamics, massMatrix, maxPayload, moveDemand, planarArm, restMove, servoTwoLink,
-  toDeg, trackRun, twoLinkTip,
+  DEG, FeedForward, PointMass, SERVO_ARM_DIMS, SERVO_DRIVES, SERVO_GEAR, TrackFrame, V2, couplingTorque, fastestMove, gravity, inverseDynamics, massMatrix, maxPayload, moveDemand, planarArm, restMove, servoTwoLink, trackRun, twoLinkTip,
 } from '../../core/physics'
-import { degText } from '../../core/units'
+import { fixedText, radText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -12,7 +11,7 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const L: V2n = [SERVO_ARM_DIMS.upper, SERVO_ARM_DIMS.fore + SERVO_ARM_DIMS.hand]
+const L: V2 = [SERVO_ARM_DIMS.upper, SERVO_ARM_DIMS.fore + SERVO_ARM_DIMS.hand]
 const AT: V3 = [-9, -2.2, 0]
 const K = 20
 const DT = 0.002
@@ -20,8 +19,8 @@ const STALL = SERVO_DRIVES[0].stallNm
 const FREE = (SERVO_DRIVES[0].freeRpm * 2 * Math.PI) / 60
 const X0 = SIDE_SCOPE.x - SIDE_SCOPE.w / 2
 const BX = X0 + 4.4
-const nm = (v: number) => `${Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−')} N·m`
-const deg = (a: number) => degText(Math.abs(a) < 0.05 * DEG ? 0 : toDeg(a), 1)
+const nm = (v: number) => `${fixedText(v)} N·m`
+const deg = (a: number) => radText(a, 1)
 const mm = (m: number) => `${(m * 1000).toFixed(1)} mm`
 const gSlider = (max: number, initial: number) => ({ kind: 'slider' as const, key: 'payload', label: 'Payload in the gripper', min: 0, max, step: 10, initial, format: (v: number) => `${v} g` })
 const TERM = { inertial: DATA_COLOR, coriolis: RING, gravity: FORCE }
@@ -83,17 +82,17 @@ function dynRig(scene: THREE.Object3D) {
 }
 
 /** Shoulder/elbow torque groups as `sumBars`, 100 % = servo stall. */
-function torqueGroups(scene: THREE.Object3D, y0: number, rows: readonly { label: string; color: string }[], gap: number) {
+function torqueGroups(scene: THREE.Object3D, y0: number, rows: readonly { label: string; color: string }[], gap: number, satText?: string) {
   return [0, 1].map((j) => {
     const y = y0 - j * gap
     addLabel(scene, j === 0 ? 'Shoulder (joint 1)' : 'Elbow (joint 2)', [BX - 3.3, y + 0.62, 0.2], JOINT_COLORS[j], 0.3, 'left')
-    return sumBars(scene, [BX, y, 0], rows, 6)
+    return sumBars(scene, [BX, y, 0], rows, 6, satText)
   })
 }
 
 // --- Gravity torque: hold the arm up, PD alone sags, g(q) feed-forward carries the weight. ---
 
-const GT = { qa: [-30 * DEG, 100 * DEG], qb: [20 * DEG, -20 * DEG], t0: 0.4, T: 1.2, seconds: 3.6, kp: [4, 2] as V2n, kd: [0.3, 0.15] as V2n, range: 15 * DEG, scope: { y: -5.4, h: 3 } }
+const GT = { qa: [-30 * DEG, 100 * DEG], qb: [20 * DEG, -20 * DEG], t0: 0.4, T: 1.2, seconds: 3.6, kp: [4, 2] as V2, kd: [0.3, 0.15] as V2, range: 15 * DEG, scope: { y: -5.4, h: 3 } }
 const GT_FF = { none: 'PD only', gravity: 'PD + g(q) feed-forward' }
 const gtParams = (p: Params) => ({ ff: pick(GT_FF, p.ff, 'none') as FeedForward, kg: n(p, 'payload') / 1000 })
 const gtKey = (q: ReturnType<typeof gtParams>) => `${q.ff}|${q.kg}`
@@ -193,8 +192,8 @@ const inRun = memoBy(inKey, (q: ReturnType<typeof inParams>) => {
   const { arm, points } = servoTwoLink(IN.kg, { ratio: q.gear === 'servo' ? SERVO_GEAR.ratio : 1 })
   const seconds = IN.t0 + q.T + IN.after
   const M = massMatrix(arm, IN.qa)
-  const kp: V2n = [IN.wn ** 2 * M[0][0], IN.wn ** 2 * M[1][1]]
-  const kd: V2n = [2 * IN.zeta * IN.wn * M[0][0], 2 * IN.zeta * IN.wn * M[1][1]]
+  const kp: V2 = [IN.wn ** 2 * M[0][0], IN.wn ** 2 * M[1][1]]
+  const kd: V2 = [2 * IN.zeta * IN.wn * M[0][0], 2 * IN.zeta * IN.wn * M[1][1]]
   const run = trackRun(arm, restMove(IN.qa, IN.qb, q.T, IN.t0), { kp, kd, ff: q.ff }, seconds, DT)
   return { arm, points, run, seconds, elbowErr: peak(run, (f) => f.ref.q[1] - f.q[1]), shoulderErr: peak(run, (f) => f.ref.q[0] - f.q[0]), coupling: peak(run, (f) => couplingTorque(arm, f.q, f.qd, f.qdd)) }
 })
@@ -235,7 +234,7 @@ export const dynamicsInertia: Lesson = {
       { label: 'g(q)', color: TERM.gravity },
       { label: 'τ', color: POWER },
     ]
-    const groups = torqueGroups(scene, 3.1, rows, 3.2)
+    const groups = torqueGroups(scene, 3.1, rows, 3.2, '')
     const { y: sy, h: sh } = IN.scope
     const plot = sideScope(scene, sy, sh, { divs: [8, 4], zeroAt: 0.5 })
     const traces = [plot.trace(JOINT_COLORS[0], { samples: 200 }), plot.trace(JOINT_COLORS[1], { samples: 200 }), plot.trace(GREY, { samples: 200, radius: 0.08 })]
@@ -293,7 +292,7 @@ export const dynamicsInertia: Lesson = {
 
 // --- Payload limits: torque demand of a lift vs the servo's torque–speed line; heavier means slower. ---
 
-const PL = { qa: [-30 * DEG, 60 * DEG], qb: [70 * DEG, -20 * DEG], t0: 0.3, after: 1, kp: [4, 2] as V2n, kd: [0.3, 0.15] as V2n, span: 1.5, scope: { y: -3.6, h: 4.2 } }
+const PL = { qa: [-30 * DEG, 60 * DEG], qb: [70 * DEG, -20 * DEG], t0: 0.3, after: 1, kp: [4, 2] as V2, kd: [0.3, 0.15] as V2, span: 1.5, scope: { y: -3.6, h: 4.2 } }
 const plParams = (p: Params) => ({ kg: n(p, 'payload') / 1000, T: n(p, 'time') })
 const plKey = (q: ReturnType<typeof plParams>) => `${q.kg}|${q.T}`
 const plBuild = (kg: number) => servoTwoLink(kg).arm

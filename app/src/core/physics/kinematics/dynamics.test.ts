@@ -1,9 +1,10 @@
 import { DEG, G } from '../common'
 import { armMasses, holdTorques } from './armbuild'
 import {
-  SERVO_DRIVES, TwoLink, V2n, armEnergy, coriolis, couplingTorque, driveClip, fastestMove, forwardDynamics, freeSwing, gravity, inverseDynamics, lumpLink, massMatrix, maxPayload, moveDemand, reflectedInertia, restMove, servoTwoLink, trackRun,
+  SERVO_DRIVES, TwoLink, armEnergy, coriolis, couplingTorque, driveClip, fastestMove, forwardDynamics, freeSwing, gravity, inverseDynamics, lumpLink, massMatrix, maxPayload, moveDemand, reflectedInertia, restMove, servoTwoLink, trackRun,
 } from './dynamics'
 import { jointTorques, planarJacobian } from './jacobian'
+import { V2 } from './transforms'
 
 const HAND: TwoLink = { l1: 1, l2: 1, links: [{ m: 1, lc: 0.5, I: 0.1 }, { m: 2, lc: 0.4, I: 0.2 }], rotor: [0, 0], damping: [0, 0] }
 
@@ -32,7 +33,7 @@ test('Coriolis/centrifugal by hand: h = m2·l1·lc2·sin q2', () => {
 })
 
 test('g(q) = Σ Jᵀ·m·g over each mass', () => {
-  const q: V2n = [0.4, -0.9]
+  const q: V2 = [0.4, -0.9]
   const l1 = jointTorques(planarJacobian([0.5], [q[0]]), [0, 1 * G])
   const l2 = jointTorques(planarJacobian([1, 0.4], q), [0, 2 * G])
   const g = gravity(HAND, q)
@@ -92,7 +93,7 @@ test('gravity feed-forward removes the PD sag; full inverse dynamics tracks a fa
   const qa = [10 * DEG, 20 * DEG]
   const qb = [70 * DEG, -60 * DEG]
   const ref = restMove(qa, qb, 0.6, 0.1)
-  const cfg = { kp: [4, 2] as V2n, kd: [0.3, 0.15] as V2n }
+  const cfg = { kp: [4, 2] as V2, kd: [0.3, 0.15] as V2 }
   const err = (run: ReturnType<typeof trackRun>, from = 0) => Math.max(...run.filter((f) => f.t >= from).map((f) => Math.hypot(f.ref.q[0] - f.q[0], f.ref.q[1] - f.q[1])))
   const pd = trackRun(arm, ref, { ...cfg, ff: 'none' }, 2.5)
   const pdg = trackRun(arm, ref, { ...cfg, ff: 'gravity' }, 2.5)

@@ -1,17 +1,15 @@
 import * as THREE from 'three/webgpu'
-import { DEG, DhRow, Mat4, SERVO_ARM, armFk, chain4, originOf, planarArm, rotAbout4, toDeg, toolOf, trans4, twoLinkTip, wrapPi } from '../../core/physics'
-import { degText } from '../../core/units'
+import { DEG, DhRow, Mat4, SERVO_ARM, armFk, chain4, originOf, planarArm, rotAbout4, toDeg, toolOf, trans4, twoLinkTip, wrapPi, dhRowAt } from '../../core/physics'
+import { degText, fixedText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { AXIS_RGB, GREY, HEAT, JOINT_COLORS, LABEL, RING, addLabel, floorMat, frameTriad, glide, liveLabel, matrixGrid, pointCloud, serialArm, setTf, statusHeader, zUp } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { AXIS_RGB, GREY, HEAT, JOINT_COLORS, LABEL, RING, addLabel, floorMat, frameTriad, glide, liveLabel, matrixGrid, pointCloud, serialArm, setTf, statusHeader, zUp, glideAngle, armPlate, PLINTH, SERVO_ARM_LOOK } from '../fx'
+import { Lesson, Params, Stage, n, opts, pick, angleSlider } from '../types'
 
-const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−'))
+const f2 = (v: number) => fixedText(v)
 const fp = (v: number) => (v < -0.005 ? `(${f2(v)})` : f2(v))
 const xy = (p: readonly number[]) => `(${p.map(f2).join(', ')})`
 const deg = (a: number) => degText(toDeg(a), 0)
-const glideAngle = (dt: number, from: number, to: number, k = 5) => from + glide(dt, 0, wrapPi(to - from), k)
-const angleSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 5, initial, format: (v: number) => `${v}°` })
 
 // --- Two-link arm: θ1 and θ2 in, hand (x, y) out, by adding the two link vectors. ---
 
@@ -56,8 +54,7 @@ export const twoLinkArm: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = add(scene, new THREE.Group(), TL.at)
     g.scale.setScalar(TL.k)
-    const plate = mat('#3a3d45', { rough: 0.6 })
-    box(g, [0.11, 0.16, 0.012], plate, [0, 0, -0.03])
+    armPlate(g)
     for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) box(g, [0.012, 0.012, 0.012], mat('#b8bec8', { metal: 0.7, rough: 0.3 }), [sx * 0.04, sy * 0.06, -0.022])
     const base = frameTriad(g, 0.1, '', LABEL, 0.003, { letters: 'xy', size: 0.03, planar: true })
     base.group.position.z = -0.02
@@ -173,11 +170,10 @@ export const twoLinkArm: Lesson = {
 
 // --- Denavit–Hartenberg: four numbers per joint, four elementary moves from frame i−1 to frame i. ---
 
-const DH = { at: [-8.6, -6.2, 0] as V3, k: 24, step: 1.0, hold: 1.6, plinth: 0.014 }
+const DH = { at: [-8.6, -6.2, 0] as V3, k: 24, step: 1.0, hold: 1.6 }
 const ROWS = { '1': 'Row 1: base', '2': 'Row 2: shoulder', '3': 'Row 3: elbow', '4': 'Row 4: wrist' }
 const MOVES = ['Rot z(θ)', 'Trans z(d)', 'Trans x(a)', 'Rot x(α)']
 const dhParams = (p: Params) => ({ q: ['q1', 'q2', 'q3', 'q4'].map((k) => n(p, k) * DEG), row: Number(pick(ROWS, p.row, '2')) - 1 })
-const rowAt = (r: DhRow, q: number) => ({ ...r, theta: r.theta + q })
 const len = (v: number) => (Math.abs(v) < 1e-9 ? '0' : f2(v))
 const ang = (v: number) => (Math.abs(v) < 1e-9 ? '0°' : deg(v))
 
@@ -193,7 +189,7 @@ export const denavitHartenberg: Lesson = {
   tagline: 'Four numbers per joint',
   formula: (p) => {
     const { q, row } = dhParams(p)
-    const r = rowAt(SERVO_ARM.rows[row], q[row])
+    const r = dhRowAt(SERVO_ARM.rows[row], q[row])
     const tip = toolOf(armFk(SERVO_ARM, q))
     return `A${row + 1} = Rot z(θ)·Trans z(d)·Trans x(a)·Rot x(α), θ = ${ang(r.theta)}, d = ${len(r.d)} m, a = ${len(r.a)} m, α = ${ang(r.alpha)} · T(0←4) = A1·A2·A3·A4 · hand at ${xy(tip)} m`
   },
@@ -221,7 +217,7 @@ export const denavitHartenberg: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, DH.at, DH.k, 0.32, -0.6)
     floorMat(g, [-0.12, 0.3], [-0.15, 0.3])
-    const arm = serialArm(add(g, new THREE.Group(), [0, 0, DH.plinth]), SERVO_ARM, { w: 0.022, t: 0.017, triads: 0.075, pedestal: DH.plinth })
+    const arm = serialArm(add(g, new THREE.Group(), [0, 0, PLINTH]), SERVO_ARM, { ...SERVO_ARM_LOOK, triads: 0.075, pedestal: PLINTH })
     const walker = frameTriad(g, 0.1, '', HEAT, 0.0035, { size: 0.026 })
     const tipDot = pointCloud(g, 1, 0.009)
 
@@ -249,7 +245,7 @@ export const denavitHartenberg: Lesson = {
         st.t = (st.t + dt) % total
         const u = Math.min(4, st.t / DH.step)
         const f = arm.set(st.q)
-        const rows = SERVO_ARM.rows.map((r, i) => rowAt(r, st.q[i]))
+        const rows = SERVO_ARM.rows.map((r, i) => dhRowAt(r, st.q[i]))
         const r = rows[row]
         setTf(walker.group, dhPartial(f[row], r, u))
         walker.group.visible = st.t > 0.15

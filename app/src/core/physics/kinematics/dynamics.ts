@@ -6,6 +6,7 @@ import { PID_MEM0, PidMem, pidTick } from '../control/pid'
 import { ARM_BUILD, ARM_SERVOS, ArmBuild, armMasses } from './armbuild'
 import { SERVO_ARM_DIMS } from './chain'
 import { polyAt, quinticCoeffs } from './trajectory'
+import { V2 } from './transforms'
 
 /** Lumped link: mass, joint-to-COM distance, inertia about the COM. */
 export interface Link { m: number; lc: number; I: number }
@@ -18,7 +19,6 @@ export interface TwoLink {
   /** Viscous friction per joint, N·m per rad/s. */
   damping: [number, number]
 }
-export type V2n = [number, number]
 export interface PointMass { kg: number; r: number }
 
 /** Point masses at distance r along a link → mass, COM, inertia about the COM. */
@@ -50,7 +50,7 @@ export function servoTwoLink(payloadKg: number, opts: { ratio?: number; damping?
 export const SERVO_DRIVES: [Drive, Drive] = [ARM_SERVOS.mg996r, ARM_SERVOS.mg996r]
 
 /** Joint-space inertia: M11 = m1·lc1² + I1 + m2(l1² + lc2² + 2·l1·lc2·cos q2) + I2, M12 = m2(lc2² + l1·lc2·cos q2) + I2, M22 = m2·lc2² + I2; rotors on the diagonal. */
-export function massMatrix(a: TwoLink, q: readonly number[]): [V2n, V2n] {
+export function massMatrix(a: TwoLink, q: readonly number[]): [V2, V2] {
   const [L1, L2] = a.links
   const c2 = Math.cos(q[1])
   const m22 = L2.m * L2.lc ** 2 + L2.I
@@ -63,33 +63,33 @@ export function massMatrix(a: TwoLink, q: readonly number[]): [V2n, V2n] {
 }
 
 /** C(q,q̇)q̇ with h = m2·l1·lc2·sin q2: (−h·q̇2(2q̇1 + q̇2), h·q̇1²). */
-export function coriolis(a: TwoLink, q: readonly number[], qd: readonly number[]): V2n {
+export function coriolis(a: TwoLink, q: readonly number[], qd: readonly number[]): V2 {
   const h = a.links[1].m * a.l1 * a.links[1].lc * Math.sin(q[1])
   return [-h * qd[1] * (2 * qd[0] + qd[1]), h * qd[0] * qd[0]]
 }
 
 /** Torque that holds the arm against gravity (positive lifts q). */
-export function gravity(a: TwoLink, q: readonly number[], g = G): V2n {
+export function gravity(a: TwoLink, q: readonly number[], g = G): V2 {
   const [L1, L2] = a.links
   const c12 = Math.cos(q[0] + q[1])
   const g2 = L2.m * L2.lc * g * c12
   return [(L1.m * L1.lc + L2.m * a.l1) * g * Math.cos(q[0]) + g2, g2]
 }
 
-export interface TorqueSplit { inertial: V2n; coriolis: V2n; gravity: V2n; friction: V2n; tau: V2n }
+export interface TorqueSplit { inertial: V2; coriolis: V2; gravity: V2; friction: V2; tau: V2 }
 
 /** τ = M·q̈ + C·q̇ + g + b·q̇, term by term. */
 export function inverseDynamics(a: TwoLink, q: readonly number[], qd: readonly number[], qdd: readonly number[]): TorqueSplit {
   const M = massMatrix(a, q)
-  const inertial: V2n = [M[0][0] * qdd[0] + M[0][1] * qdd[1], M[1][0] * qdd[0] + M[1][1] * qdd[1]]
+  const inertial: V2 = [M[0][0] * qdd[0] + M[0][1] * qdd[1], M[1][0] * qdd[0] + M[1][1] * qdd[1]]
   const c = coriolis(a, q, qd)
   const gq = gravity(a, q)
-  const friction: V2n = [a.damping[0] * qd[0], a.damping[1] * qd[1]]
-  return { inertial, coriolis: c, gravity: gq, friction, tau: [0, 1].map((i) => inertial[i] + c[i] + gq[i] + friction[i]) as V2n }
+  const friction: V2 = [a.damping[0] * qd[0], a.damping[1] * qd[1]]
+  return { inertial, coriolis: c, gravity: gq, friction, tau: [0, 1].map((i) => inertial[i] + c[i] + gq[i] + friction[i]) as V2 }
 }
 
 /** q̈ = M⁻¹(τ − C·q̇ − g − b·q̇). */
-export function forwardDynamics(a: TwoLink, q: readonly number[], qd: readonly number[], tau: readonly number[]): V2n {
+export function forwardDynamics(a: TwoLink, q: readonly number[], qd: readonly number[], tau: readonly number[]): V2 {
   const M = massMatrix(a, q)
   const c = coriolis(a, q, qd)
   const gq = gravity(a, q)
@@ -110,12 +110,12 @@ export function armEnergy(a: TwoLink, q: readonly number[], qd: readonly number[
   return { kinetic, potential, total: kinetic + potential }
 }
 
-export interface DynState { q: V2n; qd: V2n }
+export interface DynState { q: V2; qd: V2 }
 
 /** One RK4 step with τ held over the step. */
-export function dynStep(a: TwoLink, s: DynState, tau: readonly number[], dt: number): DynState {
+function dynStep(a: TwoLink, s: DynState, tau: readonly number[], dt: number): DynState {
   const f = (q: readonly number[], qd: readonly number[]) => forwardDynamics(a, q, qd, tau)
-  const ax = (x: readonly number[], d: readonly number[], k: number): V2n => [x[0] + d[0] * k, x[1] + d[1] * k]
+  const ax = (x: readonly number[], d: readonly number[], k: number): V2 => [x[0] + d[0] * k, x[1] + d[1] * k]
   const a1 = f(s.q, s.qd)
   const v1 = s.qd
   const a2 = f(ax(s.q, v1, dt / 2), ax(s.qd, a1, dt / 2))
@@ -124,13 +124,13 @@ export function dynStep(a: TwoLink, s: DynState, tau: readonly number[], dt: num
   const v3 = ax(s.qd, a2, dt / 2)
   const a4 = f(ax(s.q, v3, dt), ax(s.qd, a3, dt))
   const v4 = ax(s.qd, a3, dt)
-  const mix = (x: readonly number[], k1: readonly number[], k2: readonly number[], k3: readonly number[], k4: readonly number[]): V2n =>
-    [0, 1].map((i) => x[i] + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])) as V2n
+  const mix = (x: readonly number[], k1: readonly number[], k2: readonly number[], k3: readonly number[], k4: readonly number[]): V2 =>
+    [0, 1].map((i) => x[i] + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])) as V2
   return { q: mix(s.q, v1, v2, v3, v4), qd: mix(s.qd, a1, a2, a3, a4) }
 }
 
 /** Free swing with τ = 0 from `q0` at rest. */
-export function freeSwing(a: TwoLink, q0: V2n, seconds: number, dt = 0.001) {
+export function freeSwing(a: TwoLink, q0: V2, seconds: number, dt = 0.001) {
   const out: (DynState & { t: number; energy: number })[] = []
   let s: DynState = { q: [...q0], qd: [0, 0] }
   for (let k = 0; k <= Math.round(seconds / dt); k++) {
@@ -140,7 +140,7 @@ export function freeSwing(a: TwoLink, q0: V2n, seconds: number, dt = 0.001) {
   return out
 }
 
-export interface JointRef { q: V2n; qd: V2n; qdd: V2n }
+export interface JointRef { q: V2; qd: V2; qdd: V2 }
 
 /** Rest-to-rest quintic from qa to qb in T s, starting at `t0`; holds before and after. */
 export function restMove(qa: readonly number[], qb: readonly number[], T: number, t0 = 0) {
@@ -148,7 +148,7 @@ export function restMove(qa: readonly number[], qb: readonly number[], T: number
   return (t: number): JointRef => {
     const u = t - t0
     const r = u <= 0 ? { p: 0, v: 0, a: 0 } : u >= T ? { p: 1, v: 0, a: 0 } : polyAt(c, u)
-    const at = (k: number) => [0, 1].map((i) => (qb[i] - qa[i]) * k) as V2n
+    const at = (k: number) => [0, 1].map((i) => (qb[i] - qa[i]) * k) as V2
     const q = at(r.p)
     return { q: [qa[0] + q[0], qa[1] + q[1]], qd: at(r.v), qdd: at(r.a) }
   }
@@ -164,14 +164,14 @@ export function driveClip(d: Drive, w: number, tau: number) {
 
 export type FeedForward = 'none' | 'gravity' | 'full'
 export interface TrackCfg {
-  kp: V2n
-  kd: V2n
+  kp: V2
+  kd: V2
   ff: FeedForward
   drives?: [Drive, Drive]
   /** The model the feed-forward believes (default: the true arm). */
   model?: TwoLink
 }
-export interface TrackFrame { t: number; q: V2n; qd: V2n; qdd: V2n; ref: JointRef; pd: V2n; ff: V2n; tau: V2n; clipped: [boolean, boolean]; split: TorqueSplit }
+export interface TrackFrame { t: number; q: V2; qd: V2; qdd: V2; ref: JointRef; pd: V2; ff: V2; tau: V2; clipped: [boolean, boolean]; split: TorqueSplit }
 
 /** PD per joint (pidTick) plus feed-forward: none, g(q_ref), or full inverse dynamics on the reference; torques clipped by each drive. */
 export function trackRun(a: TwoLink, ref: (t: number) => JointRef, c: TrackCfg, seconds: number, dt = 0.002): TrackFrame[] {
@@ -185,10 +185,10 @@ export function trackRun(a: TwoLink, ref: (t: number) => JointRef, c: TrackCfg, 
     const r = ref(t)
     const pids = [0, 1].map((i) => pidTick(mem[i], r.q[i], s.q[i], { kp: c.kp[i], ki: 0, kd: 0, limit: Infinity }, dt))
     mem = [pids[0].mem, pids[1].mem]
-    const pd = pids.map((p, i) => p.terms.p + c.kd[i] * (r.qd[i] - s.qd[i])) as V2n
-    const ff: V2n = c.ff === 'none' ? [0, 0] : c.ff === 'gravity' ? gravity(model, r.q) : inverseDynamics(model, r.q, r.qd, r.qdd).tau
+    const pd = pids.map((p, i) => p.terms.p + c.kd[i] * (r.qd[i] - s.qd[i])) as V2
+    const ff: V2 = c.ff === 'none' ? [0, 0] : c.ff === 'gravity' ? gravity(model, r.q) : inverseDynamics(model, r.q, r.qd, r.qdd).tau
     const want = [0, 1].map((i) => pd[i] + ff[i])
-    const tau = want.map((v, i) => (c.drives ? driveClip(c.drives[i], s.qd[i], v) : v)) as V2n
+    const tau = want.map((v, i) => (c.drives ? driveClip(c.drives[i], s.qd[i], v) : v)) as V2
     const qdd = forwardDynamics(a, s.q, s.qd, tau)
     out.push({ t, q: s.q, qd: s.qd, qdd, ref: r, pd, ff, tau, clipped: [Math.abs(tau[0] - want[0]) > 1e-9, Math.abs(tau[1] - want[1]) > 1e-9], split: inverseDynamics(a, s.q, s.qd, qdd) })
     s = dynStep(a, s, tau, dt)

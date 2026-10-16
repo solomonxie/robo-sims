@@ -25,47 +25,20 @@ import {
   trans4,
   wrapPi,
 } from '../../core/physics'
-import { degText } from '../../core/units'
+import { degText, fixedText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import {
-  AXIS_RGB,
-  B_FIELD,
-  GREY,
-  HEAT,
-  LABEL,
-  RING,
-  addLabel,
-  addRod,
-  diffBot,
-  faceFront,
-  floorMat,
-  floorView,
-  frameTriad,
-  glide,
-  glowMat,
-  liveLabel,
-  matrixGrid,
-  moduleBlock,
-  pointCloud,
-  rodBetween,
-  setTf,
-  statusHeader,
-  stretchArrow,
-  stretchRod,
-  zUp,
-} from '../fx'
+import { AXIS_RGB, B_FIELD, GREY, HEAT, LABEL, RING, addLabel, addRod, diffBot, faceFront, floorMat, floorView, frameTriad, glide, glowMat, liveLabel, matrixGrid, moduleBlock, pointCloud, rodBetween, setTf, statusHeader, stretchArrow, stretchRod, zUp, glideAngle } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const WORLD_C = '#e8e8e8'
 const AXES_LEGEND = { color: AXIS_RGB[0], label: 'Axes: x red, y green, z blue', shape: 'dot' } as const
-const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−'))
+const f2 = (v: number) => fixedText(v)
 /** In brackets when negative, for products like 0.87·(−0.50). */
 const fp = (v: number) => (v < -0.005 ? `(${f2(v)})` : f2(v))
 const xyz = (p: readonly number[]) => `(${p.map(f2).join(', ')})`
 const deg = (a: number) => degText(toDeg(a), 0)
 /** Shortest-way glide of an angle. */
-const glideAngle = (dt: number, from: number, to: number, k = 5) => from + glide(dt, 0, wrapPi(to - from), k)
 
 // --- 2D rotation: the robot turns by θ; R(θ) carries a lidar hit from robot coordinates to world coordinates. ---
 

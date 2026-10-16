@@ -1,10 +1,17 @@
 // Serial arm rig driven by `armFk`: bar links, joint housings with turning rotor rings, joint-axis markers, optional frame triads and a gripper (z-up metres; caller scales).
 import * as THREE from 'three/webgpu'
 import { ArmServo, Mat4, SERVO_ARM, SerialArm, apply4, armFk, dhRowAt, mul4, rotAbout4, trans4 } from '../../core/physics'
-import { V3, add, mat, mesh } from '../../models/kit'
+import { V3, add, box, mat, mesh } from '../../models/kit'
 import { glowMat, setGlow } from './colors'
 import { frameTriad, setTf } from './frames'
 import { pointCloud } from './rooms'
+
+/** Slim links for `SERVO_ARM` at desk scale, on a plinth this tall. */
+export const SERVO_ARM_LOOK = { w: 0.022, t: 0.017 }
+export const PLINTH = 0.014
+export const SERVO_JOINT_NAMES = ['base', 'shoulder', 'elbow', 'wrist']
+/** Dark base plate under a side-view planar arm. */
+export const armPlate = (g: THREE.Object3D, w = 0.11, h = 0.16) => box(g, [w, h, 0.012], mat('#3a3d45', { rough: 0.6 }), [0, 0, -0.03])
 
 /** Joint 1, 2, 3, 4… accent colours (rotor rings, axis markers, sliders' legend). */
 export const JOINT_COLORS = ['#ff9a4d', '#5ad8e6', '#c38cff', '#f25ca8', '#5ce17a', '#ffd84d'] as const
@@ -151,7 +158,7 @@ export function dotPen(parent: THREE.Object3D, max: number, r: number) {
 }
 
 /** Body size (length, width, height along the shaft, m) and colour of each hobby servo; the shaft sits W/2 from one end. */
-export const SERVO_LOOK: Record<ArmServo, { size: V3; color: string }> = {
+const SERVO_LOOK: Record<ArmServo, { size: V3; color: string }> = {
   sg90: { size: [0.023, 0.0122, 0.0225], color: '#2a5bd7' },
   mg90s: { size: [0.0228, 0.0122, 0.0284], color: '#3b3f48' },
   mg996r: { size: [0.0407, 0.0197, 0.0429], color: '#16181d' },

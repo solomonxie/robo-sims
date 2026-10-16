@@ -1,9 +1,8 @@
 // Position Jacobians: how fast the tool point moves per unit joint speed.
 import { Mat, matInv, matMul, matVec, symEig, transpose } from '../control/linalg'
-import { SerialArm, armFk, twoLinkTip } from './chain'
+import { cross } from '../../fields'
+import { SerialArm, armFk, planarFk, twoLinkTip } from './chain'
 import { axisOf, originOf } from './transforms'
-
-const cross = (a: readonly number[], b: readonly number[]) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 
 /** 3×n: revolute column = z(i−1) × (p_tool − p(i−1)), prismatic column = z(i−1). */
 export function armJacobian(arm: SerialArm, q: readonly number[]): Mat {
@@ -20,12 +19,7 @@ export function armJacobian(arm: SerialArm, q: readonly number[]): Mat {
 
 /** 2×n for a planar arm: column i = ∂(x, y)/∂q_i = (−(y_tip − y_i), x_tip − x_i). */
 export function planarJacobian(lengths: readonly number[], q: readonly number[]): Mat {
-  const pts: [number, number][] = [[0, 0]]
-  let phi = 0
-  lengths.forEach((l, i) => {
-    phi += q[i] ?? 0
-    pts.push([pts[i][0] + l * Math.cos(phi), pts[i][1] + l * Math.sin(phi)])
-  })
+  const pts = planarFk(lengths, q).points
   const [tx, ty] = pts[lengths.length]
   return [lengths.map((_, i) => -(ty - pts[i][1])), lengths.map((_, i) => tx - pts[i][0])]
 }

@@ -79,7 +79,7 @@ export const ARM_SUPPLIES = {
 }
 
 /** Rail under a steady load. */
-export const railVolts = (volts: number, rSrc: number, amps: number) => volts - amps * rSrc
+const railVolts = (volts: number, rSrc: number, amps: number) => volts - amps * rSrc
 
 /** Every servo starting at once looks like its winding resistance: V = Vs / (1 + Rs·Σ1/R). */
 export function kickRail(volts: number, rSrc: number, ds: readonly Drive[]) {
