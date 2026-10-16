@@ -105,6 +105,7 @@ import { peristalticPump, solenoidDrive } from '../lessons/actuators/solenoids-p
 import { backlash, gearRatioLesson, planetaryGears, wormDrive } from '../lessons/actuators/gear-trains'
 import { pneumaticCylinder, softGripper } from '../lessons/actuators/pneumatics-soft-robots'
 import { dutyCycleLesson, thermalLimitsLesson, torqueBudgetLesson } from '../lessons/actuators/motor-selection'
+import { odometryLesson, slipLesson, turnRadiusLesson } from '../lessons/mobility/differential-drive'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -437,6 +438,9 @@ const READY: Record<string, Lesson> = {
   'actuators/motor-selection/torque-budget': torqueBudgetLesson,
   'actuators/motor-selection/duty-cycle': dutyCycleLesson,
   'actuators/motor-selection/thermal-limits': thermalLimitsLesson,
+  'mobility/differential-drive/turn-radius': turnRadiusLesson,
+  'mobility/differential-drive/odometry': odometryLesson,
+  'mobility/differential-drive/slip': slipLesson,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

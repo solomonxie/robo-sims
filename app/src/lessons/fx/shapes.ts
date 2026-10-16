@@ -64,3 +64,28 @@ export function sectorGeometry(r0: number, r1: number, mid: number, span: number
   s.absarc(0, 0, r0, a1, a0, true)
   return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 20 })
 }
+
+/** Arrow of any length from `a` to `b` (shaft radius `r`); hidden when shorter than its head. `set(a, b, color?)`. */
+export function stretchArrow(parent: THREE.Object3D, color: string, r: number) {
+  const m = glowMat(color, 0.9)
+  const shaft = add(parent, mesh(new THREE.CylinderGeometry(1, 1, 1, 8).translate(0, 0.5, 0), m))
+  const head = add(parent, mesh(new THREE.ConeGeometry(r * 2.6, r * 7, 12).translate(0, r * 3.5, 0), m))
+  shaft.castShadow = head.castShadow = false
+  const d = new THREE.Vector3()
+  return (a: V3, b: V3, c?: string) => {
+    d.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+    const len = d.length()
+    shaft.visible = head.visible = len > r * 7
+    if (!shaft.visible) return
+    d.divideScalar(len)
+    if (c) {
+      m.color.set(c)
+      m.emissive.set(c)
+    }
+    shaft.position.set(...a)
+    shaft.quaternion.setFromUnitVectors(UP, d)
+    shaft.scale.set(r, len - r * 7, r)
+    head.position.set(a[0] + d.x * (len - r * 7), a[1] + d.y * (len - r * 7), a[2] + d.z * (len - r * 7))
+    head.quaternion.copy(shaft.quaternion)
+  }
+}

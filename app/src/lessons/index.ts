@@ -103,6 +103,7 @@ import { peristalticPump, solenoidDrive } from './actuators/solenoids-pumps'
 import { backlash, gearRatioLesson, planetaryGears, wormDrive } from './actuators/gear-trains'
 import { pneumaticCylinder, softGripper } from './actuators/pneumatics-soft-robots'
 import { dutyCycleLesson, thermalLimitsLesson, torqueBudgetLesson } from './actuators/motor-selection'
+import { odometryLesson, slipLesson, turnRadiusLesson } from './mobility/differential-drive'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -116,4 +117,5 @@ export const UNITS: Unit[] = [
   { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion, thermistorCurve, oneWireProtocol, shuntResistor, ina219, stateOfCharge, strainGauge, capacitiveTouch, memsMic, soundSourceDirection, whyFuse, complementaryHeading, kalmanIntuition] },
   { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees, agentAndClient, serialTransport, physicsEngine, simToRealGap, sequenceAndFallback, blackboard, plottingLiveData, replayLogs, joystickOverBle, webSocketControl, latency, watchdog, eStop, faultStates] },
   { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops, leadScrewLesson, limitSwitches, solenoidDrive, peristalticPump, gearRatioLesson, backlash, planetaryGears, wormDrive, pneumaticCylinder, softGripper, torqueBudgetLesson, dutyCycleLesson, thermalLimitsLesson] },
+  { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson] },
 ]
