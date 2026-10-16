@@ -92,7 +92,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Solenoids & pumps
   - [x] Gear trains
   - [x] Pneumatics & soft robots
-  - [ ] Motor selection
+  - [x] Motor selection
 - Mobility:
   - [ ] Differential drive
   - [ ] Mecanum wheels
