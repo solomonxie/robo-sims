@@ -107,6 +107,7 @@ import { pneumaticCylinder, softGripper } from '../lessons/actuators/pneumatics-
 import { dutyCycleLesson, thermalLimitsLesson, torqueBudgetLesson } from '../lessons/actuators/motor-selection'
 import { odometryLesson, slipLesson, turnRadiusLesson } from '../lessons/mobility/differential-drive'
 import { rollerGeometry, strafeMaths, whyTheySlip } from '../lessons/mobility/mecanum-wheels'
+import { omniWheelsLesson, swerveModule } from '../lessons/mobility/omni-swerve'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -445,6 +446,8 @@ const READY: Record<string, Lesson> = {
   'mobility/mecanum-wheels/roller-geometry': rollerGeometry,
   'mobility/mecanum-wheels/strafe-maths': strafeMaths,
   'mobility/mecanum-wheels/why-they-slip': whyTheySlip,
+  'mobility/omni-swerve/omni-wheels': omniWheelsLesson,
+  'mobility/omni-swerve/swerve-module': swerveModule,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

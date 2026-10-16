@@ -40,11 +40,16 @@ function solve3(A: number[][], b: number[]) {
   return M.map((r, i) => r[3] / r[i])
 }
 
+/** Twist [vx, vy, ω] that best fits rows J·twist ≈ s (least squares). */
+export function fitTwist(J: number[][], s: number[]) {
+  const A = [0, 1, 2].map((i) => [0, 1, 2].map((j) => J.reduce((a, r) => a + r[i] * r[j], 0) + (i === j ? 1e-9 : 0)))
+  return solve3(A, [0, 1, 2].map((i) => J.reduce((a, r, k) => a + r[i] * s[k], 0)))
+}
+
 /** Body twist that best fits four rim speeds (least squares), and each wheel's leftover speed it must scrub. */
 export function mecForward(s: Wheel4, layout: MecLayout = 'x', g: MecGeo = MECANUM) {
   const J = mecWheels(layout, g).map((k) => [1, k.tanB, -k.y + k.tanB * k.x])
-  const A = [0, 1, 2].map((i) => [0, 1, 2].map((j) => J.reduce((a, r) => a + r[i] * r[j], 0) + (i === j ? 1e-9 : 0)))
-  const [vx, vy, w] = solve3(A, [0, 1, 2].map((i) => J.reduce((a, r, k) => a + r[i] * s[k], 0)))
+  const [vx, vy, w] = fitTwist(J, s)
   return { vx, vy, w, scrub: J.map((r, k) => s[k] - (r[0] * vx + r[1] * vy + r[2] * w)) as Wheel4 }
 }
 
