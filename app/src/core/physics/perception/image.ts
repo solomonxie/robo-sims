@@ -146,9 +146,13 @@ export const hueGap = (a: number, b: number) => Math.abs(((a - b + 540) % 360) -
 /** 255 where hue is within `tol`° of `hue` and saturation ≥ `sMin`, value ≥ `vMin`; else 0. */
 export function hsvMask(img: Img, hue: number, tol: number, sMin: number, vMin: number): Img {
   const out = makeImg(img.w, img.h, 1)
+  const d = img.data
   for (let i = 0; i < img.w * img.h; i++) {
-    const [h, s, v] = rgbToHsv(img.data[3 * i], img.data[3 * i + 1], img.data[3 * i + 2])
-    out.data[i] = hueGap(h, hue) <= tol && s >= sMin && v >= vMin ? 255 : 0
+    const [r, g, b] = [d[3 * i], d[3 * i + 1], d[3 * i + 2]]
+    const max = Math.max(r, g, b)
+    const span = max - Math.min(r, g, b)
+    if (max / 255 < vMin || max === 0 || span / max < sMin) continue
+    out.data[i] = hueGap(rgbToHsv(r, g, b)[0], hue) <= tol ? 255 : 0
   }
   return out
 }

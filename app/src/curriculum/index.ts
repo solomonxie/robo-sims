@@ -134,6 +134,7 @@ import { armBuildAssemble, armBuildDriveIk } from '../lessons/kinematics/robot-a
 import { dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits } from '../lessons/kinematics/dynamics'
 import { imageBasicsHistogram, imageBasicsRgbHsv, imageBasicsThresholding } from '../lessons/perception/image-basics'
 import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners } from '../lessons/perception/edges-features'
+import { colourTrackingCentroidSteering, colourTrackingHsvMask } from '../lessons/perception/colour-tracking'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -545,6 +546,8 @@ const READY: Record<string, Lesson> = {
   'perception/edges-features/convolution': edgesFeaturesConvolution,
   'perception/edges-features/canny-edges': edgesFeaturesCannyEdges,
   'perception/edges-features/corners': edgesFeaturesCorners,
+  'perception/colour-tracking/hsv-mask': colourTrackingHsvMask,
+  'perception/colour-tracking/centroid-steering': colourTrackingCentroidSteering,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

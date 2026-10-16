@@ -133,6 +133,7 @@ import { armBuildAssemble, armBuildDriveIk } from './kinematics/robot-arm-build'
 import { dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits } from './kinematics/dynamics'
 import { imageBasicsHistogram, imageBasicsRgbHsv, imageBasicsThresholding } from './perception/image-basics'
 import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners } from './perception/edges-features'
+import { colourTrackingCentroidSteering, colourTrackingHsvMask } from './perception/colour-tracking'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -149,5 +150,5 @@ export const UNITS: Unit[] = [
   { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel, skidSteer, tractionLesson, gaitCycle, zeroMomentPoint, legIk, whyItFalls, tiltPid, selfBalancingCar, quadcopterMixing, attitudeControl, buoyancyLesson, thrusterLayout] },
   { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints, movingAverage, lowPass, kalmanFilter] },
   { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity, trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling, grippersParallelJaw, grippersSuction, grippersCompliance, armBuildAssemble, armBuildDriveIk, dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits] },
-  { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners] },
+  { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners, colourTrackingHsvMask, colourTrackingCentroidSteering] },
 ]
