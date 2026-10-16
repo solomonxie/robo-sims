@@ -52,7 +52,7 @@ export interface Lesson {
   tagline: string
   formula: string | ((p: Params) => string)
   points: string[]
-  legend?: LegendItem[]
+  legend?: LegendItem[] | ((p: Params) => LegendItem[])
   controls: Control[]
   build: () => Stage
 }
@@ -61,6 +61,8 @@ export interface Unit {
   title: string
   lessons: Lesson[]
 }
+
+export const legendOf = (l: Lesson, p: Params) => (typeof l.legend === 'function' ? l.legend(p) : l.legend)
 
 export const initialParams = (l: Lesson): Params =>
   Object.fromEntries(l.controls.map((c) => [c.key, c.initial]))

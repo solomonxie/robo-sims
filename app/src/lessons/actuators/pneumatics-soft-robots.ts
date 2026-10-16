@@ -54,7 +54,7 @@ import {
   smoothstep,
   ticks,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { LegendItem, Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const AIR = B_FIELD
 const hose = () => mat('#2f6fd6', { rough: 0.5 })
@@ -379,7 +379,7 @@ const fingerAt = (s0: number, curv: number, s: number): [number, number, number]
   return [s0 - (Math.sin(psi) + 1) / curv, (Math.cos(psi) - 0) / curv, psi]
 }
 
-function pneuNetFinger(parent: THREE.Object3D, side: 1 | -1, chamberMat: THREE.Material) {
+function pneuNetFinger(parent: THREE.Object3D, side: 1 | -1, chamberMat: THREE.Material, postR: number) {
   const g = add(parent, new THREE.Group())
   const seg = (PNEUNET.lengthMm * KS) / SG.chambers
   const depth = PNEUNET.widthMm * KS
@@ -399,7 +399,7 @@ function pneuNetFinger(parent: THREE.Object3D, side: 1 | -1, chamberMat: THREE.M
       const oy = Math.sin(nIn)
       const px = side * x
       const place = (m: THREE.Mesh, off: number) => {
-        m.position.set(px + ox * off, y + oy * off, side * (depth / 2 + 0.05))
+        m.position.set(px + ox * off, y + oy * off, side * (depth / 2 + postR + 0.1))
         m.rotation.z = ang
       }
       place(pt.lay, 0.6 * KS)
@@ -425,12 +425,22 @@ export const softGripper: Lesson = {
     if (q.kind === 'rigid') return `σ = F/A = ${f.normalN.toFixed(0)} N / ${GRIPPERS.rigid.areaMm2} mm² = ${stressText(f.stressKPa)} vs ${stressText(q.o.crushKPa)} to crack · grip 2μF = ${f.holdN.toFixed(1)} N vs mg ${f.weight.toFixed(2)} N`
     return `hold ≈ ΔP·πR²·k = ${f.drive.toFixed(0)} kPa × ${(Math.PI * q.o.radiusMm ** 2).toFixed(0)} mm² × 0.3 = ${jammingHoldN(f.drive, q.o.radiusMm).toFixed(1)} N vs mg ${f.weight.toFixed(2)} N · stress ≤ ΔP`
   },
-  legend: [
-    { color: AIR, label: 'Air in the chambers', shape: 'dot' },
-    { color: RING, label: 'Strain-limiting layer', shape: 'dot' },
-    { color: POWER, label: 'Holds: friction ≥ weight', shape: 'dot' },
-    { color: HIGH_V, label: 'Slips or crushes', shape: 'dot' },
-  ],
+  legend: (p) => {
+    const kind = pick(KINDS, p.kind, 'soft')
+    const parts: LegendItem[] =
+      kind === 'soft'
+        ? [
+            { color: AIR, label: 'Air in the chambers', shape: 'dot' },
+            { color: RING, label: 'Strain-limiting layer', shape: 'dot' },
+          ]
+        : kind === 'rigid'
+          ? [{ color: HEAT, label: 'Servo jaw force', shape: 'dot' }]
+          : [
+              { color: AIR, label: 'Vacuum line', shape: 'dot' },
+              { color: '#a07a4a', label: 'Grains: flow, then lock', shape: 'dot' },
+            ]
+    return [...parts, { color: POWER, label: 'Holds: friction ≥ weight', shape: 'dot' }, { color: HIGH_V, label: 'Slips or crushes', shape: 'dot' }]
+  },
   points: [
     'A PneuNet finger is cast silicone with a row of chambers along one side and a strain-limiting layer (paper, fabric, stiffer rubber) along the other. Inflate it and the chamber walls stretch, but the layer can\'t, so the finger has to curl toward the layer.',
     'Curvature grows with pressure: κ = ε/h, with the wall strain ε ∝ P/E. Doubling the pressure doubles the curl; ~50 kPa (half a bar) curls this 90 mm finger through ~180°. A cheap 12 V pump and a solenoid valve drive it.',
@@ -499,7 +509,7 @@ export const softGripper: Lesson = {
       jaws = []
       grains = null
       if (q.kind === 'soft') {
-        fingers = [pneuNetFinger(rig, 1, chamberMat), pneuNetFinger(rig, -1, chamberMat)]
+        fingers = [pneuNetFinger(rig, 1, chamberMat, R * 0.3), pneuNetFinger(rig, -1, chamberMat, R * 0.3)]
         tube(rig, [[0.4, 1, 0.9], [1.2, 2.6, 0.9], [1.4, 6, 0.9]], 0.12, hose(), 20)
         air = new Flow(path([[1.4, 6, 1.05], [1.2, 2.6, 1.05], [0.4, 1, 1.05]]), 0.5, AIR, 0.1)
         rig.add(air.mesh)

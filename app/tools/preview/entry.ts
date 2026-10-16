@@ -2,7 +2,7 @@
 // Renders one lesson stage in a browser (WebGPU, or WebGL2 fallback) for visual checks.
 import * as THREE from 'three/webgpu'
 import { UNITS } from '../../src/lessons'
-import { Lesson, Readout, initialParams } from '../../src/lessons/types'
+import { Lesson, Params, Readout, initialParams, legendOf } from '../../src/lessons/types'
 import { FOV, Orbit } from '../../src/scene/orbit'
 import { createBench } from '../../src/scene/bench'
 import { clearColor } from '../../src/scene/stage'
@@ -44,7 +44,7 @@ async function main() {
   orbit.apply(camera)
   renderer.render(stage.scene, camera)
   document.title = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'webgpu' : 'webgl2'
-  if (!isBench && q.get('chrome') !== '0') drawChrome(lesson, stage.readouts(params))
+  if (!isBench && q.get('chrome') !== '0') drawChrome(lesson, params, stage.readouts(params))
   window.ready = true
 }
 
@@ -53,7 +53,7 @@ main().catch((e) => {
 })
 
 // Mirrors LessonScreen's overlays (status bar inset, back pill, legend, readouts) to judge framing.
-function drawChrome(lesson: Lesson, readouts: Readout[]) {
+function drawChrome(lesson: Lesson, params: Params, readouts: Readout[]) {
   const top = 47 + 8
   const el = (css: string, html = '') => {
     const d = document.createElement('div')
@@ -63,8 +63,9 @@ function drawChrome(lesson: Lesson, readouts: Readout[]) {
     return d
   }
   el(`left:12px;top:${top}px;background:rgba(31,34,41,.85);padding:6px 12px;border-radius:999px;font-size:15px`, '‹ Learn')
-  if (lesson.legend) {
-    const rows = lesson.legend
+  const legend = legendOf(lesson, params)
+  if (legend) {
+    const rows = legend
       .map(
         (i) =>
           `<div style="display:flex;align-items:center;gap:6px">${

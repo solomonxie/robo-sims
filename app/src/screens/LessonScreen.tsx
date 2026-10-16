@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as THREE from 'three/webgpu'
-import { Lesson, Params, Readout, initialParams } from '../lessons/types'
+import { Lesson, Params, Readout, initialParams, legendOf } from '../lessons/types'
 import { Orbit } from '../scene/orbit'
 import { Viewport } from '../scene/Viewport'
 import { Slider } from '../ui/Slider'
@@ -39,6 +39,7 @@ export function LessonScreen({ lesson, onBack }: { lesson: Lesson; onBack: () =>
     setReadouts(stage.readouts(nextParams))
   }
 
+  const legend = legendOf(lesson, params)
   const formula = typeof lesson.formula === 'function' ? lesson.formula(params) : lesson.formula
 
   return (
@@ -50,9 +51,9 @@ export function LessonScreen({ lesson, onBack }: { lesson: Lesson; onBack: () =>
             <Text style={styles.back}>‹ Back</Text>
           </Pressable>
         </View>
-        {lesson.legend && (
+        {legend && (
           <View style={[styles.legend, { top: insets.top + 8 }]} pointerEvents="none">
-            {lesson.legend.map((item) => (
+            {legend.map((item) => (
               <View key={item.label} style={styles.legendRow}>
                 {item.shape === 'dot' ? (
                   <View style={[styles.legendDot, { backgroundColor: item.color }]} />
