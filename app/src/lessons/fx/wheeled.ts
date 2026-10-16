@@ -3,10 +3,12 @@ import * as THREE from 'three/webgpu'
 import { ACKERMANN, BALANCER, Pose, TT_TRACK_M, TT_WHEEL_MM } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildWheel } from '../../models/motion'
-import { B_FIELD, HIGH_V, POWER, glowMat, setGlow } from './colors'
+import { B_FIELD, GREY, HIGH_V, POWER, glowMat, setGlow } from './colors'
 import { placeAt } from './drive'
 import { addRod, stretchRod } from './layout'
+import { IDLE } from './mcu'
 import { esp32Board, i2cBreakout, sg90Servo } from './modules'
+import { flatBox } from './shapes'
 
 const WHEEL_R = TT_WHEEL_MM / 2000
 export const KIT_UNIT_M = 0.00254
@@ -209,3 +211,26 @@ export function balanceBot(parent: THREE.Object3D, { h = BALANCER.h, shift = 0 }
     },
   }
 }
+
+/** Side view of a `balanceBot` in metres: x forward (screen right), z up, −y toward the viewer; a floor whose 0.1 m tape scrolls under a robot that stays put. */
+export function balanceFloor(parent: THREE.Object3D, origin: V3, k: number, half: number) {
+  const g = add(parent, new THREE.Group(), origin)
+  g.scale.setScalar(k)
+  g.rotation.x = -Math.PI / 2 + 0.22
+  flatBox(g, [2 * half, 0.2, 0.01], glowMat(IDLE, 0.12), [0, 0, -0.005])
+  const tapeM = glowMat(GREY, 0.25)
+  const tape = Array.from({ length: Math.round(2 * half * 10) }, () => flatBox(g, [0.004, 0.2, 0.004], tapeM, [0, 0, 0.002]))
+  const span = tape.length * 0.1
+  return {
+    g,
+    roll(x: number) {
+      tape.forEach((b, i) => (b.position.x = ((((i * 0.1 - x) % span) + span) % span) - half))
+    },
+  }
+}
+/** Point `up` metres along a `balanceBot`'s body axis above the axle, leaning `tilt`, at depth `y`. */
+export const onBalancer = (tilt: number, up: number, y = -0.1, along = 0): V3 => [
+  up * Math.sin(tilt) + along * Math.cos(tilt),
+  y,
+  BALANCER.wheelR + up * Math.cos(tilt) - along * Math.sin(tilt),
+]

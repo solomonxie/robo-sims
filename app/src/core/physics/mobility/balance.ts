@@ -90,4 +90,4 @@ export function balanceLoop(c: BalanceSetup): BalanceFrame[] {
   return out
 }
 /** First frame lying on the floor, if any. */
-export const fellAt = (run: BalanceFrame[]) => run.find((f) => f.fallen)?.t ?? null
+export const fellAt = (run: readonly { t: number; fallen: boolean }[]) => run.find((f) => f.fallen)?.t ?? null

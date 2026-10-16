@@ -197,31 +197,39 @@ export function pidArm(parent: THREE.Object3D, at: V3, len = 5) {
   }
 }
 
-/** P, I, D and u = P + I + D as bars from a centre zero, ±100 % across `w`; u turns red when clipped. */
-export function termBars(parent: THREE.Object3D, at: V3, w = 7) {
-  const rows = (['p', 'i', 'd', 'u'] as const).map((k, j) => {
+/** Signed terms and their sum (last row) as bars from a centre zero, ±100 % across `w`; the sum turns red when clipped. */
+export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: string; color: string }[], w = 7) {
+  const last = rows.length - 1
+  const bars = rows.map(({ label, color }, j) => {
     const y = at[1] - j * 0.62
     flatBox(parent, [w, 0.34, 0.05], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [at[0], y, 0])
-    addLabel(parent, k === 'u' ? 'u' : k.toUpperCase(), [at[0] - w / 2 - 0.3, y, 0.2], PID_COLORS[k], 0.3, 'right')
-    const m = glowMat(PID_COLORS[k], 0.9)
+    addLabel(parent, label, [at[0] - w / 2 - 0.3, y, 0.2], color, 0.3, 'right')
+    const m = glowMat(color, 0.9)
     const fill = flatBox(parent, [1, 0.26, 0.08], m, [at[0], y, 0.06])
     const value = liveLabel(parent, [at[0] + w / 2 + 0.3, y, 0.2], { size: 0.26, align: 'left' })
-    return { k, y, m, fill, value }
+    return { color, m, fill, value }
   })
-  flatBox(parent, [0.06, 2.6, 0.06], glowMat(GREY, 0.4), [at[0], at[1] - 0.93, 0.12])
+  flatBox(parent, [0.06, last * 0.62 + 0.74, 0.06], glowMat(GREY, 0.4), [at[0], at[1] - last * 0.31, 0.12])
   return {
-    set(t: { p: number; i: number; d: number; u: number }, sat = false) {
-      for (const r of rows) {
-        const v = t[r.k]
+    set(values: readonly number[], sat = false) {
+      bars.forEach((r, j) => {
+        const v = values[j] ?? 0
         const len = Math.max(1e-3, (Math.min(1, Math.abs(v)) * w) / 2)
         r.fill.scale.x = len
         r.fill.position.x = at[0] + (Math.sign(v) * len) / 2
-        const hot = r.k === 'u' ? sat : Math.abs(v) > 1
-        setGlow(r.m, hot && r.k === 'u' ? HIGH_V : PID_COLORS[r.k], 0.9)
-        r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && r.k === 'u' ? ' clipped' : ''}`, hot ? HIGH_V : PID_COLORS[r.k])
-      }
+        const sum = j === last
+        const hot = sum ? sat : Math.abs(v) > 1
+        setGlow(r.m, hot && sum ? HIGH_V : r.color, 0.9)
+        r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && sum ? ' clipped' : ''}`, hot ? HIGH_V : r.color)
+      })
     },
   }
+}
+
+/** P, I, D and u = P + I + D as `sumBars`. */
+export function termBars(parent: THREE.Object3D, at: V3, w = 7) {
+  const bars = sumBars(parent, at, (['p', 'i', 'd', 'u'] as const).map((k) => ({ label: k === 'u' ? 'u' : k.toUpperCase(), color: PID_COLORS[k] })), w)
+  return { set: (t: { p: number; i: number; d: number; u: number }, sat = false) => bars.set([t.p, t.i, t.d, t.u], sat) }
 }
 
 export const MEAS_COLOR = LABEL

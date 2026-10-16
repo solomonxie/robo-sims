@@ -11,6 +11,7 @@ const CAP = 6
 const SPACING = 1.4
 const OVERBAR_Y = 7.3
 const OVERBARS = new Set(['̄', '̅'])
+const DOT_ABOVE = '\u0307'
 
 /** Points along an ellipse, degrees CCW from +x; `to < from` runs clockwise. */
 function arc(cx: number, cy: number, rx: number, ry: number, from: number, to: number): Pt[] {
@@ -210,7 +211,7 @@ for (const [ch, a, b] of [['½', '1', '2'], ['¼', '1', '4'], ['¾', '3', '4']])
 GLYPHS['Ø'] = g(4.4, ...GLYPHS.O.lines, [[0.1, -0.4], [4.3, 6.4]])
 GLYPHS['ø'] = g(4, BOWL, [[0, -0.4], [4, 4.4]])
 
-export const hasGlyph = (ch: string) => ch in GLYPHS || OVERBARS.has(ch)
+export const hasGlyph = (ch: string) => ch in GLYPHS || OVERBARS.has(ch) || ch === DOT_ABOVE
 
 export interface TextLayout {
   /** Polylines in cap-height units: baseline y = 0, cap top y = 1, left edge x = 0. */
@@ -218,7 +219,7 @@ export interface TextLayout {
   width: number
 }
 
-/** Lays out one line of text; a combining overline (U+0304/U+0305) draws a bar over the previous glyph, so "Q̄" is Q̄.
+/** Lays out one line of text; a combining overline (U+0304/U+0305) draws a bar over the previous glyph, so "Q̄" is Q̄; U+0307 a dot (θ̇).
  *  Unknown characters render as a gap. */
 export function layoutText(text: string): TextLayout {
   const lines: Polyline[] = []
@@ -227,6 +228,10 @@ export function layoutText(text: string): TextLayout {
   for (const ch of text) {
     if (OVERBARS.has(ch)) {
       if (prev) lines.push([[prev.x, OVERBAR_Y], [prev.x + prev.w, OVERBAR_Y]])
+      continue
+    }
+    if (ch === DOT_ABOVE) {
+      if (prev) lines.push(dot(prev.x + prev.w / 2, OVERBAR_Y))
       continue
     }
     const gl = GLYPHS[ch] ?? GLYPHS[' ']

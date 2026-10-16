@@ -24,7 +24,6 @@ import {
   GREY,
   HEAT,
   HIGH_V,
-  IDLE,
   LABEL,
   POWER,
   RING,
@@ -33,12 +32,12 @@ import {
   addLabel,
   balanceBot,
   balanceBotHeight,
+  balanceFloor,
   emptyGroup,
-  flatBox,
-  glowMat,
   liveLabel,
   memoBy,
   moduleBlock,
+  onBalancer,
   pointCloud,
   scope,
   scopeLabels,
@@ -55,25 +54,6 @@ const NONE: Gains = { kp: 0, ki: 0, kd: 0 }
 const TILT: Gains = { kp: 0.05, ki: 0, kd: 0.003 }
 const SPEED: Gains = { kp: 5, ki: 2, kd: 0 }
 const at = (run: BalanceFrame[], t: number) => fixedStepAt(run, t, BALANCER.dt)
-
-/** Side view in metres: x forward (screen right), z up, −y toward the viewer; a floor whose 0.1 m tape scrolls under a robot that stays put. */
-function sideRig(parent: THREE.Object3D, origin: V3, k: number, half: number) {
-  const g = add(parent, new THREE.Group(), origin)
-  g.scale.setScalar(k)
-  g.rotation.x = -Math.PI / 2 + 0.22
-  flatBox(g, [2 * half, 0.2, 0.01], glowMat(IDLE, 0.12), [0, 0, -0.005])
-  const tapeM = glowMat(GREY, 0.25)
-  const tape = Array.from({ length: Math.round(2 * half * 10) }, () => flatBox(g, [0.004, 0.2, 0.004], tapeM, [0, 0, 0.002]))
-  const span = tape.length * 0.1
-  return {
-    g,
-    roll(x: number) {
-      tape.forEach((b, i) => (b.position.x = ((((i * 0.1 - x) % span) + span) % span) - half))
-    },
-  }
-}
-/** Point `up` metres along the body axis above the axle, leaning `tilt`, at depth `y`. */
-const onBody = (tilt: number, up: number, y = -0.1, along = 0): V3 => [up * Math.sin(tilt) + along * Math.cos(tilt), y, R + up * Math.cos(tilt) - along * Math.sin(tilt)]
 
 // --- Why it falls: inverted pendulum on wheels; gravity torque grows with tilt, fall time ∝ √h, wheels driving under the CoM. ---
 
@@ -135,7 +115,7 @@ export const whyItFalls: Lesson = {
     function makeRig(h: number) {
       emptyGroup(holder)
       const k = WF.size / (R + balanceBotHeight(h) + 0.03)
-      const side = sideRig(holder, WF.robot, k, 13 / k)
+      const side = balanceFloor(holder, WF.robot, k, 13 / k)
       const bot = balanceBot(side.g, { h })
       const com = pointCloud(side.g, 1, 0.08 * h)
       const grav = stretchArrow(side.g, GREY, 0.02 * h)
@@ -170,7 +150,7 @@ export const whyItFalls: Lesson = {
         const { bot, side, com, grav, tip, push, h } = rig
         bot.set(f.tilt, f.x)
         side.roll(f.x)
-        const c = onBody(f.tilt, h)
+        const c = onBalancer(f.tilt, h)
         com.set(0, c, RING, 1)
         com.show(1)
         const L = 0.45 * h
@@ -248,7 +228,7 @@ export const tiltPid: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
-    const side = sideRig(scene, TP.robot, TP.k, 0.26)
+    const side = balanceFloor(scene, TP.robot, TP.k, 0.26)
     let bot = balanceBot(side.g)
     const com = pointCloud(side.g, 1, 0.009)
     const shove = stretchArrow(side.g, HEAT, 0.004)
@@ -285,11 +265,11 @@ export const tiltPid: Lesson = {
         const f = at(run, t)
         bot.set(f.tilt, f.x)
         side.roll(f.x)
-        const c = onBody(f.tilt + comOffset(q.shift), BALANCER.h)
+        const c = onBalancer(f.tilt + comOffset(q.shift), BALANCER.h)
         com.set(0, c, RING, 1)
         com.show(1)
         const hit = t >= TP.push && t < TP.push + 0.3
-        const top = onBody(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
+        const top = onBalancer(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
         shove(hit ? [top[0] - 0.08, top[1], top[2]] : top, top)
         torque([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
         traceRun(tiltTr, run, BALANCER.dt, TP.seconds, t, (g) => yTilt(g.tilt))
@@ -359,7 +339,7 @@ export const selfBalancingCar: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
-    const side = sideRig(scene, SB.robot, SB.k, 0.26)
+    const side = balanceFloor(scene, SB.robot, SB.k, 0.26)
     const bot = balanceBot(side.g, { shift: SB.shift })
     const com = pointCloud(side.g, 1, 0.009)
     const shove = stretchArrow(side.g, HEAT, 0.004)
@@ -401,13 +381,13 @@ export const selfBalancingCar: Lesson = {
         const balance = comOffset(SB.shift)
         bot.set(f.tilt, f.x)
         side.roll(f.x)
-        com.set(0, onBody(f.tilt + comOffset(SB.shift), BALANCER.h), RING, 1)
+        com.set(0, onBalancer(f.tilt + comOffset(SB.shift), BALANCER.h), RING, 1)
         com.show(1)
         const hit = q.kick > 0 && t >= SB.push && t < SB.push + 0.3
-        const top = onBody(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
+        const top = onBalancer(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
         shove(hit ? [top[0] - 0.08, top[1], top[2]] : top, top)
         torque([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
-        aim(onBody(f.target, 0.03, -0.11), onBody(f.target, f.fallen ? 0.03 : 0.22, -0.11))
+        aim(onBalancer(f.target, 0.03, -0.11), onBalancer(f.target, f.fallen ? 0.03 : 0.22, -0.11))
 
         traceRun(vSet, run, BALANCER.dt, SB.seconds, t, (g) => ySpeed(drive(g.t)))
         traceRun(vTr, run, BALANCER.dt, SB.seconds, t, (g) => ySpeed(g.v))

@@ -39,6 +39,15 @@ describe('strokeFont', () => {
     expect([x0, x1]).toEqual([0, plain.width])
   })
 
+  it('puts a combining dot over the previous glyph (θ̇)', () => {
+    const plain = layoutText('θ')
+    const dotted = layoutText('θ̇')
+    expect(dotted.width).toBe(plain.width)
+    const [[x, y]] = dotted.lines.at(-1)!
+    expect(y).toBeGreaterThan(1)
+    expect(x).toBeCloseTo(plain.width / 2)
+  })
+
   it('raises superscripts above the x-height', () => {
     for (const ch of '¹²³⁺⁻') {
       const ys = layoutText(ch).lines.flat().map(([, y]) => y)

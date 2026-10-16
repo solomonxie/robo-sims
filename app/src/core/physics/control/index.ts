@@ -1,4 +1,4 @@
-// Control: open vs closed loop, bang-bang & hysteresis, PID, speed, position, line following, stability.
+// Control: open vs closed loop, bang-bang & hysteresis, PID, speed, position, line following, stability, state-space & LQR.
 export * from './loop'
 export * from './bangbang'
 export * from './pid'
@@ -7,3 +7,4 @@ export * from './speed'
 export * from './position'
 export * from './linefollow'
 export * from './stability'
+export * from './lqr'
