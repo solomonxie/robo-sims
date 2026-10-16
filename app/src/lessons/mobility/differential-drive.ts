@@ -18,6 +18,7 @@ import {
   toRoom,
   turnRadius,
 } from '../../core/physics'
+import { mmText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -47,8 +48,7 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const HALF = TT_TRACK_M / 2
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
-const lenText = (m: number) => (Math.abs(m) < 1 ? mm(m) : `${m.toFixed(2)} m`)
+const lenText = (m: number) => (Math.abs(m) < 1 ? mmText(m) : `${m.toFixed(2)} m`)
 const inside = (x: number, y: number, fx: [number, number], fy: [number, number]) => x >= fx[0] && x <= fx[1] && y >= fy[0] && y <= fy[1]
 const errTone = (m: number) => (m < 0.01 ? 'ok' : m < 0.05 ? 'warn' : 'bad')
 
@@ -514,7 +514,7 @@ export const slipLesson: Lesson = {
         const sliding = Math.max(...f.slip) > SL.mark
         status.set(demandText(q), q.accel > q.grip || (q.move === 'turn' && turnNeed > q.grip) ? HEAT : POWER)
         sub.set(`0.8 kg TT car, ${Math.round(q.caster * 100)} % weight on the caster · ${SL.slow}× slower · t ${f.t.toFixed(2)} s${sliding ? ' · SLIDING' : ''}`)
-        errTag.set(`odometry off by ${mm(e.distM)}, ${e.headDeg.toFixed(1)}°`, e.distM < 0.01 && Math.abs(e.headDeg) < 1 ? POWER : HIGH_V)
+        errTag.set(`odometry off by ${mmText(e.distM)}, ${e.headDeg.toFixed(1)}°`, e.distM < 0.01 && Math.abs(e.headDeg) < 1 ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const q = slipParams(p)
@@ -523,7 +523,7 @@ export const slipLesson: Lesson = {
         return [
           { label: 'Grip limit', value: `${q.grip.toFixed(1)} m/s²`, tone: asked > q.grip ? 'bad' : 'ok' },
           { label: 'Peak tyre slip', value: `${r.peakSlip.toFixed(2)} m/s`, tone: r.peakSlip < SL.mark ? 'ok' : r.peakSlip < 0.15 ? 'warn' : 'bad' },
-          { label: 'Odometry error at stop', value: mm(r.end.distM), tone: errTone(r.end.distM) },
+          { label: 'Odometry error at stop', value: mmText(r.end.distM), tone: errTone(r.end.distM) },
           { label: 'Heading error at stop', value: `${r.end.headDeg.toFixed(1)}°`, tone: Math.abs(r.end.headDeg) < 1 ? 'ok' : Math.abs(r.end.headDeg) < 5 ? 'warn' : 'bad' },
         ]
       },

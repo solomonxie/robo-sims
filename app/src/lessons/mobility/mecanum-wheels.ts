@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
+  G,
   MECANUM,
   MEC_RUN,
   MEC_WHEELS,
@@ -18,6 +19,7 @@ import {
   toDeg,
   twistStep,
 } from '../../core/physics'
+import { mmText, signText, velocityText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -28,6 +30,8 @@ import {
   LABEL,
   POWER,
   RING,
+  TOUR_MODES,
+  TourSeg,
   addLabel,
   addRod,
   cursorBar,
@@ -35,6 +39,7 @@ import {
   floorMat,
   floorView,
   glowMat,
+  inField,
   liveLabel,
   mecanumBot,
   mecanumWheel,
@@ -45,14 +50,13 @@ import {
   stickPhone,
   stretchArrow,
   stretchRod,
+  tourAt,
+  tourLength,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const { halfL: L, halfW: W, wheelR: R, maxRim } = MECANUM
-const signText = (v: number) => (Math.abs(v) < 1e-6 ? '0' : v > 0 ? '+' : '−')
-const speedText = (v: number) => `${v < -1e-6 ? '−' : v > 1e-6 ? '+' : ''}${Math.abs(v).toFixed(2)}`
 const pattern = (s: number[]) => s.map(signText).join(' ')
-const inside = (p: Pose, fx: [number, number], fy: [number, number]) => p.x >= fx[0] && p.x <= fx[1] && p.y >= fy[0] && p.y <= fy[1]
 
 /** Floor force arrows at each wheel, their sum at the centre and a yaw-torque arc, in the robot's frame. */
 function forceGlyphs(parent: THREE.Object3D, kF: number, kNet: number) {
@@ -216,7 +220,7 @@ export const rollerGeometry: Lesson = {
         const prev = st.pose
         st.pose = twistStep(st.pose, q.twist.vx, q.twist.vy, q.twist.w, dt)
         q.s.forEach((s, i) => (st.travel[i] += s * dt))
-        if (!inside(st.pose, [RG.fx[0] + 0.08, RG.fx[1] - 0.08], [RG.fy[0] + 0.1, RG.fy[1] - 0.1])) {
+        if (!inField(st.pose, [RG.fx[0] + 0.08, RG.fx[1] - 0.08], [RG.fy[0] + 0.1, RG.fy[1] - 0.1])) {
           st.pose = startOf(q)
           st.trail = 0
         }
@@ -246,8 +250,7 @@ export const rollerGeometry: Lesson = {
 
 // --- Strafe maths: (vx, vy, ω) → four rim speeds; a thumbstick drives the robot round the floor. ---
 
-const MODES = { tour: 'Auto tour', sticks: 'Your sticks' }
-const TOUR: { name: string; short: string; t: [number, number, number]; s: number }[] = [
+const TOUR: TourSeg[] = [
   { name: 'Forward', short: 'Forward', t: [0.25, 0, 0], s: 1.6 },
   { name: 'Strafe left', short: 'Strafe', t: [0, 0.25, 0], s: 1.6 },
   { name: 'Spin left', short: 'Spin L', t: [0, 0, Math.PI / 3.2], s: 1.6 },
@@ -255,21 +258,13 @@ const TOUR: { name: string; short: string; t: [number, number, number]; s: numbe
   { name: 'Diagonal back-right', short: 'Diagonal', t: [-0.25, -0.25, 0], s: 1.6 },
   { name: 'Stop', short: 'Stop', t: [0, 0, 0], s: 1 },
 ]
-const TOUR_S = TOUR.reduce((a, x) => a + x.s, 0)
+const TOUR_S = tourLength(TOUR)
 const TOUR_START: Pose = { x: -0.2, y: -0.2, th: 0 }
 const SM = { at: [-1.6, -1.9, 0] as V3, k: 18, fx: [-0.42, 0.42] as [number, number], fy: [-0.34, 0.34] as [number, number], bx: 9.2, by: 0.2, gap: 3.8, bh: 1.4, trail: 400 }
-const smParams = (p: Params) => ({ tour: pick(MODES, p.mode, 'tour') === 'tour', vx: n(p, 'vx'), vy: n(p, 'vy'), w: n(p, 'w') })
+const smParams = (p: Params) => ({ tour: pick(TOUR_MODES, p.mode, 'tour') === 'tour', vx: n(p, 'vx'), vy: n(p, 'vy'), w: n(p, 'w') })
 type SmQ = ReturnType<typeof smParams>
-function tourAt(t: number) {
-  let u = t % TOUR_S
-  for (const seg of TOUR) {
-    if (u < seg.s) return seg
-    u -= seg.s
-  }
-  return TOUR[TOUR.length - 1]
-}
 function smCommand(q: SmQ, t: number) {
-  const seg = q.tour ? tourAt(t) : undefined
+  const seg = q.tour ? tourAt(TOUR, t % TOUR_S) : undefined
   const [vx, vy, w] = seg ? seg.t : [q.vx, q.vy, q.w]
   const raw = mecInverse(vx, vy, w)
   const { speeds, k } = mecScale(raw, maxRim)
@@ -282,7 +277,7 @@ export const strafeMaths: Lesson = {
   tagline: 'Three stick axes in, four wheel speeds out',
   formula: (p) => {
     const c = smCommand(smParams(p), 0)
-    return `FL = vx − vy − (L+W)ω · FR = vx + vy + (L+W)ω · RL = vx + vy − (L+W)ω · RR = vx − vy + (L+W)ω, L+W = ${((L + W) * 1000).toFixed(0)} mm → ${c.speeds.map(speedText).join(' · ')} m/s`
+    return `FL = vx − vy − (L+W)ω · FR = vx + vy + (L+W)ω · RL = vx + vy − (L+W)ω · RR = vx − vy + (L+W)ω, L+W = ${((L + W) * 1000).toFixed(0)} mm → ${c.speeds.map(velocityText).join(' · ')} m/s`
   },
   legend: [
     { color: RING, label: 'Thumbstick: up = forward, side = strafe', shape: 'dot' },
@@ -297,7 +292,7 @@ export const strafeMaths: Lesson = {
     'The rollers make this sound easier than it is: every number assumes each roller grips along its axle. Uneven floors and weight shifts break that, so strafing drifts (see Why they slip).',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'tour' },
+    { kind: 'choice', key: 'mode', options: opts(TOUR_MODES), initial: 'tour' },
     { kind: 'slider', key: 'vx', label: 'Forward vx', min: -0.4, max: 0.4, step: 0.05, initial: 0.2, format: (v) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'vy', label: 'Strafe left vy', min: -0.4, max: 0.4, step: 0.05, initial: 0.2, format: (v) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'w', label: 'Turn ω', min: -3, max: 3, step: 0.25, initial: 0, format: (v) => `${v.toFixed(2)} rad/s` },
@@ -355,7 +350,7 @@ export const strafeMaths: Lesson = {
         const prev = st.pose
         st.pose = twistStep(st.pose, c.vx, c.vy, c.w, dt)
         c.speeds.forEach((s, i) => (st.travel[i] += s * dt))
-        if (!q.tour && !inside(st.pose, [SM.fx[0] + 0.12, SM.fx[1] - 0.12], [SM.fy[0] + 0.12, SM.fy[1] - 0.12])) {
+        if (!q.tour && !inField(st.pose, [SM.fx[0] + 0.12, SM.fx[1] - 0.12], [SM.fy[0] + 0.12, SM.fy[1] - 0.12])) {
           st.pose = { x: 0, y: 0, th: st.pose.th }
           st.trail = 0
         }
@@ -372,7 +367,7 @@ export const strafeMaths: Lesson = {
         phone.stick(-c.vy / 0.4, c.vx / 0.4)
         phone.lines[0].set(c.short ?? 'Sticks', LABEL)
         phone.lines[1].set(Math.abs(c.w) > 0.01 ? `twist ${c.w > 0 ? 'left' : 'right'}` : '', RING)
-        stickText.set(`vx ${speedText(c.vx)} · vy ${speedText(c.vy)} · ω ${speedText(c.w)}`, RING)
+        stickText.set(`vx ${velocityText(c.vx)} · vy ${velocityText(c.vy)} · ω ${velocityText(c.w)}`, RING)
         c.speeds.forEach((s, i) => {
           const b = bars[i]
           const h = Math.max(0.02, (Math.abs(s) / maxRim) * SM.bh)
@@ -381,7 +376,7 @@ export const strafeMaths: Lesson = {
           const col = s > 1e-6 ? POWER : s < -1e-6 ? HIGH_V : GREY
           ;(b.fill.material as THREE.MeshStandardMaterial).color.set(col)
           ;(b.fill.material as THREE.MeshStandardMaterial).emissive.set(col)
-          b.text.set(speedText(s), col)
+          b.text.set(velocityText(s), col)
         })
         scaleTag.set(c.k < 1 ? `all four × ${c.k.toFixed(2)}` : `max ${maxRim} m/s`, c.k < 1 ? HEAT : GREY)
         const word = `${c.name ?? 'Sticks'}: ${pattern(c.speeds)}`
@@ -397,7 +392,7 @@ export const strafeMaths: Lesson = {
         if (q.tour) return [{ label: 'Tour patterns FL FR RL RR', value: 'fwd + + + + · strafe − + + − · spin − + − + · diagonal 0 − − 0' }]
         return [
           { label: 'Command vx · vy · ω', value: `${q.vx.toFixed(2)} · ${q.vy.toFixed(2)} · ${q.w.toFixed(2)}` },
-          { label: 'Wheels FL FR RL RR', value: c.speeds.map(speedText).join(' ') },
+          { label: 'Wheels FL FR RL RR', value: c.speeds.map(velocityText).join(' ') },
           { label: 'Scale to fit', value: c.k < 1 ? `× ${c.k.toFixed(2)}` : 'none', tone: c.k < 1 ? 'warn' : 'ok' },
           { label: 'Ground speed', value: `${Math.hypot(c.vx, c.vy).toFixed(2)} m/s` },
         ]
@@ -426,7 +421,6 @@ const wsRun = memoBy(wsKey, (q: WsQ) => {
 })
 const DIR_ANGLE: Record<MecMove, number> = { strafe: Math.PI / 2, forward: 0, diagonal: Math.PI / 4 }
 const headTone = (d: number) => (Math.abs(d) < 1 ? 'ok' : Math.abs(d) < 3 ? 'warn' : 'bad')
-const mmText = (m: number) => `${Math.round(m * 1000)} mm`
 const PUSH = mecPushLimit(MEC_RUN.mu, MECANUM.massKg)
 
 export const whyTheySlip: Lesson = {
@@ -484,7 +478,7 @@ export const whyTheySlip: Lesson = {
 
     const clock = simClock(MEC_RUN.dt * MEC_RUN.every * WS.slow, WS.hold)
     const st = { key: '', us: [] as number[], ys: [] as number[] }
-    const n0 = (MECANUM.massKg * 9.81) / 4
+    const n0 = (MECANUM.massKg * G) / 4
     return {
       scene,
       view: { center: [-1.5, 0, 0], radius: 52, polar: 1.45, azimuth: 0 },

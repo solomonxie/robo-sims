@@ -1,10 +1,8 @@
 // Differential drive: wheel speeds ↔ body twist, turn radius and ICC, exact arc steps, UMBmark square odometry, wheel slip.
 import { TT_CAR } from '../actuators/dcmotor'
-import { DEG, wrapPi } from '../common'
+import { DEG, G, wrapPi } from '../common'
 import { Pose } from '../room'
 import { ENCODERS, TT_TRACK_M, TT_WHEEL_MM, mmPerTick, odoStep, ticksPerWheelRev } from '../sensors/encoder'
-
-const G = 9.81
 
 /** Body speed v (m/s) and turn rate ω (rad/s, CCW +) from wheel speeds. */
 export const diffForward = (vL: number, vR: number, track: number) => ({ v: (vL + vR) / 2, w: (vR - vL) / track })
@@ -102,7 +100,7 @@ export const SLIP = { massKg: TT_CAR.massKg, inertia: 0.0031, casterX: -0.08, ca
 export const gripAccel = (mu: number, casterShare: number) => mu * G * (1 - casterShare)
 
 /** Wheel surface speeds the motors aim for at time t. */
-export function slipTarget(move: SlipMove, t: number): [number, number] {
+function slipTarget(move: SlipMove, t: number): [number, number] {
   if (move === 'launch') return t < 1.6 ? [0.5, 0.5] : [0, 0]
   if (move === 'spin') return t > 0.2 && t < 2.4 ? [-0.3, 0.3] : [0, 0]
   if (t < 0.9) return [0.45, 0.45]

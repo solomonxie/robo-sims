@@ -31,6 +31,8 @@ import {
   LABEL,
   POWER,
   RING,
+  SIDE_SCOPE,
+  SIDE_VIEW,
   SPIN_COLORS,
   addLabel,
   flatBox,
@@ -40,8 +42,12 @@ import {
   moduleBlock,
   quadcopter,
   scope,
+  scopeLabels,
   spinArc,
+  statusHeader,
   stretchArrow,
+  tiltRig,
+  traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -50,28 +56,9 @@ const kRpm = (share: number) => `${(propRpm(share) / 1000).toFixed(1)}k`
 const sgn = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '0')
 const sInt = (v: number) => `${Math.round(v) < 0 ? '−' : ''}${Math.abs(Math.round(v))}`
 const sPct = (v: number) => `${sgn(Math.round(v * 100)).replace('0', '')}${Math.abs(Math.round(v * 100))} %`
-const VIEW = { center: [-2.2, -0.4, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
 /** Visual prop speed at full throttle (rad/s), real is QUAD.wMax. */
 const PROP_VIS = 26
 const SHORT = ['M1 RR', 'M2 FR', 'M3 RL', 'M4 FL']
-
-function header(scene: THREE.Object3D) {
-  return {
-    status: liveLabel(scene, [-17, 6.6, 0.3], { size: 0.42, align: 'left' }),
-    sub: liveLabel(scene, [-17, 5.7, 0.3], { size: 0.3, color: GREY, align: 'left' }),
-    event: liveLabel(scene, [-17, 4.9, 0.3], { size: 0.32, align: 'left' }),
-  }
-}
-
-/** Metres group (z up), viewed `tilt` rad from the side; the quad's nose points into the screen. */
-function rig(parent: THREE.Object3D, origin: V3, k: number, tilt: number) {
-  const g = add(parent, new THREE.Group(), origin)
-  g.scale.setScalar(k)
-  g.rotation.x = -Math.PI / 2 + tilt
-  const holder = add(g, new THREE.Group())
-  holder.rotation.z = Math.PI / 2
-  return { g, holder }
-}
 
 function spinProps(angles: number[], shares: readonly number[], dt: number) {
   shares.forEach((s, i) => (angles[i] += dt * PROP_VIS * speedShare(s)))
@@ -113,8 +100,8 @@ export const quadcopterMixing: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
-    const { g, holder } = rig(scene, QM.quad, QM.k, QM.tilt)
+    const { status, sub, event } = statusHeader(scene)
+    const { g, holder } = tiltRig(scene, QM.quad, QM.k, QM.tilt)
     const quad = quadcopter(holder, { arrowLen: 0.15, arrowR: 0.0026 })
     const stand = glowMat('#3a3f48', 0.05)
     flatBox(g, [0.08, 0.08, 0.005], stand, [0, 0, -0.16])
@@ -165,7 +152,7 @@ export const quadcopterMixing: Lesson = {
     const spin = [0, 0, 0, 0]
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = qmParams(p)
         const m = mix(q)
@@ -229,7 +216,6 @@ export const quadcopterMixing: Lesson = {
 
 const MODES = { angle: 'Angle (self-level)', air: 'Angle + airmode', acro: 'Acro (rate only)' }
 const AC = { quad: [-9.5, -2, 0] as V3, k: 40, tilt: 0.28, seconds: 4, gust: { at: 1, dur: 0.18, torque: 0.5 }, slow: 0.2, sy: [-0.9, -7.2], sh: 4.2, by: 3.5, rollMax: 30, rateMax: 400 }
-const SCOPE = { x: 6.4, w: 10.5 }
 const acMode = (p: Params) => pick(MODES, p.mode, 'angle')
 const acParams = (p: Params) => ({ mode: (acMode(p) === 'acro' ? 'acro' : 'angle') as 'angle' | 'acro', airmode: acMode(p) === 'air', angleP: n(p, 'angleP'), kp: n(p, 'rateP') / 100, mass: QUAD.mass + n(p, 'payload') / 1000 })
 type AcQ = ReturnType<typeof acParams>
@@ -243,24 +229,6 @@ function acOutcome(q: AcQ, run: AttitudeFrame[]): { value: string; tone: 'ok' | 
   if (q.mode === 'acro') return { value: `holds ${deg(end.roll, 1)}, drifting`, tone: 'warn' }
   const s = levelTime(run, AC.gust.at)
   return s === null ? { value: 'still off level', tone: 'warn' } : { value: `level in ${s.toFixed(2)} s`, tone: 'ok' }
-}
-function plotLabels(scene: THREE.Object3D, y: number, h: number, seconds: number | null, left: string, right?: string) {
-  addLabel(scene, left, [SCOPE.x - SCOPE.w / 2, y + h / 2 + 1.1, 0.3], LABEL, 0.3, 'left')
-  if (right) addLabel(scene, right, [SCOPE.x + SCOPE.w / 2, y + h / 2 + 1.1, 0.3], LABEL, 0.3, 'right')
-  if (seconds === null) return
-  addLabel(scene, '0', [SCOPE.x - SCOPE.w / 2, y - h / 2 - 1.1, 0.3], GREY, 0.26, 'left')
-  addLabel(scene, `${seconds} s`, [SCOPE.x + SCOPE.w / 2, y - h / 2 - 1.1, 0.3], GREY, 0.26, 'right')
-}
-function plotRun(tr: ReturnType<ReturnType<typeof scope>['trace']>, run: AttitudeFrame[], now: number, value: (f: AttitudeFrame) => number, samples = 240) {
-  const k = Math.max(2, Math.round((Math.min(now, AC.seconds) / AC.seconds) * (samples - 1)) + 1)
-  const us: number[] = []
-  const ys: number[] = []
-  for (let i = 0; i < k; i++) {
-    const u = i / (samples - 1)
-    us.push(u)
-    ys.push(value(at(run, u * AC.seconds)))
-  }
-  tr.points(us, ys)
 }
 
 export const attitudeControl: Lesson = {
@@ -292,8 +260,8 @@ export const attitudeControl: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
-    const { g, holder } = rig(scene, AC.quad, AC.k, AC.tilt)
+    const { status, sub, event } = statusHeader(scene)
+    const { g, holder } = tiltRig(scene, AC.quad, AC.k, AC.tilt)
     const quad = quadcopter(holder, { arrowLen: 0.16 })
     const gust = stretchArrow(quad.body, HEAT, 0.006)
     const load = box(quad.body, [1, 1, 1], mat('#7a6548', { rough: 0.7 }), [0, 0, -0.03])
@@ -302,19 +270,19 @@ export const attitudeControl: Lesson = {
     const tapeM = glowMat(GREY, 0.25)
     const tape = Array.from({ length: 4 }, () => flatBox(g, [0.004, 0.25, 0.004], tapeM, [0, 0.12, floorZ + 0.003]))
 
-    const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SCOPE.x + i * 3.65, AC.by, 0], [3.2, 1.1, 0.4], ''))
-    for (const x of [SCOPE.x - 1.82, SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, AC.by, 0.3], [x + 0.25, AC.by, 0.3])
+    const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SIDE_SCOPE.x + i * 3.65, AC.by, 0], [3.2, 1.1, 0.4], ''))
+    for (const x of [SIDE_SCOPE.x - 1.82, SIDE_SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, AC.by, 0.3], [x + 0.25, AC.by, 0.3])
     const plots = AC.sy.map((y) => {
-      const s = scope(scene, SCOPE.w, AC.sh, { divs: [8, 4] })
-      s.group.position.set(SCOPE.x, y, 0)
+      const s = scope(scene, SIDE_SCOPE.w, AC.sh, { divs: [8, 4] })
+      s.group.position.set(SIDE_SCOPE.x, y, 0)
       return s
     })
     const angSet = plots[0].trace(B_FIELD, { samples: 240, radius: 0.08 })
     const angTr = plots[0].trace(RING, { samples: 240 })
     const rateSet = plots[1].trace(B_FIELD, { samples: 240, radius: 0.08 })
     const rateTr = plots[1].trace(RING, { samples: 240 })
-    plotLabels(scene, AC.sy[0], AC.sh, null, `roll θ ±${AC.rollMax}°`)
-    plotLabels(scene, AC.sy[1], AC.sh, AC.seconds, `roll rate ±${AC.rateMax} °/s`)
+    scopeLabels(scene, AC.sy[0], AC.sh, null, `roll θ ±${AC.rollMax}°`)
+    scopeLabels(scene, AC.sy[1], AC.sh, AC.seconds, `roll rate ±${AC.rateMax} °/s`)
     const yAng = (a: number) => (toDeg(a) / AC.rollMax) * (AC.sh / 2)
     const yRate = (r: number) => (toDeg(r) / AC.rateMax) * (AC.sh / 2)
 
@@ -322,7 +290,7 @@ export const attitudeControl: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = acParams(p)
         const run = acRun(q)
@@ -347,10 +315,10 @@ export const attitudeControl: Lesson = {
         gust(showGust ? [0, -0.135, 0.2] : [0, -0.135, 0.07], [0, -0.135, 0.07])
         tape.forEach((b, i) => (b.position.x = ((((i * 0.1 - f.y) % 0.4) + 0.4) % 0.4) - 0.2))
 
-        plotRun(angSet, run, t, (r) => yAng(r.angleSet))
-        plotRun(angTr, run, t, (r) => yAng(r.roll))
-        plotRun(rateSet, run, t, (r) => yRate(r.rateSet))
-        plotRun(rateTr, run, t, (r) => yRate(r.rate))
+        traceRun(angSet, run, QUAD.dt, AC.seconds, t, (r) => yAng(r.angleSet), 240)
+        traceRun(angTr, run, QUAD.dt, AC.seconds, t, (r) => yAng(r.roll), 240)
+        traceRun(rateSet, run, QUAD.dt, AC.seconds, t, (r) => yRate(r.rateSet), 240)
+        traceRun(rateTr, run, QUAD.dt, AC.seconds, t, (r) => yRate(r.rate), 240)
         const angleOn = q.mode === 'angle'
         blocks[0](dt, B_FIELD, angleOn ? 1 : 0.15, angleOn ? `${sInt(toDeg(f.rateSet))} °/s` : 'angle off')
         blocks[1](dt, RING, 1, `R ${sPct(f.cmd)}`)

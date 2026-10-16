@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   BIPED,
+  G,
   GAITS,
   HEXAPOD,
   Pose,
@@ -25,6 +26,7 @@ import {
   walkerOf,
   zmpRun,
 } from '../../core/physics'
+import { mmText } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -42,6 +44,7 @@ import {
   flatBox,
   floorMat,
   floorView,
+  frac,
   glowMat,
   liveLabel,
   memoBy,
@@ -54,8 +57,6 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const deg = (a: number) => `${Math.round(toDeg(a))}°`
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
-const frac = (x: number) => x - Math.floor(x)
 type GaitKey = keyof typeof GAITS
 const GAIT_NAMES = Object.fromEntries(Object.entries(GAITS).map(([k, g]) => [k, `${g.name} (${g.body === 'hexapod' ? '6' : '4'})`])) as Record<GaitKey, string>
 
@@ -99,7 +100,7 @@ export const gaitCycle: Lesson = {
   tagline: 'Every leg pushes, then lifts and swings forward',
   formula: (p) => {
     const q = gcParams(p)
-    return `duty factor β = stance / cycle = ${q.g.duty.toFixed(2)} · v = stride / (β·T) = ${mm(q.stride)} / (${q.g.duty.toFixed(2)} × ${q.T.toFixed(1)} s) = ${mm(gaitSpeed(q.stride, q.T, q.g.duty))}/s`
+    return `duty factor β = stance / cycle = ${q.g.duty.toFixed(2)} · v = stride / (β·T) = ${mmText(q.stride)} / (${q.g.duty.toFixed(2)} × ${q.T.toFixed(1)} s) = ${mmText(gaitSpeed(q.stride, q.T, q.g.duty))}/s`
   },
   legend: [
     { color: POWER, label: 'Foot on the ground: stance (diagram bars)', shape: 'dot' },
@@ -233,19 +234,19 @@ export const gaitCycle: Lesson = {
         const up = feet.filter((f) => !f.down).length
         status.set(`${q.g.name} gait · β ${q.g.duty.toFixed(2)} · ${legs - up} of ${legs} feet down`, LABEL)
         event.set(
-          margin > 0.002 ? `CoM ${mm(margin)} inside the support polygon: statically stable` : hull.length < 3 ? 'two feet down: the support is a line, balance is dynamic' : `CoM ${mm(-margin)} outside: would tip if frozen now`,
+          margin > 0.002 ? `CoM ${mmText(margin)} inside the support polygon: statically stable` : hull.length < 3 ? 'two feet down: the support is a line, balance is dynamic' : `CoM ${mmText(-margin)} outside: would tip if frozen now`,
           margin > 0.002 ? POWER : HEAT,
         )
-        sub.set(`${(st.t % q.T).toFixed(1)} / ${q.T.toFixed(1)} s cycle · ${mm(v)}/s · real time · 0.5 m tape`)
+        sub.set(`${(st.t % q.T).toFixed(1)} / ${q.T.toFixed(1)} s cycle · ${mmText(v)}/s · real time · 0.5 m tape`)
       },
       readouts: (p) => {
         const q = gcParams(p)
         const m = gaitMargin(q.g, q.stride)
         return [
           { label: 'Duty factor β', value: q.g.duty.toFixed(2) },
-          { label: 'Speed', value: `${mm(gaitSpeed(q.stride, q.T, q.g.duty))}/s` },
+          { label: 'Speed', value: `${mmText(gaitSpeed(q.stride, q.T, q.g.duty))}/s` },
           { label: 'Fewest feet down', value: `${m.minDown}`, tone: m.minDown >= 3 ? 'ok' : 'warn' },
-          { label: 'Worst static margin', value: m.margin > 0.002 ? mm(m.margin) : 'none: dynamic', tone: m.margin > 0.002 ? 'ok' : 'bad' },
+          { label: 'Worst static margin', value: m.margin > 0.002 ? mmText(m.margin) : 'none: dynamic', tone: m.margin > 0.002 ? 'ok' : 'bad' },
         ]
       },
     }
@@ -277,8 +278,8 @@ export const zeroMomentPoint: Lesson = {
   formula: (p) => {
     const q = zmParams(p)
     return q.lean
-      ? `static: ZMP = CoM projection x · tips when lean > atan(toe / h) = atan(${mm(BIPED.toe)} / ${mm(q.h)}) = ${deg(tipLean(q.h, BIPED.toe))}`
-      : `x_zmp = x − (h/g)·ẍ · sway ±${mm(SWAY_AMP)} at ω = 2π/T → ZMP ±${mm(SWAY_AMP)}·(1 + h·ω²/g) = ±${mm(SWAY_AMP * (1 + (q.h * (2 * Math.PI / q.T) ** 2) / 9.81))} · foot −${mm(BIPED.heel)}…+${mm(BIPED.toe)}`
+      ? `static: ZMP = CoM projection x · tips when lean > atan(toe / h) = atan(${mmText(BIPED.toe)} / ${mmText(q.h)}) = ${deg(tipLean(q.h, BIPED.toe))}`
+      : `x_zmp = x − (h/g)·ẍ · sway ±${mmText(SWAY_AMP)} at ω = 2π/T → ZMP ±${mmText(SWAY_AMP)}·(1 + h·ω²/g) = ±${mmText(SWAY_AMP * (1 + (q.h * (2 * Math.PI / q.T) ** 2) / G))} · foot −${mmText(BIPED.heel)}…+${mmText(BIPED.toe)}`
   },
   legend: [
     { color: RING, label: 'Centre of mass and its floor projection', shape: 'dot' },
@@ -375,16 +376,16 @@ export const zeroMomentPoint: Lesson = {
         stretchRod(plumb, c, [c[0], -0.06, 0.002], 0.0015)
         stretchRod(zLine, [f.free, -0.07, 0.003], [f.zmp, -0.07, 0.003], 0.002)
         zLine.visible = outside
-        push(c, [c[0] - 4 * (q.h / 9.81) * f.a, -0.06, c[2]])
+        push(c, [c[0] - 4 * (q.h / G) * f.a, -0.06, c[2]])
 
         now.set(0, [X(f.t), Y(Math.max(lo, Math.min(hi, f.x))), 0.2], RING)
         now.set(1, [X(f.t), Y(Math.max(lo, Math.min(hi, f.free))), 0.2], HIGH_V)
         now.show(2)
 
-        status.set(`${q.lean ? `Static lean ${deg(q.leanA)}` : `Sway ±${mm(SWAY_AMP)}, T ${q.T.toFixed(1)} s`} · CoM ${mm(q.h)} high`, LABEL)
+        status.set(`${q.lean ? `Static lean ${deg(q.leanA)}` : `Sway ±${mmText(SWAY_AMP)}, T ${q.T.toFixed(1)} s`} · CoM ${mmText(q.h)} high`, LABEL)
         if (f.state === 'fallen') event.set(q.lean ? 'CoM past the toe: the foot rolls over its edge, fallen' : 'ZMP left the foot, the robot rolled over the edge: fallen', HIGH_V)
-        else if (f.state === 'rocking') event.set(`needs the ZMP at ${mm(f.free)}, foot ends at ${f.free > 0 ? `+${mm(BIPED.toe)}` : `−${mm(BIPED.heel)}`}: foot lifts`, HEAT)
-        else event.set(`ZMP ${mm(f.free)} inside the foot (CoM ${mm(f.x)}): foot flat`, POWER)
+        else if (f.state === 'rocking') event.set(`needs the ZMP at ${mmText(f.free)}, foot ends at ${f.free > 0 ? `+${mmText(BIPED.toe)}` : `−${mmText(BIPED.heel)}`}: foot lifts`, HEAT)
+        else event.set(`ZMP ${mmText(f.free)} inside the foot (CoM ${mmText(f.x)}): foot flat`, POWER)
         sub.set(`${Math.min(st.t, ZM.seconds).toFixed(1)} / ${ZM.seconds} s · real time · side view, toe to the right`)
       },
       readouts: (p) => {
@@ -392,8 +393,8 @@ export const zeroMomentPoint: Lesson = {
         const s = zmpSummary(zmpFrames(q))
         return [
           { label: 'Static tip lean', value: deg(tipLean(q.h, BIPED.toe)) },
-          { label: 'CoM swing · ZMP swing', value: `${mm(s.comPeak)} · ${mm(s.peak)}` },
-          { label: 'Foot heel · toe', value: `−${mm(BIPED.heel)} · +${mm(BIPED.toe)}` },
+          { label: 'CoM swing · ZMP swing', value: `${mmText(s.comPeak)} · ${mmText(s.peak)}` },
+          { label: 'Foot heel · toe', value: `−${mmText(BIPED.heel)} · +${mmText(BIPED.toe)}` },
           { label: 'Outcome', value: s.fell ? `falls at ${s.fell.t.toFixed(1)} s` : s.rocked ? 'rocks on an edge' : 'stays flat', tone: s.fell ? 'bad' : s.rocked ? 'warn' : 'ok' },
         ]
       },
@@ -434,7 +435,7 @@ export const legIk: Lesson = {
   formula: (p) => {
     const q = ikParams(p)
     const s = legIK(q.x, q.z, HEXAPOD.femur, HEXAPOD.tibia, q.up)
-    return `d = √(x² + z²) = ${mm(s.d)} · cos(π − knee) = (L1² + L2² − d²) / (2·L1·L2) → knee ${deg(s.knee)} · hip = atan2(z, x) − atan2(L2 sin knee, L1 + L2 cos knee) = ${deg(s.hip)} · L1 ${mm(HEXAPOD.femur)}, L2 ${mm(HEXAPOD.tibia)}`
+    return `d = √(x² + z²) = ${mmText(s.d)} · cos(π − knee) = (L1² + L2² − d²) / (2·L1·L2) → knee ${deg(s.knee)} · hip = atan2(z, x) − atan2(L2 sin knee, L1 + L2 cos knee) = ${deg(s.hip)} · L1 ${mmText(HEXAPOD.femur)}, L2 ${mmText(HEXAPOD.tibia)}`
   },
   legend: [
     { color: POWER, label: 'Foot on the target (red: out of reach)', shape: 'dot' },
@@ -578,20 +579,20 @@ export const legIk: Lesson = {
         status.set(`${q.swing ? `Walk cycle · ${f.swing ? 'swing: lift and reach forward' : 'stance: foot slides back'}` : 'Reach a target'} · ${KNEES[q.up ? 'up' : 'down']}`, LABEL)
         const [lo, hi] = s.reach
         event.set(
-          s.ok ? (sv.ok ? `d ${mm(s.d)} within ${mm(lo)}…${mm(hi)}: solved` : 'solved, but a servo would pass its 0…180° end stop') : `d ${mm(s.d)} ${s.d > hi ? `> L1 + L2 = ${mm(hi)}` : `< |L1 − L2| = ${mm(lo)}`}: out of reach, leg stretches toward it`,
+          s.ok ? (sv.ok ? `d ${mmText(s.d)} within ${mmText(lo)}…${mmText(hi)}: solved` : 'solved, but a servo would pass its 0…180° end stop') : `d ${mmText(s.d)} ${s.d > hi ? `> L1 + L2 = ${mmText(hi)}` : `< |L1 − L2| = ${mmText(lo)}`}: out of reach, leg stretches toward it`,
           s.ok && sv.ok ? POWER : HIGH_V,
         )
-        sub.set(q.swing ? `${(st.t % IK.T).toFixed(1)} / ${IK.T} s step · β ${IK.duty} · lift ${mm(IK.lift)} · real time` : 'side view of one leg, hip at the left · servo pulses for 500…2500 µs = 0…180°')
+        sub.set(q.swing ? `${(st.t % IK.T).toFixed(1)} / ${IK.T} s step · β ${IK.duty} · lift ${mmText(IK.lift)} · real time` : 'side view of one leg, hip at the left · servo pulses for 500…2500 µs = 0…180°')
       },
       readouts: (p) => {
         const q = ikParams(p)
         const s = legIK(q.x, q.z, L1, L2, q.up)
         const sv = servos(s, q.up)
         return [
-          { label: 'Reach d · max', value: `${mm(s.d)} · ${mm(s.reach[1])}`, tone: s.ok ? 'ok' : 'bad' },
+          { label: 'Reach d · max', value: `${mmText(s.d)} · ${mmText(s.reach[1])}`, tone: s.ok ? 'ok' : 'bad' },
           { label: 'Hip · knee', value: `${deg(s.hip)} · ${deg(s.knee)}` },
           { label: 'Servo hip · knee', value: `${Math.round(sv.hipDeg)}° · ${Math.round(sv.kneeDeg)}°`, tone: sv.ok ? 'ok' : 'warn' },
-          { label: 'Links L1 · L2', value: `${mm(L1)} · ${mm(L2)}` },
+          { label: 'Links L1 · L2', value: `${mmText(L1)} · ${mmText(L2)}` },
         ]
       },
     }

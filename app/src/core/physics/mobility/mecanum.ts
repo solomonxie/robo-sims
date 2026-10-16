@@ -1,8 +1,7 @@
 // Mecanum drive: free rollers at 45°, wheel speeds ↔ body twist (vx, vy, ω), floor forces, and a strafe run with load transfer and roller drag.
-import { clamp, hash01, toDeg, wrapPi } from '../common'
+import { G, clamp, hash01, toDeg, wrapPi } from '../common'
 import { Pose } from '../room'
 
-const G = 9.81
 export type MecLayout = 'x' | 'o'
 export type Wheel4 = [number, number, number, number]
 export const MEC_WHEELS = ['FL', 'FR', 'RL', 'RR'] as const
@@ -69,7 +68,7 @@ export function mecScale(s: Wheel4, max: number) {
 }
 
 /** Floor force (N, body x/y) under a wheel whose motor pushes the rim with f: only the roller's axle direction holds, its x-part balances the motor. */
-export const rollerForce = (f: number, tanB: number): [number, number] => [f, f * tanB]
+const rollerForce = (f: number, tanB: number): [number, number] => [f, f * tanB]
 
 /** Net floor force and yaw torque on the chassis from four rim pushes. */
 export function mecForceSum(f: Wheel4, layout: MecLayout = 'x', g: MecGeo = MECANUM) {
@@ -117,7 +116,7 @@ export function mecPlan(t: number) {
 }
 
 /** Static wheel loads (N) for a CoG shifted forward by cogPct % of the half wheelbase. */
-export const mecLoads = (cogPct: number, massKg = MECANUM.massKg): Wheel4 =>
+const mecLoads = (cogPct: number, massKg = MECANUM.massKg): Wheel4 =>
   mecWheels().map((k) => ((massKg * G) / 4) * (1 + (cogPct / 100) * Math.sign(k.x))) as Wheel4
 
 export interface MecFrame {

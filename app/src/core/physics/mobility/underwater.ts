@@ -1,10 +1,8 @@
 // Underwater ROV: buoyancy and trim, metacentric righting, depth pressure; vectored thruster allocation, v² drag, T200 asymmetry.
 import { gaussSolve } from '../../nodal'
-import { weightN } from '../actuators/linear'
-import { clamp } from '../common'
+import { G, clamp, weightN } from '../common'
 
-const G = 9.81
-export const P_ATM = 101_325
+const P_ATM = 101_325
 /** Water density (kg/m³). */
 export const WATERS = { fresh: 1000, salt: 1025 }
 export type WaterKind = keyof typeof WATERS
@@ -119,7 +117,7 @@ export const ALLOC = (() => {
 })()
 
 /** Thrust (N) for a command −1…1: forward and reverse maxima differ. */
-export const thrusterForce = (u: number, t = T200) => (u >= 0 ? u * t.fwd : u * t.rev)
+const thrusterForce = (u: number, t = T200) => (u >= 0 ? u * t.fwd : u * t.rev)
 
 /** Wrench sticks (−1…1) → thruster commands: allocation, optional reverse compensation (reverse commands × fwd/rev so forces match),
  *  then one common scale-down if any command passes 100 % (keeps the direction of the wrench). */
@@ -148,9 +146,9 @@ export const topYawRate = (moment: number, d = ROV_DYN) => Math.sqrt(Math.abs(mo
 export const dragN = (v: number, cdA: number, rho = WATERS.fresh) => 0.5 * rho * cdA * v * Math.abs(v)
 
 export interface RovState { x: number; y: number; heading: number; depth: number; u: number; v: number; w: number; r: number }
-export const ROV0: RovState = { x: 0, y: 0, heading: 0, depth: 0, u: 0, v: 0, w: 0, r: 0 }
+const ROV0: RovState = { x: 0, y: 0, heading: 0, depth: 0, u: 0, v: 0, w: 0, r: 0 }
 /** One step (body velocities u forward, v right, w up, r clockwise): thrust minus v² drag; pose in the pool (x north, y east, heading clockwise from north). */
-export function rovStep(s: RovState, f: Wrench, dt: number, rho = WATERS.fresh, d = ROV_DYN): RovState {
+function rovStep(s: RovState, f: Wrench, dt: number, rho = WATERS.fresh, d = ROV_DYN): RovState {
   const [cu, cv, cw] = d.cdA
   const u = s.u + ((f.surge - dragN(s.u, cu, rho)) / d.mass[0]) * dt
   const v = s.v + ((f.sway - dragN(s.v, cv, rho)) / d.mass[1]) * dt

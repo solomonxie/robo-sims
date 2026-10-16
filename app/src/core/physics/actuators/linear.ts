@@ -4,8 +4,6 @@ import { DEG, clamp } from '../common'
 import { Debounce, SwitchPart, bounceEdges, bouncedState, debounceStep } from '../electromechanical'
 import { pullOutNm, rpmToRadS, stepsPerRev } from './stepper'
 
-const G = 9.81
-
 // --- Lead screw ---
 
 export interface Screw {
@@ -44,7 +42,6 @@ export const selfLocking = (s: Screw) => leadAngle(s) <= frictionAngle(s)
 export const thrustN = (torqueNm: number, leadMm: number, eff: number) => (2 * Math.PI * eff * torqueNm) / (leadMm / 1000)
 /** Torque a load `forceN` puts back on the screw: F·lead·η' / 2π. */
 export const backDriveNm = (forceN: number, leadMm: number, backEff: number) => (forceN * (leadMm / 1000) * backEff) / (2 * Math.PI)
-export const weightN = (kg: number) => kg * G
 
 /** An unpowered NEMA17 still resists with its detent (cogging) torque. */
 export const NEMA_DETENT_NM = 0.015

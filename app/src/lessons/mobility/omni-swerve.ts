@@ -17,6 +17,7 @@ import {
   toDeg,
   twistStep,
 } from '../../core/physics'
+import { signText, velocityText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -27,12 +28,15 @@ import {
   LABEL,
   POWER,
   RING,
+  TOUR_MODES,
+  TourSeg,
   addLabel,
   addRod,
   floorMat,
   floorTrail,
   floorView,
   glowMat,
+  inField,
   liveLabel,
   omniBot,
   pointCloud,
@@ -40,23 +44,10 @@ import {
   stretchArrow,
   stretchRod,
   swerveBot,
+  tourAt,
+  tourLength,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
-
-const speedText = (v: number) => `${v < -1e-6 ? '−' : v > 1e-6 ? '+' : ''}${Math.abs(v).toFixed(2)}`
-const signText = (v: number) => (Math.abs(v) < 1e-6 ? '0' : v > 0 ? '+' : '−')
-const inside = (p: Pose, fx: [number, number], fy: [number, number]) => p.x >= fx[0] && p.x <= fx[1] && p.y >= fy[0] && p.y <= fy[1]
-const MODES = { tour: 'Auto tour', sticks: 'Your sticks' }
-type TourSeg = { name: string; short: string; t: [number, number, number]; s: number }
-function segAt(tour: TourSeg[], t: number) {
-  let u = t
-  for (const seg of tour) {
-    if (u < seg.s) return seg
-    u -= seg.s
-  }
-  return tour[tour.length - 1]
-}
-const tourLength = (tour: TourSeg[]) => tour.reduce((a, x) => a + x.s, 0)
 
 // --- Omni wheels: rollers at 90° slide sideways; kiwi and X bases, wheel speeds from (vx, vy, ω), top speed vs mecanum. ---
 
@@ -77,7 +68,7 @@ const DRIVES: { d: HoloDrive; name: string }[] = [
   { d: 'x', name: 'X omni' },
   { d: 'mecanum', name: 'mecanum' },
 ]
-const omParams = (p: Params) => ({ base: pick(BASES, p.base, 'kiwi'), tour: pick(MODES, p.mode, 'tour') === 'tour', vx: n(p, 'vx'), vy: n(p, 'vy'), w: n(p, 'w') })
+const omParams = (p: Params) => ({ base: pick(BASES, p.base, 'kiwi'), tour: pick(TOUR_MODES, p.mode, 'tour') === 'tour', vx: n(p, 'vx'), vy: n(p, 'vy'), w: n(p, 'w') })
 type OmQ = ReturnType<typeof omParams>
 const OM_FORMULA: Record<OmniBase, string> = {
   kiwi: 'FL = 0.87vx − 0.5vy − rω · FR = 0.87vx + 0.5vy + rω · B = vy − rω, r = 115 mm',
@@ -85,7 +76,7 @@ const OM_FORMULA: Record<OmniBase, string> = {
 }
 
 function omCommand(q: OmQ, t: number) {
-  const seg = q.tour ? segAt(OM_TOUR, t % OM_S) : undefined
+  const seg = q.tour ? tourAt(OM_TOUR, t % OM_S) : undefined
   const [vx0, vy0, w0] = seg ? seg.t : [q.vx, q.vy, q.w]
   const raw = omniInverse(vx0, vy0, w0, q.base)
   const k = Math.min(1, OMNI.maxRim / Math.max(...raw.map(Math.abs), 1e-12))
@@ -100,7 +91,7 @@ export const omniWheelsLesson: Lesson = {
   formula: (p) => {
     const q = omParams(p)
     const c = omCommand(q, 0)
-    return `s = vx·cos d + vy·sin d + ω(x sin d − y cos d): ${OM_FORMULA[q.base]} → ${c.speeds.map(speedText).join(' · ')} m/s`
+    return `s = vx·cos d + vy·sin d + ω(x sin d − y cos d): ${OM_FORMULA[q.base]} → ${c.speeds.map(velocityText).join(' · ')} m/s`
   },
   legend: [
     { color: RING, label: 'Thumbstick: up = forward, side = strafe', shape: 'dot' },
@@ -116,7 +107,7 @@ export const omniWheelsLesson: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'base', options: opts(BASES), initial: 'kiwi' },
-    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'tour' },
+    { kind: 'choice', key: 'mode', options: opts(TOUR_MODES), initial: 'tour' },
     { kind: 'slider', key: 'vx', label: 'Forward vx', min: -0.4, max: 0.4, step: 0.05, initial: 0.2, format: (v) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'vy', label: 'Strafe left vy', min: -0.4, max: 0.4, step: 0.05, initial: 0.1, format: (v) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'w', label: 'Turn ω', min: -3, max: 3, step: 0.25, initial: 0, format: (v) => `${v.toFixed(2)} rad/s` },
@@ -200,7 +191,7 @@ export const omniWheelsLesson: Lesson = {
         st.pose = twistStep(st.pose, c.vx, c.vy, c.w, dt)
         c.speeds.forEach((s, i) => (st.travel[i] += s * dt))
         c.side.forEach((s, i) => (st.side[i] += s * dt))
-        if (!q.tour && !inside(st.pose, [OM.fx[0] + 0.14, OM.fx[1] - 0.14], [OM.fy[0] + 0.14, OM.fy[1] - 0.14])) {
+        if (!q.tour && !inField(st.pose, [OM.fx[0] + 0.14, OM.fx[1] - 0.14], [OM.fy[0] + 0.14, OM.fy[1] - 0.14])) {
           st.pose = { x: 0, y: 0, th: st.pose.th }
           trail.clear()
         } else trail.add(prev, st.pose)
@@ -224,7 +215,7 @@ export const omniWheelsLesson: Lesson = {
           const r = Math.hypot(k.x, k.y) + 0.1
           const phi = Math.atan2(k.y, k.x) + st.pose.th
           tag.group.position.set(st.pose.x + r * Math.cos(phi), st.pose.y + r * Math.sin(phi), 0.03)
-          tag.set(`${k.name} ${speedText(c.speeds[i])}`, Math.abs(c.speeds[i]) < 1e-6 ? GREY : HEAT)
+          tag.set(`${k.name} ${velocityText(c.speeds[i])}`, Math.abs(c.speeds[i]) < 1e-6 ? GREY : HEAT)
         }
         netArrow[q.base]([0, 0, z + 0.01], [c.vx * OM.kV, c.vy * OM.kV, z + 0.01])
         const v = Math.hypot(c.vx, c.vy)
@@ -237,7 +228,7 @@ export const omniWheelsLesson: Lesson = {
         phone.stick(-c.vy / 0.4, c.vx / 0.4)
         phone.lines[0].set(c.short ?? 'Sticks', LABEL)
         phone.lines[1].set(Math.abs(c.w) > 0.01 ? `twist ${c.w > 0 ? 'left' : 'right'}` : '', RING)
-        stickText.set(`vx ${speedText(c.vx)} · vy ${speedText(c.vy)} · ω ${speedText(c.w)}`, RING)
+        stickText.set(`vx ${velocityText(c.vx)} · vy ${velocityText(c.vy)} · ω ${velocityText(c.w)}`, RING)
         const word = `${BASES[q.base]}, ${c.name ?? 'sticks'}: ${c.speeds.map(signText).join(' ')}`
         if (word !== st.last) {
           st.last = word
@@ -261,7 +252,7 @@ export const omniWheelsLesson: Lesson = {
         const v = Math.hypot(c.vx, c.vy)
         return [
           { label: 'Command vx · vy · ω', value: `${q.vx.toFixed(2)} · ${q.vy.toFixed(2)} · ${q.w.toFixed(2)}` },
-          { label: `Wheels ${names}`, value: c.speeds.map(speedText).join(' ') },
+          { label: `Wheels ${names}`, value: c.speeds.map(velocityText).join(' ') },
           { label: 'Scale to fit', value: c.k < 1 ? `× ${c.k.toFixed(2)}` : 'none', tone: c.k < 1 ? 'warn' : 'ok' },
           { label: 'Top speed this way', value: v > 1e-6 ? `${holoTopSpeed(q.base, Math.atan2(c.vy, c.vx)).toFixed(2)} m/s` : '—' },
         ]
@@ -285,7 +276,7 @@ const SW_S = tourLength(SW_TOUR)
 const SW_START: Pose = { x: -0.42, y: -0.21, th: 0 }
 const SW = { at: [-2.4, -1.8, 0] as V3, k: 8, fx: [-0.95, 0.95] as [number, number], fy: [-0.78, 0.78] as [number, number], slow: 0.5, kV: 0.22, dx: 9.6, dy: 0.8, gap: 3.1, dr: 1.15 }
 const swParams = (p: Params) => ({
-  tour: pick(MODES, p.mode, 'tour') === 'tour',
+  tour: pick(TOUR_MODES, p.mode, 'tour') === 'tour',
   shortest: pick(OPTS, p.opt, 'short') === 'short',
   rate: (n(p, 'rate') * Math.PI) / 180,
   vx: n(p, 'vx'),
@@ -296,7 +287,7 @@ type SwQ = ReturnType<typeof swParams>
 const degText = (a: number) => `${Math.round(toDeg(Math.atan2(Math.sin(a), Math.cos(a))))}°`
 
 function swCommand(q: SwQ, t: number) {
-  const seg = q.tour ? segAt(SW_TOUR, t % SW_S) : undefined
+  const seg = q.tour ? tourAt(SW_TOUR, t % SW_S) : undefined
   const [vx, vy, w] = seg ? seg.t : [q.vx, q.vy, q.w]
   const raw = swerveStates(vx, vy, w)
   const { states, k } = swerveDesat(raw, SWERVE.maxSpeed)
@@ -325,7 +316,7 @@ export const swerveModule: Lesson = {
     'The steer motor needs time to turn, so after every change of command the wheels push in stale directions. If the modules disagree the chassis can only follow one compromise and the tyres scrub sideways (red patches): wear, current spikes, a wobble in the path. Real code also scales drive speed by cos(steer error) so a wheel waits until it points roughly right.',
   ],
   controls: [
-    { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'tour' },
+    { kind: 'choice', key: 'mode', options: opts(TOUR_MODES), initial: 'tour' },
     { kind: 'choice', key: 'opt', options: opts(OPTS), initial: 'short' },
     { kind: 'slider', key: 'rate', label: 'Steer speed', min: 90, max: 1440, step: 30, initial: 540, format: (v) => `${v}°/s` },
     { kind: 'slider', key: 'vx', label: 'Forward vx', min: -2, max: 2, step: 0.25, initial: 1, format: (v) => `${v.toFixed(2)} m/s` },
@@ -398,7 +389,7 @@ export const swerveModule: Lesson = {
         st.pose = twistStep(st.pose, fit.vx, fit.vy, fit.w, h)
         m.forEach((s, i) => (st.travel[i] += s.speed * h))
         st.scrubM += fit.scrub.reduce((a, v) => a + v, 0) * h
-        if (!q.tour && !inside(st.pose, [SW.fx[0] + 0.38, SW.fx[1] - 0.38], [SW.fy[0] + 0.38, SW.fy[1] - 0.38])) {
+        if (!q.tour && !inField(st.pose, [SW.fx[0] + 0.38, SW.fx[1] - 0.38], [SW.fy[0] + 0.38, SW.fy[1] - 0.38])) {
           st.pose = { x: 0, y: 0, th: st.pose.th }
           trail.clear()
         } else trail.add(prev, st.pose)
@@ -428,12 +419,12 @@ export const swerveModule: Lesson = {
           d.target(S(0, 0), S(t.angle, t.speed > 1e-6 ? SW.dr * 0.95 : 0))
           const L = Math.min(SW.dr * 0.95, (Math.abs(s.speed) / 1.5) * SW.dr)
           d.vec(S(0, 0), S(back ? s.angle + Math.PI : s.angle, L), col)
-          d.text.set(`${degText(s.angle)} ${speedText(s.speed)}`, back ? HIGH_V : Math.abs(s.error) > 0.05 ? B_FIELD : LABEL)
+          d.text.set(`${degText(s.angle)} ${velocityText(s.speed)}`, back ? HIGH_V : Math.abs(s.error) > 0.05 ? B_FIELD : LABEL)
         })
         phone.stick(-c.vy / 2, c.vx / 2)
         phone.lines[0].set(c.short ?? 'Sticks', LABEL)
         phone.lines[1].set(Math.abs(c.w) > 0.01 ? `twist ${c.w > 0 ? 'left' : 'right'}` : '', RING)
-        stickText.set(`vx ${speedText(c.vx)} · vy ${speedText(c.vy)} · ω ${speedText(c.w)}`, RING)
+        stickText.set(`vx ${velocityText(c.vx)} · vy ${velocityText(c.vy)} · ω ${velocityText(c.w)}`, RING)
         const word = c.name ?? 'Sticks'
         if (word !== st.last) {
           st.last = word

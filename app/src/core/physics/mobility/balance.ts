@@ -1,14 +1,12 @@
 // Balancing robots: inverted pendulum on wheels (cart-pole), discrete PID, cascaded speed → tilt loops.
-import { DEG, clamp } from '../common'
-
-const G = 9.81
+import { DEG, G, clamp } from '../common'
 
 /** Two-wheeled ESP32 + MPU-6050 balancer: CoM height above the axle (m), wheel radius (m), wheel acceleration at full
  *  torque (m/s²), free speed where back-EMF eats the supply (m/s), motor lag (s), control loop period (s) and the battery's share of the mass. */
 export const BALANCER = { h: 0.12, wheelR: 0.0325, aMax: 14, vMax: 1.1, lag: 0.03, dt: 0.005, battery: 0.4 }
 export type Balancer = typeof BALANCER
 /** Tilt where the body lies on the floor. */
-export const LIE_ANGLE = 1.35
+const LIE_ANGLE = 1.35
 
 /** Fall time constant √(h/g): a small tilt grows e-fold every τ. */
 export const fallTau = (h: number) => Math.sqrt(h / G)

@@ -36,32 +36,13 @@ import {
 import { signed } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, flatBox, glowMat, liveLabel, memoBy, rovModel, stretchArrow, waterTank } from '../fx'
+import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_VIEW, addLabel, flatBox, glowMat, liveLabel, memoBy, rovModel, statusHeader, stretchArrow, tiltRig, waterTank } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const VIEW = { center: [-2.2, -0.4, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
 const WATER_NAMES = { fresh: 'Fresh water (pool)', salt: 'Salt water (sea)' }
 const degText = (a: number) => `${Math.round(toDeg(wrapPi(a))) || 0}°`
 const bar = (pa: number) => `${(pa / 1e5).toFixed(3)} bar`
 const kg = (v: number, digits = 2) => `${signed(v, digits)} kg`
-
-function header(scene: THREE.Object3D) {
-  return {
-    status: liveLabel(scene, [-17, 6.6, 0.3], { size: 0.42, align: 'left' }),
-    sub: liveLabel(scene, [-17, 5.7, 0.3], { size: 0.3, color: GREY, align: 'left' }),
-    event: liveLabel(scene, [-17, 4.9, 0.3], { size: 0.32, align: 'left' }),
-  }
-}
-
-/** Metres group (z up), viewed `tilt` rad from the side; the ROV's nose points into the screen. */
-function rig(parent: THREE.Object3D, origin: V3, k: number, tilt: number) {
-  const g = add(parent, new THREE.Group(), origin)
-  g.scale.setScalar(k)
-  g.rotation.x = -Math.PI / 2 + tilt
-  const holder = add(g, new THREE.Group())
-  holder.rotation.z = Math.PI / 2
-  return { g, holder }
-}
 
 function toScene(o: THREE.Object3D, p: V3): V3 {
   const w = o.localToWorld(new THREE.Vector3(...p))
@@ -110,8 +91,8 @@ export const buoyancyLesson: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
-    const { g, holder } = rig(scene, BY.tank, BY.k, BY.tilt)
+    const { status, sub, event } = statusHeader(scene)
+    const { g, holder } = tiltRig(scene, BY.tank, BY.k, BY.tilt)
     const [sx, sy, depth] = BY.size
     waterTank(holder, BY.size)
     const rov = rovModel(holder)
@@ -155,7 +136,7 @@ export const buoyancyLesson: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = byParams(p)
         const run = byRun(q)
@@ -298,8 +279,8 @@ export const thrusterLayout: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
-    const { holder } = rig(scene, TL.rov, TL.k, TL.tilt)
+    const { status, sub, event } = statusHeader(scene)
+    const { holder } = tiltRig(scene, TL.rov, TL.k, TL.tilt)
     const pool = add(holder, new THREE.Group())
     flatBox(pool, [TL.floor, TL.floor, 0.01], glowMat('#17283a', 0.12), [0, 0, TL.floorZ])
     const tapeM = glowMat('#5f7f9a', 0.3)
@@ -326,7 +307,7 @@ export const thrusterLayout: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = tlParams(p)
         const run = tlRun(q)

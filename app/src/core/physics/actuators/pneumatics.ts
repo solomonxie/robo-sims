@@ -1,6 +1,6 @@
 // Pneumatic cylinders (F = P·A, meter-out speed, the air spring) and soft PneuNet fingers (curl vs pressure, gentle grip).
+import { G } from '../common'
 
-const G = 9.81
 export const ATM_BAR = 1.013
 /** 1 bar × 1 mm² = 0.1 N. */
 const N_PER_BAR_MM2 = 0.1

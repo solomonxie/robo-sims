@@ -6,7 +6,7 @@ import { B_FIELD, HEAT, POWER, glowMat } from './colors'
 import { Flow } from './flows'
 import { shellMat, stretchArrow } from './shapes'
 
-export const WATER_TINT = '#3a8fd0'
+const WATER_TINT = '#3a8fd0'
 const FOAM_SLOTS: V3[] = [0.08, 0.14, 0.2].flatMap((z): V3[] => [[0.1, 0, z], [-0.1, 0, z]])
 const LEAD_SLOTS: V3[] = [-0.15, -0.09, -0.03, 0.03, 0.09, 0.15, 0.21, -0.21].flatMap((x): V3[] => [[x, 0.13, 0], [x, -0.13, 0]])
 const DUCT_R = 0.045

@@ -20,6 +20,7 @@ import {
   wheelSpeeds,
   wrapPi,
 } from '../../core/physics'
+import { mmText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -47,7 +48,6 @@ import { Lesson, Params, Stage, n, opts, pick } from '../types'
 const { wheelbase: L, track: T } = ACKERMANN
 const OFF = 0.022
 const deg = (a: number) => `${Math.round(toDeg(a))}°`.replace('-', '−')
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
 const metres = (m: number) => (Number.isFinite(m) ? `${Math.abs(m).toFixed(2)} m` : '∞')
 const signed = (v: number, d = 2) => `${v < -1e-9 ? '−' : '+'}${Math.abs(v).toFixed(d)}`
 
@@ -95,7 +95,7 @@ export const steeringGeometry: Lesson = {
   formula: (p) => {
     const q = sgParams(p)
     const s = sgState(q, sgDelta(q, q.sweep ? SG.period / 2 : 0))
-    return `R = L / tan δ · Ackermann: tan δi = L / (R − T/2), tan δo = L / (R + T/2) · L ${mm(L)}, T ${mm(T)} → ${GEOS[q.geo]}: inner ${deg(Math.abs(s.angles[s.inner]))}, outer ${deg(Math.abs(s.angles[1 - s.inner]))}`
+    return `R = L / tan δ · Ackermann: tan δi = L / (R − T/2), tan δo = L / (R + T/2) · L ${mmText(L)}, T ${mmText(T)} → ${GEOS[q.geo]}: inner ${deg(Math.abs(s.angles[s.inner]))}, outer ${deg(Math.abs(s.angles[1 - s.inner]))}`
   },
   legend: [
     { color: B_FIELD, label: 'Servo, centre link, tie rods', shape: 'dot' },
@@ -268,7 +268,7 @@ export const steeringGeometry: Lesson = {
         }
         const maxSlip = Math.max(...s.slip.map(Math.abs))
         const parts = [
-          maxSlip > 0.5 * DEG ? `front tyres scrub ${deg(maxSlip)}, axle lines miss by ${mm(s.miss)}` : Math.abs(delta) > 0.5 * DEG ? 'axle lines meet at one ICC: no scrub' : '',
+          maxSlip > 0.5 * DEG ? `front tyres scrub ${deg(maxSlip)}, axle lines miss by ${mmText(s.miss)}` : Math.abs(delta) > 0.5 * DEG ? 'axle lines meet at one ICC: no scrub' : '',
           q.spool && Math.abs(delta) > 0.5 * DEG ? `locked axle: rear tyres skip ${Math.round((Math.max(...s.rearScrub) / SG.v) * 100)} %` : '',
         ].filter(Boolean)
         event.set(parts.join(' · ') || 'wheels straight: ICC at infinity', maxSlip > 0.5 * DEG || (q.spool && Math.abs(delta) > 0.5 * DEG) ? HIGH_V : RING)
@@ -282,7 +282,7 @@ export const steeringGeometry: Lesson = {
         const [ri, ro] = s.inner ? [rr, rl] : [rl, rr]
         return [
           { label: q.sweep ? 'Lock: inner · outer' : 'Inner · outer', value: `${deg(Math.abs(s.angles[s.inner]))} · ${deg(Math.abs(s.angles[1 - s.inner]))}` },
-          { label: 'Axle lines miss by', value: q.geo === 'ackermann' ? '0 mm' : mm(s.miss), tone: q.geo === 'ackermann' ? 'ok' : 'warn' },
+          { label: 'Axle lines miss by', value: q.geo === 'ackermann' ? '0 mm' : mmText(s.miss), tone: q.geo === 'ackermann' ? 'ok' : 'warn' },
           { label: 'Tightest turn · kerb', value: `${metres(m.rear)} · ${metres(m.outer)}` },
           { label: 'Rear inner · outer', value: q.spool ? '100 % · 100 %' : `${Math.round(ri * 100)} % · ${Math.round(ro * 100)} %`, tone: q.spool ? 'warn' : 'ok' },
         ]
@@ -330,7 +330,7 @@ export const bicycleModel: Lesson = {
   id: 'ackermann-steering-bicycle-model',
   title: 'Bicycle model',
   tagline: 'Two wheels, three numbers: x, y and heading',
-  formula: () => `ẋ = v cos θ · ẏ = v sin θ · θ̇ = v tan δ / L, L = ${mm(L)} · sideways speed always 0 · pure pursuit: δ = atan(2L sin α / ld)`,
+  formula: () => `ẋ = v cos θ · ẏ = v sin θ · θ̇ = v tan δ / L, L = ${mmText(L)} · sideways speed always 0 · pure pursuit: δ = atan(2L sin α / ld)`,
   legend: [
     { color: RING, label: 'Bicycle: one front, one rear wheel; its ICC', shape: 'dot' },
     { color: POWER, label: 'Path driven (rear-axle centre)', shape: 'dot' },
@@ -501,7 +501,7 @@ export const bicycleModel: Lesson = {
           status.set(word, LABEL)
         }
         if (q.mode === 'circle') event.set(Number.isFinite(bicycleRadius(q.steer, L)) ? `circle R = L / tan δ = ${metres(bicycleRadius(q.steer, L))} · sideways speed 0` : 'δ = 0: straight line, ICC at infinity', RING)
-        else if (q.mode === 'follow') event.set(`cross-track ${mm(err)} · ${Math.abs(st.delta) >= D_MAX - 1e-3 ? 'steering at full lock' : 'steering inside lock'}`, Math.abs(st.delta) >= D_MAX - 1e-3 ? HIGH_V : B_FIELD)
+        else if (q.mode === 'follow') event.set(`cross-track ${mmText(err)} · ${Math.abs(st.delta) >= D_MAX - 1e-3 ? 'steering at full lock' : 'steering inside lock'}`, Math.abs(st.delta) >= D_MAX - 1e-3 ? HIGH_V : B_FIELD)
         else event.set(moveText, moveText.startsWith('move') ? RING : moveText === 'parked' ? POWER : HIGH_V)
         const simT = q.mode === 'follow' ? st.t % BM.seconds : park ? st.t % park.cycle : st.t
         sub.set(`t ${simT.toFixed(1)} s · real time · 0.5 m tape${park ? ` · ${BM.parkV} m/s` : ''}`)
@@ -523,18 +523,18 @@ export const bicycleModel: Lesson = {
           const worst = Math.max(...lap2.map((f) => f.err))
           const sat = lap2.filter((f) => Math.abs(f.delta) >= D_MAX - 1e-3).length / lap2.length
           return [
-            { label: 'Lookahead · speed', value: `${mm(q.look)} · ${q.v.toFixed(1)} m/s` },
-            { label: 'Worst cross-track (settled)', value: mm(worst), tone: worst < 0.05 ? 'ok' : worst < 0.15 ? 'warn' : 'bad' },
+            { label: 'Lookahead · speed', value: `${mmText(q.look)} · ${q.v.toFixed(1)} m/s` },
+            { label: 'Worst cross-track (settled)', value: mmText(worst), tone: worst < 0.05 ? 'ok' : worst < 0.15 ? 'warn' : 'bad' },
             { label: 'Time at full lock', value: `${Math.round(sat * 100)} %`, tone: sat > 0.1 ? 'warn' : 'ok' },
             { label: 'Track lap', value: `${TRACK_PATH.length.toFixed(1)} m · ${(TRACK_PATH.length / q.v).toFixed(1)} s` },
           ]
         }
         const { plan } = parkSetup(q.room)
         return [
-          { label: 'Shift · min radius', value: `${mm(BM.shift)} · ${metres(R_MIN)}` },
+          { label: 'Shift · min radius', value: `${mmText(BM.shift)} · ${metres(R_MIN)}` },
           { label: 'S-moves', value: `${plan.k} (${plan.k * 2} arcs)`, tone: plan.k === 1 ? 'ok' : plan.k < 4 ? 'warn' : 'bad' },
-          { label: 'Each S: arc · fore-aft', value: `2 × ${deg(plan.phi)} · ${mm(plan.travel)}` },
-          { label: 'Shift per S', value: mm(BM.shift / plan.k) },
+          { label: 'Each S: arc · fore-aft', value: `2 × ${deg(plan.phi)} · ${mmText(plan.travel)}` },
+          { label: 'Shift per S', value: mmText(BM.shift / plan.k) },
         ]
       },
     }

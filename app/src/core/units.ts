@@ -64,6 +64,11 @@ export const dbmText = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.r
 export const pct = (f: number) => `${Math.round(f * 100)} %`
 /** Always-signed fixed-point text: +1.0, −0.5. */
 export const signed = (v: number, digits = 1) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(digits)}`
+export const mmText = (m: number) => `${Math.round(m * 1000)} mm`
+/** '+', '−' or '0' (|v| < 1e-6). */
+export const signText = (v: number) => (Math.abs(v) < 1e-6 ? '0' : v > 0 ? '+' : '−')
+/** Two decimals, signed unless ~0. */
+export const velocityText = (v: number) => `${v < -1e-6 ? '−' : v > 1e-6 ? '+' : ''}${Math.abs(v).toFixed(2)}`
 export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 /** Minutes under an hour, else hours to `digits` decimals. */
 export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)

@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   DRIVER_LIMIT_A,
+  G,
   GEARBOXES,
   GearKind,
   PTC_050,
@@ -308,7 +309,7 @@ export const torqueAndSpeedCurve: Lesson = {
         rope.position.y = yb / 2
         block.getWorldPosition(wp)
         massTag.group.position.set(wp.x + 0.6, -2.4, 1)
-        massTag.set(`${Math.round((q.loadNm / (9.81 * DRUM_M)) * 1000)} g on a 5 mm drum`, LABEL)
+        massTag.set(`${Math.round((q.loadNm / (G * DRUM_M)) * 1000)} g on a 5 mm drum`, LABEL)
         discMat.emissive.set(HEAT)
         discMat.emissiveIntensity = isW ? 0 : Math.min(0.6, q.damp * q.w * q.w * 0.8)
         shaftTag.set(stalled ? 'Load beats stall torque: no motion' : `${Math.round(q.pt.rpm)} rpm · drawn 400× slower`, stalled ? HIGH_V : GREY)

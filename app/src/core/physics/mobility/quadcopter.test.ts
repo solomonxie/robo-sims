@@ -1,6 +1,5 @@
-import { DEG } from '../common'
+import { DEG, weightN } from '../common'
 import { MIX, QUAD, QUAD0, attitudeLoop, hoverThrottle, mix, propRpm, quadBodyStep, quadWrench, rollWobble, levelTime, speedShare, thrustOf, thrustToWeight } from './quadcopter'
-import { weightN } from '../actuators/linear'
 
 const RATE = { kp: 0.002, ki: 0, kd: 0 }
 const GUST = { at: 1, dur: 0.18, torque: 0.5 }

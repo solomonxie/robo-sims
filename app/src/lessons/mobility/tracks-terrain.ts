@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   DEG,
+  G,
   Pose,
   SKID,
   SkidFrame,
@@ -13,11 +14,13 @@ import {
   slopeForces,
   softPull,
   steerLimit,
-  tankWeight,
   tipAngle,
   toDeg,
+  toRoom,
   turnMoment,
+  weightN,
 } from '../../core/physics'
+import { mmText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -47,13 +50,11 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const B = TANK.gauge
-const W = tankWeight()
+const W = weightN(TANK.massKg)
 const GROUND = Object.fromEntries(Object.entries(TERRAINS).map(([k, t]) => [k, t.name])) as Record<keyof typeof TERRAINS, string>
 const deg = (a: number) => `${Math.round(toDeg(a))}°`
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
 const newtons = (f: number) => `${f.toFixed(1)} N`
 const amps = (a: number) => `${a.toFixed(2)} A`
-const toWorld = (p: Pose, bx: number, by: number): [number, number] => [p.x + bx * Math.cos(p.th) - by * Math.sin(p.th), p.y + bx * Math.sin(p.th) + by * Math.cos(p.th)]
 
 // --- Skid steer: tracks slide sideways to turn; moment μt W L/4 against the outer track's grip through B; current spikes, scuffs, the turn centre moves. ---
 
@@ -192,7 +193,7 @@ export const skidSteer: Lesson = {
           [-L / 2, -B / 2],
         ]
         const endPoses = corners.map(([bx, by]) => {
-          const [x, y] = toWorld(f.pose, bx, by)
+          const [x, y] = toRoom(f.pose, bx, by)
           return { x, y, th: 0 }
         })
         const u = Math.min(1, f.scuff / 0.15)
@@ -205,23 +206,23 @@ export const skidSteer: Lesson = {
         const FK = 0.03
         f.force.forEach((F, i) => {
           const by = (i ? -1 : 1) * (B / 2 + 0.035)
-          const a = toWorld(f.pose, 0, by)
-          const b = toWorld(f.pose, F * FK, by)
+          const a = toRoom(f.pose, 0, by)
+          const b = toRoom(f.pose, F * FK, by)
           thrust[i]([a[0], a[1], z], [b[0], b[1], z])
         })
         corners.forEach(([bx, by], i) => {
           const dir = f.turning && !f.stuck ? (bx > 0 ? -1 : 1) * Math.sign(f.w) : 0
           const len = dir * Math.min(0.12, f.scuff * 0.6)
-          const a = toWorld(f.pose, bx, by)
-          const b = toWorld(f.pose, bx, by + len)
+          const a = toRoom(f.pose, bx, by)
+          const b = toRoom(f.pose, bx, by + len)
           side[i]([a[0], a[1], 0.02], [b[0], b[1], 0.02])
         })
         const pts: [number, number, string][] = []
         if (f.turning && !f.stuck && Math.abs(f.w) > 1e-6) {
-          const real = toWorld(f.pose, f.s0, (f.ground[0] + f.ground[1]) / 2 / f.w)
-          const cmd = toWorld(f.pose, 0, q.radius)
+          const real = toRoom(f.pose, f.s0, (f.ground[0] + f.ground[1]) / 2 / f.w)
+          const cmd = toRoom(f.pose, 0, q.radius)
           pts.push([...real, RING], [...cmd, GREY])
-          stretchRod(iccRod, [...toWorld(f.pose, 0, 0), 0.01] as V3, [...real, 0.01] as V3, 0.003)
+          stretchRod(iccRod, [...toRoom(f.pose, 0, 0), 0.01] as V3, [...real, 0.01] as V3, 0.003)
           iccRod.visible = true
         } else iccRod.visible = false
         pts.forEach(([x, y, c], i) => marks.set(i, [x, y, 0.012], c))
@@ -236,11 +237,11 @@ export const skidSteer: Lesson = {
         })
         now.show(2)
 
-        status.set(`${q.t.name} · L/B ${q.ratio.toFixed(1)} · ${f.turning ? (q.radius ? `turning, R ${mm(q.radius)}` : 'pivot turn') : 'straight'}`, LABEL)
+        status.set(`${q.t.name} · L/B ${q.ratio.toFixed(1)} · ${f.turning ? (q.radius ? `turning, R ${mmText(q.radius)}` : 'pivot turn') : 'straight'}`, LABEL)
         const realR = Math.abs(f.w) > 1e-6 ? Math.abs((f.ground[0] + f.ground[1]) / 2 / f.w) : Infinity
         if (f.stuck) event.set(`L/B ${q.ratio.toFixed(1)} > ${steerLimit(q.t).toFixed(2)}: outer track out of grip, both tracks spin`, HIGH_V)
         else if (f.turning)
-          event.set(`tracks scrape ${(f.scuff * 1000).toFixed(0)} mm/s sideways · real R ${mm(realR)} vs ${mm(q.radius)} · pivot ${mm(f.s0)} ahead`, HEAT)
+          event.set(`tracks scrape ${(f.scuff * 1000).toFixed(0)} mm/s sideways · real R ${mmText(realR)} vs ${mmText(q.radius)} · pivot ${mmText(f.s0)} ahead`, HEAT)
         else event.set('straight: tracks roll, no sideways scrape', POWER)
         sub.set(`${st.t.toFixed(1)} / ${SKID.seconds} s · outer belt ${SKID.v} m/s · real time · 0.5 m tape`)
       },
@@ -252,7 +253,7 @@ export const skidSteer: Lesson = {
           { label: 'L/B · limit', value: `${q.ratio.toFixed(1)} · ${lim.toFixed(2)}`, tone: q.ratio <= lim ? 'ok' : 'bad' },
           { label: 'Turning moment', value: `${turnMoment(q.t.muT, W, q.ratio * B).toFixed(2)} N·m` },
           { label: 'Current straight · turn', value: `${amps(Math.max(...s.straight.amps))} · ${amps(Math.max(...s.steady.amps))}`, tone: s.stuck ? 'bad' : 'warn' },
-          { label: 'Turn radius set · real', value: s.stuck ? 'no turn' : `${mm(q.radius)} · ${mm(s.realR)}`, tone: s.stuck ? 'bad' : 'ok' },
+          { label: 'Turn radius set · real', value: s.stuck ? 'no turn' : `${mmText(q.radius)} · ${mmText(s.realR)}`, tone: s.stuck ? 'bad' : 'ok' },
         ]
       },
     }
@@ -291,7 +292,7 @@ export const tractionLesson: Lesson = {
     const q = trParams(p)
     return q.soft
       ? `F ≤ μ·N (smooth) or A·c + N·tan φ (grousers) · p = W/A · sinkage z = (p / (kc/b + kφ))^(1/n) · pull = F − rut drag`
-      : `need W·sin θ + f·W·cos θ ≤ thrust on W·cos θ · tips when θ > atan((L/2)/h) = atan(${mm(TANK.contact / 2)} / ${mm(q.comH)}) = ${deg(tipAngle(TANK.contact, q.comH))}`
+      : `need W·sin θ + f·W·cos θ ≤ thrust on W·cos θ · tips when θ > atan((L/2)/h) = atan(${mmText(TANK.contact / 2)} / ${mmText(q.comH)}) = ${deg(tipAngle(TANK.contact, q.comH))}`
   },
   legend: (p) =>
     trParams(p).soft
@@ -423,8 +424,8 @@ export const tractionLesson: Lesson = {
             const FK = 0.012
             l.fwd([x + half + 0.03, -B / 2 - 0.04, zA], [x + half + 0.03 + s.thrust * FK, -B / 2 - 0.04, zA])
             l.back([x - half - 0.03, -B / 2 - 0.04, zA], [x - half - 0.03 - s.drag * FK, -B / 2 - 0.04, zA])
-            l.tag.set(`${l.gear === 'track' ? 'Tracks' : '4 wheels'}: ` + (s.stuck ? (s.bellied ? `bellied out in ${mm(s.sink)}: stuck` : 'drag beats thrust: stuck') : `pulls ${newtons(s.pull)} spare, slip ${Math.round(s.slip * 100)} %`), s.stuck ? HIGH_V : POWER)
-            l.tag2.set(`${s.pressureKpa.toFixed(1)} kPa on ${Math.round(s.areaM2 * 1e4)} cm² · sinks ${mm(s.sink)} · thrust ${newtons(s.thrust)} · drag ${newtons(s.drag)}`)
+            l.tag.set(`${l.gear === 'track' ? 'Tracks' : '4 wheels'}: ` + (s.stuck ? (s.bellied ? `bellied out in ${mmText(s.sink)}: stuck` : 'drag beats thrust: stuck') : `pulls ${newtons(s.pull)} spare, slip ${Math.round(s.slip * 100)} %`), s.stuck ? HIGH_V : POWER)
+            l.tag2.set(`${s.pressureKpa.toFixed(1)} kPa on ${Math.round(s.areaM2 * 1e4)} cm² · sinks ${mmText(s.sink)} · thrust ${newtons(s.thrust)} · drag ${newtons(s.drag)}`)
           })
           const tr = softPull(q.t, 'track', q.grousers)
           const wh = softPull(q.t, 'wheels', q.grousers)
@@ -442,11 +443,11 @@ export const tractionLesson: Lesson = {
         const T0 = 1
         let word: string
         if (s.tips && cycle > T0) {
-          st.fallV += (9.81 / Math.max(0.05, q.comH)) * Math.sin(q.slope - s.tip + st.fall) * dt * 0.5
+          st.fallV += (G / Math.max(0.05, q.comH)) * Math.sin(q.slope - s.tip + st.fall) * dt * 0.5
           st.fall = Math.min(Math.PI / 2 + 0.3, st.fall + st.fallV * dt)
           word = 'tips over backwards'
         } else if (!s.holds && cycle > T0) {
-          const a = (9.81 * (s.need - s.have)) / W
+          const a = (G * (s.need - s.have)) / W
           st.x = Math.max(TR.ramp[0] + 0.1, st.x - Math.min(0.15, a * (cycle - T0)) * dt)
           word = 'tracks spin, slides back'
         } else {
@@ -488,7 +489,7 @@ export const tractionLesson: Lesson = {
           status.set(`${q.t.name} · ${deg(q.slope)} slope · ${word}`, LABEL)
         }
         event.set(
-          s.tips ? `CoM ${mm(q.comH)} high: plumb line falls behind the rear edge past ${deg(s.tip)}` : s.holds ? `needs ${newtons(s.need)} of ${newtons(s.have)} grip · slip ${Math.round(s.slip * 100)} %` : `needs ${newtons(s.need)}, ground gives ${newtons(s.have)}: limit ${deg(s.limit)}`,
+          s.tips ? `CoM ${mmText(q.comH)} high: plumb line falls behind the rear edge past ${deg(s.tip)}` : s.holds ? `needs ${newtons(s.need)} of ${newtons(s.have)} grip · slip ${Math.round(s.slip * 100)} %` : `needs ${newtons(s.need)}, ground gives ${newtons(s.have)}: limit ${deg(s.limit)}`,
           s.tips || !s.holds ? HIGH_V : POWER,
         )
         sub.set(`${cycle.toFixed(1)} / ${TR.period} s · belt ${TR.v} m/s · real time`)
@@ -500,7 +501,7 @@ export const tractionLesson: Lesson = {
           const wh = softPull(q.t, 'wheels', q.grousers)
           return [
             { label: 'Pressure tracks · wheels', value: `${tr.pressureKpa.toFixed(1)} · ${wh.pressureKpa.toFixed(1)} kPa` },
-            { label: 'Sinkage tracks · wheels', value: `${mm(tr.sink)} · ${mm(wh.sink)}`, tone: wh.bellied ? 'bad' : 'ok' },
+            { label: 'Sinkage tracks · wheels', value: `${mmText(tr.sink)} · ${mmText(wh.sink)}`, tone: wh.bellied ? 'bad' : 'ok' },
             { label: 'Spare pull tracks · wheels', value: `${tr.stuck ? 'stuck' : newtons(tr.pull)} · ${wh.stuck ? 'stuck' : newtons(wh.pull)}`, tone: tr.stuck || wh.stuck ? 'bad' : 'ok' },
             { label: 'Peak thrust (tracks)', value: newtons(tr.thrust) },
           ]

@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu'
 import { BIPED, Pose, Walker } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { GREY, POWER, glowMat, setGlow } from './colors'
+import { placeAt } from './drive'
 import { addLabel } from './text'
 
 const SERVO = '#2a5bd7'
@@ -54,8 +55,7 @@ export function servoWalker(parent: THREE.Object3D, w: Walker, { names = true } 
     group,
     body,
     set(p: Pose, angles: { yaw: number; hip: number; knee: number }[], down: boolean[]) {
-      group.position.set(p.x, p.y, 0)
-      group.rotation.z = p.th
+      placeAt(group, p)
       legs.forEach((l, i) => {
         const a = angles[i]
         l.mount.rotation.z = l.yaw0 + a.yaw

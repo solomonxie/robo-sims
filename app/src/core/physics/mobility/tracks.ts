@@ -1,14 +1,11 @@
 // Tracks & terrain: skid-steer turning resistance, track slip (Janosi), motor current in turns; ground pressure, Bekker sinkage, soil thrust, slope climb and tip-over.
 import { DRIVES, ampsAt } from '../actuators/sizing'
-import { clamp } from '../common'
+import { G, clamp, weightN } from '../common'
 import { Pose } from '../room'
 import { twistStep } from './mecanum'
 
-const G = 9.81
-
 /** Small tracked chassis (m, kg): contact length L, gauge B (track centres), belt width, sprocket radius, CoM height, belly clearance; the 4WD twin has 65 mm wheels. */
 export const TANK = { massKg: 2, contact: 0.2, gauge: 0.17, belt: 0.04, sprocketR: 0.03, comH: 0.07, clearance: 0.035, wheelD: 0.065, wheelB: 0.026, wheelClear: 0.022, drive: DRIVES.g37 }
-export const tankWeight = () => TANK.massKg * G
 
 /** Ground: rubber μ and sideways μt, rolling coefficient, Janosi shear modulus K (m), cohesion c (kPa), friction angle φ, Bekker n, kc, kφ (kN; kφ = ∞ → rigid). */
 export interface Terrain {
@@ -35,16 +32,16 @@ const rigid = (t: Terrain) => !Number.isFinite(t.kphi)
 // --- Skid steer: both tracks slide sideways about a pivot; the outer one must push the turning moment through B. ---
 
 /** Sideways friction moment of a track pair (uniform pressure over L) pivoting s0 ahead of centre: μt W (L² + 4 s0²) / 4L. */
-export const turnMoment = (muT: number, weightN: number, L: number, s0 = 0) => (muT * weightN * (L * L + 4 * s0 * s0)) / (4 * L)
+export const turnMoment = (muT: number, weight: number, L: number, s0 = 0) => (muT * weight * (L * L + 4 * s0 * s0)) / (4 * L)
 /** Longest track for its gauge that still turns: L/B ≤ 2(μ − f)/μt. */
 export const steerLimit = (t: Terrain) => (2 * (t.mu - t.roll)) / t.muT
 /** Pivot shift ahead of centre that balances centripetal force a·m with sideways friction: s0 = (L/2)·a/(μt g). */
 export const pivotShift = (aLat: number, muT: number, L: number) => clamp(((L / 2) * Math.abs(aLat)) / (muT * G), 0, L / 2)
 /** Outer and inner track thrust (N) for a steady turn, and each track's grip limit. */
-export function trackForces(t: Terrain, weightN: number, L: number, B: number, s0 = 0) {
-  const roll = (t.roll * weightN) / 2
-  const d = turnMoment(t.muT, weightN, L, s0) / B
-  return { outer: roll + d, inner: roll - d, limit: (t.mu * weightN) / 2 }
+export function trackForces(t: Terrain, weight: number, L: number, B: number, s0 = 0) {
+  const roll = (t.roll * weight) / 2
+  const d = turnMoment(t.muT, weight, L, s0) / B
+  return { outer: roll + d, inner: roll - d, limit: (t.mu * weight) / 2 }
 }
 
 /** Janosi–Hanamoto: share of peak thrust a track of length L builds at slip i (shear modulus K). */
@@ -87,7 +84,7 @@ export interface SkidFrame {
 export function skidRun(t: Terrain, ratio: number, radius: number): SkidFrame[] {
   const B = TANK.gauge
   const L = ratio * B
-  const W = tankWeight()
+  const W = weightN(TANK.massKg)
   const { v, dt, every, seconds } = SKID
   const amps = (f: number) => ampsAt(TANK.drive, Math.abs(f) * TANK.sprocketR)
   const frames: SkidFrame[] = []
@@ -131,7 +128,7 @@ export const plateSink = (t: Terrain, pKpa: number, b: number) => (rigid(t) ? 0 
 export const wheelSink = (t: Terrain, wheelN: number, b: number, D: number) =>
   rigid(t) ? 0 : ((3 * wheelN) / 1000 / ((3 - t.n) * (t.kc + b * t.kphi) * Math.sqrt(D))) ** (2 / (2 * t.n + 1))
 /** Compaction drag of one rut (N): b (kc/b + kφ) z^(n+1) / (n+1). */
-export const rutDrag = (t: Terrain, b: number, z: number) => (rigid(t) ? 0 : (1000 * b * (t.kc / b + t.kphi) * z ** (t.n + 1)) / (t.n + 1))
+const rutDrag = (t: Terrain, b: number, z: number) => (rigid(t) ? 0 : (1000 * b * (t.kc / b + t.kphi) * z ** (t.n + 1)) / (t.n + 1))
 /** Peak thrust (N) on a normal load: grousers shear the soil (A·c + N tan φ); smooth pads slide on top (μN, never above the soil's shear). */
 export function peakThrust(t: Terrain, normalN: number, areaM2: number, grousers: boolean) {
   const rub = t.mu * normalN
@@ -154,7 +151,7 @@ export interface SoftPull {
 }
 /** Same 2 kg robot on tracks or four wheels driving through ground: contact patch, pressure, sinkage, drag, thrust left over (drawbar pull), slip. */
 export function softPull(t: Terrain, gear: RunGear, grousers: boolean): SoftPull {
-  const W = tankWeight()
+  const W = weightN(TANK.massKg)
   const { contact: L, belt, wheelD: D, wheelB: b } = TANK
   let areaM2: number
   let sink: number
@@ -180,7 +177,7 @@ export function softPull(t: Terrain, gear: RunGear, grousers: boolean): SoftPull
 export const tipAngle = (L: number, h: number) => Math.atan2(L / 2, h)
 /** Thrust needed and available on a slope θ (tracks): W sin θ + f W cos θ against the peak thrust on W cos θ. */
 export function slopeForces(t: Terrain, theta: number, grousers: boolean, L = TANK.contact) {
-  const W = tankWeight()
+  const W = weightN(TANK.massKg)
   const need = W * Math.sin(theta) + t.roll * W * Math.cos(theta)
   const have = peakThrust(t, W * Math.cos(theta), 2 * TANK.belt * L, grousers)
   return { need, have, holds: have >= need }

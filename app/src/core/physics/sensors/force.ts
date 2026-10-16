@@ -1,9 +1,7 @@
 // Force & touch: bar load cell strain, foil gauge ΔR, Wheatstone bridge, HX711 counts with tare and calibration; ESP32 touch pad charge timing, finger and water capacitance, threshold + hysteresis.
-import { gaussAt } from '../common'
+import { G, gaussAt } from '../common'
 import { solveNodal } from '../../nodal'
 import { EPSILON_0 } from '../electromagnetism'
-
-const G = 9.81
 
 /** 1 kg aluminium bar load cell, reduced to the thin web (1.6 mm) under the gauges, 20 mm from the load; 1 kΩ foil gauges, GF 2. */
 export const LOAD_CELL = { E: 69e9, width: 12.7e-3, thick: 1.6e-3, arm: 0.02, ratedKg: 1, ohms: 1000, gf: 2, zeroOhms: 0.12 }

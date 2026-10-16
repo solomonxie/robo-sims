@@ -1,4 +1,5 @@
 // Fourier series of classic waves, a small DFT, and sampling: every periodic signal is a sum of sines.
+import { frac } from '../common'
 
 export type Periodic = 'square' | 'saw' | 'triangle'
 
@@ -7,8 +8,6 @@ export interface Harmonic {
   k: number
   amp: number
 }
-
-const frac = (x: number) => x - Math.floor(x)
 
 /** The ideal wave, ±1 peak: square high for the first half, saw ramping −1 → 1 through 0 at cycle 0, triangle like a sine. */
 export function periodicAt(shape: Periodic, cycles: number) {

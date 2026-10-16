@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `msText`, `pct`, `bytesText`, `signed`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
+- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `msText`, `mmText`, `pct`, `bytesText`, `signed`, `signText`, `velocityText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -37,10 +37,14 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`], `gantt` (per-tick rows, `rebuild`/`show(now)`), `simClock` (looping time-lapse clock), `moduleBlock` (glowing node/code slab), `btDiagram` (behaviour tree lit by status) [`software/btree`].
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines; `rosTint` + `ROS_CODE_LEGEND` for rclpy/rclcpp/CLI), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
 - `frames` — `frameTriad` (RGB axes), `setTf` (4×4 onto an object), `urdfModel` (links from a parsed URDF, `pose(q)`) [`physics/software/urdf`].
-- `wheeled` — `diffBot` (top-view TT two-wheeler in metres, `set(pose, dL, dR)`, `slip(l, r)`, `ghost` outline for estimates), `mecanumBot` (four 60 mm mecanum wheels, `set(pose, travel[4])`, `layout`, `slip`), `mecanumWheel`, `omniWheel`/`omniBot` (kiwi/X, `set(pose, travel, side)`), `swerveBot` (FRC, `set(pose, angles, travel)`, `glow`), `rcCar` (1/10 Ackermann car, servo linkage, `set(pose, [l, r], travel[4])`, `arms(beta)`, `scrub`), `trackedBot` (sprockets, idlers, moving links; `wheels` = 4WD twin; `set(pose, l, r)`, `body` for sink/pitch, `scuff`, `spin`), `balanceBot` (side-view ESP32 + MPU-6050 self-balancer, `set(tilt, roll)`, `balanceBotHeight`) [`physics/mobility`].
-- `aerial` — `quadcopter` (5" X quad, `pose(roll, pitch, yaw)`, `set(spin, share, clipped)` props + thrust arrows), `spinArc` (curved arrow), `SPIN_COLORS` [`physics/mobility/quadcopter`].
-- `marine` — `rovModel` (BlueROV2-style, `trim(foam, lead, foamLow)`, `set(spin, share)` thruster arrows, `wake` bubbles), `waterTank` [`physics/mobility/underwater`].
-- `legged` — `servoWalker` (hexapod/quadruped, 3 SG90s per leg, `set(pose, angles, down)`), `servoBiped` (`set(lean, tip)` rolls over toe/heel) [`physics/mobility/legged`].
+- `wheeled` — `diffBot` (TT two-wheeler, `set(pose, dL, dR)`, `slip`, `ghost`), `rcCar` (1/10 Ackermann, `set(pose, steer, travel)`, `arms`, `scrub`), `balanceBot` (side-view self-balancer, `set(tilt, roll)`), `slipPatch`/`lightPatches` [`physics/mobility`].
+- `holonomic` — `mecanumBot`/`mecanumWheel`, `omniBot` (kiwi/X), `swerveBot` (FRC; `glow`); all `set(pose, …)`.
+- `tracked` — `trackedBot` (sprockets, moving links; `wheels` = 4WD twin; `body`, `scuff`, `spin`).
+- `drive` — `placeAt` (object ← Pose), `inField`, stick tours (`TOUR_MODES`, `TourSeg`, `tourAt`, `tourLength`).
+- `rigs` — side-view time-lapse: `SIDE_VIEW`, `SIDE_SCOPE`, `statusHeader`, `tiltRig`, `scopeLabels`, `traceRun` (fixed-step run → scope trace).
+- `aerial` — `quadcopter` (`pose`, `set(spin, share, clipped)`), `spinArc`, `SPIN_COLORS`.
+- `marine` — `rovModel` (`trim`, `set(spin, share)`, `wake`), `waterTank`.
+- `legged` — `servoWalker` (hexapod/quadruped, `set(pose, angles, down)`), `servoBiped` (`set(lean, tip)`).
 - `net` — `phoneModel`, `routerModel`, `robotCar` (ESP32 on the flank), `stickPhone` (thumbstick, `stick(x, y)`), `ripples`, `arcAt`, `packetPool` (header + payload blocks in flight), `topicPipe` (named ROS topic, `at(u)`) [`physics/mcu/wireless`, `physics/software`].
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
@@ -51,10 +55,10 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
 - `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
-- `mobility/` — diffdrive (`diffForward`/`diffInverse`, `turnRadius`, `iccOf`, exact `diffStep`, UMBmark `squareRun`, `slipRun`, `FLOORS`), mecanum (`mecInverse`/`mecForward`, `mecForceSum`, `mecScale`, `twistStep`, `mecRun`, `fitTwist`), omni (`omniInverse`/`omniForward`, `holoTopSpeed`), swerve (`swerveStates`, `swerveOptimize`, `swerveTick`, `swerveFit`), ackermann (`steerAngles`, `axleHits`, `frontSlip`, `minTurn`, `wheelSpeeds`, `bicycleStep`, `pursuitRun`, `polyPath`, `parkPlan`), tracks (`TANK`, `TERRAINS`, `turnMoment`, `steerLimit`, Janosi `slipFor`, `skidRun`, Bekker `plateSink`/`wheelSink`, `peakThrust`, `softPull`, `tipAngle`, `climbLimit`), legged (`GAITS`, `legPhase`, `footPath`, `gaitFeet`, `supportHull`/`hullMargin`, `legIK`/`legFK`/`legAngles`, `zmpX`, `zmpRun`), balance (cart-pole `cartStep`, `torqueLimit` (back-EMF), discrete `pidStep`, cascaded `balanceLoop`, `fallTime`, `comOffset`), quadcopter (`mix`/`MIX`, `quadWrench`, `quadBodyStep`, `hoverThrottle`, `thrustToWeight`, cascaded `attitudeLoop`, airmode `mix(d, true)`), underwater (`rovTrim`, `leadForTrim`, `rightingMoment`, `buoyRun`, `pressureAt`, allocation `GEOMETRY`/`ALLOC` via `pseudoInverse`, `allocate`, `T200`, `topSpeed`, `rovRun`).
+- `mobility/` — diffdrive (`diffStep`, `squareRun`, `slipRun`), mecanum (`mecInverse`/`mecForward`, `twistStep`, `fitTwist`, `mecRun`), omni, swerve, ackermann (`steerAngles`, `bicycleStep`, `pursuitRun`, `parkPlan`), tracks (`TERRAINS`, `skidRun`, Bekker sinkage, `softPull`), legged (`GAITS`, `gaitFeet`, `legIK`, `zmpRun`), balance (`cartStep`, `pidStep`, `balanceLoop`), quadcopter (`mix`, `quadBodyStep`, `attitudeLoop`), underwater (`rovTrim`, `buoyRun`, `allocate`, `rovRun`).
 - `actuators/` — dcmotor, hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
-- `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
+- `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
@@ -78,16 +82,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 ### Wave 5 — Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
 - Actuators ✓ 11/11
-- Mobility:
-  - [x] Differential drive
-  - [x] Mecanum wheels
-  - [x] Omni & swerve
-  - [x] Ackermann steering
-  - [x] Tracks & terrain
-  - [x] Legged walking
-  - [x] Balancing robots
-  - [x] Drones & flight
-  - [x] Underwater & swimming
+- Mobility ✓ 9/9
 - Control:
   - [ ] Open vs closed loop
   - [ ] Bang-bang & hysteresis

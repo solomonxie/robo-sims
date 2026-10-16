@@ -1,4 +1,4 @@
-import { DEG } from '../common'
+import { DEG, weightN } from '../common'
 import {
   SKID,
   TANK,
@@ -14,7 +14,6 @@ import {
   slopeForces,
   softPull,
   steerLimit,
-  tankWeight,
   tipAngle,
   trackForces,
   turnMoment,
@@ -22,7 +21,7 @@ import {
 } from './tracks'
 
 const { concrete, sand, mud } = TERRAINS
-const W = tankWeight()
+const W = weightN(TANK.massKg)
 
 describe('skid steer', () => {
   it('turning moment grows with L and with a shifted pivot', () => {

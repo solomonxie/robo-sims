@@ -1,3 +1,4 @@
+import { weightN } from '../common'
 import {
   ACTUATOR_12V,
   AXIS,
@@ -22,7 +23,6 @@ import {
   stepperThrustN,
   stepsPerMm,
   thrustN,
-  weightN,
 } from './linear'
 
 describe('lead screw', () => {

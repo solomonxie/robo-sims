@@ -1,6 +1,6 @@
 // Peristaltic (positive displacement) vs centrifugal pumps: volume per rev, pulsation, dosing, priming.
+import { G } from '../common'
 
-const G = 9.81
 export const WATER_KG_M3 = 1000
 export const AIR_KG_M3 = 1.2
 

@@ -1,7 +1,6 @@
 // Legged walking: gait phases (duty factor, stance/swing foot path), support polygon and static margin; ZMP of a cart-table biped with foot roll-over; 2-link leg IK.
-import { clamp } from '../common'
+import { G, clamp, frac } from '../common'
 
-const G = 9.81
 type P2 = [number, number]
 
 /** SG90 servo walker (m): coxa/femur/tibia links, body height, foot reach from the hip, hip mounts [x, y, yaw]. Leg order: left front → back, then right. */
@@ -52,8 +51,6 @@ export const GAITS = {
 } satisfies Record<string, Gait>
 export const walkerOf = (g: Gait): Walker => (g.body === 'hexapod' ? HEXAPOD : QUADRUPED)
 
-const frac = (x: number) => x - Math.floor(x)
-
 /** Leg i at cycle fraction s: swinging or on the ground, with progress u 0…1 through that phase. */
 export function legPhase(g: Gait, i: number, s: number) {
   const rel = frac(s - g.lift[i])
@@ -71,7 +68,7 @@ export function footPath(swing: boolean, u: number, stride: number, lift: number
 export const gaitSpeed = (stride: number, period: number, duty: number) => stride / (duty * period)
 
 /** Foot home under hip mount (body frame, on the ground). */
-export const footHome = (w: Walker, i: number): P2 => {
+const footHome = (w: Walker, i: number): P2 => {
   const [x, y, yaw] = w.mounts[i]
   return [x + w.reach * Math.cos(yaw), y + w.reach * Math.sin(yaw)]
 }

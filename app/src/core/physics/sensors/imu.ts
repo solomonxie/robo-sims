@@ -1,8 +1,6 @@
 // IMU: MEMS accelerometer proof mass, Coriolis gyro, complementary filter, gyro bias drift.
-import { DEG, gaussAt } from '../common'
+import { DEG, G, gaussAt } from '../common'
 import { Vec3 } from '../../fields'
-
-const G = 9.81
 
 // --- Accelerometer: the proof mass feels specific force (acceleration minus gravity), in g. ---
 

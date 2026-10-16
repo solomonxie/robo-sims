@@ -1,4 +1,5 @@
 // DC motor: back-EMF, torque–speed, stall heating, gearbox on a robot.
+import { G } from '../common'
 
 export interface DcMotor {
   /** Winding resistance (Ω), current drawn spinning free (A), and back-EMF per rpm of the output shaft (V/rpm). */
@@ -150,7 +151,6 @@ export function stallRun(volts: number, guard: StallGuard, seconds = 90, dt = 0.
 
 /** Small 2WD car: mass, wheel radius, rolling resistance, driven wheels. */
 export const TT_CAR = { massKg: 0.8, wheelM: 0.0325, crr: 0.04, driven: 2 }
-const G = 9.81
 
 /** One driven wheel on a slope of `slopeRad`: motor speed and current, wheel rpm, car speed and the pull it needs/can give. */
 export function wheelDrive(volts: number, g: Gearbox, slopeRad: number, m: DcMotor = TT_MOTOR) {

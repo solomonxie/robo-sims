@@ -16,7 +16,7 @@ import {
   toDeg,
   torqueLimit,
 } from '../../core/physics'
-import { msText, pct } from '../../core/units'
+import { mmText, msText, pct } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -28,6 +28,8 @@ import {
   LABEL,
   POWER,
   RING,
+  SIDE_SCOPE,
+  SIDE_VIEW,
   addLabel,
   balanceBot,
   balanceBotHeight,
@@ -39,28 +41,20 @@ import {
   moduleBlock,
   pointCloud,
   scope,
+  scopeLabels,
   smoothstep,
+  statusHeader,
   stretchArrow,
+  traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const deg = (a: number, digits = 0) => `${toDeg(a).toFixed(digits)}°`
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
 const R = BALANCER.wheelR
 const NONE: Gains = { kp: 0, ki: 0, kd: 0 }
 const TILT: Gains = { kp: 0.05, ki: 0, kd: 0.003 }
 const SPEED: Gains = { kp: 5, ki: 2, kd: 0 }
 const at = (run: BalanceFrame[], t: number) => fixedStepAt(run, t, BALANCER.dt)
-const VIEW = { center: [-2.2, -0.4, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
-const SCOPE = { x: 6.4, w: 10.5 }
-
-function header(scene: THREE.Object3D) {
-  return {
-    status: liveLabel(scene, [-17, 6.6, 0.3], { size: 0.42, align: 'left' }),
-    sub: liveLabel(scene, [-17, 5.7, 0.3], { size: 0.3, color: GREY, align: 'left' }),
-    event: liveLabel(scene, [-17, 4.9, 0.3], { size: 0.32, align: 'left' }),
-  }
-}
 
 /** Side view in metres: x forward (screen right), z up, −y toward the viewer; a floor whose 0.1 m tape scrolls under a robot that stays put. */
 function sideRig(parent: THREE.Object3D, origin: V3, k: number, half: number) {
@@ -80,26 +74,6 @@ function sideRig(parent: THREE.Object3D, origin: V3, k: number, half: number) {
 }
 /** Point `up` metres along the body axis above the axle, leaning `tilt`, at depth `y`. */
 const onBody = (tilt: number, up: number, y = -0.1, along = 0): V3 => [up * Math.sin(tilt) + along * Math.cos(tilt), y, R + up * Math.cos(tilt) - along * Math.sin(tilt)]
-
-function plotLabels(scene: THREE.Object3D, y: number, h: number, seconds: number | null, left: string, right?: string) {
-  if (left) addLabel(scene, left, [SCOPE.x - SCOPE.w / 2, y + h / 2 + 1.1, 0.3], LABEL, 0.3, 'left')
-  if (right) addLabel(scene, right, [SCOPE.x + SCOPE.w / 2, y + h / 2 + 1.1, 0.3], LABEL, 0.3, 'right')
-  if (seconds === null) return
-  addLabel(scene, '0', [SCOPE.x - SCOPE.w / 2, y - h / 2 - 1.1, 0.3], GREY, 0.26, 'left')
-  addLabel(scene, `${seconds} s`, [SCOPE.x + SCOPE.w / 2, y - h / 2 - 1.1, 0.3], GREY, 0.26, 'right')
-}
-/** Draws `value(frame)` (scene units from the centre) from 0 to `now`. */
-function plotRun(tr: ReturnType<ReturnType<typeof scope>['trace']>, run: BalanceFrame[], seconds: number, now: number, value: (f: BalanceFrame) => number, samples = 200) {
-  const k = Math.max(2, Math.round((Math.min(now, seconds) / seconds) * (samples - 1)) + 1)
-  const us: number[] = []
-  const ys: number[] = []
-  for (let i = 0; i < k; i++) {
-    const u = i / (samples - 1)
-    us.push(u)
-    ys.push(value(at(run, u * seconds)))
-  }
-  tr.points(us, ys)
-}
 
 // --- Why it falls: inverted pendulum on wheels; gravity torque grows with tilt, fall time ∝ √h, wheels driving under the CoM. ---
 
@@ -126,7 +100,7 @@ export const whyItFalls: Lesson = {
   tagline: 'An inverted pendulum: the more it leans, the harder gravity pulls',
   formula: (p) => {
     const q = wfParams(p)
-    return `θ̈ = (g·sinθ − a·cosθ) / h · τ = √(h/g) = √(${mm(q.h)} / 9.81) = ${msText(fallTau(q.h))} · ${deg(q.th0)} → 30° in τ·acosh(30°/θ₀) = ${msText(fallTime(q.th0, 30 * DEG, q.h))}`
+    return `θ̈ = (g·sinθ − a·cosθ) / h · τ = √(h/g) = √(${mmText(q.h)} / 9.81) = ${msText(fallTau(q.h))} · ${deg(q.th0)} → 30° in τ·acosh(30°/θ₀) = ${msText(fallTime(q.th0, 30 * DEG, q.h))}`
   },
   legend: [
     { color: RING, label: 'Centre of mass and its tilt (scope)', shape: 'dot' },
@@ -147,15 +121,15 @@ export const whyItFalls: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
+    const { status, sub, event } = statusHeader(scene)
     const holder = add(scene, new THREE.Group())
 
-    const plot = scope(scene, SCOPE.w, WF.sh, { divs: [6, 8], zeroAt: 0.25 })
-    plot.group.position.set(SCOPE.x, WF.sy, 0)
+    const plot = scope(scene, SIDE_SCOPE.w, WF.sh, { divs: [6, 8], zeroAt: 0.25 })
+    plot.group.position.set(SIDE_SCOPE.x, WF.sy, 0)
     const tr = plot.trace(RING, { samples: 200 })
     const short = plot.trace(GREY, { samples: 200, radius: 0.09 })
-    addLabel(scene, '0', [SCOPE.x - SCOPE.w / 2, WF.sy - WF.sh / 2 - 1.1, 0.3], GREY, 0.26, 'left')
-    const tags = [liveLabel(scene, [SCOPE.x + SCOPE.w / 2, WF.sy - WF.sh / 2 - 1.1, 0.3], { size: 0.26, color: GREY, align: 'right' }), liveLabel(scene, [SCOPE.x - SCOPE.w / 2, WF.sy + WF.sh / 2 + 1.1, 0.3], { size: 0.3, align: 'left' })]
+    addLabel(scene, '0', [SIDE_SCOPE.x - SIDE_SCOPE.w / 2, WF.sy - WF.sh / 2 - 1.1, 0.3], GREY, 0.26, 'left')
+    const tags = [liveLabel(scene, [SIDE_SCOPE.x + SIDE_SCOPE.w / 2, WF.sy - WF.sh / 2 - 1.1, 0.3], { size: 0.26, color: GREY, align: 'right' }), liveLabel(scene, [SIDE_SCOPE.x - SIDE_SCOPE.w / 2, WF.sy + WF.sh / 2 + 1.1, 0.3], { size: 0.3, align: 'left' })]
 
     let rig: ReturnType<typeof makeRig> | null = null
     function makeRig(h: number) {
@@ -173,7 +147,7 @@ export const whyItFalls: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = wfParams(p)
         const run = wfRun(q)
@@ -184,7 +158,7 @@ export const whyItFalls: Lesson = {
         if (wfKey(q) !== st.key) {
           st.key = wfKey(q)
           st.t = 0
-          plotRun(short, wfShort(q), T, T, (f) => yPlot(f.tilt))
+          traceRun(short, wfShort(q), BALANCER.dt, T, T, (f) => yPlot(f.tilt))
           tags[0].set(`${T} s`)
           tags[1].set(`tilt θ over time · top line ${top}°`, LABEL)
         }
@@ -205,9 +179,9 @@ export const whyItFalls: Lesson = {
         tip(c, [c[0] + L * 1.6 * s * Math.cos(f.tilt), c[1], c[2] - L * 1.6 * s * Math.sin(f.tilt)])
         const a = q.catchIt ? accelOf(run, t) : 0
         push([0, -0.1, 0.004], [(a / 14) * 2 * h, -0.1, 0.004])
-        plotRun(tr, run, T, t, (g) => yPlot(g.tilt))
+        traceRun(tr, run, BALANCER.dt, T, t, (g) => yPlot(g.tilt))
 
-        status.set(q.catchIt ? `Wheels catch it · CoM ${mm(h)} high` : `Hands off, wheels held · CoM ${mm(h)} high`, LABEL)
+        status.set(q.catchIt ? `Wheels catch it · CoM ${mmText(h)} high` : `Hands off, wheels held · CoM ${mmText(h)} high`, LABEL)
         if (f.fallen) event.set(`on the floor after ${(fellAt(run) ?? 0).toFixed(2)} s`, HIGH_V)
         else if (q.catchIt && Math.abs(a) < 0.05) event.set(`tilt ${deg(f.tilt, 1)} · caught: the wheels just coast`, POWER)
         else if (q.catchIt) event.set(`tilt ${deg(f.tilt, 1)} · wheels ${a >= 0 ? 'drive forward' : 'brake'} ${Math.abs(a).toFixed(1)} m/s² under the CoM`, Math.abs(f.tilt) < 0.5 * DEG ? POWER : RING)
@@ -273,25 +247,25 @@ export const tiltPid: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
+    const { status, sub, event } = statusHeader(scene)
     const side = sideRig(scene, TP.robot, TP.k, 0.26)
     let bot = balanceBot(side.g)
     const com = pointCloud(side.g, 1, 0.009)
     const shove = stretchArrow(side.g, HEAT, 0.004)
     const torque = stretchArrow(side.g, POWER, 0.004)
 
-    const plot = scope(scene, SCOPE.w, TP.sh, { divs: [7, 6] })
-    plot.group.position.set(SCOPE.x, TP.sy, 0)
+    const plot = scope(scene, SIDE_SCOPE.w, TP.sh, { divs: [7, 6] })
+    plot.group.position.set(SIDE_SCOPE.x, TP.sy, 0)
     const cmdTr = plot.trace(POWER, { samples: 200, radius: 0.09 })
     const tiltTr = plot.trace(RING, { samples: 200 })
-    plotLabels(scene, TP.sy, TP.sh, TP.seconds, 'tilt θ ±10°', 'motor u ±100 %')
+    scopeLabels(scene, TP.sy, TP.sh, TP.seconds, 'tilt θ ±10°', 'motor u ±100 %')
     const yTilt = (a: number) => (toDeg(a) / TP.tiltMax) * (TP.sh / 2)
     const yCmd = (u: number) => u * (TP.sh / 2)
 
     const st = { key: '', t: 0, shift: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = tpParams(p)
         const run = tpRun(q)
@@ -318,8 +292,8 @@ export const tiltPid: Lesson = {
         const top = onBody(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
         shove(hit ? [top[0] - 0.08, top[1], top[2]] : top, top)
         torque([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
-        plotRun(tiltTr, run, TP.seconds, t, (g) => yTilt(g.tilt))
-        plotRun(cmdTr, run, TP.seconds, t, (g) => yCmd(g.got))
+        traceRun(tiltTr, run, BALANCER.dt, TP.seconds, t, (g) => yTilt(g.tilt))
+        traceRun(cmdTr, run, BALANCER.dt, TP.seconds, t, (g) => yCmd(g.got))
 
         status.set(`P ${pct(f.p)} + I ${pct(f.i)} + D ${pct(f.d)} = u ${pct(f.cmd)}`, LABEL)
         if (f.fallen) event.set(`fell at ${(fellAt(run) ?? 0).toFixed(1)} s`, HIGH_V)
@@ -384,7 +358,7 @@ export const selfBalancingCar: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const { status, sub, event } = header(scene)
+    const { status, sub, event } = statusHeader(scene)
     const side = sideRig(scene, SB.robot, SB.k, 0.26)
     const bot = balanceBot(side.g, { shift: SB.shift })
     const com = pointCloud(side.g, 1, 0.009)
@@ -392,26 +366,26 @@ export const selfBalancingCar: Lesson = {
     const torque = stretchArrow(side.g, POWER, 0.004)
     const aim = stretchArrow(side.g, B_FIELD, 0.0018)
 
-    const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SCOPE.x + i * 3.65, SB.by, 0], [3.2, 1.1, 0.4], ''))
-    for (const x of [SCOPE.x - 1.82, SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, SB.by, 0.3], [x + 0.25, SB.by, 0.3])
+    const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SIDE_SCOPE.x + i * 3.65, SB.by, 0], [3.2, 1.1, 0.4], ''))
+    for (const x of [SIDE_SCOPE.x - 1.82, SIDE_SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, SB.by, 0.3], [x + 0.25, SB.by, 0.3])
     const plots = SB.sy.map((y, i) => {
-      const s = scope(scene, SCOPE.w, SB.sh, { divs: [10, 4], zeroAt: i === 0 ? 0.25 : 0.5 })
-      s.group.position.set(SCOPE.x, y, 0)
+      const s = scope(scene, SIDE_SCOPE.w, SB.sh, { divs: [10, 4], zeroAt: i === 0 ? 0.25 : 0.5 })
+      s.group.position.set(SIDE_SCOPE.x, y, 0)
       return s
     })
     const vSet = plots[0].trace(B_FIELD, { samples: 200, radius: 0.08 })
     const vTr = plots[0].trace(RING, { samples: 200 })
     const tSet = plots[1].trace(B_FIELD, { samples: 200, radius: 0.08 })
     const tTr = plots[1].trace(RING, { samples: 200 })
-    plotLabels(scene, SB.sy[0], SB.sh, null, 'speed · top line 1 m/s')
-    plotLabels(scene, SB.sy[1], SB.sh, SB.seconds, 'tilt ±15°')
+    scopeLabels(scene, SB.sy[0], SB.sh, null, 'speed · top line 1 m/s')
+    scopeLabels(scene, SB.sy[1], SB.sh, SB.seconds, 'tilt ±15°')
     const ySpeed = (v: number) => (v / SB.vMax) * SB.sh * 0.75 - SB.sh * 0.25
     const yTilt = (a: number) => (toDeg(a) / SB.tiltMax) * (SB.sh / 2)
 
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = sbParams(p)
         const run = sbRun(q)
@@ -435,10 +409,10 @@ export const selfBalancingCar: Lesson = {
         torque([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
         aim(onBody(f.target, 0.03, -0.11), onBody(f.target, f.fallen ? 0.03 : 0.22, -0.11))
 
-        plotRun(vSet, run, SB.seconds, t, (g) => ySpeed(drive(g.t)))
-        plotRun(vTr, run, SB.seconds, t, (g) => ySpeed(g.v))
-        plotRun(tSet, run, SB.seconds, t, (g) => yTilt(g.target))
-        plotRun(tTr, run, SB.seconds, t, (g) => yTilt(g.tilt))
+        traceRun(vSet, run, BALANCER.dt, SB.seconds, t, (g) => ySpeed(drive(g.t)))
+        traceRun(vTr, run, BALANCER.dt, SB.seconds, t, (g) => ySpeed(g.v))
+        traceRun(tSet, run, BALANCER.dt, SB.seconds, t, (g) => yTilt(g.target))
+        traceRun(tTr, run, BALANCER.dt, SB.seconds, t, (g) => yTilt(g.tilt))
         const on = f.fallen ? 0 : 1
         blocks[0](dt, B_FIELD, on, `speed ${deg(f.target, 1)}`)
         blocks[1](dt, RING, on, `tilt ${pct(f.cmd)}`)
@@ -451,7 +425,7 @@ export const selfBalancingCar: Lesson = {
         else if (Math.abs(drive(t) - f.v) > 0.06) event.set(`${drive(t) > f.v ? 'speeding up' : 'slowing'}: leaning ${deg(Math.abs(f.tilt + balance), 1)} ${f.tilt + balance > 0 ? 'ahead of' : 'behind'} the balance point`, B_FIELD)
         else if (drive(t) > 0.01) event.set(`cruising: back at the balance point ${deg(-balance, 1)}, no torque needed`, POWER)
         else event.set(`holding still: CoM over the axle at ${deg(f.tilt, 1)}`, POWER)
-        sub.set(`${t.toFixed(1)} / ${SB.seconds} s · slowed ${1 / SB.slow}× · battery ${mm(SB.shift)} forward`)
+        sub.set(`${t.toFixed(1)} / ${SB.seconds} s · slowed ${1 / SB.slow}× · battery ${mmText(SB.shift)} forward`)
       },
       readouts: (p) => {
         const q = sbParams(p)

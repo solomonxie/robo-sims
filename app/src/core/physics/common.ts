@@ -4,6 +4,9 @@
 export const LIGHT_C = 299_792_458
 /** Speed of sound most sketches bake in (dry air, 20 °C), m/s. */
 export const SOUND_C = 343
+/** Standard gravity, m/s². */
+export const G = 9.81
+export const weightN = (kg: number) => kg * G
 export const DEG = Math.PI / 180
 export const toDeg = (rad: number) => rad / DEG
 
@@ -14,6 +17,7 @@ export const clamp01 = (x: number) => clamp(x, 0, 1)
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]
 
 const TAU = 2 * Math.PI
+export const frac = (x: number) => x - Math.floor(x)
 export const wrap2pi = (a: number) => ((a % TAU) + TAU) % TAU
 export const wrapPi = (a: number) => wrap2pi(a + Math.PI) - Math.PI
 

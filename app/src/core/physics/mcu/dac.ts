@@ -1,8 +1,7 @@
 // DACs: R-2R ladder (solved by nodal analysis), sampled tones, reconstruction RC and PWM audio.
 import { Element, solveNodal } from '../../nodal'
 import { rcStep } from '../circuits'
-
-const frac = (x: number) => x - Math.floor(x)
+import { frac } from '../common'
 
 export const ESP32_DAC_BITS = 8
 

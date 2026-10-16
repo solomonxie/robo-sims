@@ -1,8 +1,6 @@
 // Motor selection: a torque budget against each drive's T–ω curve, RMS torque over a move, winding heat under a duty cycle.
-import { clamp01 } from '../common'
+import { G, clamp01 } from '../common'
 import { pullOutNm, rpmToRadS } from './stepper'
-
-const G = 9.81
 
 /** A drive as seen at its output shaft: stall torque, free speed, stall/no-load current at `volts`; winding as one thermal lump. */
 export interface Drive {
