@@ -1,4 +1,4 @@
-// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), NEMA17 stepper, spur gear train.
+// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), NEMA17 stepper, BLDC outrunner, spur gear train.
 import * as THREE from 'three/webgpu'
 import { coilShares } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
@@ -164,6 +164,76 @@ export function nema17(parent: THREE.Object3D, at: V3, r = 2) {
         tint(p.copper, f > 0 ? NORTH : SOUTH, 0.1 + Math.abs(f) * 1.6)
         tint(p.shoe, f > 0 ? NORTH : SOUTH, Math.abs(f) * 0.5)
       }
+    },
+  }
+}
+
+const BLDC_TEETH = [0, 2, 1, 0, 2, 1].map((phase, i) => ({ phase, sign: i % 2 ? -1 : 1 }))
+
+/** Outrunner BLDC facing +z, front cap off, stator radius `r`: 6 laminated teeth wound A, C̄, B, Ā, C, B̄ (phase axes
+ *  A 0°, B 120°, C 240°) inside a spinning bell with a 2-pole magnet ring (S at the rotor angle, N opposite).
+ *  `set(angle, [ia, ib, ic])`: bell turned anticlockwise; each tooth glows N/S by its phase current (−1…1).
+ *  `halls`: three Hall chips on teeth A, B, C, lit by `hall(k, on)`. `pins` = A, B, C lead ends below; `rotor` takes a needle. */
+export function bldcMotor(parent: THREE.Object3D, at: V3, r = 2, { halls = false, phaseColors = ['#c8803f', '#c8803f', '#c8803f'] } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const L = 0.9 * r
+  const lam = mat('#8d939c', { metal: 0.3, rough: 0.45 })
+  cylinder(group, 0.36 * r, L, lam, [0, 0, -L / 2], 'z', 32)
+  const teeth = BLDC_TEETH.map(({ phase, sign }, i) => {
+    const a = (i * Math.PI) / 3
+    const arm = add(group, new THREE.Group(), [0, 0, -L / 2])
+    arm.rotation.z = a
+    box(arm, [0.5 * r, 0.22 * r, L], lam, [0.6 * r, 0, 0])
+    const shoe = new THREE.MeshStandardMaterial({ color: '#8d939c', metalness: 0.3, roughness: 0.45 })
+    add(group, mesh(sectorGeometry(0.84 * r, r, a, 0.82, L), shoe), [0, 0, -L])
+    const copper = new THREE.MeshStandardMaterial({ color: '#c8803f', metalness: 0.35, roughness: 0.4 })
+    box(arm, [0.36 * r, 0.42 * r, L + 0.2 * r], copper, [0.6 * r, 0, 0])
+    partLetter(group, `${'ABC'[phase]}${sign < 0 ? '\u0304' : ''}`, [0.6 * r * Math.cos(a), 0.6 * r * Math.sin(a), 0.14 * r], 0.2 * r, phaseColors[phase])
+    return { copper, shoe, phase, sign }
+  })
+
+  const rotor = add(group, new THREE.Group())
+  const bell = new THREE.MeshStandardMaterial({ color: '#9aa0a8', metalness: 0.35, roughness: 0.4, side: THREE.DoubleSide })
+  add(rotor, mesh(sectorGeometry(1.28 * r, 1.42 * r, 0, TAU, L + 0.15 * r), bell), [0, 0, -L - 0.15 * r])
+  cylinder(rotor, 1.42 * r, 0.08 * r, mat('#3a3d44', { rough: 0.6 }), [0, 0, -L - 0.15 * r], 'z', 48)
+  for (const [mid, color] of [[0, SOUTH], [Math.PI, NORTH]] as const) {
+    add(rotor, mesh(sectorGeometry(1.06 * r, 1.28 * r, mid, 2.7, L), mat(color, { rough: 0.55, emissive: color === NORTH ? '#3a0d0a' : '#0c1a40' })), [0, 0, -L])
+    partLetter(rotor, color === NORTH ? 'N' : 'S', [1.17 * r * Math.cos(mid), 1.17 * r * Math.sin(mid), 0.05], 0.2 * r, '#ffffff')
+  }
+  rod(rotor, [0, 0, -L - 0.3 * r], [0, 0, 0.5 * r], 0.08 * r, STEEL())
+
+  const hallMats = halls
+    ? [0, 1, 2].map((k) => {
+        const a = (k * 2 * Math.PI) / 3
+        const m = new THREE.MeshStandardMaterial({ color: '#1c1c1f', emissive: '#ffd84d', emissiveIntensity: 0, roughness: 0.6 })
+        const chip = add(group, new THREE.Group(), [0.92 * r * Math.cos(a), 0.92 * r * Math.sin(a), 0.06 * r])
+        chip.rotation.z = a
+        box(chip, [0.12 * r, 0.26 * r, 0.1 * r], m)
+        return m
+      })
+    : []
+
+  const pins = [0, 1, 2].map((k): V3 => {
+    const x = (k - 1) * 0.3 * r
+    rod(group, [x, -0.5 * r, -0.4 * L], [x, -1.75 * r, -0.4 * L], 0.05 * r, mat(phaseColors[k], { rough: 0.5 }))
+    return [at[0] + x, at[1] - 1.75 * r, at[2] - 0.4 * L]
+  })
+
+  return {
+    group,
+    rotor,
+    pins,
+    shaftTip: [0, 0, 0.5 * r] as V3,
+    set(angle: number, amps: readonly number[]) {
+      rotor.rotation.z = angle
+      for (const t of teeth) {
+        const f = t.sign * amps[t.phase]
+        tint(t.copper, f > 0 ? NORTH : SOUTH, 0.1 + Math.abs(f) * 1.6)
+        tint(t.shoe, f > 0 ? NORTH : SOUTH, Math.abs(f) * 0.6)
+      }
+    },
+    hall(k: number, on: boolean) {
+      if (hallMats[k]) hallMats[k].emissiveIntensity = on ? 1.4 : 0
     },
   }
 }

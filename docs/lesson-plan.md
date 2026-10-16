@@ -27,7 +27,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `cells` — `cellCutaway`, `cell18650`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, `speaker`.
-- `motors` — `brushedMotor` (cut open: magnets, 3-slot armature, commutator + brushes; `set(angle, level, heat)`), `nema17` (8 poles, 50-tooth rotor; `set(angle, ia, ib)`), `spurGear`, `gearTrain`, `sectorGeometry` [`physics/electromechanical`, `physics/stepper`].
+- `motors` — `brushedMotor` (cut open: magnets, 3-slot armature, commutator + brushes; `set(angle, level, heat)`), `nema17` (8 poles, 50-tooth rotor; `set(angle, ia, ib)`), `bldcMotor` (outrunner, 6 teeth, 2-pole bell, opt. Halls; `set(angle, [ia, ib, ic])`), `spurGear`, `gearTrain`, `sectorGeometry` [`physics/electromechanical`, `physics/stepper`, `physics/bldc`].
 - `switches` — tact/toggle switches, pot, `estopButton` (NC mushroom), cut open.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
 - `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `pixelGrid` (instanced sensor pixels, sRGB `set`), `IR_TINT`, `SUN_TINT` [`physics/sensors`].
@@ -86,7 +86,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] H-bridge
   - [x] Servo
   - [x] Stepper
-  - [ ] Brushless (BLDC)
+  - [x] Brushless (BLDC)
   - [ ] Field-oriented control
   - [ ] Linear actuators
   - [ ] Solenoids & pumps
