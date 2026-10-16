@@ -51,6 +51,7 @@ import {
   stretchRod,
   addRod,
   urdfModel,
+  zUp,
 } from '../fx'
 import { Lesson, Stage, n, opts, pick } from '../types'
 
@@ -71,16 +72,6 @@ const roverLook = (link: string) =>
         : link === 'arm_link'
           ? mat('#f2c230', { rough: 0.5 })
           : mat('#d8dbe2', { rough: 0.55 })
-
-/** URDF z-up metres → scene (y up) inside a group the caller places. */
-function zUp(parent: THREE.Object3D, at: V3, k: number, tilt = 0, yaw = 0) {
-  const outer = add(parent, new THREE.Group(), at)
-  outer.rotation.set(tilt, yaw, 0, 'XYZ')
-  const g = add(outer, new THREE.Group())
-  g.rotation.x = -Math.PI / 2
-  g.scale.setScalar(k)
-  return g
-}
 
 // --- Frame tree: map → odom → base_link → sensor and wheel links; a lidar hit chained into map. ---
 

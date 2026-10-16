@@ -38,7 +38,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `feedback` — `controlLoop` (r → Σ → controller → plant → y, sensor feedback, optional disturbance/noise; `set(dt, levels, texts, titles?)`; every Control lesson), `sumBars`/`termBars` (signed terms + sum), `PID_COLORS`, `MEAS_COLOR`, `sPlane` (poles, root-locus dots).
 - `plants` — `pidArm` (gearmotor arm: spring, pot, setpoint ghost, error arc, `peg`), `speedWheel` (TT wheel on a tilting floor + rpm gauge), `positionCar` (side-view TT car to a flag, springy camera mast).
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines; `rosTint` + `ROS_CODE_LEGEND` for rclpy/rclcpp/CLI), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
-- `frames` — `frameTriad` (RGB axes), `setTf` (4×4 onto an object), `urdfModel` (links from a parsed URDF, `pose(q)`) [`physics/software/urdf`].
+- `frames` — `frameTriad` (RGB axes; `letters`, `planar`, `face()` turns text to the viewer), `faceFront`, `zUp` (z-up metres group), `setTf` (4×4 onto an object), `matrixGrid` (bracketed number matrix), `urdfModel` (links from a parsed URDF, `pose(q)`) [`physics/software/urdf`, `physics/kinematics`].
 - `wheeled` — `diffBot` (TT two-wheeler, `set(pose, dL, dR)`, `slip`, `ghost`), `rcCar` (1/10 Ackermann, `set(pose, steer, travel)`, `arms`, `scrub`), `balanceBot` (side-view self-balancer, `set(tilt, roll)`), `balanceFloor` (scrolling side-view floor for it), `onBalancer` (point on its body), `balanceCues` (shove/accel arrows, target flag), `slipPatch`/`lightPatches` [`physics/mobility`].
 - `holonomic` — `mecanumBot`/`mecanumWheel`, `omniBot` (kiwi/X), `swerveBot` (FRC; `glow`); all `set(pose, …)`.
 - `tracked` — `trackedBot` (sprockets, moving links; `wheels` = 4WD twin; `body`, `scuff`, `spin`).
@@ -59,6 +59,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
 - `mobility/` — diffdrive (`diffStep`, `squareRun`, `slipRun`), mecanum (`mecInverse`/`mecForward`, `twistStep`, `fitTwist`, `mecRun`), omni, swerve, ackermann (`steerAngles`, `bicycleStep`, `pursuitRun`, `parkPlan`), tracks (`TERRAINS`, `skidRun`, Bekker sinkage, `softPull`), legged (`GAITS`, `gaitFeet`, `legIK`, `zmpRun`), balance (`cartStep`, `balanceLoop`; PID from `control/pid`), quadcopter (`mix`, `quadBodyStep`, `attitudeLoop`), underwater (`rovTrim`, `buoyRun`, `allocate`, `rovRun`).
 - `control/` — linalg (`Cx`, `polyRoots`, `Mat` ops, `matInv`, `expm`, `charPoly`/`eigenvalues`, `cholSolve`), loop (TT car `openLoopRun` vs `closedLoopRun`, `trialConditions`, `ROLL_FLOORS`, `pDeadband`), bangbang (`bangBang`, `thermostatRun`/`cycleStats`, `followRun`), pid (`pidStep`, `pidTick` anti-windup/D-on-meas/D filter, `stepMetrics`, `swing`, `ultimateGain`, `zieglerNichols`), arm (`ARM`, `ARM_FROM`, `armRun` with `from`/`lag`/`ff`, `loadDuty`), speed (`wheelStep`, `wheelCpr`, `wheelFf`/`ffVolts`, `wheelSpeedRun`, `stepSp`/`rampSp`, `speedStats`), position (`trapezoidMove`/`sCurveMove`/`stepMove`, `moveAt`, `positionRun` cascade + mast, `moveStats`), linefollow (`barAt`/`errorSweep`, `Tape`/`tapeDist`, `steerRun`, `junctionRun`), stability (`armPoles` Padé delay, `dominant`, `secondOrder`, `placePd`, `loopAt`, `margins`/`marginsOf`), lqr (`c2d`, `dlqr`, `balancerModel`, `BALANCER_TOL`, `brysonQ`, `balancerLqr`, `stateRun`), mpc (`boxQp`, `mpcDesign`, `predict`, `mpcSolve`, `mpcRun`), loopfilter (`MeasFilter`, `filterAt`, `filterDelay`, `noiseGain`, `filteredMargins`, `kalmanSpeed`).
+- `kinematics/` — transforms (`rot2`/`rotate2`, planar `tf2`/`mulTf2`/`applyTf2`/`invertTf2`, `trans4`, `rotAbout4`, `chain4`, `originOf`/`axisOf`, `rpyOf`, `Quat`: `quatAxis`/`quatMul`/`quatTf`/`quatOf`/`slerp`/`quatAngle`; 4×4 base `Mat4`/`mul4`/`apply4`/`invert4`/`tf3`/`rotAxis4` in software/urdf), frametree (`FrameTree`, `rootPath`, `frameWorld`, `framePath`, `frameLookup`, `DESK`/`deskTree`).
 - `actuators/` — dcmotor (`TT_GEAR`), hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared` (TCRT `linePosition`, `readBar(pose, offset)`, `darkness`), `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `stdDev`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
@@ -88,7 +89,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Mobility ✓ 9/9
 - Control ✓ 10/10
 - Kinematics:
-  - [ ] Coordinate frames
+  - [x] Coordinate frames
   - [ ] Forward kinematics
   - [ ] Inverse kinematics
   - [ ] Jacobian
