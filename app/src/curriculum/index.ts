@@ -95,6 +95,7 @@ import { plottingLiveData, replayLogs } from '../lessons/software/telemetry-logg
 import { joystickOverBle, latency, webSocketControl } from '../lessons/software/remote-control'
 import { eStop, faultStates, watchdog } from '../lessons/software/safety-failsafes'
 import { backEmfLesson, gearboxes, stallCurrent, torqueAndSpeedCurve } from '../lessons/actuators/dc-motor'
+import { decayModes, fourSwitches, l298nVsModernDrivers, shootThroughLesson } from '../lessons/actuators/h-bridge'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -399,6 +400,10 @@ const READY: Record<string, Lesson> = {
   'actuators/dc-motor/torque-and-speed-curve': torqueAndSpeedCurve,
   'actuators/dc-motor/stall-current': stallCurrent,
   'actuators/dc-motor/gearboxes': gearboxes,
+  'actuators/h-bridge/four-switches': fourSwitches,
+  'actuators/h-bridge/l298n-vs-modern-drivers': l298nVsModernDrivers,
+  'actuators/h-bridge/decay-modes': decayModes,
+  'actuators/h-bridge/shoot-through': shootThroughLesson,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

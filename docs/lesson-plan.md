@@ -83,7 +83,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 ### Wave 5 — Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
 - Actuators:
   - [x] DC motor
-  - [ ] H-bridge
+  - [x] H-bridge
   - [ ] Servo
   - [ ] Stepper
   - [ ] Brushless (BLDC)
