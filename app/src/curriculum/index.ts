@@ -121,6 +121,7 @@ import { sCurve, trapezoidProfile } from '../lessons/control/position-control'
 import { errorFromSensors, intersections, pdSteering } from '../lessons/control/line-following'
 import { gainAndPhaseMargin, polesAndDamping, stepResponse } from '../lessons/control/stability'
 import { lqrIntuition, stateVector } from '../lessons/control/state-space-lqr'
+import { mpcConstraints, recedingHorizon } from '../lessons/control/model-predictive-control'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -498,6 +499,8 @@ const READY: Record<string, Lesson> = {
   'control/stability/gain-and-phase-margin': gainAndPhaseMargin,
   'control/state-space-lqr/state-vector': stateVector,
   'control/state-space-lqr/lqr-intuition': lqrIntuition,
+  'control/model-predictive-control/receding-horizon': recedingHorizon,
+  'control/model-predictive-control/constraints': mpcConstraints,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
