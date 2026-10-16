@@ -44,8 +44,10 @@ export interface ArmCfg {
   lag?: number
   /** Add the duty that holds the setpoint (spring + gravity feed-forward). */
   ff?: boolean
+  /** Filter between the pot reading and the controller (built by `filterRun`). */
+  filter?: (x: number) => number
 }
-export interface ArmFrame { t: number; sp: number; th: number; meas: number; u: number; p: number; i: number; d: number; raw: number; sat: boolean; blocked: boolean }
+export interface ArmFrame { t: number; sp: number; th: number; meas: number; seen: number; u: number; p: number; i: number; d: number; raw: number; sat: boolean; blocked: boolean }
 
 /** Closed loop in degrees: setpoint steps 0 → target at `ARM.stepAt`; the controller sees the angle `ARM.lag` late plus noise. */
 export function armRun(c: ArmCfg): ArmFrame[] {
@@ -64,12 +66,13 @@ export function armRun(c: ArmCfg): ArmFrame[] {
     past.push(th)
     past.shift()
     const meas = past[0] + (c.noiseDeg ?? 0) * gaussAt(k)
-    const r = pidTick(mem, sp, meas, c.pid, dt)
+    const seen = c.filter ? c.filter(meas) : meas
+    const r = pidTick(mem, sp, seen, c.pid, dt)
     mem = r.mem
     const u = c.ff ? clamp(r.terms.out + loadDuty(sp, c.grams ?? 0), -1, 1) : r.terms.out
     const stop = c.block && t < c.block.until ? c.block.deg : undefined
     const blocked = stop !== undefined
-    out.push({ t, sp, th, meas, u, p: r.terms.p, i: r.terms.i, d: r.terms.d, raw: r.terms.raw, sat: r.terms.sat, blocked })
+    out.push({ t, sp, th, meas, seen, u, p: r.terms.p, i: r.terms.i, d: r.terms.d, raw: r.terms.raw, sat: r.terms.sat, blocked })
     s = armStep(s, u, dt, c.grams ?? 0, stop)
   }
   return out

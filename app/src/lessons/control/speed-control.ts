@@ -25,12 +25,12 @@ const LEGEND = {
 type Trace = ReturnType<ReturnType<typeof scope>['trace']>
 
 /** Wheel rig + gauge, loop diagram(s), scope (speed on top, `lower` traces on the bottom half). */
-function speedStage(lower: [string, (f: SpeedFrame) => number][], { bars = false, open = false, ctrl = 'PI' } = {}) {
+export function speedStage(lower: [string, (f: SpeedFrame) => number][], { bars = false, open = false, ctrl = 'PI', sensor = 'encoder' } = {}) {
   const scene = createStage({ span: 40 })
   const head = statusHeader(scene)
   const wheel = speedWheel(scene, RIG.at, RIG.r, MAX)
   const tb = bars ? termBars(scene, RIG.bars, 7) : null
-  const loopOpts = { ctrl, plant: 'motor + wheel', sensor: 'encoder', disturb: true, w: DIAG.w, h: DIAG.h }
+  const loopOpts = { ctrl, plant: 'motor + wheel', sensor, disturb: true, w: DIAG.w, h: DIAG.h }
   const closed = controlLoop(scene, DIAG.at, loopOpts)
   const openLoop = open ? controlLoop(scene, DIAG.at, { ...loopOpts, ctrl: 'fixed duty', feedback: false }) : null
   const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4], zeroAt: 0.25 })
@@ -48,6 +48,7 @@ function speedStage(lower: [string, (f: SpeedFrame) => number][], { bars = false
     scene,
     ...head,
     plot,
+    ySpd,
     clock(dt: number, key: string) {
       if (key !== st.key) {
         st.key = key

@@ -59,6 +59,8 @@ export interface SpeedCfg {
   volts?: number
   /** Car meets a ramp of `deg` at `at` s. */
   ramp?: { at: number; deg: number }
+  /** Replaces counts / window: reads each tick's count, is told the volts sent. */
+  meter?: (cpr: number) => { read(count: number): number; drive(volts: number): void }
 }
 
 export interface SpeedFrame {
@@ -88,6 +90,7 @@ export function wheelSpeedRun(c: SpeedCfg): SpeedFrame[] {
   const ffV = c.ffVolts ?? WHEEL.volts
   const cpr = c.enc ? wheelCpr(c.enc) : 1
   const sub = Math.round(loopS / dt)
+  const meter = c.enc && c.meter ? c.meter(cpr) : null
   const hist: number[] = [0]
   let theta = 0
   let w = 0
@@ -100,7 +103,7 @@ export function wheelSpeedRun(c: SpeedCfg): SpeedFrame[] {
     const count = Math.floor((theta / GEAR / (2 * Math.PI)) * cpr + 1e-9)
     hist.push(count)
     const back = hist[Math.max(0, hist.length - 1 - win)]
-    const meas = c.enc ? ((count - back) / cpr / (Math.min(win, hist.length - 1) * loopS)) * 60 : (w / GEAR) * RPM_PER_RADS
+    const meas = meter ? meter.read(count) : c.enc ? ((count - back) / cpr / (Math.min(win, hist.length - 1) * loopS)) * 60 : (w / GEAR) * RPM_PER_RADS
     const acc = (c.sp(t + loopS) - c.sp(Math.max(0, t - loopS))) / (t > 0 ? 2 * loopS : loopS)
     const ff = c.ff || !c.enc ? ffVolts(sp, acc) / ffV : 0
     let terms = { p: 0, i: 0, d: 0, out: 0, sat: false }
@@ -112,6 +115,7 @@ export function wheelSpeedRun(c: SpeedCfg): SpeedFrame[] {
     const raw = ff + terms.out
     const u = clamp(raw, -1, 1)
     const slope = c.ramp && t >= c.ramp.at ? c.ramp.deg : 0
+    meter?.drive(u * volts)
     out.push({ t, sp, rpm: (w / GEAR) * RPM_PER_RADS, meas, rev: theta / GEAR / (2 * Math.PI), counts: count - hist[hist.length - 2], u, ff, p: terms.p, i: terms.i, d: terms.d, sat: terms.sat || u !== raw, slope })
     for (let k = 0; k < sub; k++) {
       w = wheelStep(w, u * volts, slope, dt)

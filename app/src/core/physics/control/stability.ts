@@ -111,9 +111,11 @@ export function loopAt(g: Gains, lag: number, deg: number, w: number, grams = 0)
 }
 
 export interface Margins { wc: number | null; pm: number | null; w180: number | null; gm: number | null; delayMargin: number | null }
-/** Gain margin (×), phase margin (°) at the first gain crossover, phase crossover, delay margin (s). */
-export function margins(g: Gains, lag: number, deg: number, grams = 0, w0 = 0.1, w1 = 2000): Margins {
-  const at = (w: number) => loopAt(g, lag, deg, w, grams)
+/** Gain margin (×), phase margin (°) at the first gain crossover, phase crossover, delay margin (s) of the arm loop. */
+export const margins = (g: Gains, lag: number, deg: number, grams = 0, w0 = 0.1, w1 = 2000): Margins => marginsOf((w) => loopAt(g, lag, deg, w, grams), w0, w1)
+
+/** Margins of any loop gain `at(ω)` → magnitude and unwrapped phase. */
+export function marginsOf(at: (w: number) => { mag: number; phase: number }, w0 = 0.1, w1 = 2000): Margins {
   const cross = (f: (w: number) => number) => {
     const n = 4000
     let prev = w0

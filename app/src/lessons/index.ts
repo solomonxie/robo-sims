@@ -121,6 +121,7 @@ import { errorFromSensors, intersections, pdSteering } from './control/line-foll
 import { gainAndPhaseMargin, polesAndDamping, stepResponse } from './control/stability'
 import { lqrIntuition, stateVector } from './control/state-space-lqr'
 import { mpcConstraints, recedingHorizon } from './control/model-predictive-control'
+import { kalmanFilter, lowPass, movingAverage } from './control/filters-in-the-loop'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -135,5 +136,5 @@ export const UNITS: Unit[] = [
   { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees, agentAndClient, serialTransport, physicsEngine, simToRealGap, sequenceAndFallback, blackboard, plottingLiveData, replayLogs, joystickOverBle, webSocketControl, latency, watchdog, eStop, faultStates] },
   { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops, leadScrewLesson, limitSwitches, solenoidDrive, peristalticPump, gearRatioLesson, backlash, planetaryGears, wormDrive, pneumaticCylinder, softGripper, torqueBudgetLesson, dutyCycleLesson, thermalLimitsLesson] },
   { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel, skidSteer, tractionLesson, gaitCycle, zeroMomentPoint, legIk, whyItFalls, tiltPid, selfBalancingCar, quadcopterMixing, attitudeControl, buoyancyLesson, thrusterLayout] },
-  { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints] },
+  { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints, movingAverage, lowPass, kalmanFilter] },
 ]

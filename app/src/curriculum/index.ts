@@ -122,6 +122,7 @@ import { errorFromSensors, intersections, pdSteering } from '../lessons/control/
 import { gainAndPhaseMargin, polesAndDamping, stepResponse } from '../lessons/control/stability'
 import { lqrIntuition, stateVector } from '../lessons/control/state-space-lqr'
 import { mpcConstraints, recedingHorizon } from '../lessons/control/model-predictive-control'
+import { kalmanFilter, lowPass, movingAverage } from '../lessons/control/filters-in-the-loop'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -501,6 +502,9 @@ const READY: Record<string, Lesson> = {
   'control/state-space-lqr/lqr-intuition': lqrIntuition,
   'control/model-predictive-control/receding-horizon': recedingHorizon,
   'control/model-predictive-control/constraints': mpcConstraints,
+  'control/filters-in-the-loop/moving-average': movingAverage,
+  'control/filters-in-the-loop/low-pass': lowPass,
+  'control/filters-in-the-loop/kalman-filter': kalmanFilter,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
