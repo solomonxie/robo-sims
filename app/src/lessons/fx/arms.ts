@@ -1,6 +1,6 @@
 // Serial arm rig driven by `armFk`: bar links, joint housings with turning rotor rings, joint-axis markers, optional frame triads and a gripper (z-up metres; caller scales).
 import * as THREE from 'three/webgpu'
-import { Mat4, SerialArm, armFk, dhRowAt, mul4, rotAbout4, trans4 } from '../../core/physics'
+import { ArmServo, Mat4, SERVO_ARM, SerialArm, apply4, armFk, dhRowAt, mul4, rotAbout4, trans4 } from '../../core/physics'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { glowMat, setGlow } from './colors'
 import { frameTriad, setTf } from './frames'
@@ -147,5 +147,57 @@ export function dotPen(parent: THREE.Object3D, max: number, r: number) {
         dot([o[0] + ca * u[0] + sa * v[0], o[1] + ca * u[1] + sa * v[1], o[2] + ca * u[2] + sa * v[2]], c, s)
       }
     },
+  }
+}
+
+/** Body size (length, width, height along the shaft, m) and colour of each hobby servo; the shaft sits W/2 from one end. */
+export const SERVO_LOOK: Record<ArmServo, { size: V3; color: string }> = {
+  sg90: { size: [0.023, 0.0122, 0.0225], color: '#2a5bd7' },
+  mg90s: { size: [0.0228, 0.0122, 0.0284], color: '#3b3f48' },
+  mg996r: { size: [0.0407, 0.0197, 0.0429], color: '#16181d' },
+}
+/** Which way each servo body runs from its shaft in its joint frame: base under the turntable, shoulder hanging down, elbow and wrist back along their links, gripper servo on the hand. */
+const MOUNT_TURN = [0, Math.PI / 2, 0, 0, 0]
+
+/** `SERVO_ARM` as a hobby build: aluminium brackets, a servo body beside every joint (+ gripper servo), acrylic base box `baseH` tall
+ *  under frame 0. `set(q)` → frames; `fit(i, kind)` swaps a servo; `heat(i, k)` glows a body red; `ports(f)` = cable exits (arm space). */
+export function servoArmBuild(parent: THREE.Object3D, kinds: readonly ArmServo[], baseH = 0.05) {
+  const t = 0.017
+  const rig = serialArm(parent, SERVO_ARM, { w: 0.022, t, link: '#c9ccd2', housing: '#30333a', axes: false })
+  add(rig.group, mesh(BOX, mat('#2b2f38', { rough: 0.35, metal: 0.1 })), [-0.005, 0, -baseH / 2]).scale.set(0.085, 0.07, baseH)
+  const bodies = kinds.map(() => {
+    const m = new THREE.MeshStandardMaterial({ roughness: 0.45, emissive: '#ff3b30', emissiveIntensity: 0 })
+    const holder = add(rig.group, new THREE.Group())
+    const body = add(holder, mesh(BOX, m))
+    const horn = add(holder, mesh(DISC, mat('#f2f2f2', { rough: 0.4 })))
+    return { holder, body, horn, m, kind: kinds[0], back: [0, 0, 0] as V3 }
+  })
+  const fit = (i: number, kind: ArmServo) => {
+    const b = bodies[i]
+    const [L, W, H] = SERVO_LOOK[kind].size
+    const z = i === 0 ? -0.004 - H / 2 : -(t * 0.75 + H / 2)
+    b.kind = kind
+    b.m.color.set(SERVO_LOOK[kind].color)
+    b.body.position.set(-(L / 2 - W / 2), 0, z)
+    b.body.scale.set(L, W, H)
+    b.horn.position.set(0, 0, i === 0 ? 0 : -t * 0.62)
+    b.horn.scale.set(W * 0.42, W * 0.42, 0.002)
+    b.back = [-(L - W / 2), 0, z]
+  }
+  kinds.forEach((k, i) => fit(i, k))
+  const mount = (f: Mat4[], i: number) => mul4(f[Math.min(i, f.length - 1)], rotAbout4(2, MOUNT_TURN[i] ?? 0))
+  const set = (q: readonly number[]) => {
+    const f = rig.set(q)
+    bodies.forEach((b, i) => setTf(b.holder, mount(f, i)))
+    return f
+  }
+  set([0, 0, 0, 0])
+  return {
+    rig,
+    group: rig.group,
+    set,
+    fit,
+    heat: (i: number, k: number) => (bodies[i].m.emissiveIntensity = 0.9 * Math.max(0, Math.min(1, k))),
+    ports: (f: Mat4[]): V3[] => bodies.map((b, i) => apply4(mount(f, i), b.back) as V3),
   }
 }

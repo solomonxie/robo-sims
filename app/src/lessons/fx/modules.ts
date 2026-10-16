@@ -1,4 +1,4 @@
-// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, ESP32-CAM, I²C breakouts, step drivers.
+// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, ESP32-CAM, I²C breakouts, PCA9685 servo driver, step drivers.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, GOLD, mat, mesh, STEEL, TIN } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
@@ -317,6 +317,39 @@ export function stepDriver(parent: THREE.Object3D, at: V3, kind: 'a4988' | 'tmc2
     chip(c: string, f: number) {
       chipMat.emissive.set(c)
       chipMat.emissiveIntensity = f
+    },
+  }
+}
+
+/** PCA9685 16-channel servo driver (62 × 25 mm) lying flat, facing +z, `k` units per mm. `ch(i)` = channel i's header
+ *  (GND V+ PWM column) top, `vplus` the servo-power screw terminal, `i2c` the SCL/SDA end header; `lit(i, f)` glows a channel. */
+export function pca9685Board(parent: THREE.Object3D, at: V3, k: number) {
+  const g = add(parent, new THREE.Group(), at)
+  g.scale.setScalar(k)
+  box(g, [62, 25, 1.6], mat('#1f4fae', { rough: 0.55 }), [0, 0, 0.8])
+  box(g, [9.7, 4.4, 1.2], mat('#16171b', { rough: 0.5 }), [0, 1.5, 2.2])
+  add(g, label('PCA9685', { ...SILK, size: 2 }), [0, -2.6, 1.65])
+  const pinX = (i: number) => (i + Math.floor(i / 4) - 9) * 2.54
+  const pinMats = ['#1a1a1a', '#d8322c', '#f2c230'].map((c) => mat(c, { rough: 0.5 }))
+  const lights = Array.from({ length: 16 }, (_, i) => {
+    const x = pinX(i)
+    box(g, [2.4, 7.6, 2.5], mat('#141416', { rough: 0.7 }), [x, -8.6, 2.85])
+    ;[-11.1, -8.6, -6.1].forEach((y, r) => box(g, [0.7, 0.7, 6], r === 2 ? glowMat('#f2c230', 0.2) : pinMats[r], [x, y, 4.6]))
+    return g.children[g.children.length - 1] as THREE.Mesh
+  })
+  box(g, [10, 7.5, 9], mat('#2f8f4e', { rough: 0.6 }), [0, 8.2, 6.1])
+  for (const x of [-2.5, 2.5]) cylinder(g, 1.4, 1, STEEL(), [x, 8.2, 11], 'z', 12)
+  cylinder(g, 3, 8, mat('#20242c', { rough: 0.4 }), [14, 6.5, 5.6], 'z', 16)
+  for (const s of [-1, 1]) for (let j = 0; j < 6; j++) box(g, [0.7, 0.7, 6], GOLD(), [s * 29, (j - 2.5) * 2.54, 4.6])
+  const p = (x: number, y: number, z: number): V3 => [at[0] + x * k, at[1] + y * k, at[2] + z * k]
+  return {
+    group: g,
+    ch: (i: number) => p(pinX(i), -8.6, 7.6),
+    vplus: p(0, 8.2, 11),
+    i2c: p(-29, 0, 7.6),
+    lit(i: number, f: number) {
+      const m = lights[i]?.material as THREE.MeshStandardMaterial | undefined
+      if (m) m.emissiveIntensity = 0.2 + 1.4 * clamp01(f)
     },
   }
 }
