@@ -138,6 +138,7 @@ import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth
 import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from './perception/fiducial-markers'
 import { objectDetectionEdgeAccelerators, objectDetectionRunningOnAnEsp32Cam, objectDetectionYoloIdea } from './perception/object-detection'
 import { depthSensingDepthMap, depthSensingPointCloud } from './perception/depth-sensing'
+import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from './perception/optical-flow'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -154,5 +155,5 @@ export const UNITS: Unit[] = [
   { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel, skidSteer, tractionLesson, gaitCycle, zeroMomentPoint, legIk, whyItFalls, tiltPid, selfBalancingCar, quadcopterMixing, attitudeControl, buoyancyLesson, thrusterLayout] },
   { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints, movingAverage, lowPass, kalmanFilter] },
   { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity, trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling, grippersParallelJaw, grippersSuction, grippersCompliance, armBuildAssemble, armBuildDriveIk, dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits] },
-  { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners, colourTrackingHsvMask, colourTrackingCentroidSteering, cameraModelPinholeModel, cameraModelCalibration, cameraModelStereoDepth, fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag, objectDetectionYoloIdea, objectDetectionRunningOnAnEsp32Cam, objectDetectionEdgeAccelerators, depthSensingDepthMap, depthSensingPointCloud] },
+  { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners, colourTrackingHsvMask, colourTrackingCentroidSteering, cameraModelPinholeModel, cameraModelCalibration, cameraModelStereoDepth, fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag, objectDetectionYoloIdea, objectDetectionRunningOnAnEsp32Cam, objectDetectionEdgeAccelerators, depthSensingDepthMap, depthSensingPointCloud, opticalFlowLucasKanade, opticalFlowVisualOdometry] },
 ]

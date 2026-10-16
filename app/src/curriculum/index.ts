@@ -139,6 +139,7 @@ import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth
 import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from '../lessons/perception/fiducial-markers'
 import { objectDetectionEdgeAccelerators, objectDetectionRunningOnAnEsp32Cam, objectDetectionYoloIdea } from '../lessons/perception/object-detection'
 import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/perception/depth-sensing'
+import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from '../lessons/perception/optical-flow'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -562,6 +563,8 @@ const READY: Record<string, Lesson> = {
   'perception/object-detection/edge-accelerators': objectDetectionEdgeAccelerators,
   'perception/depth-sensing/depth-map': depthSensingDepthMap,
   'perception/depth-sensing/point-cloud': depthSensingPointCloud,
+  'perception/optical-flow/lucas-kanade': opticalFlowLucasKanade,
+  'perception/optical-flow/visual-odometry': opticalFlowVisualOdometry,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
