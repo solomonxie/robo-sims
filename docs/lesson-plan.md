@@ -91,7 +91,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Linear actuators
   - [x] Solenoids & pumps
   - [x] Gear trains
-  - [ ] Pneumatics & soft robots
+  - [x] Pneumatics & soft robots
   - [ ] Motor selection
 - Mobility:
   - [ ] Differential drive

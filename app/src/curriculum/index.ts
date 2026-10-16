@@ -103,6 +103,7 @@ import { clarkeAndPark, currentLoops } from '../lessons/actuators/field-oriented
 import { leadScrewLesson, limitSwitches } from '../lessons/actuators/linear-actuators'
 import { peristalticPump, solenoidDrive } from '../lessons/actuators/solenoids-pumps'
 import { backlash, gearRatioLesson, planetaryGears, wormDrive } from '../lessons/actuators/gear-trains'
+import { pneumaticCylinder, softGripper } from '../lessons/actuators/pneumatics-soft-robots'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -430,6 +431,8 @@ const READY: Record<string, Lesson> = {
   'actuators/gear-trains/backlash': backlash,
   'actuators/gear-trains/planetary-gears': planetaryGears,
   'actuators/gear-trains/worm-drive': wormDrive,
+  'actuators/pneumatics-soft-robots/pneumatic-cylinder': pneumaticCylinder,
+  'actuators/pneumatics-soft-robots/soft-gripper': softGripper,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
