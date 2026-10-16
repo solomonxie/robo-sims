@@ -1,9 +1,10 @@
 // Serial arm rig driven by `armFk`: bar links, joint housings with turning rotor rings, joint-axis markers, optional frame triads and a gripper (z-up metres; caller scales).
 import * as THREE from 'three/webgpu'
 import { Mat4, SerialArm, armFk, dhRowAt, mul4, rotAbout4, trans4 } from '../../core/physics'
-import { add, mat, mesh } from '../../models/kit'
+import { V3, add, mat, mesh } from '../../models/kit'
 import { glowMat, setGlow } from './colors'
 import { frameTriad, setTf } from './frames'
+import { pointCloud } from './rooms'
 
 /** Joint 1, 2, 3, 4… accent colours (rotor rings, axis markers, sliders' legend). */
 export const JOINT_COLORS = ['#ff9a4d', '#5ad8e6', '#c38cff', '#f25ca8', '#5ce17a', '#ffd84d'] as const
@@ -120,4 +121,31 @@ export function ghostRig(o: THREE.Object3D, color: string, opacity = 0.2) {
     }
   })
   return m
+}
+
+/** Dots drawn fresh each frame: `begin`, add lines/arcs, `end`. */
+export function dotPen(parent: THREE.Object3D, max: number, r: number) {
+  const pc = pointCloud(parent, max, r)
+  let k = 0
+  const dot = (p: V3, c: string, s = 1) => {
+    if (k < max) pc.set(k++, p, c, s)
+  }
+  return {
+    begin: () => (k = 0),
+    end: () => pc.show(k),
+    dot,
+    line(a: V3, b: V3, step: number, c: string, s = 1) {
+      const m = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) / step))
+      for (let i = 0; i <= m; i++) dot([a[0] + ((b[0] - a[0]) * i) / m, a[1] + ((b[1] - a[1]) * i) / m, a[2] + ((b[2] - a[2]) * i) / m], c, s)
+    },
+    /** Arc in the plane of unit vectors u, v around `o`. */
+    arc(o: V3, rad: number, from: number, sweep: number, c: string, s = 1, u: V3 = [1, 0, 0], v: V3 = [0, 1, 0]) {
+      const m = Math.max(2, Math.ceil((Math.abs(sweep) * rad) / 0.006))
+      for (let i = 0; i <= m; i++) {
+        const a = from + (sweep * i) / m
+        const [ca, sa] = [Math.cos(a) * rad, Math.sin(a) * rad]
+        dot([o[0] + ca * u[0] + sa * v[0], o[1] + ca * u[1] + sa * v[1], o[2] + ca * u[2] + sa * v[2]], c, s)
+      }
+    },
+  }
 }

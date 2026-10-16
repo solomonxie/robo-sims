@@ -3,7 +3,7 @@ import { DEG, IkStep, P3, SERVO_ARM, SERVO_ARM_DIMS, armFk, ikIterate, originOf,
 import { degText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, addLabel, floorMat, frameTriad, ghostRig, glide, liveLabel, matrixGrid, memoBy, pointCloud, scopeLabels, serialArm, sideScope, SIDE_SCOPE, statusHeader, stretchArrow, zUp } from '../fx'
+import { B_FIELD, FORCE, GREY, HIGH_V, JOINT_COLORS, LABEL, RING, addLabel, dotPen, floorMat, frameTriad, ghostRig, glide, liveLabel, matrixGrid, memoBy, pointCloud, scopeLabels, serialArm, sideScope, SIDE_SCOPE, statusHeader, stretchArrow, zUp } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2).replace('-', '−'))
@@ -13,33 +13,6 @@ const glideAngle = (dt: number, from: number, to: number, k = 5) => from + glide
 const mSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 0.01, initial, format: (v: number) => `${v.toFixed(2)} m` })
 const angleSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 5, initial, format: (v: number) => `${v}°` })
 const PSI = JOINT_COLORS[2]
-
-/** Dots drawn fresh each frame: `begin`, add lines/arcs, `end`. */
-function dotPen(parent: THREE.Object3D, max: number, r: number) {
-  const pc = pointCloud(parent, max, r)
-  let k = 0
-  const dot = (p: V3, c: string, s = 1) => {
-    if (k < max) pc.set(k++, p, c, s)
-  }
-  return {
-    begin: () => (k = 0),
-    end: () => pc.show(k),
-    dot,
-    line(a: V3, b: V3, step: number, c: string, s = 1) {
-      const m = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) / step))
-      for (let i = 0; i <= m; i++) dot([a[0] + ((b[0] - a[0]) * i) / m, a[1] + ((b[1] - a[1]) * i) / m, a[2] + ((b[2] - a[2]) * i) / m], c, s)
-    },
-    /** Arc in the plane of unit vectors u, v around `o`. */
-    arc(o: V3, rad: number, from: number, sweep: number, c: string, s = 1, u: V3 = [1, 0, 0], v: V3 = [0, 1, 0]) {
-      const m = Math.max(2, Math.ceil((Math.abs(sweep) * rad) / 0.006))
-      for (let i = 0; i <= m; i++) {
-        const a = from + (sweep * i) / m
-        const [ca, sa] = [Math.cos(a) * rad, Math.sin(a) * rad]
-        dot([o[0] + ca * u[0] + sa * v[0], o[1] + ca * u[1] + sa * v[1], o[2] + ca * u[2] + sa * v[2]], c, s)
-      }
-    },
-  }
-}
 
 const tagAt = (t: { group: THREE.Object3D }, o: V3, r: number, a: number) => t.group.position.set(o[0] + r * Math.cos(a), o[1] + r * Math.sin(a), o[2])
 

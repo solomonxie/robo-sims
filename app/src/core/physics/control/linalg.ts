@@ -113,3 +113,40 @@ export function cholSolve(H: Mat, b: readonly number[]): number[] {
   }
   return y
 }
+
+export const matVec = (a: Mat, v: readonly number[]) => a.map((r) => r.reduce((s, x, k) => s + x * v[k], 0))
+
+/** Symmetric eigen-decomposition by cyclic Jacobi rotations: values descending, vectors[i] = unit eigenvector of values[i]. */
+export function symEig(a: Mat, sweeps = 30): { values: number[]; vectors: number[][] } {
+  const n = a.length
+  const m = a.map((r) => [...r])
+  const v = eye(n)
+  for (let s = 0; s < sweeps; s++) {
+    let off = 0
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += m[p][q] ** 2
+    if (off < 1e-30) break
+    for (let p = 0; p < n; p++)
+      for (let q = p + 1; q < n; q++) {
+        if (Math.abs(m[p][q]) < 1e-300) continue
+        const th = 0.5 * Math.atan2(2 * m[p][q], m[q][q] - m[p][p])
+        const [c, sn] = [Math.cos(th), Math.sin(th)]
+        for (let k = 0; k < n; k++) {
+          const [mkp, mkq] = [m[k][p], m[k][q]]
+          m[k][p] = c * mkp - sn * mkq
+          m[k][q] = sn * mkp + c * mkq
+        }
+        for (let k = 0; k < n; k++) {
+          const [mpk, mqk] = [m[p][k], m[q][k]]
+          m[p][k] = c * mpk - sn * mqk
+          m[q][k] = sn * mpk + c * mqk
+        }
+        for (let k = 0; k < n; k++) {
+          const [vkp, vkq] = [v[k][p], v[k][q]]
+          v[k][p] = c * vkp - sn * vkq
+          v[k][q] = sn * vkp + c * vkq
+        }
+      }
+  }
+  const order = m.map((_, i) => i).sort((i, j) => m[j][j] - m[i][i])
+  return { values: order.map((i) => m[i][i]), vectors: order.map((i) => v.map((r) => r[i])) }
+}
