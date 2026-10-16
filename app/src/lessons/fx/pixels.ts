@@ -1,4 +1,4 @@
-// Image visuals: an Img on a pixel plate, a zoomed inset with RGB sub-pixels and values, a 3D brightness relief, a histogram chart, a hue wheel.
+// Image visuals: an Img on a pixel plate, a zoomed inset with RGB sub-pixels and values, a 3D brightness relief, a histogram chart, a hue wheel, instanced rods/arrows and ring markers.
 import * as THREE from 'three/webgpu'
 import { Img, hsvToRgb, lumaOf } from '../../core/physics'
 import { V3, add, mesh } from '../../models/kit'
@@ -216,6 +216,85 @@ export function hueWheel(parent: THREE.Object3D, at: V3, r: number, segs = 48) {
       halo.position.set(pos[0], pos[1], 0.12)
       ;(dot.material as THREE.MeshBasicMaterial).color.setRGB(...(hsvToRgb(h, sat, Math.max(0.15, v)).map((c) => c / 255) as Rgb01), THREE.SRGBColorSpace)
       stretchRod(spoke, [0, 0, 0.05], pos, 0.035)
+    },
+  }
+}
+
+/** Up to `count` instanced rods (one draw call): `set(i, a, b, r, color)`, `hideFrom(k)`, `commit()`. With `heads`, a cone tips each rod: an arrow field. */
+export function rodPool(parent: THREE.Object3D, count: number, { heads = false, opacity = 1 } = {}) {
+  const material = () => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: opacity < 1, opacity })
+  const shaft = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), material(), count)
+  const cone = heads ? new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 8).translate(0, -0.5, 0), material(), count) : null
+  for (const m of cone ? [shaft, cone] : [shaft]) {
+    m.frustumCulled = false
+    m.castShadow = false
+    parent.add(m)
+  }
+  const m4 = new THREE.Matrix4()
+  const q = new THREE.Quaternion()
+  const s = new THREE.Vector3()
+  const p = new THREE.Vector3()
+  const d = new THREE.Vector3()
+  const up = new THREE.Vector3(0, 1, 0)
+  const col = new THREE.Color()
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0)
+  const hide = (i: number) => {
+    shaft.setMatrixAt(i, zero)
+    cone?.setMatrixAt(i, zero)
+  }
+  for (let i = 0; i < count; i++) hide(i)
+  return {
+    set(i: number, a: V3, b: V3, r: number, color: string | Rgb01) {
+      d.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+      const len = d.length()
+      if (len < 1e-4) return hide(i)
+      q.setFromUnitVectors(up, d.divideScalar(len))
+      const head = cone ? Math.min(len * 0.5, r * 4) : 0
+      const body = len - head
+      m4.compose(p.set(a[0] + (d.x * body) / 2, a[1] + (d.y * body) / 2, a[2] + (d.z * body) / 2), q, s.set(r, body, r))
+      shaft.setMatrixAt(i, m4)
+      if (typeof color === 'string') col.set(color)
+      else col.setRGB(...color, THREE.SRGBColorSpace)
+      shaft.setColorAt(i, col)
+      if (cone) {
+        m4.compose(p.set(...b), q, s.set(r * 2.4, head, r * 2.4))
+        cone.setMatrixAt(i, m4)
+        cone.setColorAt(i, col)
+      }
+    },
+    hideFrom(k: number) {
+      for (let i = k; i < count; i++) hide(i)
+    },
+    commit() {
+      for (const m of cone ? [shaft, cone] : [shaft]) {
+        m.instanceMatrix.needsUpdate = true
+        if (m.instanceColor) m.instanceColor.needsUpdate = true
+      }
+    },
+  }
+}
+
+/** Up to `count` instanced flat rings (corner / keypoint markers): `set(i, at, radius, color)`, `hideFrom(k)`, `commit()`. */
+export function ringMarks(parent: THREE.Object3D, count: number, width = 0.28) {
+  const im = new THREE.InstancedMesh(new THREE.RingGeometry(1 - width, 1, 20), new THREE.MeshBasicMaterial({ color: '#ffffff', side: THREE.DoubleSide }), count)
+  im.frustumCulled = false
+  im.castShadow = false
+  parent.add(im)
+  const m4 = new THREE.Matrix4()
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0)
+  const col = new THREE.Color()
+  for (let i = 0; i < count; i++) im.setMatrixAt(i, zero)
+  return {
+    set(i: number, at: V3, r: number, color: string) {
+      im.setMatrixAt(i, m4.makeScale(r, r, 1).setPosition(...at))
+      im.setColorAt(i, col.set(color))
+    },
+    hideFrom(k: number) {
+      for (let i = k; i < count; i++) im.setMatrixAt(i, zero)
+    },
+    commit() {
+      im.instanceMatrix.needsUpdate = true
+      if (im.instanceColor) im.instanceColor.needsUpdate = true
     },
   }
 }

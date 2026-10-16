@@ -133,6 +133,7 @@ import { grippersCompliance, grippersParallelJaw, grippersSuction } from '../les
 import { armBuildAssemble, armBuildDriveIk } from '../lessons/kinematics/robot-arm-build'
 import { dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits } from '../lessons/kinematics/dynamics'
 import { imageBasicsHistogram, imageBasicsRgbHsv, imageBasicsThresholding } from '../lessons/perception/image-basics'
+import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners } from '../lessons/perception/edges-features'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -541,6 +542,9 @@ const READY: Record<string, Lesson> = {
   'perception/image-basics/rgb-and-hsv': imageBasicsRgbHsv,
   'perception/image-basics/thresholding': imageBasicsThresholding,
   'perception/image-basics/histogram': imageBasicsHistogram,
+  'perception/edges-features/convolution': edgesFeaturesConvolution,
+  'perception/edges-features/canny-edges': edgesFeaturesCannyEdges,
+  'perception/edges-features/corners': edgesFeaturesCorners,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
