@@ -1,13 +1,13 @@
 // Position control: trapezoid and S-curve motion profiles, and the TT car driven to a mark by a cascade (position P → wheel speed FF + PI).
-import { GEARBOXES, TT_CAR, TT_INERTIA, gearRatio } from '../actuators/dcmotor'
+import { TT_CAR, TT_GEAR, TT_INERTIA } from '../actuators/dcmotor'
 import { clamp } from '../common'
 import { wheelCpr, ffVolts, wheelFf, wheelStep, WHEEL } from './speed'
 import { PID_MEM0, pidTick } from './pid'
 
 /** Constant-jerk piece; `a` (if set) steps the acceleration at its start (trapezoid corners). */
-export interface ProfileSeg { dur: number; j: number; a?: number }
+interface ProfileSeg { dur: number; j: number; a?: number }
 export interface Move { kind: 'step' | 'trapezoid' | 'scurve'; dist: number; segs: ProfileSeg[]; T: number; vPeak: number; aPeak: number; jPeak: number }
-export interface MoveState { p: number; v: number; a: number; j: number }
+interface MoveState { p: number; v: number; a: number; j: number }
 
 const moveOf = (kind: Move['kind'], dist: number, segs: ProfileSeg[], vPeak: number, aPeak: number, jPeak: number): Move => {
   const kept = segs.filter((s) => s.dur > 1e-12)
@@ -76,15 +76,14 @@ export function moveAt(m: Move, t: number): MoveState {
   return { p, v, a, j: 0 }
 }
 
-const GEAR = gearRatio(GEARBOXES.tt48)
 const R = TT_CAR.wheelM
 /** Motor rotor plus the driven wheel's share of the car mass, seen at the motor shaft. */
-export const CAR_INERTIA = TT_INERTIA + ((TT_CAR.massKg / TT_CAR.driven) * R * R) / (GEAR * GEAR)
-export const mpsToRpm = (v: number) => (v / (2 * Math.PI * R)) * 60
+export const CAR_INERTIA = TT_INERTIA + ((TT_CAR.massKg / TT_CAR.driven) * R * R) / (TT_GEAR * TT_GEAR)
+const mpsToRpm = (v: number) => (v / (2 * Math.PI * R)) * 60
 /** Top car speed the loop may ask for (m/s); camera mast: bending mode (Hz), damping ratio, height (m). */
 export const CAR_MOVE = { vLimit: (WHEEL.maxRpm / 60) * 2 * Math.PI * R, kpos: 8, pi: { kp: 0.005, ki: 0.08, kd: 0 }, mast: { hz: 3, zeta: 0.03, h: 0.18 } }
 
-export interface PosCfg {
+interface PosCfg {
   move: Move
   /** Move starts at this time (s). */
   start: number
@@ -131,7 +130,7 @@ export function positionRun(c: PosCfg): PosFrame[] {
   for (let k = 0; k * loopS <= c.seconds + 1e-9; k++) {
     const t = k * loopS
     const ref = moveAt(c.move, t - c.start)
-    const count = Math.floor((theta / GEAR / (2 * Math.PI)) * cpr + 1e-9)
+    const count = Math.floor((theta / TT_GEAR / (2 * Math.PI)) * cpr + 1e-9)
     const meas = count * perCount
     const rpmMeas = mpsToRpm(((count - prevCount) * perCount) / loopS)
     prevCount = count
@@ -141,12 +140,12 @@ export function positionRun(c: PosCfg): PosFrame[] {
     mem = r.mem
     const raw = ff + r.terms.out
     const u = clamp(raw, -1, 1)
-    const v = (w / GEAR) * R
-    out.push({ t, ref: ref.p, refV: ref.v, refA: ref.a, x: (theta / GEAR) * R, meas, v, acc: (v - prevV) / loopS, vCmd, u, sat: u !== raw, rev: theta / GEAR / (2 * Math.PI), sway: sw })
+    const v = (w / TT_GEAR) * R
+    out.push({ t, ref: ref.p, refV: ref.v, refA: ref.a, x: (theta / TT_GEAR) * R, meas, v, acc: (v - prevV) / loopS, vCmd, u, sat: u !== raw, rev: theta / TT_GEAR / (2 * Math.PI), sway: sw })
     prevV = v
     for (let j = 0; j < sub; j++) {
       const w1 = wheelStep(w, u * volts, 0, dt, WHEEL.crr, CAR_INERTIA)
-      const acc = ((w1 - w) / GEAR) * (R / dt)
+      const acc = ((w1 - w) / TT_GEAR) * (R / dt)
       swV += (-wn * wn * sw - 2 * zeta * wn * swV + acc) * dt
       sw += swV * dt
       theta += w1 * dt

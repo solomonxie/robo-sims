@@ -1,18 +1,11 @@
 import { DEG } from '../common'
 import { fellAt } from '../mobility/balance'
-import { matInv, matMul } from './lqr'
-import { boxQp, cholSolve, mpcDesign, mpcRun, mpcSolve, predict } from './mpc'
+import { matInv, matMul } from './linalg'
+import { BALANCER_TOL as TOL } from './lqr'
+import { boxQp, mpcDesign, mpcRun, mpcSolve, predict } from './mpc'
 
-const TOL = { pos: 0.1, speed: 0.5, tilt: 5 * DEG, rate: 50 * DEG, effort: 3 }
 const step = (t: number) => (t >= 0.5 ? 0.3 : 0)
 const BIG = 1e9
-
-test('Cholesky solve matches the inverse', () => {
-  const H = [[4, 1, 0.5], [1, 3, 0.2], [0.5, 0.2, 2]]
-  const b = [1, -2, 0.5]
-  const want = matMul(matInv(H), b.map((x) => [x])).map((r) => r[0])
-  cholSolve(H, b).forEach((x, i) => expect(x).toBeCloseTo(want[i], 12))
-})
 
 test('box QP: unconstrained, one bound active by hand, and KKT on random problems', () => {
   const H = [[2, 0.5], [0.5, 1]]

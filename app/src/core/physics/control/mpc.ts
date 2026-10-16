@@ -1,33 +1,10 @@
 // Model predictive control: box-constrained QP by primal active set, condensed prediction on the balancer with motor lag, receding-horizon run.
 import { clamp } from '../common'
 import { BALANCER, Balancer, CART0, Cart, cartStep, torqueLimit } from '../mobility/balance'
-import { Mat, Tolerances, balancerModel, brysonQ, c2d, dlqr, matMul } from './lqr'
+import { Mat, cholSolve, matMul } from './linalg'
+import { Tolerances, balancerModel, brysonQ, c2d, dlqr } from './lqr'
 
-/** Solves H·x = b for symmetric positive definite H (Cholesky). */
-export function cholSolve(H: Mat, b: readonly number[]): number[] {
-  const n = b.length
-  const L: Mat = Array.from({ length: n }, () => Array(n).fill(0))
-  for (let i = 0; i < n; i++)
-    for (let j = 0; j <= i; j++) {
-      let s = H[i][j]
-      for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k]
-      L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-300)) : s / L[j][j]
-    }
-  const y = Array(n).fill(0)
-  for (let i = 0; i < n; i++) {
-    let s = b[i]
-    for (let k = 0; k < i; k++) s -= L[i][k] * y[k]
-    y[i] = s / L[i][i]
-  }
-  for (let i = n - 1; i >= 0; i--) {
-    let s = y[i]
-    for (let k = i + 1; k < n; k++) s -= L[k][i] * y[k]
-    y[i] = s / L[i][i]
-  }
-  return y
-}
-
-export interface QpResult { u: number[]; iterations: number; active: number; converged: boolean }
+interface QpResult { u: number[]; iterations: number; active: number; converged: boolean }
 /** min ½uᵀHu + fᵀu with lo ≤ u ≤ hi (H positive definite): primal active set from the clipped `start`;
  *  a bound is released when its multiplier has the wrong sign, a free entry is pinned when a step hits its bound. */
 export function boxQp(H: Mat, f: readonly number[], lo: readonly number[], hi: readonly number[], start?: readonly number[]): QpResult {
@@ -76,14 +53,14 @@ export function boxQp(H: Mat, f: readonly number[], lo: readonly number[], hi: r
 }
 
 /** The balancer with its motor lag as a fifth state, [x, ẋ, θ, θ̇, a]; input u = commanded wheel acceleration, ȧ = (u − a)/lag. */
-export function laggedBalancer(bot: Balancer = BALANCER) {
+function laggedBalancer(bot: Balancer = BALANCER) {
   const { A: A4, B: B4 } = balancerModel(bot.h)
   const A = [...A4.map((r, i) => [...r, B4[i][0]]), [0, 0, 0, 0, -1 / bot.lag]]
   const B = [[0], [0], [0], [0], [1 / bot.lag]]
   return { A, B }
 }
 
-export interface MpcSpec {
+interface MpcSpec {
   /** Steps in the plan. */
   horizon: number
   /** Controller period (s), a multiple of the sim step. */
@@ -126,7 +103,7 @@ export function mpcDesign(spec: MpcSpec) {
   for (let i = 0; i < N; i++) H[i][i] += r
   return { ...spec, bot, Ad, Bd, H, F, Gr, K: lqr.K[0], P: lqr.P }
 }
-export type MpcDesign = ReturnType<typeof mpcDesign>
+type MpcDesign = ReturnType<typeof mpcDesign>
 
 /** States x₁…x_N from x₀ under the moves `u`. */
 export function predict(d: MpcDesign, x0: readonly number[], u: readonly number[]): number[][] {
@@ -147,7 +124,7 @@ export function mpcSolve(d: MpcDesign, x0: readonly number[], refs: readonly num
 
 export interface MpcPlan { t: number; u: number[]; /** LQR's move before the clip. */ want?: number; x: number[][]; lo: number[]; hi: number[]; iterations: number; active: number }
 export interface MpcFrame { t: number; x: number; v: number; tilt: number; rate: number; ref: number; u: number; cmd: number; got: number; sat: boolean; fallen: boolean; plan: number }
-export interface MpcSetup {
+interface MpcSetup {
   design: MpcDesign
   seconds: number
   /** 'lqr' applies u = −K·(x − ref) for the same model and weights, clipped to the same limits. */

@@ -32,10 +32,11 @@ export const GEARBOXES = {
 export type GearKind = keyof typeof GEARBOXES
 
 export const gearRatio = (g: Gearbox) => g.stages.reduce((a, b) => a * b, 1)
+export const TT_GEAR = gearRatio(GEARBOXES.tt48)
 export const gearEfficiency = (g: Gearbox) => g.meshEff ** g.stages.length
 
 /** Back-EMF constant at the armature (V per rad/s) = torque constant (N·m/A); TT_MOTOR's volts are per output rpm. */
-export const motorK = (m: DcMotor = TT_MOTOR) => (m.voltsPerRpm * RPM_PER_RADS) / gearRatio(GEARBOXES.tt48)
+export const motorK = (m: DcMotor = TT_MOTOR) => (m.voltsPerRpm * RPM_PER_RADS) / TT_GEAR
 export const backEmf = (radS: number, m: DcMotor = TT_MOTOR) => motorK(m) * radS
 /** V = I·R + kω. */
 export const armatureAmps = (volts: number, radS: number, m: DcMotor = TT_MOTOR) => (volts - backEmf(radS, m)) / m.ohms

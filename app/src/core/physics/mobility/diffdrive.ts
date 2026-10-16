@@ -1,5 +1,5 @@
 // Differential drive: wheel speeds ↔ body twist, turn radius and ICC, exact arc steps, UMBmark square odometry, wheel slip.
-import { TT_CAR } from '../actuators/dcmotor'
+import { TT_CAR, TT_GEAR } from '../actuators/dcmotor'
 import { DEG, G, wrapPi } from '../common'
 import { Pose } from '../room'
 import { ENCODERS, TT_TRACK_M, TT_WHEEL_MM, mmPerTick, odoStep, ticksPerWheelRev } from '../sensors/encoder'
@@ -26,7 +26,6 @@ export function diffStep(p: Pose, vL: number, vR: number, track: number, dt: num
 
 // --- UMBmark: drive a square by the robot's own odometry; the true robot has slightly wrong wheels/track. ---
 
-export const TT_GEAR = 48
 export const UMB = {
   sideM: 1,
   v: 0.2,

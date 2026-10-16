@@ -65,6 +65,16 @@ export const pct = (f: number) => `${Math.round(f * 100)} %`
 /** Always-signed fixed-point text: +1.0, −0.5. */
 export const signed = (v: number, digits = 1) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(digits)}`
 export const mmText = (m: number) => `${Math.round(m * 1000)} mm`
+/** Tenths of a mm below 10 mm. */
+export const mmTenths = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 ? 1 : 0)} mm`
+export const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
+export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
+/** Two decimals, '—' when missing. */
+export const secsText = (s: number | null) => (s === null || !Number.isFinite(s) ? '—' : `${s.toFixed(2)} s`)
+/** PID gains in duty per degree. */
+export const kpText = (kp: number) => `${(kp * 100).toFixed(2)} %/°`
+export const kiText = (ki: number) => `${(ki * 100).toFixed(1)} %/(°·s)`
+export const kdText = (kd: number) => `${(kd * 100).toFixed(2)} %/(°/s)`
 /** '+', '−' or '0' (|v| < 1e-6). */
 export const signText = (v: number) => (Math.abs(v) < 1e-6 ? '0' : v > 0 ? '+' : '−')
 /** Two decimals, signed unless ~0. */

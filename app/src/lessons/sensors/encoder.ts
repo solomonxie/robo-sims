@@ -6,6 +6,7 @@ import {
   Pose,
   QUAD_STATES,
   QuadReader,
+  TT_GEAR,
   TT_TRACK_M,
   TT_WHEEL_MM,
   decodeStep,
@@ -62,7 +63,6 @@ import { Lesson, Params, Stage, n, opts, pick } from '../types'
 const ENC = { hall: 'Hall, 11 PPR on motor', slot: 'Optical, 20 slots on wheel' }
 const MODES = { x1: '×1 decoding', x2: '×2', x4: '×4' }
 const DEC: Record<keyof typeof MODES, Decoding> = { x1: 1, x2: 2, x4: 4 }
-const TT_GEAR = 48
 const FULL_RPM = motorRpm(6)
 const A_COLOR = CLK_COLOR
 const B_COLOR = DATA_COLOR

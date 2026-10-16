@@ -1,4 +1,5 @@
 // Control: open vs closed loop, bang-bang & hysteresis, PID, speed, position, line following, stability, state-space & LQR, MPC, filters in the loop.
+export * from './linalg'
 export * from './loop'
 export * from './bangbang'
 export * from './pid'

@@ -1,8 +1,8 @@
-import { ARM, ArmFrame, FilterPlace, MeasFilter, NO_FILTER, SpeedFrame, WHEEL, armRun, dTauFor, emaAlpha, filterAt, filterDelay, filterRun, filteredLoopAt, filteredMargins, fixedStepAt, kalmanSpeed, noiseGain, placePd, speedStats, stepMetrics, stepSp, wheelCpr, wheelSpeedRun } from '../../core/physics'
-import { pct } from '../../core/units'
+import { ARM, ArmFrame, FilterPlace, MeasFilter, NO_FILTER, SpeedFrame, WHEEL, armRun, dTauFor, emaAlpha, filterAt, filterDelay, filterRun, filteredLoopAt, filteredMargins, fixedStepAt, kalmanSpeed, noiseGain, placePd, speedStats, stepMetrics, stepSp, wheelCpr, wheelSpeedRun, ARM_FROM, decibels, stdDev } from '../../core/physics'
+import { pct, degText, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, MEAS_COLOR, POWER, RING, SIDE_SCOPE, addLabel, addRod, controlLoop, glowMat, liveLabel, memoBy, pidArm, scope, scopeLabels, statusHeader, stretchRod, termBars, traceRun } from '../fx'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, MEAS_COLOR, POWER, RING, SIDE_SCOPE, addLabel, addRod, controlLoop, glowMat, liveLabel, memoBy, pidArm, scope, scopeLabels, statusHeader, stretchRod, termBars, traceRun, lapseClock, sideScope } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 import { speedStage } from './speed-control'
 
@@ -12,16 +12,9 @@ const SCOPE = { y: -6.3, h: 4, split: 0.4 }
 const RIG = { at: [-11.6, 1.3, 0] as V3, len: 5.2, bars: [-11.2, -6.5, 0] as V3, rest: 1.2 }
 const ST = { from: 30, target: 40, seconds: 2.5, slow: 0.4, lo: 28, hi: 46, lag: 0.01, hold: 1.5 }
 const GAINS = placePd(0.7, 12, ST.target)
-const FROM = Math.round(ARM.stepAt / ARM.dt)
-const deg = (d: number, digits = 1) => `${d.toFixed(digits)}°`
 const ms = (s: number) => `${Math.round(s * 1000)} ms`
-const secs = (s: number | null) => (s === null ? '—' : `${s.toFixed(2)} s`)
-const pmText = (pm: number | null) => (pm === null ? '∞' : deg(pm, 0))
+const pmText = (pm: number | null) => (pm === null ? '∞' : degText(pm, 0))
 const pmTone = (pm: number | null) => (pm === null || pm >= 45 ? 'ok' : pm > 20 ? 'warn' : 'bad')
-const rms = (xs: number[]) => {
-  const m = xs.reduce((a, x) => a + x, 0) / xs.length
-  return Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / xs.length)
-}
 const ARM_LEGEND = {
   th: { color: RING, label: `Arm angle (scope top ${ST.lo}…${ST.hi}°)`, shape: 'dot' as const },
   raw: { color: GREY, label: 'Raw pot reading (noisy)', shape: 'dot' as const },
@@ -36,9 +29,9 @@ function armFiltered(f: MeasFilter, place: FilterPlace, noise: number) {
   const hold = run.filter((r) => r.t >= ST.hold)
   return {
     run,
-    m: stepMetrics(run.map((r) => r.th), ARM.dt, FROM, ST.from, ST.target),
-    buzz: rms(hold.map((r) => r.u)),
-    pBuzz: rms(hold.map((r) => r.p)),
+    m: stepMetrics(run.map((r) => r.th), ARM.dt, ARM_FROM, ST.from, ST.target),
+    buzz: stdDev(hold.map((r) => r.u)),
+    pBuzz: stdDev(hold.map((r) => r.p)),
     mg: filteredMargins(GAINS, ST.lag, ST.target, f, place),
   }
 }
@@ -49,8 +42,7 @@ function armStage() {
   const head = statusHeader(scene)
   const arm = pidArm(scene, RIG.at, RIG.len)
   const bars = termBars(scene, RIG.bars, 7)
-  const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [5, 5], zeroAt: SCOPE.split / 2 })
-  plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+  const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [5, 5], zeroAt: SCOPE.split / 2 })
   scopeLabels(scene, SCOPE.y, SCOPE.h, ST.seconds, `angle ${ST.lo}…${ST.hi}°`, 'duty ±100 %')
   const uTr = plot.trace(POWER, { samples: 400, radius: 0.025 })
   const spTr = plot.trace(B_FIELD, { samples: 200, radius: 0.035 })
@@ -61,16 +53,10 @@ function armStage() {
   const split = bottom + SCOPE.split * SCOPE.h
   const yDeg = (d: number) => split + 0.1 + ((Math.max(ST.lo, Math.min(ST.hi, d)) - ST.lo) / (ST.hi - ST.lo)) * (SCOPE.h / 2 - split - 0.1)
   const yDuty = (u: number) => bottom + (SCOPE.split * SCOPE.h) / 2 + Math.max(-1, Math.min(1, u)) * (SCOPE.split * SCOPE.h) * 0.46
-  const st = { key: '', t: 0 }
   return {
     scene,
     ...head,
-    clock(dt: number, key: string) {
-      if (key !== st.key) [st.key, st.t] = [key, 0]
-      st.t += dt * ST.slow
-      if (st.t > ST.seconds + RIG.rest * ST.slow) st.t = 0
-      return Math.min(st.t, ST.seconds)
-    },
+    clock: lapseClock(ST.seconds, ST.slow, RIG.rest * ST.slow),
     show(dt: number, run: ArmFrame[], t: number, seen = true) {
       const f = fixedStepAt(run, t, ARM.dt)
       traceRun(uTr, run, ARM.dt, ST.seconds, t, (g) => yDuty(g.u), 400)
@@ -115,7 +101,7 @@ export const movingAverage: Lesson = {
   ],
   controls: [
     { kind: 'slider', key: 'win', label: 'Average window', min: 5, max: 160, step: 5, initial: 40, format: (v) => (v <= 5 ? 'off (1 sample)' : `${v} ms (${Math.round(v / 5)} samples)`) },
-    { kind: 'slider', key: 'noise', label: 'Pot noise (RMS)', min: 0, max: 1, step: 0.1, initial: 0.5, format: (v) => deg(v) },
+    { kind: 'slider', key: 'noise', label: 'Pot noise (RMS)', min: 0, max: 1, step: 0.1, initial: 0.5, format: (v) => degText(v) },
   ],
   build(): Stage {
     const s = armStage()
@@ -132,16 +118,16 @@ export const movingAverage: Lesson = {
         loop.set(
           dt,
           { r: f.sp / 60, e: Math.min(1, Math.abs(e) / 5), u: f.u, y: f.th / 60, m: f.seen / 60, n: q.noise },
-          { r: deg(f.sp, 0), e: `e ${deg(e)}`, u: `u ${pct(f.u)}`, y: deg(f.th), m: q.n > 1 ? `${deg(f.seen)} (${ms(filterDelay(maFilter(q)))} old)` : deg(f.seen), n: q.noise ? `±${deg(q.noise)} noise` : 'no noise' },
+          { r: degText(f.sp, 0), e: `e ${degText(e)}`, u: `u ${pct(f.u)}`, y: degText(f.th), m: q.n > 1 ? `${degText(f.seen)} (${ms(filterDelay(maFilter(q)))} old)` : degText(f.seen), n: q.noise ? `±${degText(q.noise)} noise` : 'no noise' },
           { sensor: q.n > 1 ? `pot + avg ${q.n}` : 'pot (raw)' },
         )
         const late = f.th - f.seen
         const { buzz } = maData(q)
-        s.status.set(`Moving average · ${q.n > 1 ? `${q.n} samples (${ms(q.n * ARM.dt)})` : 'off'} · noise ${deg(q.noise)} · PM ${pmText(mg.pm)}`, LABEL)
+        s.status.set(`Moving average · ${q.n > 1 ? `${q.n} samples (${ms(q.n * ARM.dt)})` : 'off'} · noise ${degText(q.noise)} · PM ${pmText(mg.pm)}`, LABEL)
         if (t < ARM.stepAt) s.event.set('holding 30°: setpoint about to step to 40°', GREY)
-        else if (buzz > 0.3) s.event.set(`duty slams ±100 %: D turns pot noise into full-scale kicks · arm ${deg(f.th)}`, HIGH_V)
-        else if (q.n > 1 && Math.abs(late) > 1 + 2 * q.noise * noiseGain(maFilter(q))) s.event.set(`reading ${deg(Math.abs(late))} ${late > 0 ? 'behind' : 'ahead of'} the arm: the PD reacts to where it was`, HEAT)
-        else s.event.set(`seen ${deg(f.seen)} · arm ${deg(f.th)} · duty ${pct(f.u)}`, RING)
+        else if (buzz > 0.3) s.event.set(`duty slams ±100 %: D turns pot noise into full-scale kicks · arm ${degText(f.th)}`, HIGH_V)
+        else if (q.n > 1 && Math.abs(late) > 1 + 2 * q.noise * noiseGain(maFilter(q))) s.event.set(`reading ${degText(Math.abs(late))} ${late > 0 ? 'behind' : 'ahead of'} the arm: the PD reacts to where it was`, HEAT)
+        else s.event.set(`seen ${degText(f.seen)} · arm ${degText(f.th)} · duty ${pct(f.u)}`, RING)
         s.sub(t, `pot ${ms(ST.lag)} late`)
       },
       readouts: (p) => {
@@ -150,7 +136,7 @@ export const movingAverage: Lesson = {
         const f = maFilter(q)
         return [
           { label: 'Duty noise while holding (RMS)', value: pct(buzz), tone: buzz > 0.2 ? 'bad' : buzz > 0.08 ? 'warn' : 'ok' },
-          { label: 'Overshoot · settle (±2 %)', value: `${pct(m.overshoot)} · ${secs(m.settle)}`, tone: m.overshoot > 0.3 || m.settle === null ? 'bad' : m.overshoot > 0.1 ? 'warn' : 'ok' },
+          { label: 'Overshoot · settle (±2 %)', value: `${pct(m.overshoot)} · ${secsText(m.settle)}`, tone: m.overshoot > 0.3 || m.settle === null ? 'bad' : m.overshoot > 0.1 ? 'warn' : 'ok' },
           { label: 'Phase margin', value: pmText(mg.pm), tone: pmTone(mg.pm) },
           { label: 'Filter delay · noise left', value: `${ms(filterDelay(f))} · ×${noiseGain(f).toFixed(2)}` },
         ]
@@ -169,7 +155,6 @@ const lpKey = (q: LpQ) => `${q.place}|${q.tau}`
 const lpFilter = (q: LpQ): MeasFilter => (q.tau > 0 ? { kind: 'ema', alpha: emaAlpha(ARM.dt, q.tau) } : NO_FILTER)
 const lpData = memoBy(lpKey, (q: LpQ) => ({ ...armFiltered(lpFilter(q), q.place, LP_NOISE), bare: filteredMargins(GAINS, ST.lag, ST.target, NO_FILTER) }))
 const BODE = { w0: 1, decades: 2, db: 20, h: 5.4 }
-const db = (x: number) => 20 * Math.log10(x)
 
 export const lowPass: Lesson = {
   id: 'filters-in-the-loop-low-pass',
@@ -180,7 +165,7 @@ export const lowPass: Lesson = {
     const f = lpFilter(q)
     const { mg, bare } = lpData(q)
     const lagAt = mg.wc === null ? 0 : -filterAt(f, mg.wc).phase / (Math.PI / 180)
-    return `y += α(x − y), α = 1 − e^(−dt/τ) = ${f.kind === 'ema' ? f.alpha.toFixed(3) : '1'} · lag at ωc ≈ atan(ωc·τ) = ${deg(lagAt, 0)} · ${q.place === 'd' ? 'u = Kp·e − Kd·LPF(dθ/dt)' : 'u = Kp·LPF(e) − Kd·d LPF(θ)/dt'} · PM ${pmText(bare.pm)} → ${pmText(mg.pm)}`
+    return `y += α(x − y), α = 1 − e^(−dt/τ) = ${f.kind === 'ema' ? f.alpha.toFixed(3) : '1'} · lag at ωc ≈ atan(ωc·τ) = ${degText(lagAt, 0)} · ${q.place === 'd' ? 'u = Kp·e − Kd·LPF(dθ/dt)' : 'u = Kp·LPF(e) − Kd·d LPF(θ)/dt'} · PM ${pmText(bare.pm)} → ${pmText(mg.pm)}`
   },
   legend: [
     { color: HEAT, label: 'Loop gain |L| (top, ±20 dB)', shape: 'dot' },
@@ -205,7 +190,7 @@ export const lowPass: Lesson = {
     const q4 = BODE.h / 4
     const wAt = (u: number) => BODE.w0 * 10 ** (u * BODE.decades)
     const uAt = (w: number) => Math.log10(w / BODE.w0) / BODE.decades
-    const yMag = (m: number) => q4 + (db(m) / BODE.db) * q4
+    const yMag = (m: number) => q4 + (decibels(m) / BODE.db) * q4
     const yPh = (ph: number) => (ph / Math.PI / (4 / 3)) * 2 * q4
     const bareTr = bode.trace(GREY, { samples: 160, radius: 0.04 })
     const magTr = bode.trace(HEAT, { samples: 160, radius: 0.05 })
@@ -241,22 +226,22 @@ export const lowPass: Lesson = {
           const x = bode.xAt(uAt(mg.wc!))
           stretchRod(pmBar, [x, yPh(-Math.PI), 0.3], [x, Math.max(-2 * q4, yPh(L(uAt(mg.wc!)).phase)), 0.3], 0.08)
           pmTag.group.position.set(x - 0.15, yPh(-Math.PI) - 0.4, 0.35)
-          pmTag.set(`PM ${deg(mg.pm!, 0)}`, mg.pm! < 20 ? HIGH_V : POWER)
+          pmTag.set(`PM ${degText(mg.pm!, 0)}`, mg.pm! < 20 ? HIGH_V : POWER)
         }
         const fr = s.show(dt, run, t, q.place === 'meas' && q.tau > 0)
         s.status.set(`Low-pass · ${PLACES[q.place]} · τ ${q.tau ? ms(q.tau) : 'off'} · PM ${pmText(bare.pm)} → ${pmText(mg.pm)}`, LABEL)
         if (t < ARM.stepAt) s.event.set('holding 30°: setpoint about to step to 40°', GREY)
-        else if (fr.th > ST.target + 1) s.event.set(`overshoot ${deg(fr.th - ST.target)}: ${q.place === 'meas' ? 'the filtered reading still says ' + deg(fr.seen) : 'D is late, P is not'}`, HEAT)
+        else if (fr.th > ST.target + 1) s.event.set(`overshoot ${degText(fr.th - ST.target)}: ${q.place === 'meas' ? 'the filtered reading still says ' + degText(fr.seen) : 'D is late, P is not'}`, HEAT)
         else if (Math.abs(fr.d) > 0.3) s.event.set(`D ${pct(fr.d)}: unfiltered slope noise kicks the duty`, HIGH_V)
         else s.event.set(`P ${pct(fr.p)} · D ${pct(fr.d)} · duty ${pct(fr.u)}`, RING)
-        s.sub(t, `pot noise ${deg(LP_NOISE)}`)
+        s.sub(t, `pot noise ${degText(LP_NOISE)}`)
       },
       readouts: (p) => {
         const q = lpParams(p)
         const { m, buzz, pBuzz, mg, bare } = lpData(q)
         return [
           { label: 'Phase margin (no filter → now)', value: `${pmText(bare.pm)} → ${pmText(mg.pm)}`, tone: pmTone(mg.pm) },
-          { label: 'Overshoot · settle (±2 %)', value: `${pct(m.overshoot)} · ${secs(m.settle)}`, tone: m.overshoot > 0.3 || m.settle === null ? 'bad' : m.overshoot > 0.1 ? 'warn' : 'ok' },
+          { label: 'Overshoot · settle (±2 %)', value: `${pct(m.overshoot)} · ${secsText(m.settle)}`, tone: m.overshoot > 0.3 || m.settle === null ? 'bad' : m.overshoot > 0.1 ? 'warn' : 'ok' },
           { label: 'Duty noise holding (RMS)', value: pct(buzz), tone: buzz > 0.2 ? 'bad' : buzz > 0.08 ? 'warn' : 'ok' },
           { label: 'Of which the P term (RMS)', value: `${(pBuzz * 100).toFixed(1)} %` },
         ]

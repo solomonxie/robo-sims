@@ -49,3 +49,21 @@ export function traceRun<T>(tr: ReturnType<ReturnType<typeof scope>['trace']>, r
   }
   tr.points(us, ys)
 }
+
+/** `scope` of `SIDE_SCOPE` width centred at height `y`. */
+export function sideScope(scene: THREE.Object3D, y: number, h: number, opts: Parameters<typeof scope>[3]) {
+  const s = scope(scene, SIDE_SCOPE.w, h, opts)
+  s.group.position.set(SIDE_SCOPE.x, y, 0)
+  return s
+}
+
+/** Time-lapse clock: sim time 0…`seconds` at `slow`×, holds `rest` s of sim time, loops; restarts on a new key. */
+export function lapseClock(seconds: number, slow: number, rest: number) {
+  const st = { key: '', t: 0 }
+  return (dt: number, key: string) => {
+    if (key !== st.key) [st.key, st.t] = [key, 0]
+    st.t += dt * slow
+    if (st.t > seconds + rest) st.t = 0
+    return Math.min(st.t, seconds)
+  }
+}

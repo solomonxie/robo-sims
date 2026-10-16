@@ -6,7 +6,10 @@ import { PID_MEM0, PidCfg, pidTick } from './pid'
  *  per gram at the tip, top end stop (°), pot + driver lag (s), loop period (s), run length, setpoint step time (s) and target (°). */
 export const ARM = { wMax: 8, tau: 0.2, spring: 0.5, hold: 0.2, perGram: 0.001, top: 180, lag: 0.05, dt: 0.005, seconds: 3, stepAt: 0.25, target: 40 }
 
-export interface ArmState { th: number; w: number }
+/** Sample index of the setpoint step. */
+export const ARM_FROM = Math.round(ARM.stepAt / ARM.dt)
+
+interface ArmState { th: number; w: number }
 /** Duty that holds the arm still at `deg` with `grams` at the tip: spring + gravity. */
 export const loadDuty = (deg: number, grams = 0) => ARM.spring * deg * DEG + (ARM.hold + ARM.perGram * grams) * Math.sin(deg * DEG)
 /** Where P alone comes to rest: Kp·(target − θ) = load(θ). */
@@ -21,7 +24,7 @@ export function pRestDeg(kp: number, target: number, grams = 0) {
 }
 
 /** One step: motor torque (u − ω/ωmax) against spring and gravity; the frame's top stop or a block at `stopDeg` halts it going up. */
-export function armStep(s: ArmState, u: number, dt: number, grams: number, stopDeg?: number): ArmState {
+function armStep(s: ArmState, u: number, dt: number, grams: number, stopDeg?: number): ArmState {
   const a = (ARM.wMax / ARM.tau) * (clamp(u, -1, 1) - s.w / ARM.wMax - loadDuty(s.th / DEG, grams))
   let w = s.w + a * dt
   let th = s.th + w * dt

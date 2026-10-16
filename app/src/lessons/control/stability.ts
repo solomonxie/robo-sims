@@ -1,8 +1,8 @@
-import { ARM, ArmFrame, Cx, Gains, armPoles, armRun, dominant, fixedStepAt, loopAt, margins, placePd, secondOrder, secondOrderAt, stepMetrics, swing } from '../../core/physics'
-import { pct } from '../../core/units'
+import { ARM, ArmFrame, Cx, Gains, armPoles, armRun, dominant, fixedStepAt, loopAt, margins, placePd, secondOrder, secondOrderAt, stepMetrics, swing, ARM_FROM, decibels } from '../../core/physics'
+import { pct, degText, kdText, kpText, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, addRod, glowMat, liveLabel, memoBy, pidArm, scope, scopeLabels, sPlane, statusHeader, stretchRod, termBars, traceRun } from '../fx'
+import { B_FIELD, DATA_COLOR, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, addRod, glowMat, liveLabel, memoBy, pidArm, scope, scopeLabels, sPlane, statusHeader, stretchRod, termBars, traceRun, lapseClock, sideScope } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
 const VIEW = { center: [-2.2, -1.3, 0] as V3, radius: 54, polar: 1.45, azimuth: 0 }
@@ -10,12 +10,7 @@ const TOP = { y: 1.2, h: 6 }
 const SCOPE = { y: -6.3, h: 4 }
 const RIG = { at: [-11.6, 1.3, 0] as V3, len: 5.2, bars: [-11.2, -6.5, 0] as V3, rest: 1.2 }
 const ST = { from: 30, target: 40, seconds: 2.5, slow: 0.4, lo: 25, hi: 50 }
-const FROM = Math.round(ARM.stepAt / ARM.dt)
 const SPLANE = { per: 5, re: [-35, 10] as const, im: 15 }
-const deg = (d: number, digits = 1) => `${d.toFixed(digits)}°`
-const secs = (s: number | null) => (s === null || !Number.isFinite(s) ? '—' : `${s.toFixed(2)} s`)
-const kpText = (kp: number) => `${(kp * 100).toFixed(2)} %/°`
-const kdText = (kd: number) => `${(kd * 100).toFixed(2)} %/(°/s)`
 const poleText = (p: Cx) => (p.im > 0.01 ? `${p.re.toFixed(1)} ± ${p.im.toFixed(1)}j /s` : `${p.re.toFixed(1)} /s`)
 const gainsKey = (g: Gains, lag: number) => `${g.kp}|${g.kd}|${lag}`
 const swingText = (r: number | undefined) => (r === undefined ? 'no swing left' : r < 0.9 ? `dies out (×${r.toFixed(2)} per cycle)` : r < 1.02 ? 'sustained' : `grows (×${r.toFixed(2)} per cycle)`)
@@ -26,7 +21,7 @@ const stepRun = memoBy(
   ({ g, lag }: { g: Gains; lag: number }) => {
     const run = armRun({ pid: { ...g, limit: 2, dOnMeas: true }, from: ST.from, target: ST.target, ff: true, lag, seconds: ST.seconds })
     const th = run.map((f) => f.th)
-    return { run, m: stepMetrics(th, ARM.dt, FROM, ST.from, ST.target), sw: swing(th, ARM.dt, FROM), clipped: run.some((f) => Math.abs(f.u) >= 0.999) }
+    return { run, m: stepMetrics(th, ARM.dt, ARM_FROM, ST.from, ST.target), sw: swing(th, ARM.dt, ARM_FROM), clipped: run.some((f) => Math.abs(f.u) >= 0.999) }
   },
 )
 
@@ -38,14 +33,12 @@ function stabStage(top: 'splane' | 'bode') {
   const bars = termBars(scene, RIG.bars, 7)
   const plane = top === 'splane' ? sPlane(scene, [SIDE_SCOPE.x, TOP.y, 0], SPLANE.per, SPLANE.re[0], SPLANE.re[1], SPLANE.im) : null
   const offTag = plane ? liveLabel(plane.group, [-plane.w / 2 + 0.25, -plane.h / 2 + 0.35, 0.35], { size: 0.24, color: GREY, align: 'left' }) : null
-  const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [5, 5], zeroAt: 0.2 })
-  plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+  const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [5, 5], zeroAt: 0.2 })
   scopeLabels(scene, SCOPE.y, SCOPE.h, ST.seconds, `arm angle ${ST.lo}…${ST.hi}°`, `step ${ST.from} → ${ST.target}°`)
   const spTr = plot.trace(B_FIELD, { samples: 200, radius: 0.04 })
   const thTr = plot.trace(RING, { samples: 260, radius: 0.08 })
   const yDeg = (d: number) => ((d - ST.lo) / (ST.hi - ST.lo) - 0.5) * SCOPE.h
   const xAt = (t: number) => SIDE_SCOPE.x - SIDE_SCOPE.w / 2 + (t / ST.seconds) * SIDE_SCOPE.w
-  const st = { key: '', t: 0 }
   return {
     scene,
     ...head,
@@ -58,12 +51,7 @@ function stabStage(top: 'splane' | 'bode') {
     plot,
     yDeg,
     xAt,
-    clock(dt: number, key: string) {
-      if (key !== st.key) [st.key, st.t] = [key, 0]
-      st.t += dt * ST.slow
-      if (st.t > ST.seconds + RIG.rest * ST.slow) st.t = 0
-      return Math.min(st.t, ST.seconds)
-    },
+    clock: lapseClock(ST.seconds, ST.slow, RIG.rest * ST.slow),
     show(dt: number, run: ArmFrame[], t: number) {
       const f = fixedStepAt(run, t, ARM.dt)
       traceRun(thTr, run, ARM.dt, ST.seconds, t, (g) => yDeg(g.th), 260)
@@ -161,7 +149,7 @@ export const polesAndDamping: Lesson = {
         if (unstable) s.event.set(`pole in the right half: e^(+${dom.pole.re.toFixed(1)}t) grows, swing limited only by the motor`, HIGH_V)
         else if (dom.pole.im < 0.01) s.event.set(`real poles (ζ ≥ 1): creeps in, no overshoot, slowest 1/${(-dom.pole.re).toFixed(1)} s`, POWER)
         else if (t < ARM.stepAt) s.event.set(`poles ${poleText(dom.pole)}: setpoint about to step 30 → 40°`, GREY)
-        else s.event.set(`rings at ${(dom.pole.im / (2 * Math.PI)).toFixed(1)} Hz, envelope shrinks ×e every ${(1 / -dom.pole.re).toFixed(2)} s · θ ${deg(f.th)}`, dom.zeta < 0.3 ? HEAT : RING)
+        else s.event.set(`rings at ${(dom.pole.im / (2 * Math.PI)).toFixed(1)} Hz, envelope shrinks ×e every ${(1 / -dom.pole.re).toFixed(2)} s · θ ${degText(f.th)}`, dom.zeta < 0.3 ? HEAT : RING)
         s.sub(t, q.lag)
       },
       readouts: (p) => {
@@ -174,7 +162,7 @@ export const polesAndDamping: Lesson = {
           { label: 'Dominant poles', value: poleText(dom.pole), tone: unstable ? 'bad' : dom.pole.re > -1 ? 'warn' : 'ok' },
           { label: 'ζ · ωn', value: `${dom.zeta.toFixed(2)} · ${dom.wn.toFixed(1)} rad/s`, tone: unstable ? 'bad' : dom.zeta < 0.3 ? 'warn' : 'ok' },
           { label: 'Overshoot: from ζ vs the arm', value: unstable ? swingText(sw?.ratio) : `${pct(th.overshoot)} vs ${pct(m.overshoot)}`, tone: unstable ? 'bad' : undefined },
-          { label: 'Settled ±2 %', value: unstable || m.settle === null ? 'never' : secs(m.settle), tone: unstable ? 'bad' : undefined },
+          { label: 'Settled ±2 %', value: unstable || m.settle === null ? 'never' : secsText(m.settle), tone: unstable ? 'bad' : undefined },
         ]
       },
     }
@@ -201,7 +189,7 @@ export const stepResponse: Lesson = {
   formula: (p) => {
     const q = srParams(p)
     const { g, th } = srData(q)
-    return `overshoot = e^(−πζ/√(1−ζ²)) = ${pct(th.overshoot)} · peak at π/ωd = ${secs(th.peak)} · settled ±2 % ${q.zeta < 1 ? `≈ 4/(ζωn) = ${secs(4 / (q.zeta * q.wn))}` : `at ${secs(th.settle)} (slow real pole)`} · placed by Kp = ωn²/K − kL = ${kpText(g.kp)}, Kd = (2ζωn − 1/τ)/K = ${kdText(g.kd)}`
+    return `overshoot = e^(−πζ/√(1−ζ²)) = ${pct(th.overshoot)} · peak at π/ωd = ${secsText(th.peak)} · settled ±2 % ${q.zeta < 1 ? `≈ 4/(ζωn) = ${secsText(4 / (q.zeta * q.wn))}` : `at ${secsText(th.settle)} (slow real pole)`} · placed by Kp = ωn²/K − kL = ${kpText(g.kp)}, Kd = (2ζωn − 1/τ)/K = ${kdText(g.kd)}`
   },
   legend: [
     { color: RING, label: 'Arm angle θ (simulated)', shape: 'dot' },
@@ -254,8 +242,8 @@ export const stepResponse: Lesson = {
         s.status.set(`Step response · ζ ${q.zeta.toFixed(2)} · ωn ${q.wn.toFixed(1)} rad/s → Kp ${kpText(d.g.kp)}, Kd ${kdText(d.g.kd)}`, LABEL)
         if (d.clipped) s.event.set('gains ask for more than 100 % duty: the motor clips, the curve no longer follows ζ, ωn', HIGH_V)
         else if (t < t0) s.event.set('setpoint about to step 30 → 40°', GREY)
-        else if (f.th > ST.target + 0.2) s.event.set(`over by ${deg(f.th - ST.target)}: ζ ${q.zeta.toFixed(2)} predicts ${pct(d.th.overshoot)}`, HEAT)
-        else s.event.set(q.zeta >= 1 ? 'ζ ≥ 1: no overshoot, it creeps the last degrees' : `rising: θ ${deg(f.th)}`, RING)
+        else if (f.th > ST.target + 0.2) s.event.set(`over by ${degText(f.th - ST.target)}: ζ ${q.zeta.toFixed(2)} predicts ${pct(d.th.overshoot)}`, HEAT)
+        else s.event.set(q.zeta >= 1 ? 'ζ ≥ 1: no overshoot, it creeps the last degrees' : `rising: θ ${degText(f.th)}`, RING)
         s.sub(t, 0)
       },
       readouts: (p) => {
@@ -263,8 +251,8 @@ export const stepResponse: Lesson = {
         const d = srData(q)
         return [
           { label: 'Overshoot: formula vs arm', value: `${pct(d.th.overshoot)} vs ${pct(d.m.overshoot)}`, tone: Math.abs(d.th.overshoot - d.m.overshoot) > 0.03 ? 'warn' : 'ok' },
-          { label: 'Settled ±2 %: ideal vs arm', value: `${secs(d.th.settle)} vs ${d.m.settle === null ? `not in ${ST.seconds} s` : secs(d.m.settle)}` },
-          { label: 'Rise 10 → 90 %', value: secs(d.m.rise) },
+          { label: 'Settled ±2 %: ideal vs arm', value: `${secsText(d.th.settle)} vs ${d.m.settle === null ? `not in ${ST.seconds} s` : secsText(d.m.settle)}` },
+          { label: 'Rise 10 → 90 %', value: secsText(d.m.rise) },
           { label: 'Placed gains Kp · Kd', value: `${(d.g.kp * 100).toFixed(2)} · ${(d.g.kd * 100).toFixed(2)}`, tone: d.clipped ? 'bad' : d.g.kd < 0 ? 'warn' : 'ok' },
         ]
       },
@@ -281,7 +269,6 @@ const gmData = memoBy(
   (q: GmQ) => gainsKey(q.g, q.lag),
   (q: GmQ) => ({ mg: margins(q.g, q.lag, ST.target), ...stepRun(q) }),
 )
-const db = (x: number) => 20 * Math.log10(x)
 
 export const gainAndPhaseMargin: Lesson = {
   id: 'stability-gain-and-phase-margin',
@@ -290,8 +277,8 @@ export const gainAndPhaseMargin: Lesson = {
   formula: (p) => {
     const q = gmParams(p)
     const { mg } = gmData(q)
-    const gm = mg.gm === null ? '∞' : `${mg.gm.toFixed(2)}× (${db(mg.gm).toFixed(1)} dB)`
-    return `L(jω) = C·P·e^(−jωT), T = ${Math.round(q.lag * 1000)} ms lag + ½ tick · GM = 1/|L| where ∠L = −180° → ${gm} · PM = 180° + ∠L where |L| = 1 → ${mg.pm === null ? '∞' : deg(mg.pm)} · delay margin PM/ωc = ${mg.delayMargin === null ? '∞' : `${Math.round(mg.delayMargin * 1000)} ms`}`
+    const gm = mg.gm === null ? '∞' : `${mg.gm.toFixed(2)}× (${decibels(mg.gm).toFixed(1)} dB)`
+    return `L(jω) = C·P·e^(−jωT), T = ${Math.round(q.lag * 1000)} ms lag + ½ tick · GM = 1/|L| where ∠L = −180° → ${gm} · PM = 180° + ∠L where |L| = 1 → ${mg.pm === null ? '∞' : degText(mg.pm)} · delay margin PM/ωc = ${mg.delayMargin === null ? '∞' : `${Math.round(mg.delayMargin * 1000)} ms`}`
   },
   legend: [
     { color: HEAT, label: 'Loop gain |L| (top, ±20 dB)', shape: 'dot' },
@@ -317,7 +304,7 @@ export const gainAndPhaseMargin: Lesson = {
     const q4 = BODE.h / 4
     const wAt = (u: number) => BODE.w0 * 10 ** (u * BODE.decades)
     const uAt = (w: number) => Math.log10(w / BODE.w0) / BODE.decades
-    const yMag = (m: number) => q4 + (db(m) / BODE.db) * q4
+    const yMag = (m: number) => q4 + (decibels(m) / BODE.db) * q4
     const yPh = (ph: number) => (ph / Math.PI / (4 / 3)) * 2 * q4
     const magTr = bode.trace(HEAT, { samples: 160, radius: 0.05 })
     const phTr = bode.trace(DATA_COLOR, { samples: 160, radius: 0.05 })
@@ -359,7 +346,7 @@ export const gainAndPhaseMargin: Lesson = {
           stretchRod(pmBar, [x, yPh(-Math.PI), 0.3], [x, yp, 0.3], 0.08)
           wcLine.points([uAt(mg.wc!), uAt(mg.wc!)], [-BODE.h / 2, BODE.h / 2])
           pmTag.group.position.set(x - 0.15, yPh(-Math.PI) - 0.4, 0.35)
-          pmTag.set(`PM ${deg(mg.pm!, 0)}`, mg.pm! < 0 ? HIGH_V : POWER)
+          pmTag.set(`PM ${degText(mg.pm!, 0)}`, mg.pm! < 0 ? HIGH_V : POWER)
         }
         const showGm = inRange(mg.w180) && mg.gm !== null
         gmBar.visible = w180Line.group.visible = gmTag.group.visible = showGm
@@ -375,16 +362,16 @@ export const gainAndPhaseMargin: Lesson = {
         const unstable = (mg.gm !== null && mg.gm < 1) || (mg.pm !== null && mg.pm < 0)
         s.status.set(`Gain and phase margin · Kp ${kpText(q.g.kp)} · Kd ${kdText(q.g.kd)} · lag ${Math.round(q.lag * 1000)} ms`, LABEL)
         if (unstable) s.event.set(`no margin left: |L| > 1 at −180°, the swing ${swingText(sw?.ratio).split(' (')[0]} until the motor clips`, HIGH_V)
-        else if (mg.pm !== null && mg.pm < 30) s.event.set(`thin margin: PM ${deg(mg.pm, 0)} → rings like ζ ≈ ${(mg.pm / 100).toFixed(2)}`, HEAT)
-        else s.event.set(mg.pm === null ? '|L| < 1 at every frequency: cannot oscillate (but P alone is soft)' : `healthy: PM ${deg(mg.pm, 0)}, ${mg.gm === null ? 'phase never reaches −180°' : `${mg.gm.toFixed(1)}× more gain to spare`}`, POWER)
+        else if (mg.pm !== null && mg.pm < 30) s.event.set(`thin margin: PM ${degText(mg.pm, 0)} → rings like ζ ≈ ${(mg.pm / 100).toFixed(2)}`, HEAT)
+        else s.event.set(mg.pm === null ? '|L| < 1 at every frequency: cannot oscillate (but P alone is soft)' : `healthy: PM ${degText(mg.pm, 0)}, ${mg.gm === null ? 'phase never reaches −180°' : `${mg.gm.toFixed(1)}× more gain to spare`}`, POWER)
         s.sub(t, q.lag)
       },
       readouts: (p) => {
         const q = gmParams(p)
         const { mg, sw } = gmData(q)
         return [
-          { label: 'Gain margin', value: mg.gm === null ? '∞ (never −180°)' : `${mg.gm.toFixed(2)}× · ${db(mg.gm).toFixed(1)} dB`, tone: mg.gm === null || mg.gm > 2 ? 'ok' : mg.gm > 1 ? 'warn' : 'bad' },
-          { label: 'Phase margin', value: mg.pm === null ? '∞ (|L| < 1)' : `${deg(mg.pm, 0)} at ${(mg.wc! / (2 * Math.PI)).toFixed(2)} Hz`, tone: mg.pm === null || mg.pm >= 45 ? 'ok' : mg.pm > 0 ? 'warn' : 'bad' },
+          { label: 'Gain margin', value: mg.gm === null ? '∞ (never −180°)' : `${mg.gm.toFixed(2)}× · ${decibels(mg.gm).toFixed(1)} dB`, tone: mg.gm === null || mg.gm > 2 ? 'ok' : mg.gm > 1 ? 'warn' : 'bad' },
+          { label: 'Phase margin', value: mg.pm === null ? '∞ (|L| < 1)' : `${degText(mg.pm, 0)} at ${(mg.wc! / (2 * Math.PI)).toFixed(2)} Hz`, tone: mg.pm === null || mg.pm >= 45 ? 'ok' : mg.pm > 0 ? 'warn' : 'bad' },
           { label: 'Delay margin (extra lag)', value: mg.delayMargin === null ? '∞' : mg.delayMargin < 0 ? 'none' : `${Math.round(mg.delayMargin * 1000)} ms` },
           { label: 'Arm after the step', value: swingText(sw?.ratio), tone: !sw || sw.ratio < 0.7 ? 'ok' : sw.ratio < 0.98 ? 'warn' : 'bad' },
         ]

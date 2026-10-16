@@ -1,5 +1,5 @@
 // Open vs closed loop: a TT car told to "drive 2 s at 60 %" vs one steered to a distance by its encoders.
-import { GEARBOXES, TT_CAR, TT_MOTOR, gearEfficiency, gearRatio, loadedSpeed } from '../actuators/dcmotor'
+import { GEARBOXES, TT_CAR, TT_MOTOR, TT_GEAR, gearEfficiency, gearRatio, loadedSpeed } from '../actuators/dcmotor'
 import { G, clamp, gaussAt } from '../common'
 import { diffStep } from '../mobility/diffdrive'
 import { Pose } from '../room'
@@ -7,10 +7,9 @@ import { ENCODERS, TT_TRACK_M, TT_WHEEL_MM, mmPerTick, ticksPerWheelRev } from '
 
 /** Rolling resistance by floor. */
 export const ROLL_FLOORS = { tile: { name: 'Tile', crr: 0.015 }, wood: { name: 'Wood', crr: 0.03 }, carpet: { name: 'Carpet', crr: 0.15 } }
-export type RollFloor = keyof typeof ROLL_FLOORS
 /** 2S Li-ion pack on the TT car; the timed move was tuned on a full pack, tile, no payload. */
 export const DRIVE_TASK = { duty: 0.6, seconds: 2, dt: 0.005, fullV: 8.4, emptyV: 6.4, tau: 0.12, crr: ROLL_FLOORS.tile.crr }
-export const ENC_MM_TICK = mmPerTick(TT_WHEEL_MM, ticksPerWheelRev(ENCODERS.hall.ppr, 4, gearRatio(GEARBOXES.tt48)))
+export const ENC_MM_TICK = mmPerTick(TT_WHEEL_MM, ticksPerWheelRev(ENCODERS.hall.ppr, 4, TT_GEAR))
 
 export interface DriveConditions {
   volts: number
@@ -85,7 +84,7 @@ export const calibratedDistance = () => openLoopRun(CALIBRATED, 0).at(-1)!.pose.
 /** Encoder reading of a wheel's travel: quantised ticks of the true travel plus `noiseM` (σ) of jitter, repeatable per sample `k`. */
 export const encoderRead = (d: number, noiseM: number, k: number) => Math.round((d + noiseM * gaussAt(k)) / (ENC_MM_TICK / 1000)) * (ENC_MM_TICK / 1000)
 
-export interface ClosedSetup {
+interface ClosedSetup {
   target: number
   /** Duty per metre of distance error. */
   kp: number

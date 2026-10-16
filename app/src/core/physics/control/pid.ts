@@ -16,7 +16,7 @@ export function pidStep(s: Pid, err: number, g: Gains, dt: number, limit = Infin
   return { integ: sat ? s.integ : integ, prev: err, out, sat, p, i: sat ? s.integ : integ, d }
 }
 
-export type AntiWindup = 'none' | 'clamp' | 'back'
+type AntiWindup = 'none' | 'clamp' | 'back'
 export interface PidCfg extends Gains {
   limit: number
   /** clamp: stop integrating while saturated the same way; back: bleed the integral by `backGain`·(out − raw). */
@@ -29,7 +29,7 @@ export interface PidCfg extends Gains {
 }
 export interface PidMem { integ: number; prevErr: number; prevMeas: number; dF: number }
 export const PID_MEM0: PidMem = { integ: 0, prevErr: NaN, prevMeas: NaN, dF: 0 }
-export interface PidTerms { p: number; i: number; d: number; raw: number; out: number; sat: boolean }
+interface PidTerms { p: number; i: number; d: number; raw: number; out: number; sat: boolean }
 
 export function pidTick(m: PidMem, sp: number, meas: number, c: PidCfg, dt: number): { mem: PidMem; terms: PidTerms } {
   const e = sp - meas
@@ -47,7 +47,7 @@ export function pidTick(m: PidMem, sp: number, meas: number, c: PidCfg, dt: numb
   return { mem: { integ, prevErr: e, prevMeas: meas, dF: d }, terms: { p, i: integ, d, raw, out, sat } }
 }
 
-export interface StepMetrics { rise: number | null; overshoot: number; peak: number; settle: number | null; final: number }
+interface StepMetrics { rise: number | null; overshoot: number; peak: number; settle: number | null; final: number }
 /** Step from `y0` to `y1` at sample `from`: 10→90 % rise time, overshoot (share of the step), time to stay within ±`band` of the step. */
 export function stepMetrics(ys: readonly number[], dt: number, from: number, y0: number, y1: number, band = 0.02): StepMetrics {
   const span = y1 - y0

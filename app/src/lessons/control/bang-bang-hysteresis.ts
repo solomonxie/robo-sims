@@ -16,6 +16,7 @@ import {
   relayLifeHours,
   thermostatRun,
 } from '../../core/physics'
+import { cmText } from '../../core/units'
 import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -43,12 +44,12 @@ import {
   memoBy,
   pointCloud,
   relayPart,
-  scope,
   scopeLabels,
   shellMat,
   statusHeader,
   thermometer,
   traceRun,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -131,8 +132,7 @@ export const thermostat: Lesson = {
     liveLabel(scene, [com[0] + 1.6, floorY + 0.3, 0.3], { size: 0.26, color: GREY, align: 'left' }).set('mains L', GREY)
 
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'thermostat', plant: 'heater + box', sensor: 'thermistor', disturb: true, w: DIAG.w, h: DIAG.h })
-    const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4], zeroAt: -1 })
-    plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+    const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4], zeroAt: -1 })
     const hiTr = plot.trace(B_FIELD, { samples: 2, radius: 0.04 })
     const loTr = plot.trace(B_FIELD, { samples: 2, radius: 0.04 })
     const onTr = plot.trace(POWER, { samples: 400, radius: 0.05 })
@@ -240,7 +240,6 @@ const ctrlText = (c: FollowCfg) =>
   c.mode === 'band' ? `band ±${Math.round(c.bandM * 1000)} mm` : c.mode === 'hold' ? `hold ≥ ${Math.round(c.holdS * 1000)} ms` : c.mode === 'p' ? `P: ${c.kp} %/cm` : 'bang-bang'
 const blockText = (c: FollowCfg) => (c.mode === 'band' ? `±${Math.round(c.bandM * 1000)} mm` : c.mode === 'hold' ? `hold ${Math.round(c.holdS * 1000)}ms` : c.mode === 'p' ? 'P: Kp·e' : 'bang-bang')
 const mmText = (m: number) => `${(m * 1000).toFixed(m < 0.01 ? 1 : 0)} mm`
-const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
 
 export const chatter: Lesson = {
   id: 'bang-bang-hysteresis-chatter',
@@ -290,8 +289,7 @@ export const chatter: Lesson = {
     const flipTag = liveLabel(scene, [-8.4, -6.6, 0.3], { size: 0.45 })
 
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'bang-bang', plant: 'motors', sensor: 'IR sensor', noise: true, w: DIAG.w, h: DIAG.h })
-    const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4] })
-    plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+    const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4] })
     const sTr = plot.trace(POWER, { samples: 301, radius: 0.04 })
     const eTr = plot.trace(HEAT, { samples: 301, radius: 0.05 })
     scopeLabels(scene, SCOPE.y, SCOPE.h, null, 'sensor e ±3 cm', 'steer ±100 %')

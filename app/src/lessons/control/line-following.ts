@@ -30,7 +30,7 @@ import {
   sweepStats,
   turnWheels,
 } from '../../core/physics'
-import { signed } from '../../core/units'
+import { signed, mmTenths } from '../../core/units'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -57,13 +57,13 @@ import {
   memoBy,
   moduleBlock,
   pointCloud,
-  scope,
   scopeLabels,
   setGlow,
   statusHeader,
   stretchRod,
   termBars,
   traceRun,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -72,7 +72,6 @@ const DIAG = { at: [SIDE_SCOPE.x, 2.4, 0] as V3, w: 12.5, h: 3.6 }
 const SCOPE = { y: -4.4, h: 4.6 }
 const FLOOR_C = '#cfcdc4'
 const TAPE_C = '#141416'
-const mm = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 ? 1 : 0)} mm`
 const smm = (m: number) => `${signed(m * 1000, 1)} mm`
 
 /** Light floor with black tape strips (metres, z up). */
@@ -163,8 +162,7 @@ export const errorFromSensors: Lesson = {
     const posTag = liveLabel(scene, [EF.px, EF.py - EF.h / 2 - 0.7, 0.3], { size: 0.34 })
 
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'PD', plant: 'motors', sensor: 'IR bar → e', w: DIAG.w, h: DIAG.h })
-    const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [8, 6] })
-    plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+    const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [8, 6] })
     const idealTr = plot.trace(GREY, { samples: 2, radius: 0.04 })
     const meas = pointCloud(plot.group, 241, 0.05)
     const nowTr = plot.trace(POWER, { samples: 1, radius: 0.06 })
@@ -188,8 +186,8 @@ export const errorFromSensors: Lesson = {
           idealTr.points([0, 1], [-yH, yH])
           sweep.forEach((s, k) => meas.set(k, [(u(s.off) - 0.5) * SIDE_SCOPE.w, s.pos === null ? 0 : yOf(s.pos), 0.3], s.pos === null ? HIGH_V : RING))
           meas.show(sweep.length)
-          axL.set(`tape ${mm(-half)}`, GREY)
-          axR.set(`+${mm(half)}`, GREY)
+          axL.set(`tape ${mmTenths(-half)}`, GREY)
+          axR.set(`+${mmTenths(half)}`, GREY)
         }
         st.t += dt
         const off = half * Math.sin((2 * Math.PI * st.t) / EF.period)
@@ -215,7 +213,7 @@ export const errorFromSensors: Lesson = {
         })
         marker.visible = r.pos !== null
         if (r.pos !== null) marker.position.set(EF.px + r.pos * s, EF.py - 0.6, 0.6)
-        posTag.set(r.pos === null ? `true ${smm(off)} · line lost` : `e ${smm(r.pos)} · true ${smm(off)} · error ${mm(Math.abs(r.pos - off))}`, r.pos === null ? HIGH_V : RING)
+        posTag.set(r.pos === null ? `true ${smm(off)} · line lost` : `e ${smm(r.pos)} · true ${smm(off)} · error ${mmTenths(Math.abs(r.pos - off))}`, r.pos === null ? HIGH_V : RING)
         nowTr.points([u(off)], [r.pos === null ? 0 : yOf(r.pos)])
 
         const e = r.pos ?? 0
@@ -231,19 +229,19 @@ export const errorFromSensors: Lesson = {
         if (r.pos === null) event.set(`no sensor sees the tape: e is undefined, steer toward the last side`, HIGH_V)
         else if (err > 0.003)
           event.set(
-            `reading is ${mm(err)} off the truth: ${q.digital ? 'thresholds round it to a step' : Math.abs(off) > sensorX(q.count - 1, q.pitch, q.count) ? 'past the outer sensor, e saturates' : 'only one sensor over the tape, nothing to interpolate'}`,
+            `reading is ${mmTenths(err)} off the truth: ${q.digital ? 'thresholds round it to a step' : Math.abs(off) > sensorX(q.count - 1, q.pitch, q.count) ? 'past the outer sensor, e saturates' : 'only one sensor over the tape, nothing to interpolate'}`,
             HEAT,
           )
         else event.set(`tape under ${r.adc.filter((a) => darkness(a) > 0.05).length} sensors: the average interpolates between them`, POWER)
-        sub.set(`jig slides the 18 mm tape ±${mm(half)} every ${EF.period} s · 3 mm Gaussian spot per sensor · 12-bit ADC`)
+        sub.set(`jig slides the 18 mm tape ±${mmTenths(half)} every ${EF.period} s · 3 mm Gaussian spot per sensor · 12-bit ADC`)
       },
       readouts: (p) => {
         const q = efParams(p)
         const s = efRun(q).stats
         return [
-          { label: 'Tracks within ±3 mm', value: s.range > 0.004 ? `±${mm(s.range)}` : 'only near 0', tone: s.range > 0.02 ? 'ok' : 'warn' },
-          { label: 'Line lost beyond', value: s.lostAt === null ? '—' : `±${mm(s.lostAt)}` },
-          { label: 'Blind gaps between sensors', value: s.blindM > 0 ? mm(s.blindM) : 'none', tone: s.blindM > 0 ? 'bad' : 'ok' },
+          { label: 'Tracks within ±3 mm', value: s.range > 0.004 ? `±${mmTenths(s.range)}` : 'only near 0', tone: s.range > 0.02 ? 'ok' : 'warn' },
+          { label: 'Line lost beyond', value: s.lostAt === null ? '—' : `±${mmTenths(s.lostAt)}` },
+          { label: 'Blind gaps between sensors', value: s.blindM > 0 ? mmTenths(s.blindM) : 'none', tone: s.blindM > 0 ? 'bad' : 'ok' },
           { label: 'Distinct readings', value: s.levels > 60 ? 'smooth' : `${s.levels}`, tone: s.levels > 60 ? 'ok' : 'warn' },
         ]
       },
@@ -301,8 +299,7 @@ export const pdSteering: Lesson = {
     const bars = termBars(scene, [-11.5, -7.4, 0], 6)
 
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'PD', plant: 'motors + car', sensor: 'IR bar', w: DIAG.w, h: DIAG.h })
-    const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4] })
-    plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+    const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4] })
     const gTr = plot.trace(GREY, { samples: 300, radius: 0.04 })
     const eTr = plot.trace(RING, { samples: 300, radius: 0.06 })
     scopeLabels(scene, SCOPE.y, SCOPE.h, null, 'error e ±30 mm', 'P only (grey)')
@@ -359,15 +356,15 @@ export const pdSteering: Lesson = {
         else if (stats.swings > 8) event.set(`weaving: the motors lag more than the bar leads, ${stats.swings} swings across the line`, HEAT)
         else if (c.kd === 0) event.set(`P alone: turn ${turnPct(f.turn)}; at this speed the bar's 9 cm lead still damps it`, POWER)
         else event.set(`P ${turnPct(f.p)} + D ${turnPct(f.d)} → turn ${turnPct(f.turn)}: D brakes the swing before e crosses zero`, POWER)
-        sub.set(`${t.toFixed(2)} / ${seconds.toFixed(1)} s · slowed ${1 / PD.slow}× · loop ${Math.round(1 / PD_RUN.dt)} Hz · starts ${mm(PD_RUN.startY)} off, 12 cm bends`)
+        sub.set(`${t.toFixed(2)} / ${seconds.toFixed(1)} s · slowed ${1 / PD.slow}× · loop ${Math.round(1 / PD_RUN.dt)} Hz · starts ${mmTenths(PD_RUN.startY)} off, 12 cm bends`)
       },
       readouts: (p) => {
         const c = pdParams(p)
         const { stats, ghostStats } = pdRun(c)
         return [
           { label: 'Swings across the line: this · P only', value: `${stats.swings} · ${ghostStats.swings}`, tone: stats.swings > 8 ? 'bad' : stats.swings > 3 ? 'warn' : 'ok' },
-          { label: 'RMS error e: this · P only', value: `${mm(stats.rms)} · ${mm(ghostStats.rms)}` },
-          { label: 'Worst error from the bends on', value: mm(stats.worst), tone: stats.worst > 0.025 ? 'warn' : 'ok' },
+          { label: 'RMS error e: this · P only', value: `${mmTenths(stats.rms)} · ${mmTenths(ghostStats.rms)}` },
+          { label: 'Worst error from the bends on', value: mmTenths(stats.worst), tone: stats.worst > 0.025 ? 'warn' : 'ok' },
           { label: 'Line lost for', value: `${stats.lostS.toFixed(2)} s`, tone: stats.lostS > 0 ? 'bad' : 'ok' },
         ]
       },
@@ -450,8 +447,7 @@ export const intersections: Lesson = {
     const chips = STATES.map((s, i) => moduleBlock(scene, [SIDE_SCOPE.x - 4.65 + i * 3.1, chipY, 0], [2.6, 1.1, 0.4], s.toUpperCase()))
     for (let i = 0; i < 3; i++) addLabel(scene, '→', [SIDE_SCOPE.x - 3.1 + i * 3.1, chipY, 0.3], GREY, 0.4)
     const codeTag = liveLabel(scene, [SIDE_SCOPE.x - SIDE_SCOPE.w / 2, chipY - 1.5, 0.3], { size: 0.27, align: 'left' })
-    const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4] })
-    plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+    const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4] })
     const thrTr = plot.trace(B_FIELD, { samples: 2, radius: 0.035 })
     const tgtTr = plot.trace(B_FIELD, { samples: 2, radius: 0.035 })
     const darkTr = plot.trace(DATA_COLOR, { samples: 400, radius: 0.05 })

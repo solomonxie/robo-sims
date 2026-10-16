@@ -41,13 +41,13 @@ import {
   memoBy,
   moduleBlock,
   quadcopter,
-  scope,
   scopeLabels,
   spinArc,
   statusHeader,
   stretchArrow,
   tiltRig,
   traceRun,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -273,8 +273,7 @@ export const attitudeControl: Lesson = {
     const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SIDE_SCOPE.x + i * 3.65, AC.by, 0], [3.2, 1.1, 0.4], ''))
     for (const x of [SIDE_SCOPE.x - 1.82, SIDE_SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, AC.by, 0.3], [x + 0.25, AC.by, 0.3])
     const plots = AC.sy.map((y) => {
-      const s = scope(scene, SIDE_SCOPE.w, AC.sh, { divs: [8, 4] })
-      s.group.position.set(SIDE_SCOPE.x, y, 0)
+      const s = sideScope(scene, y, AC.sh, { divs: [8, 4] })
       return s
     })
     const angSet = plots[0].trace(B_FIELD, { samples: 240, radius: 0.08 })

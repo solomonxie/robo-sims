@@ -1,44 +1,7 @@
-// State-space and LQR: small dense matrices, zero-order-hold discretisation, discrete Riccati by iteration, LQR on the balancer.
-import { G } from '../common'
+// State-space and LQR: zero-order-hold discretisation, discrete Riccati by iteration, LQR on the balancer.
+import { DEG, G } from '../common'
 import { BALANCER, Balancer, CART0, Cart, cartStep, torqueLimit } from '../mobility/balance'
-import { Cx, polyRoots } from './stability'
-
-export type Mat = number[][]
-export const eye = (n: number): Mat => Array.from({ length: n }, (_, i) => Array.from({ length: n }, (__, j) => (i === j ? 1 : 0)))
-export const diag = (d: readonly number[]): Mat => d.map((x, i) => d.map((_, j) => (i === j ? x : 0)))
-export const transpose = (a: Mat): Mat => a[0].map((_, j) => a.map((r) => r[j]))
-export const matMul = (a: Mat, b: Mat): Mat => a.map((r) => b[0].map((_, j) => r.reduce((s, x, k) => s + x * b[k][j], 0)))
-export const matAdd = (a: Mat, b: Mat, k = 1): Mat => a.map((r, i) => r.map((x, j) => x + k * b[i][j]))
-export const matScale = (a: Mat, k: number): Mat => a.map((r) => r.map((x) => x * k))
-const normInf = (a: Mat) => Math.max(...a.map((r) => r.reduce((s, x) => s + Math.abs(x), 0)))
-
-/** Inverse by Gauss–Jordan with partial pivoting. */
-export function matInv(a: Mat): Mat {
-  const n = a.length
-  const m = a.map((r, i) => [...r, ...eye(n)[i]])
-  for (let c = 0; c < n; c++) {
-    const p = m.slice(c).reduce((best, r, k) => (Math.abs(r[c]) > Math.abs(m[best][c]) ? c + k : best), c)
-    ;[m[c], m[p]] = [m[p], m[c]]
-    const d = m[c][c]
-    m[c] = m[c].map((x) => x / d)
-    for (let r = 0; r < n; r++) if (r !== c) m[r] = m[r].map((x, j) => x - m[r][c] * m[c][j])
-  }
-  return m.map((r) => r.slice(n))
-}
-
-/** e^M by scaling and squaring of a Taylor series. */
-export function expm(m: Mat): Mat {
-  const s = Math.max(0, Math.ceil(Math.log2(normInf(m) || 1)) + 1)
-  const a = matScale(m, 2 ** -s)
-  let term = eye(m.length)
-  let sum = eye(m.length)
-  for (let k = 1; k <= 16; k++) {
-    term = matScale(matMul(term, a), 1 / k)
-    sum = matAdd(sum, term)
-  }
-  for (let i = 0; i < s; i++) sum = matMul(sum, sum)
-  return sum
-}
+import { Mat, diag, eigenvalues, expm, matAdd, matInv, matMul, matScale, normInf, transpose } from './linalg'
 
 /** Exact discretisation for an input held over each tick: Ad = e^(A·dt), Bd = ∫e^(A·t)dt·B. */
 export function c2d(A: Mat, B: Mat, dt: number) {
@@ -67,21 +30,6 @@ export function dlqr(A: Mat, B: Mat, Q: Mat, R: Mat, tol = 1e-11, maxIt = 200000
   return { K, P, iterations: maxIt, converged: false }
 }
 
-/** Characteristic polynomial det(sI − M), constant first (Faddeev–LeVerrier). */
-export function charPoly(m: Mat): number[] {
-  const n = m.length
-  const c = Array(n + 1).fill(0)
-  c[n] = 1
-  let Mk = eye(n).map((r) => r.map(() => 0))
-  for (let k = 1; k <= n; k++) {
-    Mk = matAdd(matMul(m, Mk), eye(n), c[n - k + 1])
-    const AM = matMul(m, Mk)
-    c[n - k] = -AM.reduce((s, r, i) => s + r[i], 0) / k
-  }
-  return c
-}
-export const eigenvalues = (m: Mat): Cx[] => polyRoots(charPoly(m))
-
 /** The balancer near upright, state [x, ẋ, θ, θ̇] (m, m/s, rad, rad/s), input wheel acceleration a (m/s²):
  *  ẍ = a, θ̈ = (g·θ − a)/h. */
 export function balancerModel(h = BALANCER.h) {
@@ -94,10 +42,11 @@ export function balancerModel(h = BALANCER.h) {
   const B = [[0], [1], [0], [-1 / h]]
   return { A, B }
 }
-export const STATE_NAMES = ['x', 'ẋ', 'θ', 'θ̇'] as const
 
 /** Bryson's rule: weight = 1 / (largest error you accept)²; `pos` m, `speed` m/s, `tilt` rad, `rate` rad/s, `effort` m/s². */
 export interface Tolerances { pos: number; speed: number; tilt: number; rate: number; effort: number }
+/** Default balancer tolerances: 10 cm, 0.5 m/s, 5°, 50°/s, 3 m/s². */
+export const BALANCER_TOL: Tolerances = { pos: 0.1, speed: 0.5, tilt: 5 * DEG, rate: 50 * DEG, effort: 3 }
 export const brysonQ = (t: Tolerances) => ({ Q: diag([t.pos, t.speed, t.tilt, t.rate].map((x) => 1 / (x * x))), R: [[1 / (t.effort * t.effort)]] })
 
 /** LQR gains (a per unit of each state) for the balancer at its loop period, plus closed-loop poles of the continuous model (1/s). */
@@ -116,7 +65,7 @@ export const closedPoles = (k: readonly number[], h = BALANCER.h) => {
 }
 
 export interface StateFrame { t: number; x: number; v: number; tilt: number; rate: number; ref: number; terms: number[]; cmd: number; got: number; sat: boolean; fallen: boolean; cost: number }
-export interface StateSetup {
+interface StateSetup {
   /** Gains on [x, ẋ, θ, θ̇], wheel acceleration per unit. */
   k: readonly number[]
   seconds: number

@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
-import { BALANCER, Cx, DEG, G, StateFrame, Tolerances, balancerLqr, fellAt, fixedStepAt, stateRun, toDeg } from '../../core/physics'
-import { pct } from '../../core/units'
-import { V3, add } from '../../models/kit'
+import { BALANCER, Cx, DEG, G, StateFrame, Tolerances, balancerLqr, fellAt, fixedStepAt, stateRun, toDeg, BALANCER_TOL } from '../../core/physics'
+import { pct, cmText, degText } from '../../core/units'
+import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -18,8 +18,6 @@ import {
   addLabel,
   balanceBot,
   balanceFloor,
-  flatBox,
-  glowMat,
   liveLabel,
   memoBy,
   onBalancer,
@@ -28,22 +26,22 @@ import {
   scope,
   scopeLabels,
   statusHeader,
-  stretchArrow,
   sumBars,
   traceRun,
+  balanceCues,
+  lapseClock,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const DOT = '̇'
 const NAMES = ['x', `x${DOT}`, 'θ', `θ${DOT}`]
 const STATE_COLORS = [B_FIELD, DATA_COLOR, HEAT, FORCE]
-const TOL: Tolerances = { pos: 0.1, speed: 0.5, tilt: 5 * DEG, rate: 50 * DEG, effort: 3 }
 const RIG = { at: [-10.5, -2.4, 0] as V3, k: 19, half: 0.36, bars: [-10.2, -5.3, 0] as V3, barW: 6 }
 const SLOW = 0.5
-const deg = (a: number, digits = 1) => `${toDeg(a).toFixed(digits)}°`
+const deg = (a: number, digits = 1) => degText(toDeg(a), digits)
 const XD = `x${DOT}`
 const TD = `θ${DOT}`
-const cm = (m: number) => `${(m * 100).toFixed(1)} cm`
 const kText = (k: readonly number[]) => k.map((x) => x.toFixed(Math.abs(x) < 10 ? 1 : 0)).join(' · ')
 const poleText = (p: Cx) => (Math.abs(p.im) > 0.01 ? `${p.re.toFixed(1)} ± ${Math.abs(p.im).toFixed(1)}j /s` : `${p.re.toFixed(1)} /s`)
 const slowest = (ps: readonly Cx[]) => ps.reduce((a, b) => (b.re > a.re ? b : a))
@@ -54,11 +52,7 @@ function botRig(scene: THREE.Object3D) {
   const floor = balanceFloor(scene, RIG.at, RIG.k, RIG.half)
   const bot = balanceBot(floor.g)
   const com = pointCloud(floor.g, 1, 0.009)
-  const shove = stretchArrow(floor.g, HEAT, 0.004)
-  const torque = stretchArrow(floor.g, POWER, 0.004)
-  const flag = add(floor.g, new THREE.Group())
-  flatBox(flag, [0.004, 0.004, 0.16], glowMat(B_FIELD, 0.8), [0, -0.1, 0.08])
-  flatBox(flag, [0.05, 0.003, 0.03], glowMat(B_FIELD, 1), [0.025, -0.1, 0.145])
+  const cues = balanceCues(floor.g, RIG.half)
   const bars = sumBars(scene, RIG.bars, [...NAMES.map((label, i) => ({ label: `−k·${label}`, color: STATE_COLORS[i] })), { label: 'a', color: POWER }], RIG.barW)
   addLabel(scene, 'wheel acceleration a = −K·x, % of the motor limit', [RIG.bars[0] - RIG.barW / 2 - 1.6, RIG.bars[1] + 0.75, 0.2], LABEL, 0.28, 'left')
   return {
@@ -67,33 +61,19 @@ function botRig(scene: THREE.Object3D) {
       floor.roll(f.x)
       com.set(0, onBalancer(f.tilt, BALANCER.h), RING, 1)
       com.show(1)
-      const top = onBalancer(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
-      shove(pushed ? [top[0] - 0.08, top[1], top[2]] : top, top)
-      torque([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
-      const d = f.ref - f.x
-      flag.visible = Math.abs(d) < RIG.half - 0.03
-      flag.position.x = d
+      cues(f, pushed)
       bars.set([...f.terms, f.cmd], f.sat)
     },
   }
 }
 
-/** Shared clock: restarts on a control change, loops with a pause. */
-function clock(seconds: number) {
-  const st = { key: '', t: 0 }
-  return (dt: number, key: string) => {
-    if (key !== st.key) [st.key, st.t] = [key, 0]
-    st.t += dt * SLOW
-    if (st.t > seconds + 0.6) st.t = 0
-    return Math.min(st.t, seconds)
-  }
-}
+const clock = (seconds: number) => lapseClock(seconds, SLOW, 0.6)
 
 // --- State vector: x, ẋ, θ, θ̇ fix the balancer's future; a = −K·x, tilt-only feedback leaves two poles at 0 and it drifts. ---
 
 const SV = { seconds: 6, push: 2.5, phase: { y: 0.4, s: 5 }, sy: -6.3, sh: 3.6, xMax: 0.4, vMax: 0.5, thMax: 8 * DEG, wMax: 120 * DEG }
 const SV_MODES = { full: 'Full state', tilt: 'Tilt only' }
-const LQR0 = balancerLqr(TOL)
+const LQR0 = balancerLqr(BALANCER_TOL)
 const svParams = (p: Params) => ({ full: pick(SV_MODES, p.mode, 'full') === 'full', kick: n(p, 'push') * DEG, x0: n(p, 'start') / 100 })
 type SvQ = ReturnType<typeof svParams>
 const svKey = (q: SvQ) => `${q.full}|${q.kick}|${q.x0}`
@@ -161,8 +141,7 @@ export const stateVector: Lesson = {
     const posG = pos.trace(GREY, 0.05)
     const tiltT = tilt.trace(RING, 0.07)
     const posT = pos.trace(RING, 0.07)
-    const plot = scope(scene, SIDE_SCOPE.w, SV.sh, { divs: [6, 4], zeroAt: 0.5 })
-    plot.group.position.set(SIDE_SCOPE.x, SV.sy, 0)
+    const plot = sideScope(scene, SV.sy, SV.sh, { divs: [6, 4], zeroAt: 0.5 })
     scopeLabels(scene, SV.sy, SV.sh, SV.seconds, `position x ±${SV.xMax * 100} cm`, 'home = 0')
     const xG = plot.trace(GREY, { samples: 200, radius: 0.05 })
     const xT = plot.trace(RING, { samples: 200, radius: 0.08 })
@@ -189,14 +168,14 @@ export const stateVector: Lesson = {
         pos.draw(posT, run, t, x, v)
         traceRun(xG, other, BALANCER.dt, SV.seconds, t, (g) => yX(g.x))
         traceRun(xT, run, BALANCER.dt, SV.seconds, t, (g) => yX(g.x))
-        status.set(`${q.full ? 'Full state' : 'Tilt only'} · x ${cm(f.x)} · ${XD} ${f.v.toFixed(2)} m/s · θ ${deg(f.tilt)} · ${TD} ${Math.round(toDeg(f.rate))}°/s`, LABEL)
+        status.set(`${q.full ? 'Full state' : 'Tilt only'} · x ${cmText(f.x)} · ${XD} ${f.v.toFixed(2)} m/s · θ ${deg(f.tilt)} · ${TD} ${Math.round(toDeg(f.rate))}°/s`, LABEL)
         if (f.fallen) event.set(`down at ${(fellAt(run) ?? 0).toFixed(1)} s: the push needed more than the motors have`, HIGH_V)
         else if (pushed) event.set(`pushed: ${TD} jumps, the dot leaps up the tilt plane`, HEAT)
         else if (f.sat) event.set('wheel acceleration clipped at the motor limit', HIGH_V)
         else if (!q.full && Math.abs(f.v) > 0.03) event.set(`upright, but rolling away at ${Math.abs(f.v).toFixed(2)} m/s: nothing feeds back x or ${XD}`, HEAT)
-        else if (!q.full && Math.abs(f.x) > 0.02) event.set(`upright, parked ${cm(Math.abs(f.x))} off home: no gain on x`, HEAT)
+        else if (!q.full && Math.abs(f.x) > 0.02) event.set(`upright, parked ${cmText(Math.abs(f.x))} off home: no gain on x`, HEAT)
         else if (Math.abs(f.tilt) > 0.3 * DEG) event.set(`${f.v * f.x < 0 ? 'heading home' : 'wheels run away from home'}: body leans ${deg(Math.abs(f.tilt))} ${f.tilt * f.x < 0 ? 'toward' : 'away from'} home`, RING)
-        else if (Math.abs(f.x) > 0.01) event.set(`easing home: ${cm(Math.abs(f.x))} to go`, RING)
+        else if (Math.abs(f.x) > 0.01) event.set(`easing home: ${cmText(Math.abs(f.x))} to go`, RING)
         else event.set('at the origin of both planes: home, upright, still', POWER)
         sub.set(`${t.toFixed(1)} / ${SV.seconds} s · slowed ${1 / SLOW}× · loop 200 Hz · floor tape every 100 mm`)
       },
@@ -207,7 +186,7 @@ export const stateVector: Lesson = {
         const fell = fellAt(run)
         const back = Math.abs(end.x) < 0.01 && Math.abs(end.v) < 0.01
         return [
-          { label: `Where it ends (${SV.seconds} s)`, value: fell !== null ? `fell at ${fell.toFixed(1)} s` : back ? 'home' : `${cm(end.x)} from home`, tone: fell !== null ? 'bad' : back ? 'ok' : 'warn' },
+          { label: `Where it ends (${SV.seconds} s)`, value: fell !== null ? `fell at ${fell.toFixed(1)} s` : back ? 'home' : `${cmText(end.x)} from home`, tone: fell !== null ? 'bad' : back ? 'ok' : 'warn' },
           { label: 'Speed at the end', value: fell !== null ? '—' : `${end.v.toFixed(2)} m/s`, tone: Math.abs(end.v) > 0.02 ? 'warn' : 'ok' },
           { label: 'Peak tilt', value: deg(Math.max(...run.map((f) => Math.abs(f.tilt)))) },
           { label: 'Peak wheel accel', value: pct(Math.max(...run.map((f) => Math.abs(f.got)))), tone: run.some((f) => f.sat) ? 'bad' : undefined },
@@ -221,7 +200,7 @@ export const stateVector: Lesson = {
 
 const LQ = { seconds: 7, go: 0.5, move: 0.3, push: 4.5, kick: 1, sy: -6.3, sh: 4, xMax: 0.4, thMax: 16 * DEG }
 const SPLANE = { y: 1.2, per: 5, re: [-35, 10] as const, im: 15 }
-const lqParams = (p: Params): Tolerances => ({ ...TOL, pos: n(p, 'pos') / 100, tilt: n(p, 'tilt') * DEG, effort: n(p, 'effort') })
+const lqParams = (p: Params): Tolerances => ({ ...BALANCER_TOL, pos: n(p, 'pos') / 100, tilt: n(p, 'tilt') * DEG, effort: n(p, 'effort') })
 const lqKey = (t: Tolerances) => `${t.pos}|${t.tilt}|${t.effort}`
 const lqTarget = (t: number) => (t >= LQ.go ? LQ.move : 0)
 const lqData = memoBy(lqKey, (tol: Tolerances) => {
@@ -240,7 +219,7 @@ export const lqrIntuition: Lesson = {
   formula: (p) => {
     const tol = lqParams(p)
     const d = lqData(tol)
-    return `J = Σ [(x/${cm(tol.pos)})² + (ẋ/${tol.speed} m/s)² + (θ/${deg(tol.tilt, 0)})² + (θ̇/${Math.round(toDeg(tol.rate))}°/s)² + (a/${tol.effort} m/s²)²]·dt · P ← Q + AᵀPA − AᵀPB(R + BᵀPB)⁻¹BᵀPA, ${d.iterations} passes → K = (R + BᵀPB)⁻¹BᵀPA`
+    return `J = Σ [(x/${cmText(tol.pos)})² + (ẋ/${tol.speed} m/s)² + (θ/${deg(tol.tilt, 0)})² + (θ̇/${Math.round(toDeg(tol.rate))}°/s)² + (a/${tol.effort} m/s²)²]·dt · P ← Q + AᵀPA − AᵀPB(R + BᵀPB)⁻¹BᵀPA, ${d.iterations} passes → K = (R + BᵀPB)⁻¹BᵀPA`
   },
   legend: [
     { color: RING, label: 'Closed-loop poles · position x', shape: 'dot' },
@@ -267,8 +246,7 @@ export const lqrIntuition: Lesson = {
     addLabel(scene, 'poles of A − B·K', [SIDE_SCOPE.x - plane.w / 2, SPLANE.y + plane.h / 2 + 0.6, 0.3], LABEL, 0.28, 'left')
     addLabel(scene, `open loop ±${Math.sqrt(G / BALANCER.h).toFixed(1)}, 0, 0 /s`, [SIDE_SCOPE.x + plane.w / 2, SPLANE.y + plane.h / 2 + 0.6, 0.3], GREY, 0.24, 'right')
     const offTag = liveLabel(plane.group, [-plane.w / 2 + 0.25, -plane.h / 2 + 0.35, 0.35], { size: 0.24, color: GREY, align: 'left' })
-    const plot = scope(scene, SIDE_SCOPE.w, LQ.sh, { divs: [7, 4], zeroAt: 0.5 })
-    plot.group.position.set(SIDE_SCOPE.x, LQ.sy, 0)
+    const plot = sideScope(scene, LQ.sy, LQ.sh, { divs: [7, 4], zeroAt: 0.5 })
     scopeLabels(scene, LQ.sy, LQ.sh, LQ.seconds, `x ±${LQ.xMax * 100} cm`, `θ ±${toDeg(LQ.thMax)}°`)
     const refT = plot.trace(B_FIELD, { samples: 200, radius: 0.05 })
     const thT = plot.trace(HEAT, { samples: 200, radius: 0.05 })
@@ -292,12 +270,12 @@ export const lqrIntuition: Lesson = {
         traceRun(refT, d.run, BALANCER.dt, LQ.seconds, t, (g) => yX(g.ref))
         traceRun(thT, d.run, BALANCER.dt, LQ.seconds, t, (g) => yTh(g.tilt))
         traceRun(xT, d.run, BALANCER.dt, LQ.seconds, t, (g) => yX(g.x))
-        status.set(`LQR · accept ${cm(tol.pos)}, ${deg(tol.tilt, 0)}, ${tol.effort} m/s² · K = [${kText(d.k)}]`, LABEL)
+        status.set(`LQR · accept ${cmText(tol.pos)}, ${deg(tol.tilt, 0)}, ${tol.effort} m/s² · K = [${kText(d.k)}]`, LABEL)
         if (f.fallen) event.set(`down at ${(fellAt(d.run) ?? 0).toFixed(1)} s: K asked for more torque than the motors have`, HIGH_V)
         else if (f.sat) event.set(`clipped: K wants ${pct(Math.abs(f.cmd))} of full torque`, HIGH_V)
         else if (pushed) event.set('pushed: the wheels run under it, then bring it back to the flag', HEAT)
-        else if (t >= LQ.go && t < LQ.push && f.x < -0.002 && f.v < 0) event.set(`target 30 cm ahead, yet it rolls back ${cm(-f.x)} first: leaning the body forward`, B_FIELD)
-        else if (t >= LQ.go && Math.abs(f.x - f.ref) > 0.01) event.set(`${cm(Math.abs(f.ref - f.x))} to go · lean ${deg(f.tilt)} · a ${pct(f.got)}`, RING)
+        else if (t >= LQ.go && t < LQ.push && f.x < -0.002 && f.v < 0) event.set(`target 30 cm ahead, yet it rolls back ${cmText(-f.x)} first: leaning the body forward`, B_FIELD)
+        else if (t >= LQ.go && Math.abs(f.x - f.ref) > 0.01) event.set(`${cmText(Math.abs(f.ref - f.x))} to go · lean ${deg(f.tilt)} · a ${pct(f.got)}`, RING)
         else event.set(t < LQ.go ? 'holding home; the flag is about to jump 30 cm ahead' : `at the flag · cost so far J = ${f.cost.toFixed(1)}`, POWER)
         sub.set(`${t.toFixed(1)} / ${LQ.seconds} s · slowed ${1 / SLOW}× · K from the 5 ms discrete model; the sim adds motor lag and the torque limit`)
       },
@@ -308,7 +286,7 @@ export const lqrIntuition: Lesson = {
         return [
           { label: 'Slowest pole', value: poleText(s), tone: s.re > -1 ? 'warn' : 'ok' },
           { label: 'Peak accel asked · tilt', value: `${pct(Math.max(...d.run.map((f) => Math.abs(f.cmd))))} · ${deg(Math.max(...d.run.map((f) => Math.abs(f.tilt))))}`, tone: d.run.some((f) => f.sat) ? 'bad' : undefined },
-          { label: 'Rolls back first', value: cm(-d.back) },
+          { label: 'Rolls back first', value: cmText(-d.back) },
           { label: 'Within 1 cm after', value: fell !== null ? `falls at ${fell.toFixed(1)} s` : d.settle === null ? 'not by the push' : `${d.settle.toFixed(2)} s`, tone: fell !== null ? 'bad' : d.settle === null ? 'warn' : 'ok' },
         ]
       },

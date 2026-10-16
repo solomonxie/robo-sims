@@ -1,8 +1,8 @@
-import { CAR_MOVE, Move, PosFrame, fixedStepAt, moveStats, positionRun, sCurveMove, stepMove, trapezoidMove } from '../../core/physics'
-import { pct } from '../../core/units'
+import { CAR_MOVE, Move, PosFrame, fixedStepAt, moveStats, positionRun, sCurveMove, stepMove, trapezoidMove, G } from '../../core/physics'
+import { pct, mmTenths, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, controlLoop, memoBy, positionCar, scope, scopeLabels, statusHeader, traceRun } from '../fx'
+import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, controlLoop, memoBy, positionCar, scope, scopeLabels, statusHeader, traceRun, lapseClock, sideScope } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const VIEW = { center: [-2.2, -1.3, 0] as V3, radius: 54, polar: 1.45, azimuth: 0 }
@@ -14,11 +14,9 @@ const START = 0.3
 const SECONDS = 4
 const dtL = 0.01
 /** Rubber on tile, ~70 % of the weight on the driven wheels: μ·g·share. */
-const GRIP = 0.8 * 9.81 * 0.7
+const GRIP = 0.8 * G * 0.7
 const VL = CAR_MOVE.vLimit
 const mps = (v: number) => `${v.toFixed(2)} m/s`
-const mm = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 ? 1 : 0)} mm`
-const secs = (s: number | null) => (s === null ? '—' : `${s.toFixed(2)} s`)
 
 type Trace = ReturnType<ReturnType<typeof scope>['trace']>
 type Lower = [string, (f: PosFrame) => number, number]
@@ -29,8 +27,7 @@ function posStage(lower: Lower[], bottom: string, exag = RIG.exag) {
   const head = statusHeader(scene)
   const car = positionCar(scene, RIG.at, RIG.k, D, exag)
   const loop = controlLoop(scene, DIAG.at, { ctrl: 'P → FF + PI', plant: 'motor + car', sensor: 'encoder', w: DIAG.w, h: DIAG.h })
-  const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [8, 4], zeroAt: 0.25 })
-  plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+  const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [8, 4], zeroAt: 0.25 })
   const lowTr = lower.map(([c, f, r]) => [plot.trace(c, { samples: 300, radius: 0.04 }), f, r] as const)
   const refTr = plot.trace(B_FIELD, { samples: 300, radius: 0.05 })
   const xTr = plot.trace(RING, { samples: 300, radius: 0.07 })
@@ -38,16 +35,10 @@ function posStage(lower: Lower[], bottom: string, exag = RIG.exag) {
   const yPos = (v: number) => (Math.max(-0.02, Math.min(D * 1.08, v)) / D) * (SCOPE.h / 2) * 0.9
   const yLow = (v: number) => -SCOPE.h / 4 + Math.max(-1.1, Math.min(1.1, v)) * (SCOPE.h / 4) * 0.9
   const draw = (tr: Trace, run: PosFrame[], t: number, v: (f: PosFrame) => number) => traceRun(tr, run, dtL, SECONDS, t, v, 300)
-  const st = { key: '', t: 0 }
   return {
     scene,
     ...head,
-    clock(dt: number, key: string) {
-      if (key !== st.key) [st.key, st.t] = [key, 0]
-      st.t += dt * RIG.slow
-      if (st.t > SECONDS + RIG.rest) st.t = 0
-      return Math.min(st.t, SECONDS)
-    },
+    clock: lapseClock(SECONDS, RIG.slow, RIG.rest),
     show(dt: number, run: PosFrame[], t: number) {
       const f = fixedStepAt(run, t, dtL)
       draw(refTr, run, t, (g) => yPos(g.ref))
@@ -58,7 +49,7 @@ function posStage(lower: Lower[], bottom: string, exag = RIG.exag) {
       loop.set(
         dt,
         { r: f.ref / D, e: Math.min(1, Math.abs(e) / 0.02), u: f.u, y: f.x / D, m: f.meas / D },
-        { r: `x_ref ${mm(f.ref)}`, e: `e ${mm(e)}`, u: `u ${pct(f.u)}`, y: mm(f.x), m: mm(f.meas) },
+        { r: `x_ref ${mmTenths(f.ref)}`, e: `e ${mmTenths(e)}`, u: `u ${pct(f.u)}`, y: mmTenths(f.x), m: mmTenths(f.meas) },
       )
       return f
     },
@@ -140,18 +131,18 @@ export const trapezoidProfile: Lesson = {
         const ph = phaseOf(f, move)
         const lag = f.ref - f.x
         if (ph === 'waiting') s.event.set(`at rest: target ${D} m ahead`, GREY)
-        else if (Math.abs(f.u) > 0.999) s.event.set(`${ph}: duty clipped at ${pct(f.u)}, ${mps(f.v)} · ${move.kind === 'step' ? `${mm(D - f.x)} to go` : `${mm(lag)} behind the plan`}`, HIGH_V)
-        else if (ph === 'holding the mark') s.event.set(`holding the mark: ${mm(f.x - D)} off · duty ${pct(f.u)}`, RING)
-        else if (move.kind === 'step') s.event.set(`${ph}: ${mps(f.v)}, ${mm(D - f.x)} to go · duty ${pct(f.u)}`, HEAT)
-        else s.event.set(`${ph}: ${mps(f.v)}, ${mm(Math.abs(lag))} ${lag >= 0 ? 'behind' : 'ahead of'} the plan · duty ${pct(f.u)}`, Math.abs(lag) > 0.01 ? HEAT : FORCE)
+        else if (Math.abs(f.u) > 0.999) s.event.set(`${ph}: duty clipped at ${pct(f.u)}, ${mps(f.v)} · ${move.kind === 'step' ? `${mmTenths(D - f.x)} to go` : `${mmTenths(lag)} behind the plan`}`, HIGH_V)
+        else if (ph === 'holding the mark') s.event.set(`holding the mark: ${mmTenths(f.x - D)} off · duty ${pct(f.u)}`, RING)
+        else if (move.kind === 'step') s.event.set(`${ph}: ${mps(f.v)}, ${mmTenths(D - f.x)} to go · duty ${pct(f.u)}`, HEAT)
+        else s.event.set(`${ph}: ${mps(f.v)}, ${mmTenths(Math.abs(lag))} ${lag >= 0 ? 'behind' : 'ahead of'} the plan · duty ${pct(f.u)}`, Math.abs(lag) > 0.01 ? HEAT : FORCE)
         s.sub(t)
       },
       readouts: (p) => {
         const { s: m, move, peakU } = tpRun(tpParams(p))
         return [
-          { label: 'Move time (to ±2 mm)', value: secs(m.settle), tone: m.settle === null ? 'bad' : 'ok' },
+          { label: 'Move time (to ±2 mm)', value: secsText(m.settle), tone: m.settle === null ? 'bad' : 'ok' },
           { label: `Peak accel (tyre grip ≈ ${GRIP.toFixed(1)} m/s²)`, value: `${m.peakAcc.toFixed(1)} m/s²`, tone: m.peakAcc > GRIP ? 'bad' : m.peakAcc > 0.7 * GRIP ? 'warn' : 'ok' },
-          { label: 'Worst lag behind the plan', value: move.kind === 'step' ? 'no plan' : mm(m.track), tone: move.kind === 'step' ? 'bad' : m.track > 0.01 ? 'warn' : 'ok' },
+          { label: 'Worst lag behind the plan', value: move.kind === 'step' ? 'no plan' : mmTenths(m.track), tone: move.kind === 'step' ? 'bad' : m.track > 0.01 ? 'warn' : 'ok' },
           { label: 'Peak duty', value: pct(peakU), tone: peakU > 0.999 ? 'warn' : 'ok' },
         ]
       },
@@ -217,7 +208,7 @@ export const sCurve: Lesson = {
         const f = s.show(dt, run, t)
         s.status.set(`S-curve · ${q.mode === 'trap' ? 'trapezoid' : `jerk time ${(q.tj * 1000).toFixed(0)} ms`} · mast ${q.hz.toFixed(2)} Hz`, LABEL)
         const ph = phaseOf(f, move)
-        const sw = `camera ${mm(Math.abs(f.sway))} ${f.sway >= 0 ? 'back' : 'forward'}`
+        const sw = `camera ${mmTenths(Math.abs(f.sway))} ${f.sway >= 0 ? 'back' : 'forward'}`
         if (ph === 'waiting') s.event.set(`at rest: target ${D} m ahead`, GREY)
         else if (f.t > START + move.T) s.event.set(`stopped · ${sw}${Math.abs(f.sway) > 0.002 ? ': still ringing' : ''}`, Math.abs(f.sway) > 0.002 ? HIGH_V : RING)
         else s.event.set(`${ph}: accel ${f.refA.toFixed(2)} m/s² · ${sw}`, Math.abs(f.sway) > 0.008 ? HEAT : FORCE)
@@ -227,9 +218,9 @@ export const sCurve: Lesson = {
         const q = scParams(p)
         const { s: m, move } = scRun(q)
         return [
-          { label: 'Profile time', value: secs(move.T) },
-          { label: 'Peak camera sway', value: mm(m.peakSway), tone: m.peakSway > 0.008 ? 'warn' : 'ok' },
-          { label: 'Wobble left after the stop', value: mm(m.residual), tone: m.residual > 0.003 ? 'bad' : m.residual > 0.001 ? 'warn' : 'ok' },
+          { label: 'Profile time', value: secsText(move.T) },
+          { label: 'Peak camera sway', value: mmTenths(m.peakSway), tone: m.peakSway > 0.008 ? 'warn' : 'ok' },
+          { label: 'Wobble left after the stop', value: mmTenths(m.residual), tone: m.residual > 0.003 ? 'bad' : m.residual > 0.001 ? 'warn' : 'ok' },
           { label: 'Jerk time vs mast period', value: q.mode === 'trap' ? '0 ms (step)' : `${(q.tj * q.hz).toFixed(2)} periods` },
         ]
       },

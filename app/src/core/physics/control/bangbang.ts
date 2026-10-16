@@ -16,7 +16,6 @@ export const RELAY_LIFE_OPS = 1e5
 export const HEATER_BOX = { ambient: 20, watts: 40, elemWPerK: 2, airJPerK: 400, lossWPerK: 1, sensorTau: 10, dt: 0.5, seconds: 1800 }
 /** Element heat capacity (J/K): how much heat it keeps dumping after the relay opens. */
 export const HEATERS = { wire: { name: 'Bare wire', jPerK: 10 }, ceramic: { name: 'Ceramic', jPerK: 60 }, oil: { name: 'Oil-filled', jPerK: 240 } }
-export type HeaterKind = keyof typeof HEATERS
 
 export interface ThermoFrame {
   t: number

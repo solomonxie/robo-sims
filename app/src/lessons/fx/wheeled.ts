@@ -3,12 +3,12 @@ import * as THREE from 'three/webgpu'
 import { ACKERMANN, BALANCER, Pose, TT_TRACK_M, TT_WHEEL_MM } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildWheel } from '../../models/motion'
-import { B_FIELD, GREY, HIGH_V, POWER, glowMat, setGlow } from './colors'
+import { B_FIELD, GREY, HEAT, HIGH_V, POWER, glowMat, setGlow } from './colors'
 import { placeAt } from './drive'
 import { addRod, stretchRod } from './layout'
 import { IDLE } from './mcu'
 import { esp32Board, i2cBreakout, sg90Servo } from './modules'
-import { flatBox } from './shapes'
+import { flatBox, stretchArrow } from './shapes'
 
 const WHEEL_R = TT_WHEEL_MM / 2000
 export const KIT_UNIT_M = 0.00254
@@ -234,3 +234,20 @@ export const onBalancer = (tilt: number, up: number, y = -0.1, along = 0): V3 =>
   y,
   BALANCER.wheelR + up * Math.cos(tilt) - along * Math.sin(tilt),
 ]
+
+/** Shove arrow at the head, wheel-acceleration arrow (red when clipped) and a target flag, on a `balanceFloor` group. */
+export function balanceCues(g: THREE.Object3D, half: number) {
+  const shove = stretchArrow(g, HEAT, 0.004)
+  const push = stretchArrow(g, POWER, 0.004)
+  const flag = add(g, new THREE.Group())
+  flatBox(flag, [0.004, 0.004, 0.16], glowMat(B_FIELD, 0.8), [0, -0.1, 0.08])
+  flatBox(flag, [0.05, 0.003, 0.03], glowMat(B_FIELD, 1), [0.025, -0.1, 0.145])
+  return (f: { tilt: number; x: number; ref: number; got: number; sat: boolean }, pushed: boolean) => {
+    const top = onBalancer(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
+    shove(pushed ? [top[0] - 0.08, top[1], top[2]] : top, top)
+    push([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
+    const d = f.ref - f.x
+    flag.visible = Math.abs(d) < half - 0.03
+    flag.position.x = d
+  }
+}

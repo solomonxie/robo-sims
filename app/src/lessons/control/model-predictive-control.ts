@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
-import { BALANCER, DEG, MpcFrame, MpcPlan, Tolerances, fellAt, fixedStepAt, mpcDesign, mpcRun, toDeg } from '../../core/physics'
-import { pct } from '../../core/units'
-import { V3, add } from '../../models/kit'
+import { BALANCER, DEG, MpcFrame, MpcPlan, fellAt, fixedStepAt, mpcDesign, mpcRun, toDeg, BALANCER_TOL } from '../../core/physics'
+import { pct, cmText, degText } from '../../core/units'
+import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -28,12 +28,13 @@ import {
   scopeLabels,
   setGlow,
   statusHeader,
-  stretchArrow,
   traceRun,
+  balanceCues,
+  lapseClock,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const TOL: Tolerances = { pos: 0.1, speed: 0.5, tilt: 5 * DEG, rate: 50 * DEG, effort: 3 }
 const TS = 0.02
 const N_MAX = 40
 const SECONDS = 7
@@ -46,24 +47,14 @@ const MOVES = { at: [-10.5, -6.7, 0] as V3, w: 11, h: 2.4 }
 const PLAN = { y: 1.2, h: 4, xMax: 0.4, thMax: 20 * DEG }
 const RUN = { y: -6.3, h: 4 }
 const target = (t: number) => (t >= GO ? MOVE : 0)
-const cm = (m: number) => `${(m * 100).toFixed(1)} cm`
-const deg = (a: number) => `${toDeg(a).toFixed(1)}°`
+const deg = (a: number) => degText(toDeg(a))
 const ms = (s: number) => `${Math.round(s * 1000)} ms`
 const at = (run: MpcFrame[], t: number) => fixedStepAt(run, t, BALANCER.dt)
 const peakTilt = (run: MpcFrame[]) => Math.max(...run.map((f) => Math.abs(f.tilt)))
 const yX = (x: number, h: number) => (x / PLAN.xMax) * (h / 2)
 const yTh = (a: number, h: number) => (a / PLAN.thMax) * (h / 2)
 
-/** Restarts on a control change, loops with a pause. */
-function clock() {
-  const st = { key: '', t: 0 }
-  return (dt: number, key: string) => {
-    if (key !== st.key) [st.key, st.t] = [key, 0]
-    st.t += dt * SLOW
-    if (st.t > SECONDS + 0.6) st.t = 0
-    return Math.min(st.t, SECONDS)
-  }
-}
+const clock = () => lapseClock(SECONDS, SLOW, 0.6)
 
 /** Balancer on a scrolling floor, target flag, acceleration and push arrows, and the plan as ghost bodies running ahead. */
 function botRig(scene: THREE.Object3D) {
@@ -71,11 +62,7 @@ function botRig(scene: THREE.Object3D) {
   const bot = balanceBot(floor.g)
   const ghosts = pointCloud(floor.g, 2 * N_MAX, 0.006)
   const bodies = rayFan(floor.g, N_MAX, glowMat(RING, 0.35), 0.0025)
-  const shove = stretchArrow(floor.g, HEAT, 0.004)
-  const push = stretchArrow(floor.g, POWER, 0.004)
-  const flag = add(floor.g, new THREE.Group())
-  flatBox(flag, [0.004, 0.004, 0.16], glowMat(B_FIELD, 0.8), [0, -0.1, 0.08])
-  flatBox(flag, [0.05, 0.003, 0.03], glowMat(B_FIELD, 1), [0.025, -0.1, 0.145])
+  const cues = balanceCues(floor.g, RIG.half)
   const c = new THREE.Color()
   const ring = new THREE.Color(RING)
   const grey = new THREE.Color(GREY)
@@ -99,12 +86,7 @@ function botRig(scene: THREE.Object3D) {
       })
       ghosts.show(dots)
       bodies(segs)
-      const top = onBalancer(f.tilt, BALANCER.h * 1.6, -0.1, -0.05)
-      shove(pushed ? [top[0] - 0.08, top[1], top[2]] : top, top)
-      push([0, -0.1, 0.004], [f.got * 0.12, -0.1, 0.004], f.sat ? HIGH_V : POWER)
-      const d = f.ref - f.x
-      flag.visible = Math.abs(d) < RIG.half - 0.03
-      flag.position.x = d
+      cues(f, pushed)
     },
   }
 }
@@ -150,8 +132,7 @@ function movesPanel(scene: THREE.Object3D, full: number) {
 
 /** Horizon window: the plan's x, tilt and target over the next N steps, on a 0…0.8 s axis. */
 function planScreen(scene: THREE.Object3D) {
-  const plot = scope(scene, SIDE_SCOPE.w, PLAN.h, { divs: [8, 4], zeroAt: 0.5 })
-  plot.group.position.set(SIDE_SCOPE.x, PLAN.y, 0)
+  const plot = sideScope(scene, PLAN.y, PLAN.h, { divs: [8, 4], zeroAt: 0.5 })
   scopeLabels(scene, PLAN.y, PLAN.h, null, `the plan: x ±${PLAN.xMax * 100} cm`, `θ ±${toDeg(PLAN.thMax)}°`)
   addLabel(scene, `now → ${N_MAX * TS} s ahead`, [SIDE_SCOPE.x + SIDE_SCOPE.w / 2, PLAN.y - PLAN.h / 2 - 0.55, 0.3], GREY, 0.24, 'right')
   const refT = plot.trace(B_FIELD, { samples: N_MAX + 1, radius: 0.05 })
@@ -173,8 +154,7 @@ function planScreen(scene: THREE.Object3D) {
 
 /** The whole run: target, tilt, position, and optionally the other setting's position in grey. */
 function runScreen(scene: THREE.Object3D) {
-  const plot = scope(scene, SIDE_SCOPE.w, RUN.h, { divs: [7, 4], zeroAt: 0.5 })
-  plot.group.position.set(SIDE_SCOPE.x, RUN.y, 0)
+  const plot = sideScope(scene, RUN.y, RUN.h, { divs: [7, 4], zeroAt: 0.5 })
   scopeLabels(scene, RUN.y, RUN.h, SECONDS, `x ±${PLAN.xMax * 100} cm`, `θ ±${toDeg(PLAN.thMax)}°`)
   const refT = plot.trace(B_FIELD, { samples: 200, radius: 0.05 })
   const otherT = plot.trace(GREY, { samples: 200, radius: 0.05 })
@@ -203,7 +183,7 @@ const TAILS = { none: 'No tail', lqr: 'LQR tail' }
 const rhParams = (p: Params) => ({ N: Math.round(n(p, 'horizon')), tail: pick(TAILS, p.tail, 'none') === 'lqr' })
 type RhQ = ReturnType<typeof rhParams>
 const rhKey = (q: RhQ) => `${q.N}|${q.tail}`
-const rhRun = memoBy(rhKey, (q: RhQ) => mpcRun({ design: mpcDesign({ horizon: q.N, ts: TS, tol: TOL, tail: q.tail }), seconds: SECONDS, target, pushes: [PUSH] }))
+const rhRun = memoBy(rhKey, (q: RhQ) => mpcRun({ design: mpcDesign({ horizon: q.N, ts: TS, tol: BALANCER_TOL, tail: q.tail }), seconds: SECONDS, target, pushes: [PUSH] }))
 
 export const recedingHorizon: Lesson = {
   id: 'model-predictive-control-receding-horizon',
@@ -251,13 +231,13 @@ export const recedingHorizon: Lesson = {
         moves.set(pl, pl ? `${pl.iterations} solver pass${pl.iterations > 1 ? 'es' : ''}` : '')
         plan.set(f, pl, target)
         runPlot(r.frames, t)
-        status.set(`MPC · N = ${q.N} (${ms(q.N * TS)}) · ${q.tail ? 'LQR tail' : 'no tail'} · x ${cm(f.x)} · θ ${deg(f.tilt)} · applying ${pct(f.u / BALANCER.aMax)}`, LABEL)
+        status.set(`MPC · N = ${q.N} (${ms(q.N * TS)}) · ${q.tail ? 'LQR tail' : 'no tail'} · x ${cmText(f.x)} · θ ${deg(f.tilt)} · applying ${pct(f.u / BALANCER.aMax)}`, LABEL)
         const endX = pl?.x.at(-1)
         if (f.fallen) event.set(`down at ${(fellAt(r.frames) ?? 0).toFixed(1)} s: each ${ms(q.N * TS)} plan ended still leaning, and paid nothing for it`, HIGH_V)
         else if (pushed) event.set('pushed: the next plan starts from the new state and bends around it', HEAT)
-        else if (t < GO && Math.abs(f.x) > 0.002) event.set(`the flag has not moved yet, but the plan sees it coming: rolling back ${cm(-f.x)} to lean`, B_FIELD)
+        else if (t < GO && Math.abs(f.x) > 0.002) event.set(`the flag has not moved yet, but the plan sees it coming: rolling back ${cmText(-f.x)} to lean`, B_FIELD)
         else if (endX && Math.abs(endX[2]) > 2 * DEG) event.set(`plan ends leaning ${deg(endX[2])}: beyond ${ms(q.N * TS)} it does not care`, HEAT)
-        else if (Math.abs(f.x - f.ref) > 0.01) event.set(`${cm(Math.abs(f.ref - f.x))} to go · plan ends ${endX ? cm(Math.abs(f.ref - endX[0])) : '—'} from the flag`, RING)
+        else if (Math.abs(f.x - f.ref) > 0.01) event.set(`${cmText(Math.abs(f.ref - f.x))} to go · plan ends ${endX ? cmText(Math.abs(f.ref - endX[0])) : '—'} from the flag`, RING)
         else event.set(t < GO ? 'holding home; the flag jumps 30 cm ahead at 0.5 s' : 'at the flag: every plan is now "stay"', POWER)
         sub.set(`${t.toFixed(1)} / ${SECONDS} s · slowed ${1 / SLOW}× · plans every ${ms(TS)}, sim 200 Hz with motor lag and back-EMF · tape every 100 mm`)
       },
@@ -270,7 +250,7 @@ export const recedingHorizon: Lesson = {
         return [
           { label: 'Plan looks ahead', value: `${ms(q.N * TS)} · ${q.N} moves` },
           { label: 'Within 1 cm after', value: fell !== null ? `falls at ${fell.toFixed(1)} s` : s === null ? 'not by the push' : `${s.toFixed(2)} s`, tone: fell !== null ? 'bad' : s === null ? 'warn' : 'ok' },
-          { label: `Off target at ${SECONDS} s`, value: fell !== null ? '—' : cm(Math.abs(end.x - end.ref)), tone: fell === null && Math.abs(end.x - end.ref) > 0.01 ? 'warn' : undefined },
+          { label: `Off target at ${SECONDS} s`, value: fell !== null ? '—' : cmText(Math.abs(end.x - end.ref)), tone: fell === null && Math.abs(end.x - end.ref) > 0.01 ? 'warn' : undefined },
           { label: 'Peak tilt', value: deg(peakTilt(r.frames)), tone: fell !== null ? 'bad' : undefined },
         ]
       },
@@ -287,7 +267,7 @@ type CnQ = ReturnType<typeof cnParams>
 const cnKey = (q: CnQ) => `${q.mpc}|${q.pos}|${q.limit}`
 const cnDesign = memoBy(
   (pos: number) => `${pos}`,
-  (pos: number) => mpcDesign({ horizon: CN_N, ts: TS, tol: { ...TOL, pos }, tail: true }),
+  (pos: number) => mpcDesign({ horizon: CN_N, ts: TS, tol: { ...BALANCER_TOL, pos }, tail: true }),
 )
 const cnRun = memoBy(cnKey, (q: CnQ) =>
   mpcRun({ design: cnDesign(q.pos), seconds: SECONDS, target, mode: q.mpc ? 'mpc' : 'lqr', limit: q.limit, preview: false, pushes: [PUSH] }),
@@ -300,8 +280,8 @@ export const mpcConstraints: Lesson = {
   formula: (p) => {
     const q = cnParams(p)
     return q.mpc
-      ? `min ½UᵀHU + fᵀU subject to loₖ ≤ uₖ ≤ hiₖ, k = 0…${CN_N - 1} · hiₖ = ${pct(q.limit)}·aMax·(1 − v̂ₖ/vMax), loₖ = −${pct(q.limit)}·aMax·(1 + v̂ₖ/vMax) · H, f from the model and the cost (accept ${cm(q.pos)}) · active set`
-      : `u = clip(−K·(x − r), lo, hi) · K from the same model and cost (accept ${cm(q.pos)}) · lo…hi = ±${pct(q.limit)}·aMax·(1 ∓ v/vMax)`
+      ? `min ½UᵀHU + fᵀU subject to loₖ ≤ uₖ ≤ hiₖ, k = 0…${CN_N - 1} · hiₖ = ${pct(q.limit)}·aMax·(1 − v̂ₖ/vMax), loₖ = −${pct(q.limit)}·aMax·(1 + v̂ₖ/vMax) · H, f from the model and the cost (accept ${cmText(q.pos)}) · active set`
+      : `u = clip(−K·(x − r), lo, hi) · K from the same model and cost (accept ${cmText(q.pos)}) · lo…hi = ±${pct(q.limit)}·aMax·(1 ∓ v/vMax)`
   },
   legend: [
     { color: RING, label: 'Plan: ghosts · moves · x (grey: the other mode)', shape: 'dot' },
@@ -344,14 +324,14 @@ export const mpcConstraints: Lesson = {
         moves.set(pl, !pl ? '' : q.mpc ? `${pinned} of ${CN_N} moves pinned · ${pl.iterations} pass${pl.iterations > 1 ? 'es' : ''}` : 'LQR: no plan, one move from −K·x')
         plan.set(f, pl, () => f.ref)
         runPlot(r.frames, t, other.frames)
-        status.set(`${q.mpc ? 'MPC' : 'Clipped LQR'} · accept ${cm(q.pos)} · ${pct(q.limit)} torque · x ${cm(f.x)} · θ ${deg(f.tilt)}`, LABEL)
+        status.set(`${q.mpc ? 'MPC' : 'Clipped LQR'} · accept ${cmText(q.pos)} · ${pct(q.limit)} torque · x ${cmText(f.x)} · θ ${deg(f.tilt)}`, LABEL)
         const want = pl?.want ?? 0
         if (f.fallen) event.set(`down at ${(fellAt(r.frames) ?? 0).toFixed(1)} s: ${q.mpc ? 'the plan used all the torque, none was left for the model\'s error' : 'the clipped catch came too late'}`, HIGH_V)
         else if (pushed) event.set('pushed: the next plan starts from the new state', HEAT)
         else if (!q.mpc && pl && Math.abs(want) > Math.abs(pl.u[0]) + 0.01) event.set(`K asks ${pct(want / BALANCER.aMax)}, the limit allows ${pct(pl.u[0] / BALANCER.aMax)}`, HIGH_V)
         else if (f.sat) event.set('the motor clipped: the real robot is not quite the linear model', HIGH_V)
         else if (q.mpc && pinned) event.set(`${pinned} planned moves sit on the limit: braking is planned in, not hoped for`, RING)
-        else if (Math.abs(f.x - f.ref) > 0.01) event.set(`${cm(Math.abs(f.ref - f.x))} to go · lean ${deg(f.tilt)}`, RING)
+        else if (Math.abs(f.x - f.ref) > 0.01) event.set(`${cmText(Math.abs(f.ref - f.x))} to go · lean ${deg(f.tilt)}`, RING)
         else event.set(t < GO ? 'holding home; the flag jumps 30 cm ahead at 0.5 s' : 'at the flag', POWER)
         sub.set(`${t.toFixed(1)} / ${SECONDS} s · slowed ${1 / SLOW}× · ${q.mpc ? `${CN_N} moves × ${ms(TS)} with the LQR tail` : `K for the same cost, every ${ms(TS)}`} · grey: ${q.mpc ? 'clipped LQR' : 'MPC'}`)
       },

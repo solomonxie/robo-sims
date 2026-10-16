@@ -1,19 +1,6 @@
 import { DEG } from '../common'
-import { BALANCER, fallTau } from '../mobility/balance'
-import { balancerLqr, balancerModel, c2d, charPoly, closedPoles, dlqr, eigenvalues, expm, matInv, matMul, stateRun } from './lqr'
-
-const TOL = { pos: 0.1, speed: 0.5, tilt: 5 * DEG, rate: 50 * DEG, effort: 3 }
+import { BALANCER_TOL as TOL, balancerLqr, c2d, closedPoles, dlqr, stateRun } from './lqr'
 const lqr = (t = {}) => balancerLqr({ ...TOL, ...t })
-
-test('matrix helpers: inverse, e^M, characteristic polynomial', () => {
-  const a = [[4, 7], [2, 6]]
-  expect(matMul(a, matInv(a)).flat().map((x) => Math.round(x * 1e9) / 1e9)).toEqual([1, 0, 0, 1])
-  const r = expm([[0, 1], [-1, 0]])
-  expect(r[0][0]).toBeCloseTo(Math.cos(1), 12)
-  expect(r[0][1]).toBeCloseTo(Math.sin(1), 12)
-  expect(charPoly([[2, 0], [0, 3]])).toEqual([6, -5, 1])
-  expect(eigenvalues(balancerModel().A).map((z) => z.re).sort((x, y) => x - y)[3]).toBeCloseTo(1 / fallTau(BALANCER.h), 6)
-})
 
 test('scalar discrete Riccati matches the closed form', () => {
   const [a, b, q, r] = [1.2, 0.5, 2, 0.3]

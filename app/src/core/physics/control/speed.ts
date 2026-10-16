@@ -1,5 +1,5 @@
 // Wheel speed loop: a TT gearmotor driving one car wheel, encoder counts per loop tick → speed, feed-forward + PID.
-import { GEARBOXES, RPM_PER_RADS, TT_CAR, TT_INERTIA, TT_MOTOR, frictionNm, gearEfficiency, gearRatio, motorK } from '../actuators/dcmotor'
+import { GEARBOXES, RPM_PER_RADS, TT_CAR, TT_INERTIA, TT_GEAR, TT_MOTOR, frictionNm, gearEfficiency, motorK } from '../actuators/dcmotor'
 import { G, clamp } from '../common'
 import { ENCODERS, EncoderKind, ticksPerWheelRev } from '../sensors/encoder'
 import { DRIVE_TASK, ROLL_FLOORS } from './loop'
@@ -7,18 +7,17 @@ import { PID_MEM0, PidCfg, pidTick } from './pid'
 
 /** 2S pack (full), 100 Hz loop, 0.5 ms physics step; FF is calibrated for `volts` on tile. */
 export const WHEEL = { volts: DRIVE_TASK.fullV, loopS: 0.01, dt: 0.0005, crr: ROLL_FLOORS.tile.crr, maxRpm: 300 }
-const GEAR = gearRatio(GEARBOXES.tt48)
 const EFF = gearEfficiency(GEARBOXES.tt48)
 
 /** Counts per wheel turn under ×4 decoding. */
-export const wheelCpr = (kind: EncoderKind) => ticksPerWheelRev(ENCODERS[kind].ppr, 4, ENCODERS[kind].onMotor ? GEAR : 1)
+export const wheelCpr = (kind: EncoderKind) => ticksPerWheelRev(ENCODERS[kind].ppr, 4, ENCODERS[kind].onMotor ? TT_GEAR : 1)
 /** Smallest speed step (wheel rpm) when counting over `windowS`. */
 export const speedStep = (kind: EncoderKind, windowS: number) => 60 / (wheelCpr(kind) * windowS)
 
 /** Motor-shaft load torque of one wheel's share of the car: rolling drag (opposes motion) and the slope pull (signed). */
-export function wheelLoad(slopeDeg: number, crr = WHEEL.crr) {
+function wheelLoad(slopeDeg: number, crr = WHEEL.crr) {
   const a = (slopeDeg * Math.PI) / 180
-  const perN = ((TT_CAR.massKg / TT_CAR.driven) * G * TT_CAR.wheelM) / (GEAR * EFF)
+  const perN = ((TT_CAR.massKg / TT_CAR.driven) * G * TT_CAR.wheelM) / (TT_GEAR * EFF)
   return { dragNm: frictionNm() + perN * crr * Math.cos(a), gravNm: perN * Math.sin(a) }
 }
 
@@ -28,7 +27,7 @@ export function wheelFf(crr = WHEEL.crr, inertia = TT_INERTIA) {
   return {
     kS: (TT_MOTOR.ohms * wheelLoad(0, crr).dragNm) / k,
     kV: TT_MOTOR.voltsPerRpm,
-    kA: (TT_MOTOR.ohms * inertia * GEAR) / (k * RPM_PER_RADS),
+    kA: (TT_MOTOR.ohms * inertia * TT_GEAR) / (k * RPM_PER_RADS),
   }
 }
 export const ffVolts = (rpm: number, rpmPerS: number, f = wheelFf()) => (Math.abs(rpm) < 1e-9 ? 0 : f.kS * Math.sign(rpm)) + f.kV * rpm + f.kA * rpmPerS
@@ -100,10 +99,10 @@ export function wheelSpeedRun(c: SpeedCfg): SpeedFrame[] {
   for (let j = 0; j <= n; j++) {
     const t = j * loopS
     const sp = c.sp(t)
-    const count = Math.floor((theta / GEAR / (2 * Math.PI)) * cpr + 1e-9)
+    const count = Math.floor((theta / TT_GEAR / (2 * Math.PI)) * cpr + 1e-9)
     hist.push(count)
     const back = hist[Math.max(0, hist.length - 1 - win)]
-    const meas = meter ? meter.read(count) : c.enc ? ((count - back) / cpr / (Math.min(win, hist.length - 1) * loopS)) * 60 : (w / GEAR) * RPM_PER_RADS
+    const meas = meter ? meter.read(count) : c.enc ? ((count - back) / cpr / (Math.min(win, hist.length - 1) * loopS)) * 60 : (w / TT_GEAR) * RPM_PER_RADS
     const acc = (c.sp(t + loopS) - c.sp(Math.max(0, t - loopS))) / (t > 0 ? 2 * loopS : loopS)
     const ff = c.ff || !c.enc ? ffVolts(sp, acc) / ffV : 0
     let terms = { p: 0, i: 0, d: 0, out: 0, sat: false }
@@ -116,7 +115,7 @@ export function wheelSpeedRun(c: SpeedCfg): SpeedFrame[] {
     const u = clamp(raw, -1, 1)
     const slope = c.ramp && t >= c.ramp.at ? c.ramp.deg : 0
     meter?.drive(u * volts)
-    out.push({ t, sp, rpm: (w / GEAR) * RPM_PER_RADS, meas, rev: theta / GEAR / (2 * Math.PI), counts: count - hist[hist.length - 2], u, ff, p: terms.p, i: terms.i, d: terms.d, sat: terms.sat || u !== raw, slope })
+    out.push({ t, sp, rpm: (w / TT_GEAR) * RPM_PER_RADS, meas, rev: theta / TT_GEAR / (2 * Math.PI), counts: count - hist[hist.length - 2], u, ff, p: terms.p, i: terms.i, d: terms.d, sat: terms.sat || u !== raw, slope })
     for (let k = 0; k < sub; k++) {
       w = wheelStep(w, u * volts, slope, dt)
       theta += w * dt

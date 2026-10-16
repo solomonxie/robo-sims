@@ -1,18 +1,10 @@
 import { ARM, armRun } from './arm'
 import { stepMetrics, swing, ultimateGain } from './pid'
-import { armPoles, dominant, margins, placePd, polyRoots, secondOrder, secondOrderAt } from './stability'
+import { armPoles, dominant, margins, placePd, secondOrder, secondOrderAt } from './stability'
 
 const step = (g: { kp: number; ki: number; kd: number }, lag: number) =>
   armRun({ pid: { ...g, limit: 2, dOnMeas: true }, from: 30, target: 40, ff: true, lag, seconds: 3 }).map((f) => f.th)
 const P = (kp: number) => ({ kp, ki: 0, kd: 0 })
-
-test('polyRoots finds real and complex roots', () => {
-  const r = polyRoots([6, -5, 1]).map((z) => z.re).sort()
-  expect(r[0]).toBeCloseTo(2, 9)
-  expect(r[1]).toBeCloseTo(3, 9)
-  const c = polyRoots([5, 2, 1])
-  expect(c.every((z) => Math.abs(z.re + 1) < 1e-9 && Math.abs(Math.abs(z.im) - 2) < 1e-9)).toBe(true)
-})
 
 test('2nd-order formulas match the curve', () => {
   const so = secondOrder(0.5, 10)

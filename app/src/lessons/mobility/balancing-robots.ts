@@ -39,12 +39,12 @@ import {
   moduleBlock,
   onBalancer,
   pointCloud,
-  scope,
   scopeLabels,
   smoothstep,
   statusHeader,
   stretchArrow,
   traceRun,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -104,8 +104,7 @@ export const whyItFalls: Lesson = {
     const { status, sub, event } = statusHeader(scene)
     const holder = add(scene, new THREE.Group())
 
-    const plot = scope(scene, SIDE_SCOPE.w, WF.sh, { divs: [6, 8], zeroAt: 0.25 })
-    plot.group.position.set(SIDE_SCOPE.x, WF.sy, 0)
+    const plot = sideScope(scene, WF.sy, WF.sh, { divs: [6, 8], zeroAt: 0.25 })
     const tr = plot.trace(RING, { samples: 200 })
     const short = plot.trace(GREY, { samples: 200, radius: 0.09 })
     addLabel(scene, '0', [SIDE_SCOPE.x - SIDE_SCOPE.w / 2, WF.sy - WF.sh / 2 - 1.1, 0.3], GREY, 0.26, 'left')
@@ -234,8 +233,7 @@ export const tiltPid: Lesson = {
     const shove = stretchArrow(side.g, HEAT, 0.004)
     const torque = stretchArrow(side.g, POWER, 0.004)
 
-    const plot = scope(scene, SIDE_SCOPE.w, TP.sh, { divs: [7, 6] })
-    plot.group.position.set(SIDE_SCOPE.x, TP.sy, 0)
+    const plot = sideScope(scene, TP.sy, TP.sh, { divs: [7, 6] })
     const cmdTr = plot.trace(POWER, { samples: 200, radius: 0.09 })
     const tiltTr = plot.trace(RING, { samples: 200 })
     scopeLabels(scene, TP.sy, TP.sh, TP.seconds, 'tilt θ ±10°', 'motor u ±100 %')
@@ -349,8 +347,7 @@ export const selfBalancingCar: Lesson = {
     const blocks = [-1, 0, 1].map((i) => moduleBlock(scene, [SIDE_SCOPE.x + i * 3.65, SB.by, 0], [3.2, 1.1, 0.4], ''))
     for (const x of [SIDE_SCOPE.x - 1.82, SIDE_SCOPE.x + 1.82]) stretchArrow(scene, GREY, 0.05)([x - 0.2, SB.by, 0.3], [x + 0.25, SB.by, 0.3])
     const plots = SB.sy.map((y, i) => {
-      const s = scope(scene, SIDE_SCOPE.w, SB.sh, { divs: [10, 4], zeroAt: i === 0 ? 0.25 : 0.5 })
-      s.group.position.set(SIDE_SCOPE.x, y, 0)
+      const s = sideScope(scene, y, SB.sh, { divs: [10, 4], zeroAt: i === 0 ? 0.25 : 0.5 })
       return s
     })
     const vSet = plots[0].trace(B_FIELD, { samples: 200, radius: 0.08 })

@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `msText`, `mmText`, `pct`, `bytesText`, `signed`, `signText`, `velocityText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
+- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `secsText`, `msText`, `mmText`/`mmTenths`, `cmText`, `degText`, `kpText`/`kiText`/`kdText`, `pct`, `bytesText`, `signed`, `signText`, `velocityText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -35,14 +35,15 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `screens` — `scope` (`trace.points` = polyline in any order), `ticks`, `ivScreen`, `benchScope` (DSO) [`physics/signals/scope`], `cursorBar` (time cursor on a scope), `captureScreen` (analyser + decoder), `I2C_TEXT` [`physics/signals/buses`].
 - `rooms` — `floorView` (tilted top-view group), `roomModel` (solids from `Room`, metres, caller scales/turns), `lidarRobot` (spinning head), `pointCloud` (instanced dots), `rayFan` (instanced rods), `costField` (costmap height bars), `floorMat` (floor with 0.5 m tape), `floorTrail` (dots behind a robot), `crashWall` [`physics/room`, `software/costmap`].
 - `diagrams` — `timingDiagram`, `stateDiagram` [`core/fsm`], `gantt` (per-tick rows, `rebuild`/`show(now)`), `simClock` (looping time-lapse clock), `moduleBlock` (glowing node/code slab), `btDiagram` (behaviour tree lit by status) [`software/btree`].
-- `feedback` — `controlLoop` (r → Σ → controller → plant → y, sensor feedback; optional disturbance/noise inputs; signals as beads, `set(dt, levels, texts, titles?)`), `LOOP_COLORS`; reuse for every Control lesson. `pidArm` (gearmotor arm rig: spring, pot, setpoint ghost, error arc, `peg` block), `sumBars` (signed terms + their sum as bars), `termBars` (P/I/D/u `sumBars`), `PID_COLORS`, `speedWheel` (face-on TT wheel on a tilting floor + rpm gauge: setpoint, true, `MEAS_COLOR` encoder needle), `positionCar` (side-view TT car on a metre strip, target flag, setpoint ghost, springy camera mast), `sPlane` (s-plane screen: pole crosses, root-locus dots, red right half).
+- `feedback` — `controlLoop` (r → Σ → controller → plant → y, sensor feedback, optional disturbance/noise; `set(dt, levels, texts, titles?)`; every Control lesson), `sumBars`/`termBars` (signed terms + sum), `PID_COLORS`, `MEAS_COLOR`, `sPlane` (poles, root-locus dots).
+- `plants` — `pidArm` (gearmotor arm: spring, pot, setpoint ghost, error arc, `peg`), `speedWheel` (TT wheel on a tilting floor + rpm gauge), `positionCar` (side-view TT car to a flag, springy camera mast).
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines; `rosTint` + `ROS_CODE_LEGEND` for rclpy/rclcpp/CLI), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
 - `frames` — `frameTriad` (RGB axes), `setTf` (4×4 onto an object), `urdfModel` (links from a parsed URDF, `pose(q)`) [`physics/software/urdf`].
-- `wheeled` — `diffBot` (TT two-wheeler, `set(pose, dL, dR)`, `slip`, `ghost`), `rcCar` (1/10 Ackermann, `set(pose, steer, travel)`, `arms`, `scrub`), `balanceBot` (side-view self-balancer, `set(tilt, roll)`), `balanceFloor` (scrolling side-view floor for it), `onBalancer` (point on its body), `slipPatch`/`lightPatches` [`physics/mobility`].
+- `wheeled` — `diffBot` (TT two-wheeler, `set(pose, dL, dR)`, `slip`, `ghost`), `rcCar` (1/10 Ackermann, `set(pose, steer, travel)`, `arms`, `scrub`), `balanceBot` (side-view self-balancer, `set(tilt, roll)`), `balanceFloor` (scrolling side-view floor for it), `onBalancer` (point on its body), `balanceCues` (shove/accel arrows, target flag), `slipPatch`/`lightPatches` [`physics/mobility`].
 - `holonomic` — `mecanumBot`/`mecanumWheel`, `omniBot` (kiwi/X), `swerveBot` (FRC; `glow`); all `set(pose, …)`.
 - `tracked` — `trackedBot` (sprockets, moving links; `wheels` = 4WD twin; `body`, `scuff`, `spin`).
 - `drive` — `placeAt` (object ← Pose), `inField`, stick tours (`TOUR_MODES`, `TourSeg`, `tourAt`, `tourLength`).
-- `rigs` — side-view time-lapse: `SIDE_VIEW`, `SIDE_SCOPE`, `statusHeader`, `tiltRig`, `scopeLabels`, `traceRun` (fixed-step run → scope trace).
+- `rigs` — side-view time-lapse: `SIDE_VIEW`, `SIDE_SCOPE`, `statusHeader`, `tiltRig`, `scopeLabels`, `sideScope`, `traceRun` (fixed-step run → scope trace), `lapseClock` (looping time-lapse clock).
 - `aerial` — `quadcopter` (`pose`, `set(spin, share, clipped)`), `spinArc`, `SPIN_COLORS`.
 - `marine` — `rovModel` (`trim`, `set(spin, share)`, `wake`), `waterTank`.
 - `legged` — `servoWalker` (hexapod/quadruped, `set(pose, angles, down)`), `servoBiped` (`set(lean, tip)`).
@@ -57,10 +58,10 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
 - `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
 - `mobility/` — diffdrive (`diffStep`, `squareRun`, `slipRun`), mecanum (`mecInverse`/`mecForward`, `twistStep`, `fitTwist`, `mecRun`), omni, swerve, ackermann (`steerAngles`, `bicycleStep`, `pursuitRun`, `parkPlan`), tracks (`TERRAINS`, `skidRun`, Bekker sinkage, `softPull`), legged (`GAITS`, `gaitFeet`, `legIK`, `zmpRun`), balance (`cartStep`, `balanceLoop`; PID from `control/pid`), quadcopter (`mix`, `quadBodyStep`, `attitudeLoop`), underwater (`rovTrim`, `buoyRun`, `allocate`, `rovRun`).
-- `control/` — loop (TT car `openLoopRun` timed move vs `closedLoopRun` P on encoders, `trialConditions` run spread, `ROLL_FLOORS`, `stallDuty`/`pDeadband`), bangbang (`bangBang` hysteresis switch, `thermostatRun`/`cycleStats` relay heater, `followRun` bang-bang/band/hold/P line follower, `relayLifeHours`), pid (`pidStep` plain; `pidTick` anti-windup/D-on-measurement/D filter; `stepMetrics`, `swing`, `ultimateGain`, `zieglerNichols`), arm (`ARM` rig, `armRun`, `loadDuty`, `pRestDeg`), speed (TT wheel `wheelStep`, `wheelCpr`/`speedStep`, `wheelFf`/`ffVolts` kS·kV·kA, `wheelSpeedRun` FF + PID on encoder counts, `stepSp`/`rampSp`, `speedStats`), position (`trapezoidMove`/`sCurveMove`/`stepMove` + `moveAt`, `positionRun` cascade P → FF + PI with car inertia and a mast spring-mass, `moveStats`), linefollow (TCRT bar `barAt`/`errorSweep`/`sweepStats`, `Tape` polylines + `tapeDist`, `steerTick` PD → `turnWheels`, `steerRun` S-course, `junctionRun` FOLLOW/CREEP/SPIN crossing counter), stability (`polyRoots`, `armLinear`, `armPoles` with Padé delay, `dominant`, `secondOrder`/`secondOrderAt`, `placePd`, `loopAt`, `margins` GM/PM/delay margin, `marginsOf` any loop), lqr (`Mat` helpers, `expm`, `c2d` ZOH, `dlqr` iterated Riccati, `charPoly`/`eigenvalues`, `balancerModel` [x, ẋ, θ, θ̇], `brysonQ`, `balancerLqr`, `closedPoles`, `stateRun` u = −K·x on `cartStep`), mpc (`cholSolve`, `boxQp` primal active set, `laggedBalancer` [x, ẋ, θ, θ̇, a], `mpcDesign` condensed Φ/Γ → H, F, Gr + LQR tail P, `predict`, `mpcSolve`, `mpcRun` receding horizon or clipped LQR, back-EMF box from the last plan's speeds), loopfilter (`MeasFilter` MA/EMA, `filterRun`, `filterAt` discrete response, `filterDelay`, `noiseGain`, `dTauFor`, `filteredLoopAt`/`filteredMargins` filter on reading or D only, `kalmanSpeed` 3-state [turns, rpm, drag] meter for `wheelSpeedRun`); `armRun` takes `from`, `lag`, `ff`).
-- `actuators/` — dcmotor, hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
+- `control/` — linalg (`Cx`, `polyRoots`, `Mat` ops, `matInv`, `expm`, `charPoly`/`eigenvalues`, `cholSolve`), loop (TT car `openLoopRun` vs `closedLoopRun`, `trialConditions`, `ROLL_FLOORS`, `pDeadband`), bangbang (`bangBang`, `thermostatRun`/`cycleStats`, `followRun`), pid (`pidStep`, `pidTick` anti-windup/D-on-meas/D filter, `stepMetrics`, `swing`, `ultimateGain`, `zieglerNichols`), arm (`ARM`, `ARM_FROM`, `armRun` with `from`/`lag`/`ff`, `loadDuty`), speed (`wheelStep`, `wheelCpr`, `wheelFf`/`ffVolts`, `wheelSpeedRun`, `stepSp`/`rampSp`, `speedStats`), position (`trapezoidMove`/`sCurveMove`/`stepMove`, `moveAt`, `positionRun` cascade + mast, `moveStats`), linefollow (`barAt`/`errorSweep`, `Tape`/`tapeDist`, `steerRun`, `junctionRun`), stability (`armPoles` Padé delay, `dominant`, `secondOrder`, `placePd`, `loopAt`, `margins`/`marginsOf`), lqr (`c2d`, `dlqr`, `balancerModel`, `BALANCER_TOL`, `brysonQ`, `balancerLqr`, `stateRun`), mpc (`boxQp`, `mpcDesign`, `predict`, `mpcSolve`, `mpcRun`), loopfilter (`MeasFilter`, `filterAt`, `filterDelay`, `noiseGain`, `filteredMargins`, `kalmanSpeed`).
+- `actuators/` — dcmotor (`TT_GEAR`), hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared` (TCRT `linePosition`, `readBar(pose, offset)`, `darkness`), `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
-- `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
+- `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `stdDev`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
@@ -85,17 +86,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 ### Wave 5 — Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
 - Actuators ✓ 11/11
 - Mobility ✓ 9/9
-- Control:
-  - [x] Open vs closed loop
-  - [x] Bang-bang & hysteresis
-  - [x] PID
-  - [x] Speed control
-  - [x] Position control
-  - [x] Line following
-  - [x] Stability
-  - [x] State-space & LQR
-  - [x] Model predictive control
-  - [x] Filters in the loop
+- Control ✓ 10/10
 - Kinematics:
   - [ ] Coordinate frames
   - [ ] Forward kinematics

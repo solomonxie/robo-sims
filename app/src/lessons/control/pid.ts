@@ -1,25 +1,15 @@
-import { ARM, ArmCfg, ArmFrame, ZN_RULES, ZnRule, armRun, fixedStepAt, loadDuty, pRestDeg, stepMetrics, swing, ultimateGain, zieglerNichols } from '../../core/physics'
-import { pct } from '../../core/units'
+import { ARM, ArmCfg, ArmFrame, ZN_RULES, ZnRule, armRun, fixedStepAt, loadDuty, pRestDeg, stepMetrics, swing, ultimateGain, zieglerNichols, ARM_FROM, stdDev } from '../../core/physics'
+import { pct, degText, kdText, kiText, kpText, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HIGH_V, LABEL, PID_COLORS, POWER, RING, SIDE_SCOPE, addRod, controlLoop, glowMat, liveLabel, memoBy, pidArm, scope, scopeLabels, statusHeader, stretchRod, termBars, traceRun } from '../fx'
+import { B_FIELD, GREY, HIGH_V, LABEL, PID_COLORS, POWER, RING, SIDE_SCOPE, addRod, controlLoop, glowMat, liveLabel, memoBy, pidArm, scopeLabels, statusHeader, stretchRod, termBars, traceRun, lapseClock, sideScope } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const VIEW = { center: [-2.2, -1.3, 0] as V3, radius: 54, polar: 1.45, azimuth: 0 }
 const DIAG = { at: [SIDE_SCOPE.x, 2.4, 0] as V3, w: 12.5, h: 3.6 }
 const SCOPE = { y: -4.6, h: 5 }
 const RIG = { at: [-11.6, 1.3, 0] as V3, len: 5.2, bars: [-11.2, -6.5, 0] as V3, slow: 0.4, rest: 1.2 }
-const FROM = Math.round(ARM.stepAt / ARM.dt)
-const deg = (d: number, digits = 1) => `${d.toFixed(digits)}°`
-const secs = (s: number | null) => (s === null ? '—' : `${s.toFixed(2)} s`)
-const kpText = (kp: number) => `${(kp * 100).toFixed(2)} %/°`
-const kiText = (ki: number) => `${(ki * 100).toFixed(1)} %/(°·s)`
-const kdText = (kd: number) => `${(kd * 100).toFixed(2)} %/(°/s)`
-const metricsOf = (run: ArmFrame[], target = ARM.target) => stepMetrics(run.map((f) => f.th), ARM.dt, FROM, 0, target)
-const rms = (xs: number[]) => {
-  const mu = xs.reduce((a, b) => a + b, 0) / xs.length
-  return Math.sqrt(xs.reduce((a, b) => a + (b - mu) ** 2, 0) / xs.length)
-}
+const metricsOf = (run: ArmFrame[], target = ARM.target) => stepMetrics(run.map((f) => f.th), ARM.dt, ARM_FROM, 0, target)
 const LEGEND = {
   th: { color: RING, label: 'Arm angle θ (scope top: 0…60°)', shape: 'dot' as const },
   sp: { color: B_FIELD, label: 'Setpoint 40° (ghost arm)', shape: 'dot' as const },
@@ -36,8 +26,7 @@ function pidStage(ctrl: string, { noise = false, seconds = ARM.seconds, slow = R
   const arm = pidArm(scene, RIG.at, RIG.len)
   const bars = termBars(scene, RIG.bars, 7)
   const loop = controlLoop(scene, DIAG.at, { ctrl, plant: 'motor + arm', sensor: 'pot', disturb: true, noise, w: DIAG.w, h: DIAG.h })
-  const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4], zeroAt: 0.25 })
-  plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+  const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4], zeroAt: 0.25 })
   const spTr = plot.trace(B_FIELD, { samples: 300, radius: 0.04 })
   const tr = terms.map((k) => [k, plot.trace(PID_COLORS[k], { samples: 300, radius: 0.045 })] as const)
   const thTr = plot.trace(RING, { samples: 300, radius: 0.08 })
@@ -45,7 +34,6 @@ function pidStage(ctrl: string, { noise = false, seconds = ARM.seconds, slow = R
   const yDeg = (d: number) => (Math.min(64, d) / 60) * (SCOPE.h / 2)
   const yTerm = (v: number) => -SCOPE.h / 4 + Math.max(-1.12, Math.min(1.12, v)) * (SCOPE.h / 4) * 0.92
   const xAt = (t: number) => SIDE_SCOPE.x - SIDE_SCOPE.w / 2 + (t / seconds) * SIDE_SCOPE.w
-  const st = { key: '', t: 0 }
   return {
     scene,
     ...head,
@@ -53,16 +41,7 @@ function pidStage(ctrl: string, { noise = false, seconds = ARM.seconds, slow = R
     plot,
     yDeg,
     xAt,
-    /** Advances the looping clock; resets on a new key. Returns sim time. */
-    clock(dt: number, key: string) {
-      if (key !== st.key) {
-        st.key = key
-        st.t = 0
-      }
-      st.t += dt * slow
-      if (st.t > seconds + RIG.rest * slow) st.t = 0
-      return Math.min(st.t, seconds)
-    },
+    clock: lapseClock(seconds, slow, RIG.rest * slow),
     show(dt: number, run: ArmFrame[], t: number, grams = 0, title = ctrl, noiseDeg = 0) {
       const f = fixedStepAt(run, t, ARM.dt)
       traceRun(thTr, run, ARM.dt, seconds, t, (g) => yDeg(g.th), 300)
@@ -75,13 +54,13 @@ function pidStage(ctrl: string, { noise = false, seconds = ARM.seconds, slow = R
         dt,
         { r: f.sp ? 0.5 : 0.1, e: Math.min(1, Math.abs(e) / 20), u: f.u, y: f.th / 50, m: f.th / 50, d: grams / 200 + (f.blocked ? 1 : 0.2), n: noiseDeg * 2 },
         {
-          r: `${deg(f.sp, 0)}`,
-          e: `e ${deg(e)}`,
+          r: `${degText(f.sp, 0)}`,
+          e: `e ${degText(e)}`,
           u: `u ${pct(f.u)}`,
-          y: `θ ${deg(f.th)}`,
-          m: `pot ${deg(f.meas)}`,
+          y: `θ ${degText(f.th)}`,
+          m: `pot ${degText(f.meas)}`,
           d: f.blocked ? 'held!' : grams ? `spring + ${grams} g` : 'spring + gravity',
-          n: noiseDeg ? `noise σ ${deg(noiseDeg)}` : '',
+          n: noiseDeg ? `noise σ ${degText(noiseDeg)}` : '',
         },
         { ctrl: title },
       )
@@ -119,7 +98,7 @@ export const proportionalOnly: Lesson = {
   formula: (p) => {
     const q = poParams(p)
     const r = poRun(q).rest
-    return `u = Kp·e = ${kpText(q.kp)} × e · at rest Kp·e = load(θ) = ${pct(loadDuty(r, q.grams))} (spring + gravity) → e = load / Kp = ${deg(ARM.target - r)}`
+    return `u = Kp·e = ${kpText(q.kp)} × e · at rest Kp·e = load(θ) = ${pct(loadDuty(r, q.grams))} (spring + gravity) → e = load / Kp = ${degText(ARM.target - r)}`
   },
   legend: [LEGEND.th, LEGEND.sp, { ...LEGEND.p, label: 'P term = u (scope bottom ±100 %)' }, { color: GREY, label: 'Where P alone comes to rest', shape: 'dot' }],
   points: [
@@ -145,15 +124,15 @@ export const proportionalOnly: Lesson = {
         const t = s.clock(dt, poKey(q))
         rest(r)
         restTag.group.position.y = SCOPE.y + s.yDeg(r) - 0.35
-        restTag.set(`P rests at ${deg(r)}`, GREY)
+        restTag.set(`P rests at ${degText(r)}`, GREY)
         const f = s.show(dt, run, t, q.grams, `P ${(q.kp * 100).toFixed(2)}%/°`)
         const prev = fixedStepAt(run, t - 0.05, ARM.dt)
         const moving = Math.abs(f.th - prev.th) > 0.3
         s.status.set(`Proportional only · Kp ${kpText(q.kp)} · ${q.grams} g payload`, LABEL)
         if (t < ARM.stepAt) s.event.set('hanging at 0°: setpoint about to jump to 40°', GREY)
-        else if (f.sat) s.event.set(`e ${deg(f.sp - f.meas)} × Kp = ${pct(f.raw)} → motor clipped at 100 %`, HIGH_V)
+        else if (f.sat) s.event.set(`e ${degText(f.sp - f.meas)} × Kp = ${pct(f.raw)} → motor clipped at 100 %`, HIGH_V)
         else if (moving) s.event.set(`u = Kp·e = ${pct(f.u)}: pushing, ${f.th > f.sp ? 'past the target!' : 'easing off as e shrinks'}`, PID_COLORS.p)
-        else s.event.set(`stuck ${deg(f.sp - f.th)} short: Kp·e = ${pct(f.u)} only just holds the load`, wobble > 1 ? RING : PID_COLORS.p)
+        else s.event.set(`stuck ${degText(f.sp - f.th)} short: Kp·e = ${pct(f.u)} only just holds the load`, wobble > 1 ? RING : PID_COLORS.p)
         s.sub(t)
       },
       readouts: (p) => {
@@ -161,8 +140,8 @@ export const proportionalOnly: Lesson = {
         const { run, rest: r, m, wobble } = poRun(q)
         const err = ARM.target - run[run.length - 1].th
         return [
-          { label: 'Steady-state error (load / Kp)', value: wobble > 1 ? `still swinging ±${deg(wobble / 2)}` : `${deg(err)} (theory ${deg(ARM.target - r)})`, tone: wobble > 1 ? 'bad' : err > 5 ? 'warn' : 'ok' },
-          { label: 'Rise time, 10 → 90 % of its rest', value: secs(m.rise) },
+          { label: 'Steady-state error (load / Kp)', value: wobble > 1 ? `still swinging ±${degText(wobble / 2)}` : `${degText(err)} (theory ${degText(ARM.target - r)})`, tone: wobble > 1 ? 'bad' : err > 5 ? 'warn' : 'ok' },
+          { label: 'Rise time, 10 → 90 % of its rest', value: secsText(m.rise) },
           { label: 'Overshoot past its rest', value: pct(m.overshoot), tone: m.overshoot > 0.2 ? 'bad' : m.overshoot > 0.05 ? 'warn' : 'ok' },
           { label: 'Load to hold 40°', value: pct(loadDuty(ARM.target, q.grams)) },
         ]
@@ -227,7 +206,7 @@ export const integralWindup: Lesson = {
         s.status.set(`Integral windup · ${WINDUP[q.aw]} · Ki ${kiText(q.ki)}`, LABEL)
         if (t < ARM.stepAt) s.event.set('a hand holds the arm at 5°; setpoint about to jump to 40°', GREY)
         else if (f.blocked) s.event.set(q.aw === 'none' ? `held: motor at 100 %, yet I keeps summing → I = ${pct(f.i)}` : `held: u clipped, so I is ${q.aw === 'clamp' ? 'frozen' : 'bled back'} at ${pct(f.i)}`, f.i > 1 ? HIGH_V : PID_COLORS.i)
-        else if (f.th > ARM.target + 3) s.event.set(`released with I = ${pct(iAt)}: ${iAt > 1 ? 'flying past while I unwinds' : 'an ordinary overshoot'}, ${deg(f.th)}`, iAt > 1 ? HIGH_V : RING)
+        else if (f.th > ARM.target + 3) s.event.set(`released with I = ${pct(iAt)}: ${iAt > 1 ? 'flying past while I unwinds' : 'an ordinary overshoot'}, ${degText(f.th)}`, iAt > 1 ? HIGH_V : RING)
         else s.event.set(`I = ${pct(f.i)}: holds the arm at the target`, PID_COLORS.i)
         s.sub(t)
       },
@@ -235,10 +214,10 @@ export const integralWindup: Lesson = {
         const q = wuParams(p)
         const { peak, ghost, iAt, back } = wuRun(q)
         return [
-          { label: 'Peak after release', value: `${deg(peak)} (+${deg(peak - ARM.target)})`, tone: peak - ARM.target > 20 ? 'bad' : peak - ARM.target > 8 ? 'warn' : 'ok' },
+          { label: 'Peak after release', value: `${degText(peak)} (+${degText(peak - ARM.target)})`, tone: peak - ARM.target > 20 ? 'bad' : peak - ARM.target > 8 ? 'warn' : 'ok' },
           { label: 'I term at release', value: pct(iAt), tone: iAt > 1 ? 'bad' : 'ok' },
-          { label: 'Back within ±2° after release', value: back === null ? `not by ${WU.seconds} s` : secs(back), tone: back === null || back > 1.5 ? 'warn' : 'ok' },
-          { label: 'Peak without anti-windup', value: deg(ghost) },
+          { label: 'Back within ±2° after release', value: back === null ? `not by ${WU.seconds} s` : secsText(back), tone: back === null || back > 1.5 ? 'warn' : 'ok' },
+          { label: 'Peak without anti-windup', value: degText(ghost) },
         ]
       },
     }
@@ -254,9 +233,9 @@ type DkQ = ReturnType<typeof dkParams>
 const dkKey = (q: DkQ) => `${q.on}|${q.tau}|${q.noise}`
 const dkRun = memoBy(dkKey, (q: DkQ) => {
   const run = armRun({ pid: { ...DK, limit: 1, antiWindup: 'clamp', dOnMeas: q.on === 'meas', dTau: q.tau }, noiseDeg: q.noise })
-  const kick = Math.max(...run.slice(FROM, FROM + 3).map((f) => Math.abs(f.d)))
+  const kick = Math.max(...run.slice(ARM_FROM, ARM_FROM + 3).map((f) => Math.abs(f.d)))
   const tail = run.slice(-Math.round(1 / ARM.dt))
-  return { run, kick, jitter: rms(tail.map((f) => f.u)), dNoise: rms(tail.map((f) => f.d)), m: metricsOf(run) }
+  return { run, kick, jitter: stdDev(tail.map((f) => f.u)), dNoise: stdDev(tail.map((f) => f.d)), m: metricsOf(run) }
 })
 
 export const derivativeKick: Lesson = {
@@ -267,7 +246,7 @@ export const derivativeKick: Lesson = {
     const q = dkParams(p)
     const d = q.on === 'meas' ? 'D = −Kd·dθ/dt' : 'D = Kd·de/dt'
     const f = q.tau > 0 ? ` through a ${(1 / (2 * Math.PI * q.tau)).toFixed(0)} Hz low-pass (τ ${Math.round(q.tau * 1000)} ms)` : ', unfiltered'
-    return `${d}${f} · step 40° in one 5 ms tick → de/dt = 8000 °/s × Kd ${kdText(DK.kd)} = ${pct(DK.kd * 8000)} on error · pot noise σ ${deg(q.noise)} → ~${(q.noise * Math.SQRT2 / ARM.dt).toFixed(0)} °/s of fake rate`
+    return `${d}${f} · step 40° in one 5 ms tick → de/dt = 8000 °/s × Kd ${kdText(DK.kd)} = ${pct(DK.kd * 8000)} on error · pot noise σ ${degText(q.noise)} → ~${(q.noise * Math.SQRT2 / ARM.dt).toFixed(0)} °/s of fake rate`
   },
   legend: [LEGEND.th, LEGEND.sp, LEGEND.p, LEGEND.d],
   points: [
@@ -291,7 +270,7 @@ export const derivativeKick: Lesson = {
         const { run, kick, jitter } = dkRun(q)
         const t = s.clock(dt, dkKey(q))
         const f = s.show(dt, run, t, 0, q.on === 'meas' ? 'PI−D(meas)' : 'PID', q.noise)
-        s.status.set(`Derivative kick · ${D_ON[q.on]} · filter ${q.tau ? `${Math.round(q.tau * 1000)} ms` : 'off'} · noise ${deg(q.noise)}`, LABEL)
+        s.status.set(`Derivative kick · ${D_ON[q.on]} · filter ${q.tau ? `${Math.round(q.tau * 1000)} ms` : 'off'} · noise ${degText(q.noise)}`, LABEL)
         if (t < ARM.stepAt) s.event.set('setpoint about to jump 0 → 40° in one tick', GREY)
         else if (t < ARM.stepAt + 0.1) s.event.set(q.on === 'meas' ? 'step: D watches the arm, not the setpoint: no kick' : `kick! D = ${pct(kick)} for a tick: motor slammed to 100 %`, q.on === 'meas' ? POWER : HIGH_V)
         else if (t > ARM.stepAt + 1.2) s.event.set(q.noise ? `at rest, yet D turns pot noise into ${pct(jitter)} RMS of motor jitter` : 'at rest: no noise, D is quiet', jitter > 0.05 ? HIGH_V : POWER)
@@ -304,7 +283,7 @@ export const derivativeKick: Lesson = {
         return [
           { label: 'D term at the setpoint step', value: pct(kick), tone: kick > 1 ? 'bad' : 'ok' },
           { label: 'Motor jitter at rest (RMS)', value: pct(jitter), tone: jitter > 0.08 ? 'bad' : jitter > 0.03 ? 'warn' : 'ok' },
-          { label: 'Overshoot · settling ±2 %', value: `${pct(m.overshoot)} · ${secs(m.settle)}` },
+          { label: 'Overshoot · settling ±2 %', value: `${pct(m.overshoot)} · ${secsText(m.settle)}` },
           { label: 'D filter cutoff', value: q.tau ? `${(1 / (2 * Math.PI * q.tau)).toFixed(0)} Hz` : 'none' },
         ]
       },
@@ -383,9 +362,9 @@ export const tuningByHand: Lesson = {
       readouts: (p) => {
         const { m, ok, hits } = tuRun(tuParams(p))
         return [
-          { label: `Rise time (≤ ${BOX.rise} s)`, value: secs(m.rise), tone: ok.rise ? 'ok' : 'bad' },
+          { label: `Rise time (≤ ${BOX.rise} s)`, value: secsText(m.rise), tone: ok.rise ? 'ok' : 'bad' },
           { label: `Overshoot (≤ ${pct(BOX.overshoot)})`, value: `${(m.overshoot * 100).toFixed(1)} %`, tone: ok.overshoot ? 'ok' : 'bad' },
-          { label: `Settling ±${pct(BOX.band)} (≤ ${BOX.settle} s)`, value: m.settle === null ? `not settled · ends ${deg(m.final)}` : secs(m.settle), tone: ok.settle ? 'ok' : 'bad' },
+          { label: `Settling ±${pct(BOX.band)} (≤ ${BOX.settle} s)`, value: m.settle === null ? `not settled · ends ${degText(m.final)}` : secsText(m.settle), tone: ok.settle ? 'ok' : 'bad' },
           { label: 'Target box', value: hits === 3 ? 'hit' : `${hits} / 3`, tone: hits === 3 ? 'ok' : 'warn' },
         ]
       },
@@ -485,7 +464,7 @@ export const zieglerNicholsLesson: Lesson = {
           ]
         return [
           { label: 'Overshoot', value: pct(m.overshoot), tone: m.overshoot > 0.15 ? 'bad' : m.overshoot > 0.05 ? 'warn' : 'ok' },
-          { label: 'Rise · settling ±2 %', value: `${secs(m.rise)} · ${secs(m.settle)}` },
+          { label: 'Rise · settling ±2 %', value: `${secsText(m.rise)} · ${secsText(m.settle)}` },
           { label: 'Ku · Tu', value: `${kpText(ku)} · ${tu.toFixed(2)} s` },
           { label: 'Kp · Ki · Kd', value: `${(g.kp * 100).toFixed(2)} · ${(g.ki * 100).toFixed(1)} · ${(g.kd * 100).toFixed(2)}` },
         ]

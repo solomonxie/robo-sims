@@ -37,10 +37,10 @@ import {
   liveLabel,
   memoBy,
   pointCloud,
-  scope,
   scopeLabels,
   statusHeader,
   traceRun,
+  sideScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -129,8 +129,7 @@ export const deadReckoningDrift: Lesson = {
     const landDots = pointCloud(rig.g, DR.runs, 0.014)
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'timer', plant: 'motors', sensor: 'encoder', feedback: false, disturb: true, w: DIAG.w, h: DIAG.h })
 
-    const plot = scope(scene, SIDE_SCOPE.w, DR.sh, { divs: [7, 4], zeroAt: 0.1 })
-    plot.group.position.set(SIDE_SCOPE.x, DR.sy, 0)
+    const plot = sideScope(scene, DR.sy, DR.sh, { divs: [7, 4], zeroAt: 0.1 })
     const old = Array.from({ length: DR.runs }, () => plot.trace(GREY, { samples: 140, radius: 0.05 }))
     const cur = plot.trace(RING, { samples: 140, radius: 0.08 })
     cursorBar(plot, POWER, 0.05)(DRIVE_TASK.seconds / DR.total)
@@ -263,8 +262,7 @@ export const closingTheLoop: Lesson = {
     ghost.group.scale.setScalar(RIG.robotK)
     const loop = controlLoop(scene, DIAG.at, { ctrl: 'P: Kp·e', plant: 'motors', sensor: 'encoders', disturb: true, noise: true, w: DIAG.w, h: DIAG.h })
 
-    const plot = scope(scene, SIDE_SCOPE.w, CL.sh, { divs: [8, 4] })
-    plot.group.position.set(SIDE_SCOPE.x, CL.sy, 0)
+    const plot = sideScope(scene, CL.sy, CL.sh, { divs: [8, 4] })
     const uTr = plot.trace(POWER, { samples: 400, radius: 0.05 })
     const eTr = plot.trace(HEAT, { samples: 200, radius: 0.08 })
     const shoveBar = cursorBar(plot, HIGH_V, 0.05)

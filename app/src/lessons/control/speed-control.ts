@@ -1,8 +1,8 @@
 import { EncoderKind, SpeedCfg, SpeedFrame, WHEEL, fixedStepAt, rampSp, wheelSpeedRun, speedStats, speedStep, stepMetrics, stepSp, wheelFf } from '../../core/physics'
-import { pct } from '../../core/units'
+import { pct, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, MEAS_COLOR, PID_COLORS, POWER, RING, SIDE_SCOPE, controlLoop, memoBy, scope, scopeLabels, speedWheel, statusHeader, termBars, traceRun } from '../fx'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, MEAS_COLOR, PID_COLORS, POWER, RING, SIDE_SCOPE, controlLoop, memoBy, scope, scopeLabels, speedWheel, statusHeader, termBars, traceRun, lapseClock, sideScope } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const VIEW = { center: [-2.2, -1.3, 0] as V3, radius: 54, polar: 1.45, azimuth: 0 }
@@ -14,7 +14,6 @@ const MAX = WHEEL.maxRpm
 const dtL = WHEEL.loopS
 const rpmText = (v: number) => `${Math.round(v)} rpm`
 const signedRpm = (v: number) => `${v < -0.5 ? '−' : v > 0.5 ? '+' : ''}${Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0)} rpm`
-const secs = (s: number | null) => (s === null ? '—' : `${s.toFixed(2)} s`)
 const LEGEND = {
   rpm: { color: RING, label: `Wheel speed (scope top: 0…${MAX} rpm)`, shape: 'dot' as const },
   sp: { color: B_FIELD, label: 'Setpoint', shape: 'dot' as const },
@@ -33,8 +32,7 @@ export function speedStage(lower: [string, (f: SpeedFrame) => number][], { bars 
   const loopOpts = { ctrl, plant: 'motor + wheel', sensor, disturb: true, w: DIAG.w, h: DIAG.h }
   const closed = controlLoop(scene, DIAG.at, loopOpts)
   const openLoop = open ? controlLoop(scene, DIAG.at, { ...loopOpts, ctrl: 'fixed duty', feedback: false }) : null
-  const plot = scope(scene, SIDE_SCOPE.w, SCOPE.h, { divs: [6, 4], zeroAt: 0.25 })
-  plot.group.position.set(SIDE_SCOPE.x, SCOPE.y, 0)
+  const plot = sideScope(scene, SCOPE.y, SCOPE.h, { divs: [6, 4], zeroAt: 0.25 })
   const lowTr = lower.map(([c, f]) => [plot.trace(c, { samples: 300, radius: 0.04 }), f] as const)
   const spTr = plot.trace(B_FIELD, { samples: 300, radius: 0.04 })
   const measTr = plot.trace(MEAS_COLOR, { samples: 300, radius: 0.03 })
@@ -43,21 +41,12 @@ export function speedStage(lower: [string, (f: SpeedFrame) => number][], { bars 
   const ySpd = (v: number) => (Math.max(-10, Math.min(MAX * 1.05, v)) / MAX) * (SCOPE.h / 2)
   const yDuty = (v: number) => -SCOPE.h / 4 + Math.max(-1.12, Math.min(1.12, v)) * (SCOPE.h / 4) * 0.92
   const draw = (tr: Trace, run: SpeedFrame[], t: number, v: (f: SpeedFrame) => number) => traceRun(tr, run, dtL, SECONDS, t, v, 300)
-  const st = { key: '', t: 0 }
   return {
     scene,
     ...head,
     plot,
     ySpd,
-    clock(dt: number, key: string) {
-      if (key !== st.key) {
-        st.key = key
-        st.t = 0
-      }
-      st.t += dt * RIG.slow
-      if (st.t > SECONDS + RIG.rest * RIG.slow) st.t = 0
-      return Math.min(st.t, SECONDS)
-    },
+    clock: lapseClock(SECONDS, RIG.slow, RIG.rest * RIG.slow),
     show(dt: number, run: SpeedFrame[], t: number, enc: boolean, title = ctrl, fb = enc) {
       const f = fixedStepAt(run, t, dtL)
       draw(spTr, run, t, (g) => ySpd(g.sp))
@@ -297,7 +286,7 @@ export const velocityPid: Lesson = {
         const { m, flat, climb, dip } = vpRun(q)
         return [
           { label: 'Steady error, flat / ramp', value: `${signedRpm(flat.meanErr)} / ${signedRpm(climb.meanErr)}`, tone: Math.abs(climb.meanErr) > 5 ? 'bad' : Math.abs(climb.meanErr) > 1 ? 'warn' : 'ok' },
-          { label: 'Overshoot · settle (±3 %)', value: `${pct(m.overshoot)} · ${secs(m.settle)}`, tone: m.overshoot > 0.15 || m.settle === null ? 'bad' : m.overshoot > 0.05 ? 'warn' : 'ok' },
+          { label: 'Overshoot · settle (±3 %)', value: `${pct(m.overshoot)} · ${secsText(m.settle)}`, tone: m.overshoot > 0.15 || m.settle === null ? 'bad' : m.overshoot > 0.05 ? 'warn' : 'ok' },
           { label: 'Dip when the ramp hits', value: rpmText(dip), tone: dip > 30 ? 'warn' : 'ok' },
           { label: 'Duty buzz (RMS change per tick)', value: pct(flat.jitter), tone: flat.jitter > 0.1 ? 'bad' : flat.jitter > 0.03 ? 'warn' : 'ok' },
         ]

@@ -9,6 +9,11 @@ export const G = 9.81
 export const weightN = (kg: number) => kg * G
 export const DEG = Math.PI / 180
 export const toDeg = (rad: number) => rad / DEG
+/** Population standard deviation. */
+export const stdDev = (xs: readonly number[]) => {
+  const m = xs.reduce((a, x) => a + x, 0) / xs.length
+  return Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / xs.length)
+}
 
 export const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
 export const clamp01 = (x: number) => clamp(x, 0, 1)

@@ -1,45 +1,8 @@
 // Stability of the PID arm loop: linearised plant, closed-loop poles (delay as a Padé), 2nd-order step formulas, Bode margins.
 import { DEG } from '../common'
 import { ARM } from './arm'
+import { Cx, cdiv, cx, polyAdd, polyMul, polyRoots } from './linalg'
 import { Gains } from './pid'
-
-export interface Cx { re: number; im: number }
-const cx = (re: number, im = 0): Cx => ({ re, im })
-const cmul = (a: Cx, b: Cx) => cx(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re)
-const cdiv = (a: Cx, b: Cx) => {
-  const d = b.re * b.re + b.im * b.im
-  return cx((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d)
-}
-const csub = (a: Cx, b: Cx) => cx(a.re - b.re, a.im - b.im)
-
-/** Polynomials as coefficient arrays, constant first. */
-export const polyMul = (a: readonly number[], b: readonly number[]) => {
-  const out = Array(a.length + b.length - 1).fill(0)
-  a.forEach((x, i) => b.forEach((y, j) => (out[i + j] += x * y)))
-  return out
-}
-export const polyAdd = (a: readonly number[], b: readonly number[]) => Array.from({ length: Math.max(a.length, b.length) }, (_, i) => (a[i] ?? 0) + (b[i] ?? 0))
-
-/** All complex roots (Durand–Kerner). */
-export function polyRoots(c: readonly number[]): Cx[] {
-  const lead = c[c.length - 1]
-  const m = c.map((x) => x / lead)
-  const deg = m.length - 1
-  const evalAt = (z: Cx) => m.reduceRight((acc, k) => cx(acc.re * z.re - acc.im * z.im + k, acc.re * z.im + acc.im * z.re), cx(0))
-  const r = 1 + Math.max(...m.slice(0, -1).map(Math.abs))
-  let z = Array.from({ length: deg }, (_, k) => cmul(cx(r * 0.9), cx(Math.cos((2 * Math.PI * k) / deg + 0.4), Math.sin((2 * Math.PI * k) / deg + 0.4))))
-  for (let it = 0; it < 500; it++) {
-    let moved = 0
-    z = z.map((zi, i) => {
-      const den = z.reduce((acc, zj, j) => (j === i ? acc : cmul(acc, csub(zi, zj))), cx(1))
-      const step = cdiv(evalAt(zi), den)
-      moved = Math.max(moved, Math.hypot(step.re, step.im))
-      return csub(zi, step)
-    })
-    if (moved < 1e-12 * r) break
-  }
-  return z.map((v) => cx(v.re, Math.abs(v.im) < 1e-9 * r ? 0 : v.im))
-}
 
 /** Arm linearised about `deg`: θ'' = K·u − a·θ' − K·kL·θ (rad, duty). */
 export function armLinear(deg: number, grams = 0) {
@@ -51,7 +14,7 @@ const perRad = (g: Gains) => ({ kp: g.kp / DEG, ki: g.ki / DEG, kd: g.kd / DEG }
 export const loopDelay = (lag: number) => lag + ARM.dt / 2
 
 /** Padé (2,2) of e^(−sT): numerator and denominator. */
-export const pade = (T: number) => [[1, -T / 2, (T * T) / 12], [1, T / 2, (T * T) / 12]]
+const pade = (T: number) => [[1, -T / 2, (T * T) / 12], [1, T / 2, (T * T) / 12]]
 
 /** Closed-loop poles of PID (gains per degree) on the arm at `deg` with `lag` s of measurement delay. */
 export function armPoles(g: Gains, lag: number, deg: number, grams = 0): Cx[] {

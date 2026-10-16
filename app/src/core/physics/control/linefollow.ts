@@ -9,7 +9,7 @@ import { PID_MEM0, PidMem, pidTick } from './pid'
 
 // --- Error from sensors: a jig sweeps the tape under the bar. ---
 
-export interface SweepPoint {
+interface SweepPoint {
   off: number
   adc: number[]
   pos: number | null
@@ -103,10 +103,10 @@ export interface SteerFrame {
 }
 
 /** Lost: steer toward the side the line was last seen, as if it sat just past the outer sensor. */
-export const lostError = (last: number) => Math.sign(last || 1) * 2.5 * TCRT.pitchM
+const lostError = (last: number) => Math.sign(last || 1) * 2.5 * TCRT.pitchM
 
 /** One PD step of the line position; returns the new memory and the turn (−1.5…1.5, + = right). */
-export function steerTick(m: PidMem, e: number, kp: number, kd: number, dt: number) {
+function steerTick(m: PidMem, e: number, kp: number, kd: number, dt: number) {
   const { mem, terms } = pidTick(m, e, 0, { kp, ki: 0, kd, limit: PD_RUN.maxTurn, dTau: PD_RUN.dTau }, dt)
   return { mem, p: terms.p, d: terms.d, turn: terms.out }
 }
@@ -198,7 +198,7 @@ export interface JunctionFrame {
 }
 
 /** Sensors over tape (calibrated darkness past `darkAt`). */
-export const darkCount = (adc: number[]) => adc.filter((a) => darkness(a) > GRID.darkAt).length
+const darkCount = (adc: number[]) => adc.filter((a) => darkness(a) > GRID.darkAt).length
 
 export function junctionRun(c: JunctionCfg, kp = 40, kd = 0.6, seconds = GRID.seconds, dt = PD_RUN.dt): JunctionFrame[] {
   const tapes = gridTapes()

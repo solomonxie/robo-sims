@@ -2,7 +2,8 @@
 // noise cut, the loop margins they leave; a 3-state Kalman speed estimator for the TT wheel (counts + motor model).
 import { DEG } from '../common'
 import { ARM } from './arm'
-import { Mat, c2d, diag, matAdd, matMul, transpose } from './lqr'
+import { Mat, diag, matAdd, matMul, transpose } from './linalg'
+import { c2d } from './lqr'
 import { Gains } from './pid'
 import { armLinear, loopDelay, marginsOf } from './stability'
 import { WHEEL, wheelFf } from './speed'
@@ -65,11 +66,11 @@ export const filteredMargins = (g: Gains, lag: number, deg: number, f: MeasFilte
 
 // --- Kalman speed estimate: x = [wheel turns, wheel rpm, drag (rpm/s)], u = motor volts, z = encoder count. ---
 
-export interface SpeedMeter {
+interface SpeedMeter {
   read(count: number): number
   drive(volts: number): void
 }
-export interface KalmanSpeed extends SpeedMeter {
+interface KalmanSpeed extends SpeedMeter {
   /** Speed-gain row of the last update (rpm per turn of innovation) and the speed std (rpm). */
   gain(): number
   sigma(): number
