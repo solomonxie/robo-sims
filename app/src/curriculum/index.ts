@@ -128,6 +128,7 @@ import { denavitHartenberg, twoLinkArm } from '../lessons/kinematics/forward-kin
 import { analyticIk, jacobianMethod, multipleSolutions } from '../lessons/kinematics/inverse-kinematics'
 import { jacobianManipulability, jacobianSingularities } from '../lessons/kinematics/jacobian'
 import { workspaceDexterity, workspaceReach } from '../lessons/kinematics/workspace'
+import { trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling } from '../lessons/kinematics/trajectories'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -522,6 +523,9 @@ const READY: Record<string, Lesson> = {
   'kinematics/jacobian/manipulability': jacobianManipulability,
   'kinematics/workspace/reach-envelope': workspaceReach,
   'kinematics/workspace/dexterity': workspaceDexterity,
+  'kinematics/trajectories/linear-interpolation': trajectoriesLinear,
+  'kinematics/trajectories/splines': trajectoriesSplines,
+  'kinematics/trajectories/time-scaling': trajectoriesTimeScaling,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

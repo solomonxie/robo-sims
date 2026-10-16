@@ -127,6 +127,7 @@ import { denavitHartenberg, twoLinkArm } from './kinematics/forward-kinematics'
 import { analyticIk, jacobianMethod, multipleSolutions } from './kinematics/inverse-kinematics'
 import { jacobianManipulability, jacobianSingularities } from './kinematics/jacobian'
 import { workspaceDexterity, workspaceReach } from './kinematics/workspace'
+import { trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling } from './kinematics/trajectories'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -142,5 +143,5 @@ export const UNITS: Unit[] = [
   { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops, leadScrewLesson, limitSwitches, solenoidDrive, peristalticPump, gearRatioLesson, backlash, planetaryGears, wormDrive, pneumaticCylinder, softGripper, torqueBudgetLesson, dutyCycleLesson, thermalLimitsLesson] },
   { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel, skidSteer, tractionLesson, gaitCycle, zeroMomentPoint, legIk, whyItFalls, tiltPid, selfBalancingCar, quadcopterMixing, attitudeControl, buoyancyLesson, thrusterLayout] },
   { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints, movingAverage, lowPass, kalmanFilter] },
-  { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity] },
+  { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity, trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling] },
 ]
