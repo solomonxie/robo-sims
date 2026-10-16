@@ -1,6 +1,6 @@
 // Rooms for mobile-robot lessons, drawn in metres (x, y floor, z up) inside a group the caller scales and turns: solids, a robot with a lidar head, point clouds and ray fans.
 import * as THREE from 'three/webgpu'
-import { CostGrid, INSCRIBED, LETHAL, Pose, Room, RoomSolid } from '../../core/physics'
+import { CostGrid, INSCRIBED, LETHAL, OccGrid, Pose, Room, RoomSolid, probOf } from '../../core/physics'
 import { B_FIELD, GREY, HIGH_V, glowMat, potentialColor, setGlow } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { IDLE } from './mcu'
@@ -174,6 +174,44 @@ export function floorTrail(g: THREE.Object3D, max: number, step: number, color =
       dots.set(s.n % max, [p.x, p.y, 0.004], color)
       s.n++
       dots.show(Math.min(max, s.n))
+    },
+  }
+}
+
+export const OCC_COLORS = { unknown: '#6e727b', free: '#f2f2ee', occ: '#0c0d10' }
+const OCC_C = { u: new THREE.Color(OCC_COLORS.unknown), f: new THREE.Color(OCC_COLORS.free), o: new THREE.Color(OCC_COLORS.occ) }
+
+/** Occupancy grid as flat tiles (metres, z up): grey unknown → white free / black occupied by probability. `draw(g, lo?)` skips the array it just drew; resizes on a new grid shape. */
+export function occTiles(parent: THREE.Object3D, max: number, gap = 0.9) {
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#ffffff' }), max)
+  im.frustumCulled = false
+  im.castShadow = im.receiveShadow = false
+  im.count = 0
+  parent.add(im)
+  const m4 = new THREE.Matrix4()
+  const c = new THREE.Color()
+  let shape = ''
+  let last: Float32Array | null = null
+  return {
+    mesh: im,
+    draw(g: OccGrid, lo = g.lo) {
+      const key = `${g.ox}|${g.oy}|${g.res}|${g.nx}|${g.ny}`
+      if (key !== shape) {
+        shape = key
+        im.count = Math.min(max, g.nx * g.ny)
+        const s = g.res * gap
+        for (let k = 0; k < im.count; k++) im.setMatrixAt(k, m4.makeScale(s, s, 0.01).setPosition(g.ox + ((k % g.nx) + 0.5) * g.res, g.oy + (Math.floor(k / g.nx) + 0.5) * g.res, 0.005))
+        im.instanceMatrix.needsUpdate = true
+        last = null
+      }
+      if (lo === last) return
+      last = lo
+      for (let k = 0; k < im.count; k++) {
+        const p = probOf(lo[k])
+        const u = Math.sqrt(Math.min(1, Math.abs(p - 0.5) * 2))
+        im.setColorAt(k, c.copy(OCC_C.u).lerp(p < 0.5 ? OCC_C.f : OCC_C.o, u))
+      }
+      im.instanceColor!.needsUpdate = true
     },
   }
 }

@@ -140,6 +140,7 @@ import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from '../le
 import { objectDetectionEdgeAccelerators, objectDetectionRunningOnAnEsp32Cam, objectDetectionYoloIdea } from '../lessons/perception/object-detection'
 import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/perception/depth-sensing'
 import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from '../lessons/perception/optical-flow'
+import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from '../lessons/perception/occupancy-grids'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -565,6 +566,8 @@ const READY: Record<string, Lesson> = {
   'perception/depth-sensing/point-cloud': depthSensingPointCloud,
   'perception/optical-flow/lucas-kanade': opticalFlowLucasKanade,
   'perception/optical-flow/visual-odometry': opticalFlowVisualOdometry,
+  'perception/occupancy-grids/ray-casting': occupancyGridsRayCasting,
+  'perception/occupancy-grids/log-odds-update': occupancyGridsLogOddsUpdate,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
