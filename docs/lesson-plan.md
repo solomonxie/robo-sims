@@ -87,7 +87,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Servo
   - [x] Stepper
   - [x] Brushless (BLDC)
-  - [ ] Field-oriented control
+  - [x] Field-oriented control
   - [ ] Linear actuators
   - [ ] Solenoids & pumps
   - [ ] Gear trains

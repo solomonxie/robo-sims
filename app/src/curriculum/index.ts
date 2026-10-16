@@ -99,6 +99,7 @@ import { decayModes, fourSwitches, l298nVsModernDrivers, shootThroughLesson } fr
 import { insideAHobbyServo, jitterAndPower, pulseToAngle } from '../lessons/actuators/servo'
 import { a4988AndTmcDrivers, fullHalfAndMicroSteps, missedSteps } from '../lessons/actuators/stepper'
 import { escBasics, hallSensors, threePhaseDrive } from '../lessons/actuators/brushless-bldc'
+import { clarkeAndPark, currentLoops } from '../lessons/actuators/field-oriented-control'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -416,6 +417,8 @@ const READY: Record<string, Lesson> = {
   'actuators/brushless-bldc/three-phase-drive': threePhaseDrive,
   'actuators/brushless-bldc/hall-sensors': hallSensors,
   'actuators/brushless-bldc/esc-basics': escBasics,
+  'actuators/field-oriented-control/clarke-and-park': clarkeAndPark,
+  'actuators/field-oriented-control/current-loops': currentLoops,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
