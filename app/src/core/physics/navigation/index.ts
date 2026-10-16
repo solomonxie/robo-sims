@@ -2,3 +2,4 @@
 export * from './pose'
 export * from './odometry'
 export * from './avoid'
+export * from './maze'

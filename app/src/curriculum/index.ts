@@ -143,6 +143,7 @@ import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from '../lessons/pe
 import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from '../lessons/perception/occupancy-grids'
 import { odometryCalibratingWheelSize, odometryDeadReckoning, odometryErrorGrowth } from '../lessons/navigation/odometry'
 import { obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceReactiveRules, obstacleAvoidanceWallFollowing } from '../lessons/navigation/obstacle-avoidance'
+import { mazeSolvingFloodFill, mazeSolvingMicromouse, mazeSolvingWallFollower } from '../lessons/navigation/maze-solving'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -576,6 +577,9 @@ const READY: Record<string, Lesson> = {
   'navigation/obstacle-avoidance/reactive-rules': obstacleAvoidanceReactiveRules,
   'navigation/obstacle-avoidance/braitenberg-vehicles': obstacleAvoidanceBraitenbergVehicles,
   'navigation/obstacle-avoidance/wall-following': obstacleAvoidanceWallFollowing,
+  'navigation/maze-solving/wall-follower': mazeSolvingWallFollower,
+  'navigation/maze-solving/flood-fill': mazeSolvingFloodFill,
+  'navigation/maze-solving/micromouse': mazeSolvingMicromouse,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
