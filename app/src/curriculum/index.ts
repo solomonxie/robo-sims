@@ -109,6 +109,7 @@ import { odometryLesson, slipLesson, turnRadiusLesson } from '../lessons/mobilit
 import { rollerGeometry, strafeMaths, whyTheySlip } from '../lessons/mobility/mecanum-wheels'
 import { omniWheelsLesson, swerveModule } from '../lessons/mobility/omni-swerve'
 import { bicycleModel, steeringGeometry } from '../lessons/mobility/ackermann-steering'
+import { skidSteer, tractionLesson } from '../lessons/mobility/tracks-terrain'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -451,6 +452,8 @@ const READY: Record<string, Lesson> = {
   'mobility/omni-swerve/swerve-module': swerveModule,
   'mobility/ackermann-steering/steering-geometry': steeringGeometry,
   'mobility/ackermann-steering/bicycle-model': bicycleModel,
+  'mobility/tracks-terrain/skid-steer': skidSteer,
+  'mobility/tracks-terrain/traction': tractionLesson,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -107,6 +107,7 @@ import { odometryLesson, slipLesson, turnRadiusLesson } from './mobility/differe
 import { rollerGeometry, strafeMaths, whyTheySlip } from './mobility/mecanum-wheels'
 import { omniWheelsLesson, swerveModule } from './mobility/omni-swerve'
 import { bicycleModel, steeringGeometry } from './mobility/ackermann-steering'
+import { skidSteer, tractionLesson } from './mobility/tracks-terrain'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -120,5 +121,5 @@ export const UNITS: Unit[] = [
   { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion, thermistorCurve, oneWireProtocol, shuntResistor, ina219, stateOfCharge, strainGauge, capacitiveTouch, memsMic, soundSourceDirection, whyFuse, complementaryHeading, kalmanIntuition] },
   { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees, agentAndClient, serialTransport, physicsEngine, simToRealGap, sequenceAndFallback, blackboard, plottingLiveData, replayLogs, joystickOverBle, webSocketControl, latency, watchdog, eStop, faultStates] },
   { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops, leadScrewLesson, limitSwitches, solenoidDrive, peristalticPump, gearRatioLesson, backlash, planetaryGears, wormDrive, pneumaticCylinder, softGripper, torqueBudgetLesson, dutyCycleLesson, thermalLimitsLesson] },
-  { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel] },
+  { title: 'Mobility', lessons: [turnRadiusLesson, odometryLesson, slipLesson, rollerGeometry, strafeMaths, whyTheySlip, omniWheelsLesson, swerveModule, steeringGeometry, bicycleModel, skidSteer, tractionLesson] },
 ]
