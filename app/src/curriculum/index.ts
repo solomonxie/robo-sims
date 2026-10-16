@@ -135,6 +135,7 @@ import { dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits } from '.
 import { imageBasicsHistogram, imageBasicsRgbHsv, imageBasicsThresholding } from '../lessons/perception/image-basics'
 import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners } from '../lessons/perception/edges-features'
 import { colourTrackingCentroidSteering, colourTrackingHsvMask } from '../lessons/perception/colour-tracking'
+import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth } from '../lessons/perception/camera-model'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -548,6 +549,9 @@ const READY: Record<string, Lesson> = {
   'perception/edges-features/corners': edgesFeaturesCorners,
   'perception/colour-tracking/hsv-mask': colourTrackingHsvMask,
   'perception/colour-tracking/centroid-steering': colourTrackingCentroidSteering,
+  'perception/camera-model/pinhole-model': cameraModelPinholeModel,
+  'perception/camera-model/calibration': cameraModelCalibration,
+  'perception/camera-model/stereo-depth': cameraModelStereoDepth,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -2,3 +2,4 @@
 export * from './image'
 export * from './features'
 export * from './tracking'
+export * from './projection'
