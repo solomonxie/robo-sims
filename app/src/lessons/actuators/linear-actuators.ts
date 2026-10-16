@@ -281,7 +281,7 @@ const limitParams = (p: Params) => ({
 type LimitQ = ReturnType<typeof limitParams>
 const limitKey = (q: LimitQ) => `${q.routine}|${q.wiring}|${q.broken}|${q.holdS}`
 const homeMemo = memoBy(limitKey, (q: LimitQ) => homingRun(q.routine, q.wiring, q.broken, q.holdS))
-const bounceMemo = memoBy((q: LimitQ) => `${q.wiring}|${q.holdS}`, (q: LimitQ) => limitBounceTrace(q.wiring, q.holdS, LM.zoomS))
+const bounceMemo = memoBy((q: LimitQ) => `${q.wiring}|${q.holdS}|${q.broken}`, (q: LimitQ) => limitBounceTrace(q.wiring, q.holdS, LM.zoomS, q.broken))
 const sx = (mm: number) => LM.x0 + mm * LM.k
 const END_L = sx(-AXIS.endStopMm)
 const END_R = sx(AXIS.travelMm + AXIS.endStopMm) + LM.cw
@@ -418,7 +418,7 @@ export const limitSwitches: Lesson = {
           const ev = b.out.filter((_, i) => i % 2 === 0)
           tRaw.points(ev.map((f) => f.t / LM.zoomS), ev.map((f) => lvl(f.raw, 0.08)))
           tDb.points(ev.map((f) => f.t / LM.zoomS), ev.map((f) => lvl(f.stable, -0.08)))
-          edgeTag.set(q.routine === 'none' ? '' : `${b.rawEdges} raw edges → ${b.stableEdges} after debounce${q.holdS ? `, settled at ${msText(b.settleS)}` : ''}`, b.stableEdges > 1 ? HEAT : POWER)
+          edgeTag.set(q.routine === 'none' ? '' : q.broken ? 'broken wire: pull-up holds HIGH, no click seen' : `${b.rawEdges} raw edges → ${b.stableEdges} after debounce${q.holdS ? `, settled at ${msText(b.settleS)}` : ''}`, q.broken ? HIGH_V : b.stableEdges > 1 ? HEAT : POWER)
           code(homingCode(q))
           const s = homingSummary(run)
           st.jammed = s.crashAt !== null

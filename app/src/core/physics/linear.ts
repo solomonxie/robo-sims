@@ -87,7 +87,7 @@ export const limitPinHigh = (wiring: LimitWiring, pressed: boolean, broken = fal
 export const limitHit = (wiring: LimitWiring, high: boolean) => (wiring === 'no' ? !high : high)
 
 /** Raw and debounced pin level through one press (the contact bounces as it makes or breaks), and the edges each sees. */
-export function limitBounceTrace(wiring: LimitWiring, holdS: number, windowS: number, dt = 2e-5, part: SwitchPart = MICROSWITCH) {
+export function limitBounceTrace(wiring: LimitWiring, holdS: number, windowS: number, broken = false, dt = 2e-5, part: SwitchPart = MICROSWITCH) {
   const lead = windowS * 0.15
   const makes = wiring === 'no'
   const edges = bounceEdges(makes ? part.makeS : part.breakS, part.bounces, makes ? 3 : 5)
@@ -98,14 +98,14 @@ export function limitBounceTrace(wiring: LimitWiring, holdS: number, windowS: nu
   let stableEdges = 0
   for (let i = 0; i * dt <= windowS + 1e-12; i++) {
     const t = i * dt
-    const raw = bouncedState(t - lead, edges, highBefore)
+    const raw = broken || bouncedState(t - lead, edges, highBefore)
     const prev = out[out.length - 1]
     db = holdS > 0 ? debounceStep(db, raw, dt, holdS) : { stable: raw, last: raw, sinceS: 0 }
     if (prev && raw !== prev.raw) rawEdges++
     if (prev && db.stable !== prev.stable) stableEdges++
     out.push({ t, raw, stable: db.stable })
   }
-  return { out, rawEdges, stableEdges, settleS: lead + edges[edges.length - 1] + holdS }
+  return { out, rawEdges, stableEdges, settleS: broken ? 0 : lead + edges[edges.length - 1] + holdS }
 }
 
 export const AXIS = { travelMm: 100, startMm: 60, endStopMm: 3, fastMmS: 25, slowMmS: 2.5, backoffMm: 4, jogMm: 130, pollS: 1e-3, seconds: 10 }

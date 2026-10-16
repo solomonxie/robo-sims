@@ -79,6 +79,11 @@ describe('limit switch', () => {
     expect(db.stableEdges).toBe(1)
     expect(db.out[db.out.length - 1].stable).toBe(false)
   })
+  it('a broken wire reads HIGH through the click, no edges', () => {
+    const b = limitBounceTrace('no', 0, 6e-3, true)
+    expect(b.rawEdges).toBe(0)
+    expect(b.out.every((f) => f.raw && f.stable)).toBe(true)
+  })
   it('zero error ∝ approach speed', () => {
     expect(homeErrorMm(AXIS.fastMmS, 0)).toBeCloseTo(10 * homeErrorMm(AXIS.slowMmS, 0))
   })
