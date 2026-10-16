@@ -227,13 +227,14 @@ export const quadcopterMixing: Lesson = {
 
 // --- Attitude control: angle P → rate PID (gyro) → mixer; a gust, too-high P, motor saturation, angle vs acro. ---
 
-const MODES = { angle: 'Angle (self-level)', acro: 'Acro (rate only)' }
+const MODES = { angle: 'Angle (self-level)', air: 'Angle + airmode', acro: 'Acro (rate only)' }
 const AC = { quad: [-9.5, -2, 0] as V3, k: 40, tilt: 0.28, seconds: 4, gust: { at: 1, dur: 0.18, torque: 0.5 }, slow: 0.2, sy: [-0.9, -7.2], sh: 4.2, by: 3.5, rollMax: 30, rateMax: 400 }
 const SCOPE = { x: 6.4, w: 10.5 }
-const acParams = (p: Params) => ({ mode: pick(MODES, p.mode, 'angle') as 'angle' | 'acro', angleP: n(p, 'angleP'), kp: n(p, 'rateP') / 100, mass: QUAD.mass + n(p, 'payload') / 1000 })
+const acMode = (p: Params) => pick(MODES, p.mode, 'angle')
+const acParams = (p: Params) => ({ mode: (acMode(p) === 'acro' ? 'acro' : 'angle') as 'angle' | 'acro', airmode: acMode(p) === 'air', angleP: n(p, 'angleP'), kp: n(p, 'rateP') / 100, mass: QUAD.mass + n(p, 'payload') / 1000 })
 type AcQ = ReturnType<typeof acParams>
-const acKey = (q: AcQ) => `${q.mode}|${q.angleP}|${q.kp}|${q.mass}`
-const acRun = memoBy(acKey, (q: AcQ) => attitudeLoop({ mode: q.mode, angleP: q.angleP, rate: { kp: q.kp, ki: 0, kd: 0 }, seconds: AC.seconds, gust: AC.gust, mass: q.mass, rateMax: AC.rateMax }))
+const acKey = (q: AcQ) => `${q.mode}|${q.airmode}|${q.angleP}|${q.kp}|${q.mass}`
+const acRun = memoBy(acKey, (q: AcQ) => attitudeLoop({ mode: q.mode, angleP: q.angleP, rate: { kp: q.kp, ki: 0, kd: 0 }, seconds: AC.seconds, gust: AC.gust, mass: q.mass, rateMax: AC.rateMax, airmode: q.airmode }))
 const at = (run: AttitudeFrame[], t: number) => fixedStepAt(run, t, QUAD.dt)
 const isClipped = (s: number) => s >= 0.999 || s <= 0.001
 function acOutcome(q: AcQ, run: AttitudeFrame[]): { value: string; tone: 'ok' | 'warn' | 'bad' } {
@@ -269,7 +270,7 @@ export const attitudeControl: Lesson = {
   formula: (p) => {
     const q = acParams(p)
     const outer = q.mode === 'angle' ? `ω_set = ${q.angleP}/s·(0° − θ)` : 'ω_set = stick × 600 °/s (no angle loop)'
-    return `${outer} · R = ${(q.kp * 100).toFixed(2)} %/(°/s)·(ω_set − ω_gyro) · motors = hover ${pct(hoverThrottle(q.mass))} ± R · thrust-to-weight ${thrustToWeight(q.mass).toFixed(1)}:1`
+    return `${outer} · R = ${(q.kp * 100).toFixed(2)} %/(°/s)·(ω_set − ω_gyro) · motors = hover ${pct(hoverThrottle(q.mass))}${q.airmode ? ' + shift' : ''} ± R · thrust-to-weight ${thrustToWeight(q.mass).toFixed(1)}:1`
   },
   legend: [
     { color: B_FIELD, label: 'Set points: level, rate ω_set', shape: 'dot' },
@@ -281,7 +282,7 @@ export const attitudeControl: Lesson = {
     'A flight controller runs two loops per axis. The inner rate loop reads the gyro (see IMU) and drives the mixer\'s roll/pitch/yaw demand until the body turns at the asked rate; it runs fast (here 500 Hz, real ones 2–8 kHz) because the airframe has almost no inertia. The outer angle loop compares the fused tilt with level and asks for a rate back toward it.',
     'A gust rolls the quad right. The gyro sees the rotation at once and the rate loop splits thrust left/right to stop it; then the angle loop asks for a rate back to level and the drone rights itself. While tilted, part of its thrust points sideways, so it slides a little before it is level again.',
     'Too much P oscillates: the motors need ~30 ms to change speed and the gyro is filtered, so a big correction arrives late and overshoots. Raise rate P past ~0.4 %/(°/s), or the angle P past ~20/s, and the roll rings or keeps buzzing (real tuning adds D to damp it and I for steady wind).',
-    'Authority is the spare thrust. A heavy payload pushes hover throttle toward 100 %: the motors that should speed up are already flat out, the mixer is clipped (red) and the gust wins for longer, and the drone sags. Acro (rate) mode drops the angle loop: centred sticks hold zero rotation, not level, so after the gust it keeps the tilt and flies off sideways. Racers fly acro; angle mode suits beginners and camera work.',
+    'Authority is the spare thrust. A heavy payload pushes hover throttle toward 100 %: the motors that should speed up are already flat out, the mixer is clipped (red) and the gust wins for longer, and the drone sags. Clipping at 0 % hurts too: a light quad near idle cannot slow a motor below zero, so it loses torque and gains thrust. Airmode shifts all four up instead of clipping: full torque and a smaller tilt, but even more extra thrust, so it climbs (no altitude hold here). Acro (rate) mode drops the angle loop: centred sticks hold zero rotation, not level, so after the gust it keeps the tilt and flies off sideways. Racers fly acro; angle mode suits beginners and camera work.',
   ],
   controls: [
     { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'angle' },
@@ -339,7 +340,7 @@ export const attitudeControl: Lesson = {
         load.scale.set(side * 1.4, side, side)
         load.position.z = -0.006 - side / 2
         quad.group.position.z = Math.max(-0.2, Math.min(0.2, f.z))
-        const clipped = f.cmds.map(isClipped)
+        const clipped = f.cmds.map((c) => f.clipped && isClipped(c))
         spinProps(spin, f.motors, dt)
         quad.set(spin, f.motors, clipped)
         const showGust = t >= AC.gust.at && t < AC.gust.at + 0.3
@@ -361,6 +362,7 @@ export const attitudeControl: Lesson = {
         status.set(`roll ${deg(f.roll, 1)} · gyro ${sInt(toDeg(f.rate))} °/s · set ${sInt(toDeg(f.rateSet))} °/s · motors ${Math.round(lo * 100)}–${Math.round(hi * 100)} %`, LABEL)
         if (f.gust) event.set('gust: a roll torque tips the right side down', HEAT)
         else if (f.clipped) event.set(`mixer clipped at ${Math.max(...f.cmds) >= 0.999 ? '100' : '0'} %: less torque than the loop asks`, HIGH_V)
+        else if (f.shift > 0.005) event.set(`airmode: all four shifted up ${pct(f.shift)}, full split kept, extra thrust climbs`, POWER)
         else if (t > AC.gust.at && Math.abs(f.rate) > 15 * DEG) event.set(`rate loop: gyro ${sInt(toDeg(f.rate))} °/s, wants ${sInt(toDeg(f.rateSet))} °/s → thrust split ${pct(Math.abs(f.cmd))}`, RING)
         else if (!angleOn && Math.abs(f.roll) > 2 * DEG) event.set(`acro: rotation stopped, tilt ${deg(f.roll, 1)} kept · sliding ${Math.abs(vy).toFixed(1)} m/s ${vy > 0 ? 'right' : 'left'}`, HEAT)
         else if (Math.abs(f.roll) > 1 * DEG) event.set(`angle loop: ${deg(f.roll, 1)} off level → asks ${sInt(toDeg(f.rateSet))} °/s back`, B_FIELD)

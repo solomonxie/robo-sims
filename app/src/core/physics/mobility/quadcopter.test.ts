@@ -31,6 +31,16 @@ describe('quadcopter mixer', () => {
     expect(m.out).toEqual([0.75, 0.75, 1, 1])
     expect(m.clipped).toEqual([false, false, true, true])
   })
+  it('airmode shifts the collective and keeps the differential', () => {
+    const d = { throttle: 0.1, roll: 0.2, pitch: 0, yaw: 0 }
+    const a = mix(d, true)
+    expect(a.shift).toBeCloseTo(0.1)
+    expect(a.clipped.some(Boolean)).toBe(false)
+    expect(quadWrench(a.out.map((s) => thrustOf(s))).roll).toBeCloseTo(4 * 0.2 * QUAD.tMax * (QUAD.arm / Math.SQRT2))
+    expect(quadWrench(thrusts(d)).roll).toBeLessThan(quadWrench(a.out.map((s) => thrustOf(s))).roll)
+    expect(mix({ throttle: 0.95, roll: 0.2, pitch: 0, yaw: 0 }, true).out.map((v) => +v.toFixed(6))).toEqual([0.6, 0.6, 1, 1])
+    expect(mix({ throttle: 0.5, roll: 0.6, pitch: 0, yaw: 0 }, true).out).toEqual([0, 0, 1, 1])
+  })
   it('thrust ∝ ω²: hover and thrust-to-weight', () => {
     expect(speedShare(0.25)).toBeCloseTo(0.5)
     expect(propRpm(1)).toBeCloseTo((QUAD.wMax * 60) / (2 * Math.PI))
@@ -80,5 +90,14 @@ describe('attitude loops', () => {
     const heavy = attitudeLoop({ mode: 'angle', angleP: 8, rate: RATE, seconds: 3, gust: GUST, mass: 2.6 })
     expect(heavy.some((f) => f.clipped)).toBe(true)
     expect(peak(2.6)).toBeGreaterThan(peak(1.8))
+  })
+  it('airmode stops a light quad clipping in a gust, at the cost of a climb', () => {
+    const run = (airmode: boolean) => attitudeLoop({ mode: 'angle', angleP: 8, rate: RATE, seconds: 4, gust: GUST, airmode })
+    const [off, on] = [run(false), run(true)]
+    const peak = (r: typeof off) => Math.max(...r.map((f) => f.roll))
+    expect(off.some((f) => f.clipped)).toBe(true)
+    expect(on.some((f) => f.clipped)).toBe(false)
+    expect(peak(on)).toBeLessThan(peak(off))
+    expect(on[on.length - 1].z).toBeGreaterThan(off[off.length - 1].z)
   })
 })

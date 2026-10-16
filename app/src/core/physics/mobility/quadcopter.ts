@@ -23,11 +23,16 @@ export interface Demand { throttle: number; roll: number; pitch: number; yaw: nu
 /** Mixer matrix rows [throttle, roll, pitch, yaw] per motor: yaw speeds up the pair spinning against the turn. */
 export const MIX = QUAD_MOTORS.map((m) => [1, m.y, m.x, -m.spin] as const)
 
-/** Motor thrust shares 0…1 (the ESC's speed command is their square root) and which ones hit a limit. */
-export function mix(d: Demand) {
-  const raw = MIX.map(([t, r, p, y]) => t * d.throttle + r * d.roll + p * d.pitch + y * d.yaw)
+/** Motor thrust shares 0…1 (the ESC's speed command is their square root) and which ones hit a limit.
+ *  Airmode keeps the differential and shifts the collective (`shift`) so no motor clips, unless the spread itself exceeds 0…1. */
+export function mix(d: Demand, airmode = false) {
+  const base = MIX.map(([t, r, p, y]) => t * d.throttle + r * d.roll + p * d.pitch + y * d.yaw)
+  const lo = Math.min(...base)
+  const hi = Math.max(...base)
+  const shift = !airmode ? 0 : hi - lo > 1 ? 0.5 - (hi + lo) / 2 : lo < 0 ? -lo : hi > 1 ? 1 - hi : 0
+  const raw = base.map((v) => v + shift)
   const out = raw.map((v) => clamp(v, 0, 1))
-  return { raw, out, clipped: raw.map((v, i) => v !== out[i]) }
+  return { raw, out, shift, clipped: raw.map((v, i) => v !== out[i]) }
 }
 
 /** Thrust grows with the square of prop speed, T = tMax·(ω/ωmax)², so a thrust share needs speed √share. */
@@ -75,7 +80,7 @@ export function quadBodyStep(s: QuadState, cmds: readonly number[], dt: number, 
 }
 
 export type FlightMode = 'angle' | 'acro'
-export interface AttitudeFrame { t: number; roll: number; rate: number; angleSet: number; rateSet: number; cmd: number; motors: number[]; cmds: number[]; clipped: boolean; y: number; z: number; gust: boolean }
+export interface AttitudeFrame { t: number; roll: number; rate: number; angleSet: number; rateSet: number; cmd: number; motors: number[]; cmds: number[]; clipped: boolean; shift: number; y: number; z: number; gust: boolean }
 export interface AttitudeSetup {
   mode: FlightMode
   /** Angle loop: rate set point (°/s) per degree of angle error. */
@@ -89,6 +94,8 @@ export interface AttitudeSetup {
   /** Rate the pilot may ask for (°/s) and the max lean in angle mode (°). */
   rateMax?: number
   maxAngle?: number
+  /** Shift the collective instead of clipping: full torque, but extra thrust. */
+  airmode?: boolean
 }
 /** Runs angle P → rate PID (gyro) → mixer on roll and pitch (yaw: rate loop to 0), with tilt-compensated hover throttle.
  *  Acro skips the angle loop: sticks centred hold the rate at zero, not the angle. */
@@ -107,9 +114,9 @@ export function attitudeLoop(c: AttitudeSetup): AttitudeFrame[] {
     gyro = gyro.map((g, i) => g + ([s.p, s.q, s.r][i] / DEG - g) * Math.min(1, dt / QUAD.gyroLag))
     pid = [sets[0], sets[1], 0].map((set, i) => pidStep(pid[i], set - gyro[i], c.rate, dt, lim))
     const throttle = hoverThrottle(mass) / Math.sqrt(Math.max(0.3, Math.cos(s.roll) * Math.cos(s.pitch)))
-    const m = mix({ throttle, roll: pid[0].out, pitch: pid[1].out, yaw: pid[2].out })
+    const m = mix({ throttle, roll: pid[0].out, pitch: pid[1].out, yaw: pid[2].out }, !!c.airmode)
     const gust = !!c.gust && t >= c.gust.at && t < c.gust.at + c.gust.dur
-    out.push({ t, roll: s.roll, rate: gyro[0] * DEG, angleSet: 0, rateSet: sets[0] * DEG, cmd: pid[0].out, motors: s.w, cmds: m.out, clipped: m.clipped.some(Boolean), y: s.y, z: s.z, gust })
+    out.push({ t, roll: s.roll, rate: gyro[0] * DEG, angleSet: 0, rateSet: sets[0] * DEG, cmd: pid[0].out, motors: s.w, cmds: m.out, clipped: m.clipped.some(Boolean), shift: m.shift, y: s.y, z: s.z, gust })
     s = quadBodyStep(s, m.out, dt, mass, { roll: gust ? c.gust!.torque : 0, pitch: 0, yaw: 0 })
   }
   return out
