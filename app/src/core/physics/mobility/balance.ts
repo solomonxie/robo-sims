@@ -1,5 +1,6 @@
-// Balancing robots: inverted pendulum on wheels (cart-pole), discrete PID, cascaded speed → tilt loops.
+// Balancing robots: inverted pendulum on wheels (cart-pole), cascaded speed → tilt PID loops.
 import { DEG, G, clamp } from '../common'
+import { Gains, PID0, pidStep } from '../control/pid'
 
 /** Two-wheeled ESP32 + MPU-6050 balancer: CoM height above the axle (m), wheel radius (m), wheel acceleration at full
  *  torque (m/s²), free speed where back-EMF eats the supply (m/s), motor lag (s), control loop period (s) and the battery's share of the mass. */
@@ -41,21 +42,6 @@ export function cartStep(s: Cart, cmd: number, dt: number, bot: Balancer = BALAN
   const v = s.v + a * dt
   if (Math.abs(tilt) >= LIE_ANGLE) return { x: s.x + v * dt, v: 0, tilt: Math.sign(tilt) * LIE_ANGLE, rate: 0, a: 0, fallen: true }
   return { x: s.x + v * dt, v, tilt, rate, a, fallen: false }
-}
-
-export interface Gains { kp: number; ki: number; kd: number }
-export interface Pid { integ: number; prev: number; out: number; sat: boolean; p: number; i: number; d: number }
-export const PID0: Pid = { integ: 0, prev: NaN, out: 0, sat: false, p: 0, i: 0, d: 0 }
-/** Discrete PID clamped to ±`limit`. D uses `rate` if given (a gyro), else the error change (0 on the first step);
- *  the integral stops growing while the output is saturated (anti-windup). */
-export function pidStep(s: Pid, err: number, g: Gains, dt: number, limit = Infinity, rate?: number): Pid {
-  const p = g.kp * err
-  const d = g.kd * (rate ?? (Number.isNaN(s.prev) ? 0 : (err - s.prev) / dt))
-  const integ = s.integ + g.ki * err * dt
-  const raw = p + integ + d
-  const out = clamp(raw, -limit, limit)
-  const sat = out !== raw
-  return { integ: sat ? s.integ : integ, prev: err, out, sat, p, i: sat ? s.integ : integ, d }
 }
 
 export interface BalanceFrame { t: number; x: number; v: number; tilt: number; target: number; cmd: number; got: number; p: number; i: number; d: number; sat: boolean; fallen: boolean }

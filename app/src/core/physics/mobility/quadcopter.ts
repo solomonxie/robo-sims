@@ -1,6 +1,6 @@
 // Quadcopter: X-frame mixer, thrust ∝ ω², rigid-body attitude, cascaded angle → rate loops.
 import { DEG, G, clamp, weightN } from '../common'
-import { Gains, PID0, Pid, pidStep } from './balance'
+import { Gains, PID0, Pid, pidStep } from '../control/pid'
 
 /** 5" FPV quad on 4S: all-up mass (kg), motor-to-centre arm (m), static thrust per motor at full speed (N), full speed (rad/s),
  *  yaw torque per newton of thrust (m), inertias (kg·m²), motor spin-up lag (s), gyro filter lag (s), loop period (s), linear and rotational drag. */

@@ -1,5 +1,5 @@
 import { DEG } from '../common'
-import { BALANCER, CART0, comOffset, kpMin, PID0, balanceLoop, cartStep, catchAccel, fallTau, fallTime, fellAt, gravityAlpha, pidStep, torqueLimit } from './balance'
+import { BALANCER, CART0, comOffset, kpMin, balanceLoop, cartStep, catchAccel, fallTau, fallTime, fellAt, gravityAlpha, torqueLimit } from './balance'
 
 const TILT = { kp: 0.05, ki: 0, kd: 0.003 }
 const SPEED = { kp: 5, ki: 2, kd: 0 }
@@ -28,20 +28,6 @@ describe('inverted pendulum', () => {
   it('wheels accelerating forward push a forward lean back', () => {
     const s = cartStep({ ...CART0, tilt: 0.05, a: 10 }, 1, 0.005)
     expect(s.rate).toBeLessThan(0)
-  })
-})
-
-describe('PID', () => {
-  it('sums P, I and D and stops integrating when saturated', () => {
-    const a = pidStep(PID0, 2, { kp: 1, ki: 1, kd: 1 }, 0.1)
-    expect(a.d).toBe(0)
-    expect(a.out).toBeCloseTo(2.2)
-    const b = pidStep(a, 3, { kp: 1, ki: 1, kd: 1 }, 0.1)
-    expect(b.d).toBeCloseTo(10)
-    const c = pidStep(a, 3, { kp: 1, ki: 1, kd: 1 }, 0.1, 1)
-    expect(c.sat).toBe(true)
-    expect(c.integ).toBe(a.integ)
-    expect(pidStep(PID0, 1, { kp: 0, ki: 0, kd: 2 }, 0.1, Infinity, 5).d).toBe(10)
   })
 })
 
