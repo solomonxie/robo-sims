@@ -1,8 +1,9 @@
 // Control block diagram: setpoint → Σ → controller → plant → output, sensor feedback into Σ; signals ride the wires as beads.
-// PID: the gearmotor arm rig and P/I/D/u term bars.
+// PID: the gearmotor arm rig and P/I/D/u term bars. Speed: a wheel rig with a speed gauge.
 import * as THREE from 'three/webgpu'
 import { DEG } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
+import { buildWheel } from '../../models/motion'
 import { Helix } from '../../models/power'
 import { B_FIELD, DATA_COLOR, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
 import { moduleBlock } from './diagrams'
@@ -217,6 +218,74 @@ export function termBars(parent: THREE.Object3D, at: V3, w = 7) {
         setGlow(r.m, hot && r.k === 'u' ? HIGH_V : PID_COLORS[r.k], 0.9)
         r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && r.k === 'u' ? ' clipped' : ''}`, hot ? HIGH_V : PID_COLORS[r.k])
       }
+    },
+  }
+}
+
+export const MEAS_COLOR = LABEL
+
+/** TT-driven wheel face-on, axle at `at`, radius `r`, on a floor strip that tilts to the ramp; speed gauge (0…`max` rpm) to the
+ *  right: setpoint mark, true needle, encoder reading needle. `set(dt, rev, rpm, sp, meas, u, slopeDeg, counts?)`. */
+export function speedWheel(parent: THREE.Object3D, at: V3, r = 2.6, max = 300) {
+  const g = add(parent, new THREE.Group(), at)
+  const box3 = add(g, new THREE.Group(), [0, 0, -1.6])
+  const canM = new THREE.MeshStandardMaterial({ color: '#f2c12e', roughness: 0.55, emissive: '#000000' })
+  box(box3, [r * 1.1, r * 0.55, 1.6], canM, [-r * 0.7, r * 0.1, 0])
+  cylinder(box3, r * 0.2, r * 0.9, mat('#a7adb6', { metal: 0.35, rough: 0.4 }), [-r * 1.4, r * 0.1, 0], 'x', 20)
+  const wheel = add(g, buildWheel(), [0, 0, 0])
+  wheel.scale.setScalar(r / 12.8)
+  const spokeM = mat('#2a2c32', { rough: 0.6 })
+  for (let k = 0; k < 3; k++) box(wheel, [8, 1.1, 0.4], spokeM, [6.2 * Math.cos((k * 2 * Math.PI) / 3), 6.2 * Math.sin((k * 2 * Math.PI) / 3), 4.6]).rotation.z = (k * 2 * Math.PI) / 3
+  box(wheel, [2.4, 1.4, 0.5], glowMat(HEAT, 0.9), [11.4, 0, 4.7]).castShadow = false
+  const floor = add(g, new THREE.Group())
+  box(floor, [r * 3.6, 0.35, 3.2], mat('#3a3f4a', { rough: 0.8 }), [0, -0.175, -0.4])
+  const uTag = liveLabel(g, [0, -r - 1.3, 0.6], { size: 0.28 })
+  const cTag = liveLabel(g, [0, -r - 1.9, 0.6], { size: 0.26, color: GREY })
+  const rampTag = liveLabel(g, [0, r + 0.7, 0.6], { size: 0.28, color: GREY })
+
+  const gc: V3 = [r + 3.6, 0.6, 0]
+  const R = 2.2
+  const sweep = 240 * DEG
+  const ang = (rpm: number) => 210 * DEG - (Math.max(0, Math.min(max * 1.05, rpm)) / max) * sweep
+  const pos = (a: number, rr: number, z = 0.2): V3 => [gc[0] + rr * Math.cos(a), gc[1] + rr * Math.sin(a), z]
+  cylinder(g, R + 0.35, 0.2, mat('#23262d', { rough: 0.8 }), [gc[0], gc[1], -0.1], 'z', 40).castShadow = false
+  const tickM = glowMat(GREY, 0.4)
+  for (let v = 0; v <= max; v += 25) {
+    const big = v % 100 === 0
+    flatBox(g, [big ? 0.4 : 0.22, 0.06, 0.05], tickM, pos(ang(v), R - (big ? 0.2 : 0.11))).rotation.z = ang(v)
+    if (big) addLabel(g, `${v}`, pos(ang(v), R - 0.75), GREY, 0.24)
+  }
+  addLabel(g, 'rpm', [gc[0], gc[1] - 1.1, 0.2], GREY, 0.24)
+  const needle = (color: string, len: number, w: number, z: number) => {
+    const p = add(g, new THREE.Group(), [gc[0], gc[1], z])
+    flatBox(p, [len, w, 0.05], glowMat(color, 0.9), [len / 2, 0, 0])
+    return p
+  }
+  const spMark = needle(B_FIELD, 0.5, 0.16, 0.25)
+  spMark.children[0].position.x = R + 0.1
+  const measN = needle(MEAS_COLOR, R * 0.95, 0.06, 0.3)
+  const trueN = needle(RING, R * 0.8, 0.13, 0.35)
+  cylinder(g, 0.16, 0.2, glowMat(GREY, 0.6), [gc[0], gc[1], 0.4], 'z', 16)
+  const readTag = liveLabel(g, [gc[0], gc[1] - R - 0.6, 0.3], { size: 0.3, color: RING })
+  const dim = new THREE.Color('#000000')
+  const st = { slope: 0 }
+  return {
+    group: g,
+    set(dt: number, rev: number, rpm: number, sp: number, meas: number, u: number, slopeDeg: number, counts?: number) {
+      wheel.rotation.z = -rev * 2 * Math.PI
+      st.slope = glide(dt, st.slope, slopeDeg, 6)
+      const a = st.slope * DEG
+      floor.rotation.z = a
+      floor.position.set(r * Math.sin(a), -r * Math.cos(a), 0)
+      rampTag.set(slopeDeg ? `ramp ${slopeDeg}°` : 'flat floor', slopeDeg ? HEAT : GREY)
+      spMark.rotation.z = ang(sp)
+      measN.rotation.z = ang(meas)
+      trueN.rotation.z = ang(rpm)
+      readTag.set(`${Math.round(rpm)} rpm`, RING)
+      const k = Math.min(1, Math.abs(u))
+      canM.emissive.set(u >= 0 ? POWER : HEAT).lerp(dim, 1 - k * 0.6)
+      uTag.set(`motor ${u >= 0 ? '+' : '−'}${Math.round(Math.abs(u) * 100)} %`, Math.abs(u) >= 0.999 ? HIGH_V : POWER)
+      cTag.set(counts === undefined ? 'no encoder' : `${counts} counts / tick`, counts === undefined ? GREY : MEAS_COLOR)
     },
   }
 }
