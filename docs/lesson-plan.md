@@ -42,6 +42,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `arms` — `serialArm` (any `SerialArm`; `set(q)` → frames, `glow(i, k)`, opt. triads/gripper/pedestal), `ghostRig` (see-through copy), `JOINT_COLORS`, `SERVO_JOINT_NAMES`, `SERVO_ARM_LOOK` + `PLINTH`, `armPlate`, `dotPen` (dot lines/arcs, hand trails), `servoArmBuild` (hobby build: servos, base, `fit`/`heat`/`ports`) [`physics/kinematics`]; clouds = `rooms.pointCloud`.
 - `wheeled` — `diffBot` (TT two-wheeler, `set(pose, dL, dR)`, `slip`, `ghost`), `rcCar` (1/10 Ackermann, `set(pose, steer, travel)`, `arms`, `scrub`), `balanceBot` (side-view self-balancer, `set(tilt, roll)`), `balanceFloor` (scrolling side-view floor for it), `onBalancer` (point on its body), `balanceCues` (shove/accel arrows, target flag), `slipPatch`/`lightPatches` [`physics/mobility`].
 - `holonomic` — `mecanumBot`/`mecanumWheel`, `omniBot` (kiwi/X), `swerveBot` (FRC; `glow`); all `set(pose, …)`.
+- `poses` — `covRings` (k-σ ellipses from `Cov3`s), `chordPath` (floor polyline, redraws on change) [`physics/navigation`].
 - `tracked` — `trackedBot` (sprockets, moving links; `wheels` = 4WD twin; `body`, `scuff`, `spin`).
 - `drive` — `placeAt` (object ← Pose), `inField`, stick tours (`TOUR_MODES`, `TourSeg`, `tourAt`, `tourLength`).
 - `rigs` — side-view time-lapse: `SIDE_VIEW`, `SIDE_SCOPE`, `statusHeader`, `tiltRig`, `scopeLabels`, `sideScope`, `traceRun` (fixed-step run → scope trace), `lapseClock` (looping time-lapse clock).
@@ -65,6 +66,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `actuators/` — dcmotor (`TT_GEAR`), hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared` (TCRT `linePosition`, `readBar(pose, offset)`, `darkness`), `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `perception/` — image (`Img` 0…255 floats, `makeImg`/`imgAt`/`setPixel`/`mapImg`, `tabletopImg` + `SCENE_SPOTS`, `grayImg`, `rgbToHsv`/`hsvMask`, histograms, `otsuLevel`, `maskStats`/`maskIoU`, `convolveImg`, `resizeImg`, noise `noisyImg` (exact) / `grainImg`+`grainAt` (table), `sampleImg`, `bitDepthImg`), features (Sobel, `canny`, `houghLines`, `cornerField`, `pickCorners`, descriptors + `matchDescriptors`, `warpImg`), tracking (mask morphology, `labelBlobs`, `findBlob`, `ballFrame` (any window), `panTrackRun` (blob search in a window round the ball; `panFrameImg` renders a frame), `panStats`), projection (`intrinsicsOf`, `focalPx`, `camTf` world ← camera (x right, y down, z forward), `lensFor` (sensors/camera `LENSES`), `toPixel`/`projectPx`, `pixelRay`/`groundHit`/`groundSpan`, `cropK`, stereo `triangulate`/`stereoRig`/`matchDisparity`), render (`renderView`/`sceneCaster` ray-cast floor/balls (`speckle`)/blocks/board/`plates`/wall, `CHECKER_FLOOR`), calibration (`boardPoints`/`boardShots`/`boardViews`, `homography`/`applyH`, `intrinsicsFromH`, `poseFromH`, `calibrate`, `reprojection`), markers (`TAG_DICT`, `decodeTag`, `tagPlate`/`wallTagTf`, `adaptiveThreshold`, `findTags`, `tagPose`, `robotFromTag`, `tagJitterRun`), depth (`depthView`, IR `irView`/`dotHits`, `disparityMap` (`DEPTH_HOLE`), ToF `tofView`, `depthToCloud`, `voxelGrid`, `DEPTH_SENSORS`/`depthShot`), detect (`boxIoU`, `nms`, conv layers, `runDetector`, `netCost`, `detFrame`/`truthBoxes`/`detDataset`, `matchDets`, `prCurve`), inference (`ACCELERATORS`, `DETECT_MODELS`, `frameBudget`, `tinyMemory`), flow (`lkAt`, `blockMatchAt`, `flowField`, `flowRate`/`flowSpeed`, `carpetPlate`, `flowHoldRun`), occupancy (`OccGrid` log-odds, `occModel`, `bresenham`, `rayCells`/`coneCells`, `integrateScan`, `occRun`).
+- `navigation/` — pose (`Cov3`, `stepJacobians`, `propagateCov` FPFᵀ + GQGᵀ, `covEllipse`, `ellipsePoints`, `headingSigmaDeg`, arc legs `Leg`/`legsLength`/`curvatureAt`), odometry (`odoIntegrate` euler/midpoint/exact, `wheelsFor`, `deadReckonRun` (`FIGURE_EIGHT`), `stepNoise` k²|d| or gyro ARW, `growthRun` Monte Carlo + Jacobian covariance + noise-free bias path, `cloudStats`, `straightCal`/`spinCal`). UMBmark stays in mobility/diffdrive.
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `stdDev`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
@@ -94,7 +96,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Kinematics ✓ 9/9
 - Perception ✓ 9/9
 - Navigation:
-  - [ ] Odometry
+  - [x] Odometry
   - [ ] Obstacle avoidance
   - [ ] Maze solving
   - [ ] Graph search

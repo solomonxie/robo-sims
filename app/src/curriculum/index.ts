@@ -141,6 +141,7 @@ import { objectDetectionEdgeAccelerators, objectDetectionRunningOnAnEsp32Cam, ob
 import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/perception/depth-sensing'
 import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from '../lessons/perception/optical-flow'
 import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from '../lessons/perception/occupancy-grids'
+import { odometryCalibratingWheelSize, odometryDeadReckoning, odometryErrorGrowth } from '../lessons/navigation/odometry'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -568,6 +569,9 @@ const READY: Record<string, Lesson> = {
   'perception/optical-flow/visual-odometry': opticalFlowVisualOdometry,
   'perception/occupancy-grids/ray-casting': occupancyGridsRayCasting,
   'perception/occupancy-grids/log-odds-update': occupancyGridsLogOddsUpdate,
+  'navigation/odometry/dead-reckoning': odometryDeadReckoning,
+  'navigation/odometry/error-growth': odometryErrorGrowth,
+  'navigation/odometry/calibrating-wheel-size': odometryCalibratingWheelSize,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
