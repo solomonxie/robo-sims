@@ -76,6 +76,9 @@ describe('jitter and power', () => {
     expect(bare.twitches.some((x) => x.lost)).toBe(true)
     expect(cap.twitches.length).toBe(0)
   })
+  it('every shared-rail option stays clear of the brownout threshold', () => {
+    for (const c of [0, 470e-6, 2200e-6]) for (let k = 1; k <= 4; k++) expect(Math.abs(railSummary(servoRailRun(k, 'shared', c, 'ledc')).minLogic - ESP32_BOD[0])).toBeGreaterThan(0.1)
+  })
   it('software PWM jitter twitches holding servos on any supply', () => {
     expect(railSummary(servoRailRun(1, 'separate', 0, 'ledc')).twitches).toBe(0)
     expect(railSummary(servoRailRun(1, 'separate', 0, 'soft')).twitches).toBeGreaterThan(5)

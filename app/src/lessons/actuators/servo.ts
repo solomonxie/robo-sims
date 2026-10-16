@@ -482,7 +482,7 @@ export const jitterAndPower: Lesson = {
     const st = { t: 0, key: '' }
     return {
       scene,
-      view: { center: [-0.4, -0.6, 0], radius: 54, polar: 1.48, azimuth: 0.1 },
+      view: { center: [-1.6, -0.6, 0], radius: 57, polar: 1.48, azimuth: 0.1 },
       frame(dt, p) {
         const q = jitterParams(p)
         const run = railMemo(q)

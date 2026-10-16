@@ -103,7 +103,7 @@ export type Wiring = 'shared' | 'separate'
 export type PwmSource = 'ledc' | 'soft'
 /** Shared: servos on the ESP32's USB 5 V through breadboard rails. Separate: 6 V pack, star ground. */
 export const RAIL = {
-  shared: { volts: 5, rSrc: 0.6, rGnd: 0.5 },
+  shared: { volts: 5, rSrc: 0.6, rGnd: 0.6 },
   separate: { volts: 6, rSrc: 0.12, rGnd: 0.02 },
   logicA: 0.12,
   usbVolts: 5,
@@ -111,7 +111,7 @@ export const RAIL = {
   runA: 0.3,
   count: 4,
   holdA: 0.01,
-  tauMotorS: 0.005,
+  tauMotorS: 0.002,
   kickA: 0.35,
   kickS: 0.004,
   deadUs: 5,
