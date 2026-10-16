@@ -141,6 +141,7 @@ import { depthSensingDepthMap, depthSensingPointCloud } from './perception/depth
 import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from './perception/optical-flow'
 import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from './perception/occupancy-grids'
 import { odometryCalibratingWheelSize, odometryDeadReckoning, odometryErrorGrowth } from './navigation/odometry'
+import { obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceReactiveRules, obstacleAvoidanceWallFollowing } from './navigation/obstacle-avoidance'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -158,5 +159,5 @@ export const UNITS: Unit[] = [
   { title: 'Control', lessons: [deadReckoningDrift, closingTheLoop, thermostat, chatter, proportionalOnly, integralWindup, derivativeKick, tuningByHand, zieglerNicholsLesson, encoderFeedback, feedForward, velocityPid, trapezoidProfile, sCurve, errorFromSensors, pdSteering, intersections, polesAndDamping, stepResponse, gainAndPhaseMargin, stateVector, lqrIntuition, recedingHorizon, mpcConstraints, movingAverage, lowPass, kalmanFilter] },
   { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity, trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling, grippersParallelJaw, grippersSuction, grippersCompliance, armBuildAssemble, armBuildDriveIk, dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits] },
   { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners, colourTrackingHsvMask, colourTrackingCentroidSteering, cameraModelPinholeModel, cameraModelCalibration, cameraModelStereoDepth, fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag, objectDetectionYoloIdea, objectDetectionRunningOnAnEsp32Cam, objectDetectionEdgeAccelerators, depthSensingDepthMap, depthSensingPointCloud, opticalFlowLucasKanade, opticalFlowVisualOdometry, occupancyGridsRayCasting, occupancyGridsLogOddsUpdate] },
-  { title: 'Navigation', lessons: [odometryDeadReckoning, odometryErrorGrowth, odometryCalibratingWheelSize] },
+  { title: 'Navigation', lessons: [odometryDeadReckoning, odometryErrorGrowth, odometryCalibratingWheelSize, obstacleAvoidanceReactiveRules, obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceWallFollowing] },
 ]

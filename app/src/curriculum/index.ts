@@ -142,6 +142,7 @@ import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/percept
 import { opticalFlowLucasKanade, opticalFlowVisualOdometry } from '../lessons/perception/optical-flow'
 import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from '../lessons/perception/occupancy-grids'
 import { odometryCalibratingWheelSize, odometryDeadReckoning, odometryErrorGrowth } from '../lessons/navigation/odometry'
+import { obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceReactiveRules, obstacleAvoidanceWallFollowing } from '../lessons/navigation/obstacle-avoidance'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -572,6 +573,9 @@ const READY: Record<string, Lesson> = {
   'navigation/odometry/dead-reckoning': odometryDeadReckoning,
   'navigation/odometry/error-growth': odometryErrorGrowth,
   'navigation/odometry/calibrating-wheel-size': odometryCalibratingWheelSize,
+  'navigation/obstacle-avoidance/reactive-rules': obstacleAvoidanceReactiveRules,
+  'navigation/obstacle-avoidance/braitenberg-vehicles': obstacleAvoidanceBraitenbergVehicles,
+  'navigation/obstacle-avoidance/wall-following': obstacleAvoidanceWallFollowing,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
