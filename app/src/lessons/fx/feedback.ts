@@ -1,7 +1,7 @@
 // Control block diagram: setpoint → Σ → controller → plant → output, sensor feedback into Σ; signals ride the wires as beads.
-// PID: the gearmotor arm rig and P/I/D/u term bars. Speed: a wheel rig with a speed gauge.
+// PID: the gearmotor arm rig and P/I/D/u term bars. Speed: a wheel rig with a speed gauge. Position: a car driving to a mark.
 import * as THREE from 'three/webgpu'
-import { DEG } from '../../core/physics'
+import { DEG, TT_CAR } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
 import { buildWheel } from '../../models/motion'
 import { Helix } from '../../models/power'
@@ -286,6 +286,66 @@ export function speedWheel(parent: THREE.Object3D, at: V3, r = 2.6, max = 300) {
       canM.emissive.set(u >= 0 ? POWER : HEAT).lerp(dim, 1 - k * 0.6)
       uTag.set(`motor ${u >= 0 ? '+' : '−'}${Math.round(Math.abs(u) * 100)} %`, Math.abs(u) >= 0.999 ? HIGH_V : POWER)
       cTag.set(counts === undefined ? 'no encoder' : `${counts} counts / tick`, counts === undefined ? GREY : MEAS_COLOR)
+    },
+  }
+}
+
+/** Side-view TT car on a floor strip, `k` scene units per metre, mark 0 at `at`, target flag at `dist`; springy camera mast
+ *  (tip drawn `exag`× its bend), setpoint ghost on the floor. `set(x, ref, rev, sway, u)` in metres. */
+export function positionCar(parent: THREE.Object3D, at: V3, k: number, dist: number, exag = 5) {
+  const g = add(parent, new THREE.Group(), at)
+  const len = (dist + 0.45) * k
+  box(g, [len, 0.35, 3], mat('#3a3f4a', { rough: 0.8 }), [len / 2 - 0.25 * k, -0.175, -0.4])
+  const tickM = glowMat(GREY, 0.4)
+  for (let j = 0; j * 0.1 <= dist + 0.1001; j++) {
+    const x = j * 0.1 * k
+    flatBox(g, [0.05, j % 2 ? 0.18 : 0.3, 0.05], tickM, [x, -0.2, 1.12])
+    if (j % 2 === 0) addLabel(g, j ? `${(j / 10).toFixed(1)} m` : '0', [x, -0.75, 1.1], GREY, 0.24)
+  }
+  const flag = add(g, new THREE.Group(), [dist * k, 0, -1.3])
+  cylinder(flag, 0.05, 4.4, mat('#c9ccd3', { rough: 0.5 }), [0, 2.2, 0], 'y', 8)
+  flatBox(flag, [1, 0.6, 0.04], glowMat(B_FIELD, 0.7), [0.5, 4.05, 0])
+  addLabel(flag, 'target', [0.15, 4.75, 0.1], B_FIELD, 0.26)
+  const ghost = add(g, new THREE.Group(), [0, 0, 1.25])
+  flatBox(ghost, [0.12, 0.7, 0.05], glowMat(B_FIELD, 0.9), [0, -0.1, 0])
+
+  const car = add(g, new THREE.Group())
+  const wr = TT_CAR.wheelM * k
+  const body: V3 = [0.2 * k, 0.05 * k, 0.13 * k]
+  box(car, body, mat('#d8dbe2', { rough: 0.5 }), [0, wr + 0.35, 0])
+  const motorM = new THREE.MeshStandardMaterial({ color: '#f2c12e', roughness: 0.55, emissive: '#000000' })
+  box(car, [0.07 * k, 0.022 * k, 0.04 * k], motorM, [-0.035 * k, wr, body[2] / 2 - 0.4])
+  const wheel = add(car, new THREE.Group(), [-0.065 * k, wr, body[2] / 2 + 0.2])
+  cylinder(wheel, wr, 0.5, mat('#1c1c1f', { rough: 0.8 }), [0, 0, 0], 'z', 24)
+  box(wheel, [wr * 1.6, 0.16, 0.1], glowMat(HEAT, 0.9), [0, 0, 0.3]).castShadow = false
+  cylinder(car, 0.22, 0.3, mat('#a7adb6', { metal: 0.4, rough: 0.4 }), [0.07 * k, 0.22, body[2] / 2], 'z', 12)
+  const mastH = 0.18 * k
+  const base: V3 = [-0.06 * k, wr + 0.35 + body[1] / 2, 0]
+  const N = 6
+  const rodM = mat('#9aa0aa', { metal: 0.5, rough: 0.35 })
+  const rods = Array.from({ length: N }, () => addRod(car, rodM))
+  const cam = add(car, new THREE.Group())
+  box(cam, [0.5, 0.45, 0.6], mat('#2a2c32', { rough: 0.5 }), [0.05, 0.22, 0])
+  cylinder(cam, 0.16, 0.2, glowMat(DATA_COLOR, 0.8), [0.35, 0.25, 0], 'x', 12)
+  const vTag = liveLabel(car, [0, base[1] + mastH + 1.1, 0.3], { size: 0.28, color: RING })
+  const dim = new THREE.Color('#000000')
+  const shape = (s: number) => (s * s * (3 - s)) / 2
+  return {
+    group: g,
+    set(x: number, ref: number, rev: number, sway: number, u: number) {
+      car.position.x = x * k
+      ghost.position.x = ref * k
+      wheel.rotation.z = -rev * 2 * Math.PI
+      const tip = Math.max(-0.7, Math.min(0.7, -sway * k * exag / mastH)) * mastH
+      const pt = (s: number): V3 => [base[0] + tip * shape(s), base[1] + s * mastH, base[2]]
+      rods.forEach((r, j) => stretchRod(r, pt(j / N), pt((j + 1) / N), 0.07))
+      const top = pt(1)
+      cam.position.set(top[0], top[1], top[2])
+      cam.rotation.z = -Math.atan((1.5 * tip) / mastH)
+      const a = Math.min(1, Math.abs(u))
+      motorM.emissive.set(u >= 0 ? POWER : HEAT).lerp(dim, 1 - a * 0.6)
+      const left = Math.round((dist - x) * 1000)
+      vTag.set(left === 0 ? 'on the mark' : left > 0 ? `${left} mm to go` : `${-left} mm past`, Math.abs(left) <= 2 ? RING : left < 0 ? HIGH_V : GREY)
     },
   }
 }

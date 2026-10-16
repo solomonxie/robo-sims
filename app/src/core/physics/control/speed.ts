@@ -23,24 +23,24 @@ export function wheelLoad(slopeDeg: number, crr = WHEEL.crr) {
 }
 
 /** Feed-forward volts for a wheel speed and acceleration: kS·sign + kV·rpm + kA·rpm/s, from the motor model. */
-export function wheelFf(crr = WHEEL.crr) {
+export function wheelFf(crr = WHEEL.crr, inertia = TT_INERTIA) {
   const k = motorK()
   return {
     kS: (TT_MOTOR.ohms * wheelLoad(0, crr).dragNm) / k,
     kV: TT_MOTOR.voltsPerRpm,
-    kA: (TT_MOTOR.ohms * TT_INERTIA * GEAR) / (k * RPM_PER_RADS),
+    kA: (TT_MOTOR.ohms * inertia * GEAR) / (k * RPM_PER_RADS),
   }
 }
 export const ffVolts = (rpm: number, rpmPerS: number, f = wheelFf()) => (Math.abs(rpm) < 1e-9 ? 0 : f.kS * Math.sign(rpm)) + f.kV * rpm + f.kA * rpmPerS
 
 /** One physics step of the motor shaft (rad/s) at `volts`: J·dω/dt = k·i − slope − drag, drag sticks it at rest. */
-export function wheelStep(w: number, volts: number, slopeDeg: number, dt: number, crr = WHEEL.crr) {
+export function wheelStep(w: number, volts: number, slopeDeg: number, dt: number, crr = WHEEL.crr, inertia = TT_INERTIA) {
   const k = motorK()
   const { dragNm, gravNm } = wheelLoad(slopeDeg, crr)
   const drive = (k * (volts - k * w)) / TT_MOTOR.ohms - gravNm
   if (w === 0 && Math.abs(drive) <= dragNm) return 0
   const dir = w !== 0 ? Math.sign(w) : Math.sign(drive)
-  const next = w + ((drive - dir * dragNm) / TT_INERTIA) * dt
+  const next = w + ((drive - dir * dragNm) / inertia) * dt
   return w !== 0 && Math.sign(next) !== Math.sign(w) ? 0 : next
 }
 
