@@ -38,6 +38,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `mcu` — `codeBlock` (Arduino/ESP-IDF lines; `rosTint` + `ROS_CODE_LEGEND` for rclpy/rclcpp/CLI), `CODE_LEGEND`, `PIN_COLOR`, `IDLE`, `fetSymbol` (in-pin FET), `ledLoad`.
 - `frames` — `frameTriad` (RGB axes), `setTf` (4×4 onto an object), `urdfModel` (links from a parsed URDF, `pose(q)`) [`physics/software/urdf`].
 - `wheeled` — `diffBot` (top-view TT two-wheeler in metres, `set(pose, dL, dR)`, `slip(l, r)`, `ghost` outline for estimates), `mecanumBot` (four 60 mm mecanum wheels, `set(pose, travel[4])`, `layout`, `slip`), `mecanumWheel`, `omniWheel`/`omniBot` (kiwi/X, `set(pose, travel, side)`), `swerveBot` (FRC, `set(pose, angles, travel)`, `glow`), `rcCar` (1/10 Ackermann car, servo linkage, `set(pose, [l, r], travel[4])`, `arms(beta)`, `scrub`), `trackedBot` (sprockets, idlers, moving links; `wheels` = 4WD twin; `set(pose, l, r)`, `body` for sink/pitch, `scuff`, `spin`) [`physics/mobility`].
+- `legged` — `servoWalker` (hexapod/quadruped, 3 SG90s per leg, `set(pose, angles, down)`), `servoBiped` (`set(lean, tip)` rolls over toe/heel) [`physics/mobility/legged`].
 - `net` — `phoneModel`, `routerModel`, `robotCar` (ESP32 on the flank), `stickPhone` (thumbstick, `stick(x, y)`), `ripples`, `arcAt`, `packetPool` (header + payload blocks in flight), `topicPipe` (named ROS topic, `at(u)`) [`physics/mcu/wireless`, `physics/software`].
 - `logic` — `gateSymbol`, `signalWire`/`litWire`, `inBall`, `ledOut`, `bitRow`, `gateNet`, `flipFlopBlock`, `LOGIC_WIRES` [`core/logic`].
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
@@ -48,7 +49,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
 - `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
-- `mobility/` — diffdrive (`diffForward`/`diffInverse`, `turnRadius`, `iccOf`, exact `diffStep`, UMBmark `squareRun`, `slipRun`, `FLOORS`), mecanum (`mecInverse`/`mecForward`, `mecForceSum`, `mecScale`, `twistStep`, `mecRun`, `fitTwist`), omni (`omniInverse`/`omniForward`, `holoTopSpeed`), swerve (`swerveStates`, `swerveOptimize`, `swerveTick`, `swerveFit`), ackermann (`steerAngles`, `axleHits`, `frontSlip`, `minTurn`, `wheelSpeeds`, `bicycleStep`, `pursuitRun`, `polyPath`, `parkPlan`), tracks (`TANK`, `TERRAINS`, `turnMoment`, `steerLimit`, Janosi `slipFor`, `skidRun`, Bekker `plateSink`/`wheelSink`, `peakThrust`, `softPull`, `tipAngle`, `climbLimit`).
+- `mobility/` — diffdrive (`diffForward`/`diffInverse`, `turnRadius`, `iccOf`, exact `diffStep`, UMBmark `squareRun`, `slipRun`, `FLOORS`), mecanum (`mecInverse`/`mecForward`, `mecForceSum`, `mecScale`, `twistStep`, `mecRun`, `fitTwist`), omni (`omniInverse`/`omniForward`, `holoTopSpeed`), swerve (`swerveStates`, `swerveOptimize`, `swerveTick`, `swerveFit`), ackermann (`steerAngles`, `axleHits`, `frontSlip`, `minTurn`, `wheelSpeeds`, `bicycleStep`, `pursuitRun`, `polyPath`, `parkPlan`), tracks (`TANK`, `TERRAINS`, `turnMoment`, `steerLimit`, Janosi `slipFor`, `skidRun`, Bekker `plateSink`/`wheelSink`, `peakThrust`, `softPull`, `tipAngle`, `climbLimit`), legged (`GAITS`, `legPhase`, `footPath`, `gaitFeet`, `supportHull`/`hullMargin`, `legIK`/`legFK`/`legAngles`, `zmpX`, `zmpRun`).
 - `actuators/` — dcmotor, hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
@@ -81,7 +82,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Omni & swerve
   - [x] Ackermann steering
   - [x] Tracks & terrain
-  - [ ] Legged walking
+  - [x] Legged walking
   - [ ] Balancing robots
   - [ ] Drones & flight
   - [ ] Underwater & swimming
