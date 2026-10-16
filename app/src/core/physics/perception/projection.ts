@@ -86,7 +86,11 @@ export interface Ball { c: P3; r: number; rgb: Rgb; speckle?: number }
 export interface Board { tf: Mat4; nx: number; ny: number; sq: number }
 /** Any flat print: `color(x, y)` in plate coords (z = 0 plane of `tf`, world ← plate), null where there is no plate. */
 export interface Plate { tf: Mat4; color: (x: number, y: number) => Rgb | null }
-export interface RenderScene { floor?: { tile: number; a: Rgb; b: Rgb; x?: [number, number]; y?: [number, number]; off?: Rgb }; balls?: Ball[]; board?: Board; plates?: Plate[]; wallX?: number; sky?: Rgb }
+/** Axis-aligned solid block, one flat colour (lit per face). */
+export interface RenderBlock { min: P3; max: P3; rgb: Rgb }
+export interface RenderScene { floor?: { tile: number; a: Rgb; b: Rgb; x?: [number, number]; y?: [number, number]; off?: Rgb }; balls?: Ball[]; blocks?: RenderBlock[]; board?: Board; plates?: Plate[]; wallX?: number; sky?: Rgb; light?: P3 }
+/** What a ray hits: colour and distance along the (unit) ray, Infinity for sky. */
+export interface Hit { rgb: Rgb; t: number }
 
 const LIGHT: P3 = (() => {
   const l = [0.35, 0.45, 0.82]
@@ -116,9 +120,27 @@ export function boardColor(b: Board, x: number, y: number): Rgb | null {
   return inside && (ix + iy) % 2 === 0 ? [28, 30, 36] : [236, 236, 230]
 }
 
-function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null, plateInv: Mat4[] = []): Rgb {
+function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null, plateInv: Mat4[] = []): Hit {
   let best = Infinity
   let col: Rgb = s.sky ?? [70, 80, 96]
+  const light = s.light ?? LIGHT
+  for (const b of s.blocks ?? []) {
+    let [t0, t1, axis] = [-Infinity, Infinity, 0]
+    for (let i = 0; i < 3; i++) {
+      if (Math.abs(r.d[i]) < 1e-12) {
+        if (r.o[i] < b.min[i] || r.o[i] > b.max[i]) t0 = Infinity
+        continue
+      }
+      const [a, c] = [(b.min[i] - r.o[i]) / r.d[i], (b.max[i] - r.o[i]) / r.d[i]]
+      if (Math.min(a, c) > t0) [t0, axis] = [Math.min(a, c), i]
+      t1 = Math.min(t1, Math.max(a, c))
+    }
+    if (t0 > t1 || t0 <= 1e-6 || t0 >= best) continue
+    best = t0
+    const nrm = [0, 0, 0]
+    nrm[axis] = -Math.sign(r.d[axis])
+    col = shade(b.rgb, 0.35 + 0.65 * Math.max(0, dot(nrm, light)))
+  }
   for (const b of s.balls ?? []) {
     const oc = [r.o[0] - b.c[0], r.o[1] - b.c[1], r.o[2] - b.c[2]]
     const hb = dot(oc, r.d)
@@ -129,7 +151,7 @@ function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null, plateInv: Mat4[
     best = t
     const p = rayAt(r, t)
     const nrm = [(p[0] - b.c[0]) / b.r, (p[1] - b.c[1]) / b.r, (p[2] - b.c[2]) / b.r]
-    col = shade(b.rgb, (0.35 + 0.65 * Math.max(0, dot(nrm, LIGHT))) * (b.speckle ? speckleAt(nrm, b.speckle) : 1))
+    col = shade(b.rgb, (0.35 + 0.65 * Math.max(0, dot(nrm, light))) * (b.speckle ? speckleAt(nrm, b.speckle) : 1))
   }
   const flat = (inv: Mat4, paint: (x: number, y: number) => Rgb | null) => {
     const o = apply4(inv, r.o)
@@ -162,22 +184,29 @@ function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null, plateInv: Mat4[
       const out = (f.x && (p[0] < f.x[0] || p[0] > f.x[1])) || (f.y && (p[1] < f.y[0] || p[1] > f.y[1]))
       const odd = (Math.floor(p[0] / f.tile) + Math.floor(p[1] / f.tile)) % 2 !== 0
       col = out ? (f.off ?? [30, 32, 38]) : shade(odd ? f.b : f.a, 1 / (1 + 0.04 * t))
+      best = t
     }
   }
-  return col
+  return { rgb: col, t: best }
+}
+
+/** Ray caster for scene `s` (inverses cached): pixelRay in, `Hit` out. */
+export function sceneCaster(s: RenderScene) {
+  const boardInv = s.board ? invert4(s.board.tf) : null
+  const plateInv = (s.plates ?? []).map((p) => invert4(p.tf))
+  return (r: Ray) => hitScene(s, r, boardInv, plateInv)
 }
 
 /** Renders `s` as camera `k` at `Twc` sees it through `lens` on an `outW` × `outH` grid, `aa` × `aa` samples averaged per cell. */
 export function renderView(k: Intrinsics, Twc: Mat4, s: RenderScene, outW = k.w, outH = k.h, lens: Lens = NO_LENS, aa = 1): Img {
   const img = makeImg(outW, outH, 3)
-  const boardInv = s.board ? invert4(s.board.tf) : null
-  const plateInv = (s.plates ?? []).map((p) => invert4(p.tf))
+  const cast = sceneCaster(s)
   for (let y = 0; y < outH; y++)
     for (let x = 0; x < outW; x++) {
       const i = (y * outW + x) * 3
       for (let sy = 0; sy < aa; sy++)
         for (let sx = 0; sx < aa; sx++) {
-          const c = hitScene(s, pixelRay(k, Twc, ((x + (sx + 0.5) / aa) * k.w) / outW - 0.5, ((y + (sy + 0.5) / aa) * k.h) / outH - 0.5, lens), boardInv, plateInv)
+          const c = cast(pixelRay(k, Twc, ((x + (sx + 0.5) / aa) * k.w) / outW - 0.5, ((y + (sy + 0.5) / aa) * k.h) / outH - 0.5, lens)).rgb
           for (let ch = 0; ch < 3; ch++) img.data[i + ch] += clamp(c[ch], 0, 255) / (aa * aa)
         }
     }

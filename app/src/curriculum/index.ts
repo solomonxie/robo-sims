@@ -137,6 +137,7 @@ import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners
 import { colourTrackingCentroidSteering, colourTrackingHsvMask } from '../lessons/perception/colour-tracking'
 import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth } from '../lessons/perception/camera-model'
 import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from '../lessons/perception/fiducial-markers'
+import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/perception/depth-sensing'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -555,6 +556,8 @@ const READY: Record<string, Lesson> = {
   'perception/camera-model/stereo-depth': cameraModelStereoDepth,
   'perception/fiducial-markers/detecting-a-tag': fiducialMarkersDetectingATag,
   'perception/fiducial-markers/pose-from-a-tag': fiducialMarkersPoseFromATag,
+  'perception/depth-sensing/depth-map': depthSensingDepthMap,
+  'perception/depth-sensing/point-cloud': depthSensingPointCloud,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -18,7 +18,7 @@ const cm = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${f2(m)} m` : m >=
 const DEG = Math.PI / 180
 
 /** Frustum rods: optical centre → the 4 image corners at depth `s`, plus the image rectangle; uses rods i…i+7. */
-function frustum(pool: ReturnType<typeof rodPool>, i: number, k: Intrinsics, Twc: Mat4, s: number, r: number, color: string) {
+export function frustum(pool: ReturnType<typeof rodPool>, i: number, k: Intrinsics, Twc: Mat4, s: number, r: number, color: string) {
   const o: V3 = [Twc[3], Twc[7], Twc[11]]
   const c = [[-0.5, -0.5], [k.w - 0.5, -0.5], [k.w - 0.5, k.h - 0.5], [-0.5, k.h - 0.5]].map(([u, v]) => apply4(Twc, [((u - k.cx) / k.fx) * s, ((v - k.cy) / k.fy) * s, s]) as V3)
   c.forEach((p, j) => {
