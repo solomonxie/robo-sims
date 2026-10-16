@@ -113,25 +113,37 @@ export interface PursuitFrame {
   err: number
 }
 
-/** Follow a closed path with pure pursuit at speed v; bicycle δ limited so the inner wheel stays within lock, commands `lag` s late, servo slewing at `steerRate` rad/s. */
-export function pursuitRun(pts: [number, number][], look: number, v: number, seconds: number, o = { dt: 0.01, steerRate: 4, lag: 0.08, g: ACKERMANN }) {
-  const path = polyPath(pts)
-  const [x0, y0] = pts[0]
-  let pose: Pose = { x: x0, y: y0, th: Math.atan2(pts[1][1] - y0, pts[1][0] - x0) }
+export type CarOpts = { dt: number; steerRate: number; lag: number; g: typeof ACKERMANN }
+export const CAR_SERVO: CarOpts = { dt: 0.01, steerRate: 4, lag: 0.08, g: ACKERMANN }
+
+/** Bicycle car at speed v for `seconds`: `steer(pose)` gives the wanted δ (clamped so the inner wheel stays within lock), applied `lag` s late through a servo slewing at `steerRate` rad/s. */
+export function carTrack<F>(start: Pose, v: number, seconds: number, o: CarOpts, steer: (p: Pose, max: number) => { want: number; frame: F }) {
+  let pose = start
   let delta = 0
   const max = minTurn(o.g.maxSteer, o.g).delta
   const queue: number[] = []
-  const out: PursuitFrame[] = []
+  const out: (F & { t: number; pose: Pose; delta: number })[] = []
   for (let k = 0; k * o.dt <= seconds; k++) {
-    const { s, d } = path.project(pose.x, pose.y)
-    const carrot = path.at((s + look) % path.length)
-    queue.push(pursuitSteer(pose, carrot, o.g.wheelbase, max))
-    const want = queue.length > Math.round(o.lag / o.dt) ? queue.shift()! : 0
-    delta += clamp(want - delta, -o.steerRate * o.dt, o.steerRate * o.dt)
-    out.push({ t: k * o.dt, pose, delta, carrot, err: d })
+    const { want, frame } = steer(pose, max)
+    queue.push(clamp(want, -max, max))
+    const late = queue.length > Math.round(o.lag / o.dt) ? queue.shift()! : 0
+    delta += clamp(late - delta, -o.steerRate * o.dt, o.steerRate * o.dt)
+    out.push({ ...frame, t: k * o.dt, pose, delta })
     pose = bicycleStep(pose, v, delta, o.g.wheelbase, o.dt)
   }
   return out
+}
+
+/** Follow a closed path with pure pursuit at speed v (carrot `look` m further along the path) through `carTrack`. */
+export function pursuitRun(pts: [number, number][], look: number, v: number, seconds: number, o = CAR_SERVO): PursuitFrame[] {
+  const path = polyPath(pts)
+  const [x0, y0] = pts[0]
+  const start: Pose = { x: x0, y: y0, th: Math.atan2(pts[1][1] - y0, pts[1][0] - x0) }
+  return carTrack(start, v, seconds, o, (pose, max) => {
+    const { s, d } = path.project(pose.x, pose.y)
+    const carrot = path.at((s + look) % path.length)
+    return { want: pursuitSteer(pose, carrot, o.g.wheelbase, max), frame: { carrot, err: d } }
+  })
 }
 
 export interface ParkMove {
