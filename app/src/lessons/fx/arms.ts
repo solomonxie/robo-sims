@@ -109,3 +109,15 @@ export function serialArm(parent: THREE.Object3D, arm: SerialArm, look: ArmLook 
   set(arm.rows.map(() => 0))
   return { group: g, set, glow, face, triads: tri, joints, colors: joints.map((j) => j.c) }
 }
+
+/** Turns a rig see-through in one flat colour (other IK solutions, past iterations); recolour via the returned material. */
+export function ghostRig(o: THREE.Object3D, color: string, opacity = 0.2) {
+  const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
+  o.traverse((c) => {
+    if (c instanceof THREE.Mesh) {
+      c.material = m
+      c.castShadow = c.receiveShadow = false
+    }
+  })
+  return m
+}

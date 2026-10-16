@@ -125,6 +125,7 @@ import { mpcConstraints, recedingHorizon } from '../lessons/control/model-predic
 import { kalmanFilter, lowPass, movingAverage } from '../lessons/control/filters-in-the-loop'
 import { coordFrameTree, homogeneousTransforms, rotation2d } from '../lessons/kinematics/coordinate-frames'
 import { denavitHartenberg, twoLinkArm } from '../lessons/kinematics/forward-kinematics'
+import { analyticIk, jacobianMethod, multipleSolutions } from '../lessons/kinematics/inverse-kinematics'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -512,6 +513,9 @@ const READY: Record<string, Lesson> = {
   'kinematics/coordinate-frames/frame-tree': coordFrameTree,
   'kinematics/forward-kinematics/two-link-arm': twoLinkArm,
   'kinematics/forward-kinematics/denavit-hartenberg': denavitHartenberg,
+  'kinematics/inverse-kinematics/analytic-ik': analyticIk,
+  'kinematics/inverse-kinematics/multiple-solutions': multipleSolutions,
+  'kinematics/inverse-kinematics/jacobian-method': jacobianMethod,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

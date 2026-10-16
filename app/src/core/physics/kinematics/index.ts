@@ -2,3 +2,5 @@
 export * from './transforms'
 export * from './frametree'
 export * from './chain'
+export * from './jacobian'
+export * from './ik'
