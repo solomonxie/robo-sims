@@ -38,31 +38,39 @@ export interface ArmCfg {
   block?: { deg: number; until: number }
   target?: number
   seconds?: number
+  /** Start at rest at `from` (°), setpoint `from` until the step. */
+  from?: number
+  /** Pot + driver lag (s), default `ARM.lag`. */
+  lag?: number
+  /** Add the duty that holds the setpoint (spring + gravity feed-forward). */
+  ff?: boolean
 }
 export interface ArmFrame { t: number; sp: number; th: number; meas: number; u: number; p: number; i: number; d: number; raw: number; sat: boolean; blocked: boolean }
 
 /** Closed loop in degrees: setpoint steps 0 → target at `ARM.stepAt`; the controller sees the angle `ARM.lag` late plus noise. */
 export function armRun(c: ArmCfg): ArmFrame[] {
   const { dt } = ARM
-  const late = Math.round(ARM.lag / dt)
+  const late = Math.round((c.lag ?? ARM.lag) / dt)
   const seconds = c.seconds ?? ARM.seconds
-  const past: number[] = Array(late + 1).fill(0)
-  let s: ArmState = { th: 0, w: 0 }
+  const from = c.from ?? 0
+  const past: number[] = Array(late + 1).fill(from)
+  let s: ArmState = { th: from * DEG, w: 0 }
   let mem = PID_MEM0
   const out: ArmFrame[] = []
   for (let k = 0; k * dt <= seconds + 1e-9; k++) {
     const t = k * dt
-    const sp = t >= ARM.stepAt ? (c.target ?? ARM.target) : 0
+    const sp = t >= ARM.stepAt ? (c.target ?? ARM.target) : from
     const th = s.th / DEG
     past.push(th)
     past.shift()
     const meas = past[0] + (c.noiseDeg ?? 0) * gaussAt(k)
     const r = pidTick(mem, sp, meas, c.pid, dt)
     mem = r.mem
+    const u = c.ff ? clamp(r.terms.out + loadDuty(sp, c.grams ?? 0), -1, 1) : r.terms.out
     const stop = c.block && t < c.block.until ? c.block.deg : undefined
     const blocked = stop !== undefined
-    out.push({ t, sp, th, meas, u: r.terms.out, p: r.terms.p, i: r.terms.i, d: r.terms.d, raw: r.terms.raw, sat: r.terms.sat, blocked })
-    s = armStep(s, r.terms.out, dt, c.grams ?? 0, stop)
+    out.push({ t, sp, th, meas, u, p: r.terms.p, i: r.terms.i, d: r.terms.d, raw: r.terms.raw, sat: r.terms.sat, blocked })
+    s = armStep(s, u, dt, c.grams ?? 0, stop)
   }
   return out
 }

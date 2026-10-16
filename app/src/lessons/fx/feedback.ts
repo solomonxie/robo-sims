@@ -1,5 +1,6 @@
 // Control block diagram: setpoint → Σ → controller → plant → output, sensor feedback into Σ; signals ride the wires as beads.
 // PID: the gearmotor arm rig and P/I/D/u term bars. Speed: a wheel rig with a speed gauge. Position: a car driving to a mark.
+// Stability: an s-plane screen with pole crosses and root-locus dots.
 import * as THREE from 'three/webgpu'
 import { DEG, TT_CAR } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
@@ -9,8 +10,9 @@ import { B_FIELD, DATA_COLOR, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, glo
 import { moduleBlock } from './diagrams'
 import { addRod, stretchRod } from './layout'
 import { pointCloud } from './rooms'
+import { scope } from './screens'
 import { lightRay } from './sensing'
-import { flatBox, stretchArrow } from './shapes'
+import { flatBox, glowBox, stretchArrow } from './shapes'
 import { addLabel, liveLabel } from './text'
 import { glide } from './util'
 
@@ -346,6 +348,62 @@ export function positionCar(parent: THREE.Object3D, at: V3, k: number, dist: num
       motorM.emissive.set(u >= 0 ? POWER : HEAT).lerp(dim, 1 - a * 0.6)
       const left = Math.round((dist - x) * 1000)
       vTag.set(left === 0 ? 'on the mark' : left > 0 ? `${left} mm to go` : `${-left} mm past`, Math.abs(left) <= 2 ? RING : left < 0 ? HIGH_V : GREY)
+    },
+  }
+}
+
+/** s-plane screen centred at `at`, equal axes at `per` 1/s per scene unit, grid every 5/s (keep the span a multiple of 10 on Im, odd
+ *  multiple of 5 on Re). Right half tinted red; `poles(list)` places up to 6 crosses, returns how many fell off-screen; `locus(pts)` dots. */
+export function sPlane(parent: THREE.Object3D, at: V3, per: number, reMin: number, reMax: number, imMax: number) {
+  const [w, h] = [(reMax - reMin) / per, (2 * imMax) / per]
+  const plot = scope(parent, w, h, { divs: [Math.round((reMax - reMin) / 5), Math.round((2 * imMax) / 5)], zeroAt: 0.5 })
+  plot.group.position.set(...at)
+  const re0 = -reMin
+  const g = plot.group
+  const x0 = -w / 2 + re0 / per
+  const xy = (re: number, im: number): [number, number, boolean] => {
+    const [x, y] = [x0 + re / per, im / per]
+    const cx = Math.min(w / 2, Math.max(-w / 2, x))
+    const cy = Math.min(h / 2, Math.max(-h / 2, y))
+    return [cx, cy, cx === x && cy === y]
+  }
+  glowBox(g, [w / 2 - x0, h, 0.02], [(x0 + w / 2) / 2, 0, 0.05], HIGH_V, 0.16)
+  flatBox(g, [0.07, h, 0.05], glowMat(HIGH_V, 0.7), [x0, 0, 0.2])
+  addLabel(g, 'jω', [x0 - 0.3, h / 2 - 0.35, 0.3], GREY, 0.28, 'right')
+  addLabel(g, 'σ', [w / 2 - 0.3, 0.3, 0.3], GREY, 0.28, 'right')
+  addLabel(g, 'unstable', [(x0 + w / 2) / 2, -h / 2 + 0.35, 0.3], HIGH_V, 0.24)
+  const crosses = Array.from({ length: 6 }, () => {
+    const m = glowMat(RING, 1.1)
+    const c = add(g, new THREE.Group())
+    for (const r of [1, -1]) flatBox(c, [0.62, 0.13, 0.1], m, [0, 0, 0.3]).rotation.z = (r * Math.PI) / 4
+    return { c, m }
+  })
+  const dots = pointCloud(g, 400, 0.05)
+  return {
+    group: g,
+    w,
+    h,
+    xy,
+    poles(list: readonly { re: number; im: number }[], color: (k: number) => string = () => RING) {
+      let off = 0
+      crosses.forEach(({ c, m }, k) => {
+        const p = list[k]
+        const [x, y, inside] = p ? xy(p.re, p.im) : [0, 0, false]
+        c.visible = inside
+        if (p && !inside) off++
+        if (!inside) return
+        c.position.set(x, y, 0)
+        setGlow(m, color(k), 1.1)
+      })
+      return off
+    },
+    locus(pts: readonly { re: number; im: number }[], color: string) {
+      let n = 0
+      for (const p of pts) {
+        const [x, y, inside] = xy(p.re, p.im)
+        if (inside && n < 400) dots.set(n++, [x, y, 0.22], color)
+      }
+      dots.show(n)
     },
   }
 }
