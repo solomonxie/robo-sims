@@ -17,7 +17,7 @@ import {
   wsRun,
 } from '../../core/physics'
 import { hertz, hexByte, msText } from '../../core/units'
-import { V3, add, box, mesh } from '../../models/kit'
+import { V3, box } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -42,36 +42,18 @@ import {
   memoBy,
   meterBar,
   packetPool,
-  phoneModel,
   pointCloud,
   ripples,
   routerModel,
   scope,
   setGlow,
   simClock,
+  stickPhone,
 } from '../fx'
 import { Lesson, Params, Stage, opts, pick } from '../types'
 
 const pctText = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)} %`
 const hexRow = (b: number[]) => b.map((x) => hexByte(x).slice(2)).join(' ')
-
-/** Phone with an on-screen thumbstick under two text rows; `stick(x, y)` moves the knob (x right, y up). */
-function stickPhone(parent: THREE.Object3D, at: V3, k: number) {
-  const phone = phoneModel(parent, at, k, 2)
-  phone.screen('#10161c', 0.4)
-  const c: V3 = [0, -0.6, 0.08]
-  const ring = add(phone.group, mesh(new THREE.TorusGeometry(0.55, 0.035, 8, 40), glowMat(GREY, 0.6)), c)
-  ring.castShadow = false
-  const knob = add(phone.group, mesh(new THREE.SphereGeometry(0.2, 16, 12), glowMat(RING, 1)), c)
-  knob.castShadow = false
-  return {
-    ...phone,
-    top: [at[0], at[1] + 1.6 * k, at[2] + 0.2] as V3,
-    stick(x: number, y: number) {
-      knob.position.set(c[0] + x * 0.45, c[1] + y * 0.45, c[2] + 0.1)
-    },
-  }
-}
 
 const worldOf = (o: THREE.Object3D, v = new THREE.Vector3()): V3 => {
   o.getWorldPosition(v)

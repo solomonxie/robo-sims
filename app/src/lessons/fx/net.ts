@@ -1,7 +1,7 @@
 // Networked devices face-on: phone, Wi-Fi router, robot car with an ESP32, radio ripples and packets in flight.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod } from '../../models/kit'
-import { GREY, LABEL, glowMat, setGlow } from './colors'
+import { GREY, LABEL, RING, glowMat, setGlow } from './colors'
 import { shadowlessRod, stretchRod } from './layout'
 import { esp32Board } from './modules'
 import { addLabel, liveLabel } from './text'
@@ -20,6 +20,24 @@ export function phoneModel(parent: THREE.Object3D, at: V3, k = 1, rows = 3) {
     group: g,
     lines,
     screen: (color: string, f: number) => setGlow(scr, color, f),
+  }
+}
+
+/** Phone with an on-screen thumbstick under two text rows; `stick(x, y)` moves the knob (x right, y up). */
+export function stickPhone(parent: THREE.Object3D, at: V3, k: number) {
+  const phone = phoneModel(parent, at, k, 2)
+  phone.screen('#10161c', 0.4)
+  const c: V3 = [0, -0.6, 0.08]
+  const ring = add(phone.group, mesh(new THREE.TorusGeometry(0.55, 0.035, 8, 40), glowMat(GREY, 0.6)), c)
+  ring.castShadow = false
+  const knob = add(phone.group, mesh(new THREE.SphereGeometry(0.2, 16, 12), glowMat(RING, 1)), c)
+  knob.castShadow = false
+  return {
+    ...phone,
+    top: [at[0], at[1] + 1.6 * k, at[2] + 0.2] as V3,
+    stick(x: number, y: number) {
+      knob.position.set(c[0] + x * 0.45, c[1] + y * 0.45, c[2] + 0.1)
+    },
   }
 }
 
