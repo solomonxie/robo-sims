@@ -1,7 +1,7 @@
 // Push/pull solenoid: plunger force vs gap, low-side drive with peak-and-hold PWM, flyback, coil heat.
 
-import { MU_0 } from './electromagnetism'
-import { DIODES, diodeVolts } from './semiconductors'
+import { MU_0 } from '../electromagnetism'
+import { DIODES, diodeVolts } from '../semiconductors'
 
 export interface Solenoid {
   volts: number

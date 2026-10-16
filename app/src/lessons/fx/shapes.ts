@@ -52,3 +52,15 @@ export const flatBox = (parent: THREE.Object3D, size: V3, m: THREE.Material, at:
 /** See-through housing material. */
 export const shellMat = (color: string, opacity: number, roughness = 0.1) =>
   new THREE.MeshStandardMaterial({ color, transparent: true, opacity, roughness, depthWrite: false })
+
+/** Ring sector in the xy plane (inner r0, outer r1, centred on angle `mid`, `span` wide), extruded `depth` along +z. */
+export function sectorGeometry(r0: number, r1: number, mid: number, span: number, depth: number) {
+  const a0 = mid - span / 2
+  const a1 = mid + span / 2
+  const s = new THREE.Shape()
+  s.moveTo(r1 * Math.cos(a0), r1 * Math.sin(a0))
+  s.absarc(0, 0, r1, a0, a1, false)
+  s.lineTo(r0 * Math.cos(a1), r0 * Math.sin(a1))
+  s.absarc(0, 0, r0, a1, a0, true)
+  return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 20 })
+}

@@ -21,6 +21,7 @@ import {
   indexMove,
   outputKt,
   peakTorque,
+  radSToRpm,
   ratedNm,
   rmsTorque,
   stallA,
@@ -60,7 +61,6 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const nm = (x: number) => `${x.toFixed(x < 0.1 ? 3 : 2)} N·m`
-const toRpm = (radS: number) => (radS * 60) / (2 * Math.PI)
 const DRIVE_NAMES = Object.fromEntries((Object.keys(DRIVES) as DriveKind[]).map((k) => [k, DRIVES[k].name])) as Record<DriveKind, string>
 
 /** Drive as a real-proportioned part (1 unit = 10 mm before `k`), output shaft at the origin along +z; `set(angle, heat)`. */
@@ -336,9 +336,9 @@ export const torqueBudgetLesson: Lesson = {
           const tip = new THREE.Vector3(5.4, -0.3 - s - 0.5, 0).applyAxisAngle(new THREE.Vector3(0, 0, 1), arm.rotation.z)
           payloadTag.group.position.set(shoulder[0] + tip.x, shoulder[1] + tip.y, 1.4)
           payloadTag.set(`${Math.round(task.payloadKg * 1000)} g`, LABEL)
-          rpmNow = Math.abs(toRpm(st.w))
+          rpmNow = Math.abs(radSToRpm(st.w))
           tNow = armGravityNm(task, st.th) + task.bearingNm + (stuck ? 0 : armInertia(task) * alpha)
-          sub.set(`15 cm arm, lifts at ${Math.round(toRpm(task.speedRadS) * 6)}°/s, α ${task.alpha} rad/s² · real time`)
+          sub.set(`15 cm arm, lifts at ${Math.round(radSToRpm(task.speedRadS) * 6)}°/s, α ${task.alpha} rad/s² · real time`)
         }
         st.t += dt
         dot.position.set(plot.xAt(xU(rpmNow)), yT(Math.max(0, tNow)), 0.4)
@@ -373,7 +373,7 @@ const dutyParams = (p: Params) => {
   const m = indexMove(moveS, dwell)
   const askedPeak = peakTorque(indexMove(asked, dwell).segs)
   const peak = peakTorque(m.segs)
-  const limit = availableNm(d, toRpm(m.vmax))
+  const limit = availableNm(d, radSToRpm(m.vmax))
   return { dk, d, asked, dwell, moveS, m, run: m, askedPeak, peak, limit, rms: rmsTorque(m.segs), rated: ratedNm(d), slowed: moveS > asked + 1e-6 }
 }
 
@@ -489,7 +489,7 @@ export const dutyCycleLesson: Lesson = {
               : `Peak and RMS both fit: ${Math.round((100 * q.rms) / q.rated)} % of rating`,
           q.slowed || hot ? HIGH_V : POWER,
         )
-        sub.set(`${q.d.name} geared, ${(q.m.alpha).toFixed(0)} rad/s², top ${Math.round(toRpm(q.m.vmax))} rpm · real time`)
+        sub.set(`${q.d.name} geared, ${(q.m.alpha).toFixed(0)} rad/s², top ${Math.round(radSToRpm(q.m.vmax))} rpm · real time`)
       },
       readouts: (p) => {
         const q = dutyParams(p)
@@ -497,7 +497,7 @@ export const dutyCycleLesson: Lesson = {
           { label: 'Peak / limit', value: `${nm(q.peak)} / ${nm(q.limit)}`, tone: q.slowed ? 'bad' : q.peak > 0.8 * q.limit ? 'warn' : 'ok' },
           { label: 'RMS / rated', value: `${nm(q.rms)} / ${nm(q.rated)}`, tone: q.rms > q.rated ? 'bad' : q.rms > 0.8 * q.rated ? 'warn' : 'ok' },
           { label: 'Moving', value: `${Math.round((100 * q.moveS) / q.m.cycle)} % of ${q.m.cycle.toFixed(2)} s`, tone: q.slowed ? 'bad' : 'ok' },
-          { label: 'Top speed', value: `${Math.round(toRpm(q.m.vmax))} rpm` },
+          { label: 'Top speed', value: `${Math.round(radSToRpm(q.m.vmax))} rpm` },
         ]
       },
     }

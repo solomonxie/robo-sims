@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `msText`, `bytesText`, `signed`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
+- Numbers only from tested pure fns in `core/` (+ test); `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `msText`, `pct`, `bytesText`, `signed`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `e12`, `resistorSlider`, `bitChoice`).
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -16,8 +16,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 `lessons/fx/` (import `'../fx'`; model in brackets):
 - `util` — `ease`/`glide`, `lerp`, `frac`, `smoothstep`, `sineHash`, `add3`, `path`, `emptyGroup`, `presence`, `halton`, `memoBy`, `peakToPeak`.
-- `colors` — palette (`HEAT`, `INK`, …), `glowMat`, `setGlow`, `potentialColor`, `toneColor` (readout tone → colour).
-- `shapes` — `arrow`, `plusGeometry`, `glowBox`, `flatBox` (shadowless), `trayMat`, `shellMat` (see-through housing).
+- `colors` — palette (`HEAT`, `INK`, …), `lit` (THREE.Color), `glowMat`, `setGlow`, `potentialColor`, `toneColor` (readout tone → colour).
+- `shapes` — `arrow`, `plusGeometry`, `glowBox`, `flatBox` (shadowless), `trayMat`, `shellMat` (see-through housing), `sectorGeometry`.
 - `text` — `label`, `addLabel` (shadowless, at a point), `liveLabel` (changing text), `textLines` (3 lines + status) [`core/strokeFont`].
 - `layout` — `wire`, `cableRun`, `LANE`/`lane`, `R_SCALE`/`RS`/`CELL_H`, `cellFraction`, `dropAlong`, `lieFlat`/`standUp`, `UNIT_ROD`/`shadowlessRod`/`stretchRod`, `addRod`, `rodBetween`.
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
@@ -27,7 +27,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `cells` — `cellCutaway`, `cell18650`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, `speaker`.
-- `motors` — `brushedMotor` (cut open: magnets, 3-slot armature, commutator + brushes; `set(angle, level, heat)`), `nema17` (8 poles, 50-tooth rotor; `set(angle, ia, ib)`), `bldcMotor` (outrunner, 6 teeth, 2-pole bell, opt. Halls; `set(angle, [ia, ib, ic])`), `spurGear` (opt. tooth `thick`), `ringGear` (internal), `gearTrain`, `sectorGeometry`, `leadScrew` (nut + threads, `set(y)` turns it) [`physics/electromechanical`, `physics/gearing`, `physics/stepper`, `physics/bldc`].
+- `motors` — `brushedMotor` (cut open; `set(angle, level, heat)`), `nema17` (`set(angle, ia, ib)`), `bldcMotor` (outrunner, opt. Halls; `set(angle, [ia, ib, ic])`), `PHASE_COLORS` [`physics/actuators`].
+- `gears` — `spurGear`, `ringGear`, `gearTrain`, `leadScrew` (`set(y)` turns it), `gearPlastic`/`gearBrass` [`physics/actuators`].
 - `switches` — tact/toggle switches, pot, `estopButton` (NC mushroom), `microSwitch` (lever, COM/NC/NO; `microSwitchReach`), cut open.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
 - `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `pixelGrid` (instanced sensor pixels, sRGB `set`), `IR_TINT`, `SUN_TINT` [`physics/sensors`].
@@ -41,22 +42,12 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `flows` — `Flow`, electron gas, ion lattice, `plusFlow`, `loopBeads`.
 - `heat`, `crystal`, `dies`, `fields`, `plots`, `story` (stepped lessons).
 
-`core/physics/` (flat files: dc, ac, circuits, semiconductors, … timing, levels) + subfolders:
+`core/physics/` (flat files: dc, ac, circuits, semiconductors, electromechanical (relays, switches, pots), … timing, levels) + subfolders:
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
-- `software/`:
-  - `messaging` — pub/sub QoS, service vs action, launch respawn.
-  - `urdf` — 4×4 `tf3`/`mul4`/`invert4`, `parseUrdf`, `urdfTree`, `linkFrames`, `ROVER`.
-  - `frames` — `compose2`/`invert2`, drifting `odomPose`, `tfChain`.
-  - `costmap` — layers, `inflate`, A* `planGrid`, `costmapRun`.
-  - `btree` — `btTick` (+ decorators), Nav2 `NAV_TREE`/`btNavRun`.
-  - `fetchbot` — fetch robot `fetchRun` vs `FETCH_FSM`, blackboard `bbRun`.
-  - `microros` — agent reconnect `urosRun`, XRCE over UART/UDP `xrceRun`.
-  - `telemetry` — `speedRun`/`streamRun` over radio, `faultRun` log, `replayAt`.
-  - `simulation` — box engine `physStep`/`physRun`, sim-vs-real `twinRun`/`tuneTwin`.
-  - `remote` — `stickToWheels`, BLE `joyRun`, WebSocket `wsRun`, `lagRun`/`safeSpeed`.
-  - `safety` — WDT `wdtRun`, E-stop `estopRun`, fault FSM `faultFsmRun`.
+- `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
+- `actuators/` — dcmotor, hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
 - `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `DEG`/`toDeg`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
@@ -81,18 +72,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 
 
 ### Wave 5 — Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
-- Actuators:
-  - [x] DC motor
-  - [x] H-bridge
-  - [x] Servo
-  - [x] Stepper
-  - [x] Brushless (BLDC)
-  - [x] Field-oriented control
-  - [x] Linear actuators
-  - [x] Solenoids & pumps
-  - [x] Gear trains
-  - [x] Pneumatics & soft robots
-  - [x] Motor selection
+- Actuators ✓ 11/11
 - Mobility:
   - [ ] Differential drive
   - [ ] Mecanum wheels

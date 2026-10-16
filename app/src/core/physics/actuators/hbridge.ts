@@ -1,9 +1,9 @@
 // H-bridge: four switches around a DC motor, bipolar vs MOSFET drivers, PWM decay modes, shoot-through and dead time.
-import { clamp01 } from './common'
-import { DcMotor, TT_INERTIA, TT_MOTOR, frictionNm, freeSpeed, motorK } from './electromechanical'
-import { tb6612Drop } from './mcu/firmware'
-import { l298nDrop } from './power/budget'
-import { AMBIENT_C } from './regulators'
+import { clamp01 } from '../common'
+import { DcMotor, TT_INERTIA, TT_MOTOR, frictionNm, freeSpeed, motorK } from './dcmotor'
+import { tb6612Drop } from '../mcu/firmware'
+import { l298nDrop } from '../power/budget'
+import { AMBIENT_C } from '../regulators'
 
 // --- Four switches: Q1/Q2 left leg (high/low), Q3/Q4 right leg. ---
 

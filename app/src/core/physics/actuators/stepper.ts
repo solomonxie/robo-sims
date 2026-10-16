@@ -1,6 +1,6 @@
 // Stepper motors: sine-table phase currents per microstep, rotor dynamics, step drivers (Vref, chopper, StallGuard),
 // the pull-out torque curve and steps lost to too steep a ramp or too much load (open loop).
-import { clamp, clamp01 } from './common'
+import { clamp, clamp01 } from '../common'
 
 /** 17HS4401-class NEMA17: 1.8° (50 rotor teeth), 1.5 A, 0.4 N·m holding; J = rotor + a 3D-printed arm; 24 V supply. */
 export const NEMA17 = { steps: 200, teeth: 50, ratedA: 1.5, holdNm: 0.4, ohms: 1.5, henries: 2.8e-3, inertia: 3e-4, zeta: 0.1, supplyV: 24 }

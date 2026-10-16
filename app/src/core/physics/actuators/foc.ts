@@ -1,7 +1,7 @@
 // Field-oriented control: Clarke/Park transforms, PI current loops, SVPWM duties and a surface-magnet PMSM in d/q.
 // Angles are electrical (rad); phase axes A 0, B 120°, C 240° as in bldc.ts. Clarke is amplitude-invariant.
 import { commutationStep, phaseState } from './bldc'
-import { clamp, clamp01, wrap2pi } from './common'
+import { clamp, clamp01, wrap2pi } from '../common'
 
 const R3 = Math.sqrt(3)
 const THIRD = (2 * Math.PI) / 3

@@ -1,5 +1,5 @@
 // Gear trains: tooth ratios and meshing phase, backlash, planetary sets, worm drives.
-import { DEG } from './common'
+import { DEG } from '../common'
 
 const TAU = 2 * Math.PI
 const wrap1 = (x: number) => ((x % 1) + 1) % 1

@@ -38,7 +38,7 @@ import {
   solenoidRun,
   solenoidSummary,
 } from '../../core/physics'
-import { msText, secs } from '../../core/units'
+import { msText, pct, secs } from '../../core/units'
 import { V3, add, box, cylinder, mat, rod, STEEL } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -78,7 +78,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const pct = (f: number) => `${Math.round(f * 100)} %`
 const amps = (a: number) => `${a.toFixed(2)} A`
 const watts = (w: number) => `${w < 10 ? w.toFixed(1) : w.toFixed(0)} W`
 

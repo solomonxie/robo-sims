@@ -29,7 +29,7 @@ import {
   stepsPerMm,
   weightN,
 } from '../../core/physics'
-import { msText } from '../../core/units'
+import { msText, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat, rod, STEEL } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -61,7 +61,6 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const ALU = () => mat('#c3c8cf', { metal: 0.3, rough: 0.45 })
-const pct = (f: number) => `${Math.round(f * 100)} %`
 const MICRO = 16
 
 // --- Lead screw: lead sets mm per step and the force; a fine trapezoidal thread self-locks, a ball screw doesn't. ---

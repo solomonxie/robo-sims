@@ -45,6 +45,7 @@ import {
   i2cBreakout,
   junction,
   lidarRobot,
+  lit,
   litWire,
   liveLabel,
   memoBy,
@@ -60,7 +61,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, opts, pick } from '../types'
 
-const lit = (c: string) => new THREE.Color(c)
 
 // --- Watchdog: the loop feeds the task WDT; an I²C read that never returns stops the feeding and the WDT resets the chip. ---
 

@@ -1,6 +1,6 @@
 // Brushless DC motor: six-step (trapezoidal) commutation, Hall and sensorless start-up, hobby ESC (PWM / DShot, limits).
 // Angles are electrical (rad): a 2-pole rotor, so one electrical turn is one mechanical turn.
-import { clamp, clamp01, wrap2pi, wrapPi } from './common'
+import { clamp, clamp01, wrap2pi, wrapPi } from '../common'
 
 const SIXTH = Math.PI / 3
 

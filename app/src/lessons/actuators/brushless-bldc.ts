@@ -49,6 +49,7 @@ import {
   HIGH_V,
   LABEL,
   LOW_V,
+  PHASE_COLORS,
   PIN_COLOR,
   POWER,
   RING,
@@ -60,6 +61,7 @@ import {
   fetSymbol,
   glowMat,
   heatWaves,
+  lit,
   litWire,
   liveLabel,
   memoBy,
@@ -70,8 +72,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const PHASE_COLORS = [HEAT, B_FIELD, DATA_COLOR]
-const lit = (c: string) => new THREE.Color(c)
 const rpmText = (rpm: number) => `${Math.round(rpm).toLocaleString('en-US')} rpm`
 const ampsOf = (step: number) => [0, 1, 2].map((p) => phaseState(step, p))
 const stepAt = (u: number) => commutationStep(u * 2 * Math.PI)

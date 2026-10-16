@@ -1,4 +1,4 @@
-import { DEG } from './common'
+import { DEG } from '../common'
 import {
   backlashStep,
   backlashTrace,

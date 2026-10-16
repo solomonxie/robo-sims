@@ -43,6 +43,7 @@ import {
   esp32Board,
   glowMat,
   heatWaves,
+  lit,
   litWire,
   liveLabel,
   memoBy,
@@ -55,7 +56,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const lit = (c: string) => new THREE.Color(c)
 const nm = (v: number) => `${v.toFixed(2)} N·m`
 const PHASE_A = HEAT
 const PHASE_B = B_FIELD

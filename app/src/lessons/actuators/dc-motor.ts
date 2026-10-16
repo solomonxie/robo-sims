@@ -48,6 +48,7 @@ import {
   heatWaves,
   inOutBars,
   ivScreen,
+  lit,
   litWire,
   liveLabel,
   memoBy,
@@ -61,7 +62,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const lit = (c: string) => new THREE.Color(c)
 const R = TT_MOTOR.ohms
 const mNm = (nm: number) => `${(nm * 1000).toFixed(2)} mN·m`
 const rpm = (radS: number) => Math.round(radS * RPM_PER_RADS)

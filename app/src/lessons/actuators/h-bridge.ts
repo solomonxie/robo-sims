@@ -50,6 +50,7 @@ import {
   heatGlow,
   heatWaves,
   lane,
+  lit,
   litWire,
   liveLabel,
   loopBeads,
@@ -62,7 +63,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const lit = (c: string) => new THREE.Color(c)
 const rpm = (radS: number) => Math.round(radS * RPM_PER_RADS)
 const SW: HSwitch[] = ['q1', 'q2', 'q3', 'q4']
 

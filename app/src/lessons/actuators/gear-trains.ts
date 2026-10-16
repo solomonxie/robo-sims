@@ -35,6 +35,7 @@ import {
   wormRatio,
   wormSelfLocking,
 } from '../../core/physics'
+import { pct } from '../../core/units'
 import { add, box, cylinder, mat, rod, STEEL } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -50,6 +51,8 @@ import {
   cursorBar,
   emptyGroup,
   frac,
+  gearBrass,
+  gearPlastic,
   glowMat,
   leadScrew,
   liveLabel,
@@ -62,10 +65,7 @@ import {
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const num = (x: number) => (Math.abs(x - Math.round(x)) < 1e-9 ? `${Math.round(x)}` : x.toFixed(x < 10 ? 2 : 1))
-const pct = (f: number) => `${Math.round(f * 100)} %`
 const mNm = (nm: number) => `${(nm * 1000).toFixed(0)} mN·m`
-const plastic = () => mat('#f1efe6', { rough: 0.55 })
-const brass = () => mat('#d9b24a', { metal: 0.35, rough: 0.4 })
 const torus = (parent: THREE.Object3D, r: number, color: string, at: [number, number, number], tube = 0.05) => {
   const m = add(parent, new THREE.Mesh(new THREE.TorusGeometry(r, tube, 6, Math.max(48, Math.round(r * 24))), glowMat(color, 1)), at)
   m.castShadow = false
@@ -159,7 +159,7 @@ export const gearRatioLesson: Lesson = {
       pivots = q.gears.map((g, i) => {
         const x = xs[i] + dx
         const pv = add(holder, new THREE.Group(), [x, y, zs[i]])
-        spurGear(pv, g.teeth, q.mod * K, GR.w, i === 0 || g.shaft ? brass() : plastic())
+        spurGear(pv, g.teeth, q.mod * K, GR.w, i === 0 || g.shaft ? gearBrass() : gearPlastic())
         box(pv, [Math.max(0.2, r(i) * 0.25), 0.25, 0.1], red, [r(i) * 0.62, 0, GR.w / 2 + 0.05]).castShadow = false
         torus(holder, r(i), RING, [x, y, zs[i] + GR.w / 2 + 0.08])
         if (i > 0 && !g.shaft) {
@@ -297,8 +297,8 @@ export const backlash: Lesson = {
     zoom.rotation.z = -Math.PI / 2
     box(zoom, [ZOOM.w + 0.3, ZOOM.h + 0.3, 0.2], mat('#0b1013', { rough: 0.6 }), [0, 0, -0.4]).castShadow = false
     const root = 0.6 * BK.mod * ZOOM.k + 0.4
-    box(zoom, [0.8, ZOOM.h, 0.3], brass(), [-root, 0, 0]).castShadow = false
-    box(zoom, [0.8, ZOOM.h, 0.3], plastic(), [root, 0, 0]).castShadow = false
+    box(zoom, [0.8, ZOOM.h, 0.3], gearBrass(), [-root, 0, 0]).castShadow = false
+    box(zoom, [0.8, ZOOM.h, 0.3], gearPlastic(), [root, 0, 0]).castShadow = false
     addLabel(scene, `the mesh, ×${ZOOM.k}`, [ZOOM.x, ZOOM.y - ZOOM.w / 2 - 0.6, 0.6], GREY, 0.3)
     const zPitch = add(zoom, new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), glowMat(B_FIELD, 1.3)), [0, 0, 0.3])
     zPitch.castShadow = false
@@ -340,11 +340,11 @@ export const backlash: Lesson = {
       emptyGroup(gears)
       const thick = Math.max(0.06, (Math.PI * BK.mod - q.gap * DEG * rg) / 2)
       pinion = add(gears, new THREE.Group(), [px, BK.gy, 0])
-      spurGear(pinion, BK.zp, BK.mod, BK.w, brass(), thick)
+      spurGear(pinion, BK.zp, BK.mod, BK.w, gearBrass(), thick)
       const split = q.fix === 'split'
       halves = (split ? [0.25, -0.25] : [0]).map((z, k) => {
         const h = add(gears, new THREE.Group(), [BK.gx, BK.gy, z * BK.w])
-        spurGear(h, BK.zg, BK.mod, split ? BK.w / 2 : BK.w, k === 1 ? mat(RING, { metal: 0.35, rough: 0.4 }) : plastic(), thick)
+        spurGear(h, BK.zg, BK.mod, split ? BK.w / 2 : BK.w, k === 1 ? mat(RING, { metal: 0.35, rough: 0.4 }) : gearPlastic(), thick)
         return h
       })
       halfTag.set(split ? (q.eff > 0 ? 'load out-pulls the spring: halves pushed together' : 'gold half sprung against the white one') : '')
@@ -353,7 +353,7 @@ export const backlash: Lesson = {
         im.geometry.dispose()
       }
       const geo = new THREE.BoxGeometry(1.6 * BK.mod * ZOOM.k, thick * ZOOM.k, 0.3)
-      zTeeth = [brass(), plastic(), mat(RING, { metal: 0.35, rough: 0.4 })].map((m) => {
+      zTeeth = [gearBrass(), gearPlastic(), mat(RING, { metal: 0.35, rough: 0.4 })].map((m) => {
         const im = new THREE.InstancedMesh(geo, m, 4)
         im.frustumCulled = false
         im.castShadow = false

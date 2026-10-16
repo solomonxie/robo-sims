@@ -1,8 +1,8 @@
 // Hobby servos: pulse ranges and end stops, continuous rotation, the P-loop inside (pot, H-bridge, deadband), jitter and supply sag.
-import { clamp, clamp01, gaussAt } from './common'
-import { SERVO_DEG_PER_S, SERVO_HZ } from './mcu/pwm'
-import { ESP32_BOD } from './power/brownout'
-import { AMS1117_33, dropoutVolts } from './regulators'
+import { clamp, clamp01, gaussAt } from '../common'
+import { SERVO_DEG_PER_S, SERVO_HZ } from '../mcu/pwm'
+import { ESP32_BOD } from '../power/brownout'
+import { AMS1117_33, dropoutVolts } from '../regulators'
 
 // --- Pulse to angle: each servo maps its own pulse range onto 0–180°, then a mechanical stop. ---
 

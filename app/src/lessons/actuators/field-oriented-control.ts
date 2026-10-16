@@ -32,6 +32,7 @@ import {
   HIGH_V,
   LABEL,
   LOW_V,
+  PHASE_COLORS,
   POWER,
   RING,
   addLabel,
@@ -51,7 +52,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const PHASE_COLORS = [HEAT, B_FIELD, DATA_COLOR]
 const TAU = 2 * Math.PI
 const turn = (th: number) => (((th / TAU) % 1) + 1) % 1
 const amps = (a: number) => `${(Math.abs(a) < 0.05 ? 0 : a).toFixed(1)} A`

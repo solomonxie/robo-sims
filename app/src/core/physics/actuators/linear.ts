@@ -1,7 +1,7 @@
 // Linear actuators: lead and ball screws (lead, efficiency, thrust, self-locking), a 12 V screw actuator, and homing an
 // axis to a limit switch (NO/NC wiring, bounce and debounce, soft limits, the crash without one).
-import { DEG, clamp } from './common'
-import { Debounce, SwitchPart, bounceEdges, bouncedState, debounceStep } from './electromechanical'
+import { DEG, clamp } from '../common'
+import { Debounce, SwitchPart, bounceEdges, bouncedState, debounceStep } from '../electromechanical'
 import { pullOutNm, rpmToRadS, stepsPerRev } from './stepper'
 
 const G = 9.81

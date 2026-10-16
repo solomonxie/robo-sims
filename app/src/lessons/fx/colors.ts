@@ -41,3 +41,4 @@ export function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number)
 
 /** Readout tone → colour for 3D text. */
 export const toneColor = { ok: POWER, warn: HEAT, bad: HIGH_V }
+export const lit = (c: string) => new THREE.Color(c)

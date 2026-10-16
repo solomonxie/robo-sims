@@ -1,5 +1,5 @@
 // Motor selection: a torque budget against each drive's T–ω curve, RMS torque over a move, winding heat under a duty cycle.
-import { clamp01 } from './common'
+import { clamp01 } from '../common'
 import { pullOutNm, rpmToRadS } from './stepper'
 
 const G = 9.81

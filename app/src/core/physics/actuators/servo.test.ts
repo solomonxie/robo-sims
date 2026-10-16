@@ -1,6 +1,6 @@
+import { ESP32_BOD } from '../power'
 import {
   CR_SERVO,
-  ESP32_BOD,
   SERVO_SPECS,
   crRpm,
   overshootDeg,

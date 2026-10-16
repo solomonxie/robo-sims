@@ -59,10 +59,10 @@ import {
   simClock,
   ticks,
   wire,
+  lit,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const lit = (c: string) => new THREE.Color(c)
 const deg0 = (d: number) => `${Math.round(d)}°`
 const pct = (f: number) => `${f > 0 ? '+' : ''}${Math.round(f * 100)} %`
 
