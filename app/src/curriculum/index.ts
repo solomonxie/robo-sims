@@ -114,6 +114,7 @@ import { gaitCycle, legIk, zeroMomentPoint } from '../lessons/mobility/legged-wa
 import { selfBalancingCar, tiltPid, whyItFalls } from '../lessons/mobility/balancing-robots'
 import { attitudeControl, quadcopterMixing } from '../lessons/mobility/drones-flight'
 import { buoyancyLesson, thrusterLayout } from '../lessons/mobility/underwater-swimming'
+import { chatter, thermostat } from '../lessons/control/bang-bang-hysteresis'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -471,6 +472,8 @@ const READY: Record<string, Lesson> = {
   'mobility/underwater-swimming/thruster-layout': thrusterLayout,
   'control/open-vs-closed-loop/dead-reckoning-drift': deadReckoningDrift,
   'control/open-vs-closed-loop/closing-the-loop': closingTheLoop,
+  'control/bang-bang-hysteresis/thermostat': thermostat,
+  'control/bang-bang-hysteresis/chatter': chatter,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

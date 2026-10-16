@@ -13,7 +13,7 @@ export type LoopSignal = 'r' | 'e' | 'u' | 'y' | 'm' | 'd' | 'n'
 export const LOOP_COLORS: Record<LoopSignal, string> = { r: B_FIELD, e: HEAT, u: POWER, y: RING, m: RING, d: GREY, n: HIGH_V }
 
 /** `w` × `h` diagram centred on `at`. Without `feedback` the sensor path is drawn cut (open loop) and Σ is skipped.
- *  `set(dt, levels, texts)`: level 0…1 per signal sets bead speed and glow (blocks light with their output); texts sit by each wire. */
+ *  `set(dt, levels, texts, titles?)`: level 0…1 per signal sets bead speed and glow (blocks light with their output); texts sit by each wire. */
 export function controlLoop(
   parent: THREE.Object3D,
   at: V3,
@@ -84,7 +84,7 @@ export function controlLoop(
   return {
     group: g,
     blocks,
-    set(dt: number, levels: Partial<Record<LoopSignal, number>>, texts: Partial<Record<LoopSignal, string>> = {}) {
+    set(dt: number, levels: Partial<Record<LoopSignal, number>>, texts: Partial<Record<LoopSignal, string>> = {}, titles: { ctrl?: string; plant?: string; sensor?: string } = {}) {
       for (const k of Object.keys(LOOP_COLORS) as LoopSignal[]) {
         const v = Math.min(1, Math.abs(levels[k] ?? 0))
         phase.set(k, (phase.get(k) ?? 0) + dt * (0.15 + 1.2 * v) / 2)
@@ -92,9 +92,9 @@ export function controlLoop(
       }
       for (const { k, pts, ray } of rays) ray(pts, (phase.get(k) ?? 0) / pathLen(pts) * 2, 0.15 + 1.1 * Math.min(1, Math.abs(levels[k] ?? 0)), LOOP_COLORS[k])
       const lvl = (k: LoopSignal) => Math.min(1, Math.abs(levels[k] ?? 0))
-      blocks.ctrl(dt, LOOP_COLORS.u, lvl('u'))
-      blocks.plant(dt, LOOP_COLORS.y, lvl('y'))
-      blocks.sensor(dt, LOOP_COLORS.m, feedback ? lvl('m') : 0)
+      blocks.ctrl(dt, LOOP_COLORS.u, lvl('u'), titles.ctrl ?? ctrl)
+      blocks.plant(dt, LOOP_COLORS.y, lvl('y'), titles.plant ?? plant)
+      blocks.sensor(dt, LOOP_COLORS.m, feedback ? lvl('m') : 0, titles.sensor ?? sensor)
       if (feedback) setGlow(ringM, LOOP_COLORS.e, 0.3 + lvl('e'))
     },
   }
