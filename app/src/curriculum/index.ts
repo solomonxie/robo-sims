@@ -97,6 +97,7 @@ import { eStop, faultStates, watchdog } from '../lessons/software/safety-failsaf
 import { backEmfLesson, gearboxes, stallCurrent, torqueAndSpeedCurve } from '../lessons/actuators/dc-motor'
 import { decayModes, fourSwitches, l298nVsModernDrivers, shootThroughLesson } from '../lessons/actuators/h-bridge'
 import { insideAHobbyServo, jitterAndPower, pulseToAngle } from '../lessons/actuators/servo'
+import { a4988AndTmcDrivers, fullHalfAndMicroSteps, missedSteps } from '../lessons/actuators/stepper'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -408,6 +409,9 @@ const READY: Record<string, Lesson> = {
   'actuators/servo/pulse-to-angle': pulseToAngle,
   'actuators/servo/inside-a-hobby-servo': insideAHobbyServo,
   'actuators/servo/jitter-and-power': jitterAndPower,
+  'actuators/stepper/full-half-and-micro-steps': fullHalfAndMicroSteps,
+  'actuators/stepper/a4988-and-tmc-drivers': a4988AndTmcDrivers,
+  'actuators/stepper/missed-steps': missedSteps,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

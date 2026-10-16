@@ -1,4 +1,4 @@
-// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), spur gear train.
+// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), NEMA17 stepper, spur gear train.
 import * as THREE from 'three/webgpu'
 import { coilShares } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
@@ -85,6 +85,85 @@ export function brushedMotor(parent: THREE.Object3D, at: V3, r = 2) {
       const bottom = mids.indexOf(Math.min(...mids))
       segs.forEach((m, k) => tint(m, k === top ? HIGH_V : LOW_V, k === top || k === bottom ? level : 0))
       for (const b of brushMats) tint(b.m, b.c, level * 0.8)
+    },
+  }
+}
+
+/** Toothed outline round the origin: `count` teeth from `r0` to `r1`, tooth `i` centred on `phase + i·2π/count`. */
+function toothedShape(count: number, r0: number, r1: number, phase = 0) {
+  const s = new THREE.Shape()
+  const p = TAU / count
+  for (let i = 0; i < count; i++) {
+    const c = phase + i * p
+    const pts: [number, number][] = [[r0, c - 0.27 * p], [r1, c - 0.17 * p], [r1, c + 0.17 * p], [r0, c + 0.27 * p]]
+    pts.forEach(([r, a], j) => (i === 0 && j === 0 ? s.moveTo(r * Math.cos(a), r * Math.sin(a)) : s.lineTo(r * Math.cos(a), r * Math.sin(a))))
+  }
+  s.closePath()
+  return s
+}
+
+/** NEMA17 hybrid stepper facing +z, front cap off, rotor radius `r`: square housing, laminated stator with 8 toothed poles
+ *  (A at 0°/90°/180°/270°, B between; copper windings) round a 50-tooth rotor. `set(angle, ia, ib)`: rotor turned
+ *  anticlockwise by `angle` (rad, 1.8° per full step); each pole glows N/S by its phase current (−1…1). `pins` =
+ *  [A+, A−, B+, B−] lead ends below the housing; `rotor` takes a needle. */
+export function nema17(parent: THREE.Object3D, at: V3, r = 2) {
+  const group = add(parent, new THREE.Group(), at)
+  const L = 1.5 * r
+  const S = 1.95 * r
+  const c = 0.4 * r
+  const housing = new THREE.Shape()
+  ;[[S - c, -S], [S, -S + c], [S, S - c], [S - c, S], [-S + c, S], [-S, S - c], [-S, -S + c], [-S + c, -S]].forEach(([x, y], i) => (i ? housing.lineTo(x, y) : housing.moveTo(x, y)))
+  housing.holes.push(new THREE.Path().absarc(0, 0, 1.8 * r, 0, TAU, true))
+  add(group, mesh(new THREE.ExtrudeGeometry(housing, { depth: L, bevelEnabled: false }), mat('#2b2d33', { rough: 0.55 })), [0, 0, -L])
+  cylinder(group, 1.8 * r, 0.1, mat('#1d1e22', { rough: 0.7 }), [0, 0, -L], 'z', 48)
+  const lam = mat('#8d939c', { metal: 0.3, rough: 0.45 })
+  add(group, mesh(sectorGeometry(1.42 * r, 1.8 * r, 0, TAU, L - 0.04 * r), lam), [0, 0, -L])
+  const pitch = TAU / 50
+  const poles = Array.from({ length: 8 }, (_, i) => {
+    const a = (i * Math.PI) / 4
+    const arm = add(group, new THREE.Group(), [0, 0, -L / 2])
+    arm.rotation.z = a
+    box(arm, [0.3 * r, 0.36 * r, L - 0.04 * r], lam, [1.28 * r, 0, 0])
+    const shoe = new THREE.MeshStandardMaterial({ color: '#8d939c', metalness: 0.3, roughness: 0.45 })
+    add(group, mesh(sectorGeometry(1.08 * r, 1.16 * r, a, 0.62, L - 0.04 * r), shoe), [0, 0, -L])
+    for (let k = -2; k <= 2; k++) {
+      const t = add(group, new THREE.Group(), [0, 0, -L / 2])
+      t.rotation.z = a + k * pitch
+      box(t, [0.07 * r, 0.06 * r, L - 0.04 * r], shoe, [1.05 * r, 0, 0])
+    }
+    const copper = new THREE.MeshStandardMaterial({ color: '#c8803f', metalness: 0.35, roughness: 0.4 })
+    box(arm, [0.22 * r, 0.6 * r, L + 0.24 * r], copper, [1.29 * r, 0, 0])
+    const name = `${i % 2 ? 'B' : 'A'}${i % 4 > 1 ? '\u0304' : ''}`
+    partLetter(group, name, [1.6 * r * Math.cos(a), 1.6 * r * Math.sin(a), 0.1], 0.22 * r, '#ffffff')
+    return { copper, shoe, phase: i % 2, sign: i % 4 > 1 ? -1 : 1 }
+  })
+
+  const rotor = add(group, new THREE.Group())
+  add(rotor, mesh(new THREE.ExtrudeGeometry(toothedShape(50, 0.9 * r, r), { depth: L - 0.1 * r, bevelEnabled: false, curveSegments: 1 }), mat('#a3a9b2', { metal: 0.35, rough: 0.4 })), [0, 0, -L + 0.05 * r])
+  cylinder(rotor, 0.55 * r, 0.04 * r, mat('#5d636c', { rough: 0.5 }), [0, 0, -0.03 * r], 'z', 32)
+  box(rotor, [0.4 * r, 0.06 * r, 0.03 * r], mat('#f2f2f2'), [0.68 * r, 0, -0.03 * r])
+  rod(rotor, [0, 0, -L - 0.3 * r], [0, 0, 1.2 * r], 0.12 * r, STEEL())
+
+  const colors = ['#1c1c1f', '#2fa84f', '#d23b3b', '#2a5bd7']
+  const pins = colors.map((col, i): V3 => {
+    const x = (i - 1.5) * 0.32 * r
+    rod(group, [x, -S, -0.6 * L], [x, -S - 0.5 * r, -0.6 * L], 0.07 * r, mat(col, { rough: 0.5 }))
+    return [at[0] + x, at[1] - S - 0.5 * r, at[2] - 0.6 * L]
+  })
+  box(group, [1.5 * r, 0.25 * r, 0.4 * r], mat('#f2f2f2', { rough: 0.6 }), [0, -S - 0.1 * r, -0.6 * L])
+
+  return {
+    group,
+    rotor,
+    pins,
+    shaftTip: [0, 0, 1.2 * r] as V3,
+    set(angle: number, ia: number, ib: number) {
+      rotor.rotation.z = angle
+      for (const p of poles) {
+        const f = p.sign * (p.phase ? ib : ia)
+        tint(p.copper, f > 0 ? NORTH : SOUTH, 0.1 + Math.abs(f) * 1.6)
+        tint(p.shoe, f > 0 ? NORTH : SOUTH, Math.abs(f) * 0.5)
+      }
     },
   }
 }

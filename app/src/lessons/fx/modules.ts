@@ -1,4 +1,4 @@
-// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, ESP32-CAM, I²C breakouts.
+// Modules and boards: TP4056 charger, DC-DC converters, SG90 servo, ESP32, ESP32-CAM, I²C breakouts, step drivers.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, GOLD, mat, mesh, STEEL, TIN } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
@@ -276,6 +276,47 @@ export function esp32Cam(parent: THREE.Object3D, at: V3, k: number) {
       g.updateWorldMatrix(true, false)
       const v = g.localToWorld(lensLocal.clone())
       return [v.x, v.y, v.z]
+    },
+  }
+}
+
+const DRIVER_PINS = [
+  ['EN', 'MS1', 'MS2', 'MS3', 'RST', 'SLP', 'STEP', 'DIR'],
+  ['VMOT', 'GND', '2B', '2A', '1A', '1B', 'VDD', 'GND'],
+]
+
+/** Pololu-footprint step driver (15 × 20 mm) face-on, `k` units per mm: A4988 (green, bare chip) or TMC2209 (dark, finned
+ *  heatsink), the Vref trimmer, two rows of 8 pins. `pin(name, side)` = pin tip (world, `group` unmoved; side 0 = logic
+ *  row on the left, 1 = power row); `chip(color, f)` glows the chip or heatsink; `trim(turn)` turns the pot (0…1). */
+export function stepDriver(parent: THREE.Object3D, at: V3, kind: 'a4988' | 'tmc2209', k = 0.3) {
+  const g = add(parent, new THREE.Group(), at)
+  const W = 15.2 * k
+  const H = 20.3 * k
+  const tmc = kind === 'tmc2209'
+  box(g, [W, H, 1.6 * k], mat(tmc ? '#1f2a44' : '#1d6b3a', { rough: 0.55 }), [0, 0, -0.8 * k])
+  const chipMat = new THREE.MeshStandardMaterial({ color: tmc ? '#7d8590' : '#16171b', roughness: 0.5, metalness: tmc ? 0.4 : 0, emissive: '#000000' })
+  if (tmc) for (let i = 0; i < 6; i++) box(g, [4.4 * k, 0.9 * k, 4 * k], chipMat, [0, (i - 2.5) * 1.5 * k - 1 * k, 2 * k])
+  else box(g, [5 * k, 5 * k, 0.9 * k], chipMat, [0, -1 * k, 0.45 * k])
+  const pot = add(g, new THREE.Group(), [0, H / 2 - 3.6 * k, 0.8 * k])
+  cylinder(pot, 1.6 * k, 1.4 * k, mat('#e8e2d6', { rough: 0.5 }), [0, 0, 0], 'z', 20)
+  box(pot, [2.4 * k, 0.4 * k, 0.4 * k], STEEL(), [0, 0, 0.8 * k])
+  add(g, label(tmc ? 'TMC2209' : 'A4988', { ...SILK, size: 1.3 * k }), [0, -H / 2 - 1.6 * k, 0.05 * k])
+  const tips = DRIVER_PINS.flatMap((row, side) =>
+    row.map((name, i) => {
+      const x = (side ? 1 : -1) * (W / 2 - 1.3 * k)
+      const y = H / 2 - 1.5 * k - i * 2.54 * k
+      box(g, [0.6 * k, 0.6 * k, 4 * k], GOLD(), [x, y, 2 * k])
+      add(g, label(name, { ...SILK, size: 0.8 * k }), [x + (side ? -2.3 : 2.3) * k, y, 0.05 * k])
+      return { name, side, at: [at[0] + x, at[1] + y, at[2] + 4 * k] as V3 }
+    }),
+  )
+  return {
+    group: g,
+    pin: (name: string, side = 0) => tips.find((t) => t.name === name && t.side === side)!.at,
+    trim: (turn: number) => (pot.rotation.z = -clamp01(turn) * 1.5 * Math.PI),
+    chip(c: string, f: number) {
+      chipMat.emissive.set(c)
+      chipMat.emissiveIntensity = f
     },
   }
 }

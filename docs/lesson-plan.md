@@ -23,11 +23,11 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `circuit` — cell, bulb, R/D/LED, thermistor, ceramic, `chargeTank`, `terminal`/`junction`, switches, `icPackage`, `glowHalo`, `motorCan`, `resistorLoop`.
 - `symbols` — ground, current/AC source, diode, op-amp.
 - `parts` — real packages (TO-92/220, DIP-8, SOT-223, HC-49, fuse), `partLetter`, `litEpoxy`.
-- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `esp32Board` (face-on, `pin(i, top)`), `esp32Cam` (OV2640 lens, `lens()`, `iris`), `i2cBreakout` (sensor board, `pin(name)`) [`physics/power`].
+- `modules` — `tp4056Module`, `dcdcModule`, `sg90Servo`, `stepDriver` (A4988/TMC2209, `pin(name, side)`, `trim`), `esp32Board` (face-on, `pin(i, top)`), `esp32Cam` (OV2640 lens, `lens()`, `iris`), `i2cBreakout` (sensor board, `pin(name)`) [`physics/power`].
 - `cells` — `cellCutaway`, `cell18650`, `cellPackModel` [`physics/power`].
 - `boards` — `pcbStack` (layer stack, `via`), `flatTrace`, `flatText` [`physics/signals/pcb`].
 - `electromech` — relay/SSR, `speaker`.
-- `motors` — `brushedMotor` (cut open: magnets, 3-slot armature, commutator + brushes; `set(angle, level, heat)`), `spurGear`, `gearTrain`, `sectorGeometry` [`physics/electromechanical`].
+- `motors` — `brushedMotor` (cut open: magnets, 3-slot armature, commutator + brushes; `set(angle, level, heat)`), `nema17` (8 poles, 50-tooth rotor; `set(angle, ia, ib)`), `spurGear`, `gearTrain`, `sectorGeometry` [`physics/electromechanical`, `physics/stepper`].
 - `switches` — tact/toggle switches, pot, `estopButton` (NC mushroom), cut open.
 - `displays` — `segmentDisplay`, `pulseLabel`, `meterBar`, `multimeter`/`probe`, `phasor`, `clockFace`, `usbAnalyzer`.
 - `sensing` — `hcSr04` (aimed in the screen plane, → T/R), `beamCone`, `wavePool` (wavefront arcs, wall-clipped), `lightRay` (beads along a polyline), `pixelGrid` (instanced sensor pixels, sRGB `set`), `IR_TINT`, `SUN_TINT` [`physics/sensors`].
@@ -85,7 +85,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] DC motor
   - [x] H-bridge
   - [x] Servo
-  - [ ] Stepper
+  - [x] Stepper
   - [ ] Brushless (BLDC)
   - [ ] Field-oriented control
   - [ ] Linear actuators
