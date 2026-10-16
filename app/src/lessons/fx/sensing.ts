@@ -1,6 +1,6 @@
 // Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, light rays, and an image sensor pixel grid.
 import * as THREE from 'three/webgpu'
-import { V3, add, mesh } from '../../models/kit'
+import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildHcSr04 } from '../../models/modules'
 import { glowMat, setGlow } from './colors'
 
@@ -127,4 +127,13 @@ export function pixelGrid(parent: THREE.Object3D, at: V3, cols: number, rows: nu
     set: (i: number, r: number, g: number, b: number) => im.setColorAt(i, color.setRGB(r, g, b, THREE.SRGBColorSpace)),
     commit: () => (im.instanceColor!.needsUpdate = true),
   }
+}
+
+/** Camera body in camera axes (x right, y down, z forward), metres; lens at the origin. */
+export function camBody(parent: THREE.Object3D, size = 0.03, color = '#2a2c32') {
+  const g = add(parent, new THREE.Group())
+  box(g, [size, size, size * 0.6], mat(color, { rough: 0.4 }), [0, 0, -size * 0.45])
+  cylinder(g, size * 0.3, size * 0.3, mat('#14161b', { rough: 0.2 }), [0, 0, size * 0.02], 'z', 20)
+  add(g, mesh(new THREE.CircleGeometry(size * 0.22, 24), glowMat('#5a7dff', 0.5)), [0, 0, size * 0.18]).castShadow = false
+  return g
 }

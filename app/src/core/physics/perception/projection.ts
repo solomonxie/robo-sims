@@ -84,7 +84,9 @@ export function groundSpan(k: Intrinsics, h: number, tilt: number) {
 
 export interface Ball { c: P3; r: number; rgb: Rgb; speckle?: number }
 export interface Board { tf: Mat4; nx: number; ny: number; sq: number }
-export interface RenderScene { floor?: { tile: number; a: Rgb; b: Rgb; x?: [number, number]; y?: [number, number]; off?: Rgb }; balls?: Ball[]; board?: Board; wallX?: number; sky?: Rgb }
+/** Any flat print: `color(x, y)` in plate coords (z = 0 plane of `tf`, world ← plate), null where there is no plate. */
+export interface Plate { tf: Mat4; color: (x: number, y: number) => Rgb | null }
+export interface RenderScene { floor?: { tile: number; a: Rgb; b: Rgb; x?: [number, number]; y?: [number, number]; off?: Rgb }; balls?: Ball[]; board?: Board; plates?: Plate[]; wallX?: number; sky?: Rgb }
 
 const LIGHT: P3 = (() => {
   const l = [0.35, 0.45, 0.82]
@@ -114,7 +116,7 @@ export function boardColor(b: Board, x: number, y: number): Rgb | null {
   return inside && (ix + iy) % 2 === 0 ? [28, 30, 36] : [236, 236, 230]
 }
 
-function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null): Rgb {
+function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null, plateInv: Mat4[] = []): Rgb {
   let best = Infinity
   let col: Rgb = s.sky ?? [70, 80, 96]
   for (const b of s.balls ?? []) {
@@ -129,18 +131,20 @@ function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null): Rgb {
     const nrm = [(p[0] - b.c[0]) / b.r, (p[1] - b.c[1]) / b.r, (p[2] - b.c[2]) / b.r]
     col = shade(b.rgb, (0.35 + 0.65 * Math.max(0, dot(nrm, LIGHT))) * (b.speckle ? speckleAt(nrm, b.speckle) : 1))
   }
-  if (s.board && boardInv) {
-    const o = apply4(boardInv, r.o)
-    const d = [0, 1, 2].map((i) => boardInv[i * 4] * r.d[0] + boardInv[i * 4 + 1] * r.d[1] + boardInv[i * 4 + 2] * r.d[2])
-    if (Math.abs(d[2]) > 1e-9) {
-      const t = -o[2] / d[2]
-      const c = t > 1e-6 && t < best ? boardColor(s.board, o[0] + d[0] * t, o[1] + d[1] * t) : null
-      if (c) {
-        best = t
-        col = c
-      }
+  const flat = (inv: Mat4, paint: (x: number, y: number) => Rgb | null) => {
+    const o = apply4(inv, r.o)
+    const d = [0, 1, 2].map((i) => inv[i * 4] * r.d[0] + inv[i * 4 + 1] * r.d[1] + inv[i * 4 + 2] * r.d[2])
+    if (Math.abs(d[2]) <= 1e-9) return
+    const t = -o[2] / d[2]
+    const c = t > 1e-6 && t < best ? paint(o[0] + d[0] * t, o[1] + d[1] * t) : null
+    if (c) {
+      best = t
+      col = c
     }
   }
+  const board = s.board
+  if (board && boardInv) flat(boardInv, (x, y) => boardColor(board, x, y))
+  s.plates?.forEach((p, i) => flat(plateInv[i], p.color))
   if (s.wallX !== undefined && r.d[0] > 1e-9) {
     const t = (s.wallX - r.o[0]) / r.d[0]
     const p = rayAt(r, t)
@@ -167,12 +171,13 @@ function hitScene(s: RenderScene, r: Ray, boardInv: Mat4 | null): Rgb {
 export function renderView(k: Intrinsics, Twc: Mat4, s: RenderScene, outW = k.w, outH = k.h, lens: Lens = NO_LENS, aa = 1): Img {
   const img = makeImg(outW, outH, 3)
   const boardInv = s.board ? invert4(s.board.tf) : null
+  const plateInv = (s.plates ?? []).map((p) => invert4(p.tf))
   for (let y = 0; y < outH; y++)
     for (let x = 0; x < outW; x++) {
       const i = (y * outW + x) * 3
       for (let sy = 0; sy < aa; sy++)
         for (let sx = 0; sx < aa; sx++) {
-          const c = hitScene(s, pixelRay(k, Twc, ((x + (sx + 0.5) / aa) * k.w) / outW - 0.5, ((y + (sy + 0.5) / aa) * k.h) / outH - 0.5, lens), boardInv)
+          const c = hitScene(s, pixelRay(k, Twc, ((x + (sx + 0.5) / aa) * k.w) / outW - 0.5, ((y + (sy + 0.5) / aa) * k.h) / outH - 0.5, lens), boardInv, plateInv)
           for (let ch = 0; ch < 3; ch++) img.data[i + ch] += clamp(c[ch], 0, 255) / (aa * aa)
         }
     }

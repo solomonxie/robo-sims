@@ -136,6 +136,7 @@ import { imageBasicsHistogram, imageBasicsRgbHsv, imageBasicsThresholding } from
 import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners } from '../lessons/perception/edges-features'
 import { colourTrackingCentroidSteering, colourTrackingHsvMask } from '../lessons/perception/colour-tracking'
 import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth } from '../lessons/perception/camera-model'
+import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from '../lessons/perception/fiducial-markers'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -552,6 +553,8 @@ const READY: Record<string, Lesson> = {
   'perception/camera-model/pinhole-model': cameraModelPinholeModel,
   'perception/camera-model/calibration': cameraModelCalibration,
   'perception/camera-model/stereo-depth': cameraModelStereoDepth,
+  'perception/fiducial-markers/detecting-a-tag': fiducialMarkersDetectingATag,
+  'perception/fiducial-markers/pose-from-a-tag': fiducialMarkersPoseFromATag,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

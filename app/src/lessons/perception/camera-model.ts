@@ -3,10 +3,10 @@ import {
   Ball, Intrinsics, LENSES, Lens, Mat4, NO_LENS, P3, apply4, boardPoints, boardShots, boardViews, calibrate, camTf, depthFromDisparity, depthStep, groundHit, groundSpan,
   inImage, intrinsicsOf, invert4, lensFor, matchDisparity, mul4, pixelRay, projectPx, renderView, cropK, stereoRig, toPixel,
 } from '../../core/physics'
-import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
+import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
-  AXIS_RGB, B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, flatBox, frameTriad, glowMat, histChart, liveLabel, matrixGrid, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
+  AXIS_RGB, B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, flatBox, frameTriad, glowMat, histChart, liveLabel, matrixGrid, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -16,15 +16,6 @@ const f2 = (v: number) => v.toFixed(2)
 const f3 = (v: number) => v.toFixed(3)
 const cm = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${f2(m)} m` : m >= 0.01 ? `${f1(m * 100)} cm` : `${f1(m * 1000)} mm`)
 const DEG = Math.PI / 180
-
-/** Camera body in camera axes (x right, y down, z forward), metres; lens at the origin. */
-function camBody(parent: THREE.Object3D, size = 0.03, color = '#2a2c32') {
-  const g = add(parent, new THREE.Group())
-  box(g, [size, size, size * 0.6], mat(color, { rough: 0.4 }), [0, 0, -size * 0.45])
-  cylinder(g, size * 0.3, size * 0.3, mat('#14161b', { rough: 0.2 }), [0, 0, size * 0.02], 'z', 20)
-  add(g, mesh(new THREE.CircleGeometry(size * 0.22, 24), glowMat('#5a7dff', 0.5)), [0, 0, size * 0.18]).castShadow = false
-  return g
-}
 
 /** Frustum rods: optical centre → the 4 image corners at depth `s`, plus the image rectangle; uses rods i…i+7. */
 function frustum(pool: ReturnType<typeof rodPool>, i: number, k: Intrinsics, Twc: Mat4, s: number, r: number, color: string) {
