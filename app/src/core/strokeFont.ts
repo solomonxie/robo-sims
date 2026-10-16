@@ -205,6 +205,10 @@ Object.assign(GLYPHS, {
 for (const [greek, latin] of ['ΑA', 'ΒB', 'ΕE', 'ΖZ', 'ΗH', 'ΙI', 'ΚK', 'ΜM', 'ΝN', 'ΟO', 'ΡP', 'ΤT', 'ΥY', 'ΧX', 'οo']) GLYPHS[greek[0]] = GLYPHS[latin.at(-1)!]
 const sup = (base: string) => g(GLYPHS[base].w * 0.55, ...GLYPHS[base].lines.map((l) => l.map(([x, y]): Pt => [x * 0.55, 3.4 + y * 0.43])))
 for (const [ch, base] of [['²', '2'], ['¹', '1'], ['³', '3'], ['⁺', '+'], ['⁻', '-']]) GLYPHS[ch] = sup(base)
+const shrink = (base: string, dx: number, dy: number) => GLYPHS[base].lines.map((l) => l.map(([x, y]): Pt => [dx + x * 0.5, dy + y * 0.5]))
+for (const [ch, a, b] of [['½', '1', '2'], ['¼', '1', '4'], ['¾', '3', '4']]) GLYPHS[ch] = g(4.6, ...shrink(a, 0, 3.1), [[0.9, 0], [3.7, 6]], ...shrink(b, 2.6, 0))
+GLYPHS['Ø'] = g(4.4, ...GLYPHS.O.lines, [[0.1, -0.4], [4.3, 6.4]])
+GLYPHS['ø'] = g(4, BOWL, [[0, -0.4], [4, 4.4]])
 
 export const hasGlyph = (ch: string) => ch in GLYPHS || OVERBARS.has(ch)
 

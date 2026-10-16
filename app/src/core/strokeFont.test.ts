@@ -1,6 +1,6 @@
 import { hasGlyph, layoutText } from './strokeFont'
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓↔↕⇄✓✗⚡‘’“”√∑∫∞∂≠∝∠∆'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+−×÷=.,/:%Ωµ°-()<>_\'"?!·#*²¹³⁺⁻λ;{}&±…≥≤≈→[]–—~^`|\\$@←↑↓↔↕⇄✓✗⚡‘’“”√∑∫∞∂≠∝∠∆½¼¾Øø'
 
 describe('strokeFont', () => {
   it('has strokes for every supported character', () => {
@@ -62,6 +62,20 @@ describe('strokeFont', () => {
     const ys = (ch: string) => layoutText(ch).lines.flat().map(([, y]) => y)
     for (const ch of '∑∫') expect(Math.min(...ys(ch))).toBeLessThan(0)
     expect(Math.max(...ys('√'))).toBeGreaterThan(1)
+  })
+
+  it('stacks vulgar fractions and slashes Ø ø', () => {
+    for (const ch of '½¼¾') {
+      const { lines } = layoutText(ch)
+      expect(lines.length).toBeGreaterThanOrEqual(3)
+      const tops = lines.map((l) => Math.max(...l.map(([, y]) => y)))
+      expect(Math.max(...tops)).toBeGreaterThan(0.9)
+      expect(Math.min(...lines.flat().map(([, y]) => y))).toBeGreaterThanOrEqual(0)
+    }
+    expect(layoutText('½')).not.toEqual(layoutText('¼'))
+    expect(layoutText('Ø').lines.length).toBe(layoutText('O').lines.length + 1)
+    expect(layoutText('ø').lines.length).toBe(layoutText('o').lines.length + 1)
+    expect(layoutText('ø').width).toBe(layoutText('o').width)
   })
 
   it('curls opening and closing quotes opposite ways', () => {

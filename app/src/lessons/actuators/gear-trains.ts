@@ -187,6 +187,7 @@ export const gearRatioLesson: Lesson = {
         addLabel(holder, `${role} · ${teeth} t`, [tx, yl, 0.6], LABEL, 0.32)
         addLabel(holder, `${num(IN_RPM * Math.abs(w))} rpm`, [tx, yl - 0.8, 0.6], c, 0.32)
         addLabel(holder, mNm(q.torques[last]), [tx, yl - 1.5, 0.6], HEAT, 0.3)
+        addLabel(holder, `Ø ${idx.map((i) => num(pitchDiameterMm(q.mod, q.gears[i].teeth))).join(' + ')} mm`, [tx, yl - 2.2, 0.6], GREY, 0.28)
       })
       cylinder(holder, Math.max(0.9, r(0) * 1.2), 3, mat('#c9ccd1', { metal: 0.45, rough: 0.35 }), [xs[0] + dx, y, -2.4], 'z', 32)
     }
@@ -571,7 +572,7 @@ export const planetaryGears: Lesson = {
           { label: 'Ratio', value: `${num(Math.abs(q.N))} : 1, ${q.input} → ${q.output}` },
           { label: 'Output', value: `${num(Math.abs(PL_RPM / q.N))} rpm${q.N < 0 ? ', reversed' : ''}`, tone: q.N < 0 ? 'warn' : 'ok' },
           { label: 'Torque', value: `×${num(Math.abs(q.N))} over ${PL.planets} meshes` },
-          { label: 'Two stages', value: `${num(q.N * q.N)} : 1, same diameter` },
+          { label: 'Two stages', value: `${num(q.N * q.N)} : 1, same Ø` },
         ]
       },
     }
