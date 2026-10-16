@@ -1,9 +1,11 @@
-// Wheeled robots on a floor, in metres (x forward, y left, z up) inside a `floorView`: TT two-wheeler, mecanum, omni (kiwi / X) and FRC swerve.
+// Wheeled robots on a floor, in metres (x forward, y left, z up) inside a `floorView`: TT two-wheeler, mecanum, omni (kiwi / X), FRC swerve and an Ackermann RC car.
 import * as THREE from 'three/webgpu'
-import { MECANUM, MecLayout, OMNI, OmniBase, Pose, SWERVE, TT_TRACK_M, TT_WHEEL_MM, Wheel4, mecWheels, omniWheels, swerveModules } from '../../core/physics'
+import { ACKERMANN, MECANUM, MecLayout, OMNI, OmniBase, Pose, SWERVE, TT_TRACK_M, TT_WHEEL_MM, Wheel4, mecWheels, omniWheels, swerveModules } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildMecanum, buildWheel } from '../../models/motion'
 import { B_FIELD, HIGH_V, POWER, glowMat, setGlow } from './colors'
+import { addRod, stretchRod } from './layout'
+import { sg90Servo } from './modules'
 
 const WHEEL_R = TT_WHEEL_MM / 2000
 const KIT_UNIT_M = 0.00254
@@ -259,3 +261,92 @@ export function swerveBot(parent: THREE.Object3D, bumper = '#c8323c') {
     },
   }
 }
+
+/** 1/10 Ackermann RC car, rear-axle centre at the origin: SG90 servo → centre link → tie rods → steering arms on the front knuckles, rear axle through a differential.
+ *  `set(pose, [left, right] steer, travel[4])` steers, rolls FL FR RL RR and moves the linkage; `arms(beta)` angles the steering arms (Ackermann > 0 aims them at the rear axle, 0 parallel, < 0 anti); `scrub(u[4])` lights tyre patches. */
+export function rcCar(parent: THREE.Object3D) {
+  const { wheelbase: L, track: T, wheelR: R } = ACKERMANN
+  const group = add(parent, new THREE.Group())
+  const off = 0.022
+  const plate = mat('#3b4048', { metal: 0.4, rough: 0.45 })
+  box(group, [0.36, 0.12, 0.004], plate, [0.11, 0, 0.026])
+  box(group, [0.03, 0.2, 0.004], plate, [L, 0, 0.03])
+  box(group, [0.11, 0.045, 0.024], mat('#2a6fd1', { rough: 0.5 }), [0.11, 0.025, 0.04])
+  box(group, [0.04, 0.035, 0.016], mat('#1f2126', { rough: 0.6 }), [0.12, -0.04, 0.036])
+  box(group, [0.008, 0.012, 0.003], glowMat('#ff5a7a', 1), [0.14, -0.04, 0.045])
+  cylinder(group, 0.014, 0.04, mat('#b8bcc4', { metal: 0.6, rough: 0.3 }), [0.045, 0, 0.04], 'x', 18)
+  box(group, [0.032, 0.04, 0.034], mat('#c9ccd2', { metal: 0.5, rough: 0.35 }), [0, 0, R])
+  cylinder(group, 0.016, 0.006, glowMat(POWER, 0.4), [0, 0.022, R], 'y', 20).castShadow = false
+  cylinder(group, 0.004, T + 2 * off - 0.03, mat('#9aa0aa', { metal: 0.7, rough: 0.3 }), [0, 0, R], 'y', 8)
+  const tread = mat('#2b2d33', { rough: 0.9 })
+  const rim = mat('#e0e3e8', { metal: 0.5, rough: 0.3 })
+  const tyre = (at: THREE.Object3D, y: number) => {
+    const roll = add(at, new THREE.Group(), [0, y, R])
+    cylinder(roll, R, 0.03, tread, [0, 0, 0], 'y', 28)
+    cylinder(roll, R * 0.62, 0.032, rim, [0, 0, 0], 'y', 6)
+    box(roll, [R * 1.25, 0.034, 0.008], glowMat('#ff8c2e', 0.6), [0, 0, 0])
+    return roll
+  }
+  const steelM = mat('#c9ccd2', { metal: 0.6, rough: 0.3 })
+  const knuckles = [1, -1].map((s) => {
+    const k = add(group, new THREE.Group(), [L, (s * T) / 2, 0])
+    cylinder(k, 0.006, 0.05, steelM, [0, 0, R], 'z', 10)
+    return { k, roll: tyre(k, s * off), s }
+  })
+  const rear = [1, -1].map((s) => tyre(add(group, new THREE.Group(), [0, (s * T) / 2, 0]), s * off))
+  const linkM = glowMat(B_FIELD, 0.5)
+  const armM = mat('#d4d7dc', { metal: 0.6, rough: 0.3 })
+  const armRods = knuckles.map(() => addRod(group, armM))
+  const tieRods = knuckles.map(() => addRod(group, linkM))
+  const centre = addRod(group, linkM)
+  const servo = add(group, new THREE.Group())
+  servo.scale.setScalar(0.008)
+  servo.rotation.z = Math.PI / 2
+  const horn = sg90Servo(servo, [0, 0, 0])
+  const hornLen = 0.0176
+  const zr = R + 0.012
+  const patches = [...knuckles.map((k) => slipPatch(group, [0.04, 0.03, 0.002], [L, k.s * (T / 2 + off), 0.002])), ...[1, -1].map((s) => slipPatch(group, [0.04, 0.03, 0.002], [0, s * (T / 2 + off), 0.002]))]
+  const st = { beta: Math.atan(T / 2 / L), a: 0.032, angles: [0, 0] as number[] }
+  const tip = (i: number, angle: number): V3 => {
+    const s = knuckles[i].s
+    const [dx, dy] = [-Math.cos(st.beta) * st.a, -s * Math.sin(st.beta) * st.a]
+    return [L + dx * Math.cos(angle) - dy * Math.sin(angle), (s * T) / 2 + dx * Math.sin(angle) + dy * Math.cos(angle), zr]
+  }
+  const linkage = () => {
+    const tips = [0, 1].map((i) => tip(i, st.angles[i]))
+    const rest = [0, 1].map((i) => tip(i, 0))
+    const shift = (tips[0][1] - rest[0][1] + tips[1][1] - rest[1][1]) / 2
+    const lx = rest[0][0] - 0.004
+    const ends = rest.map((r): V3 => [lx, r[1] * 0.55 + shift, zr])
+    knuckles.forEach((k, i) => {
+      stretchRod(armRods[i], [L, (k.s * T) / 2, zr], tips[i], 0.004)
+      stretchRod(tieRods[i], ends[i], tips[i], 0.0025)
+    })
+    stretchRod(centre, ends[0], ends[1], 0.0035)
+    servo.position.set(lx + hornLen, 0.006, 0.032)
+    horn.rotation.z = -Math.asin(Math.max(-1, Math.min(1, shift / hornLen)))
+  }
+  linkage()
+  return {
+    group,
+    set(p: Pose, angles: number[], travel: number[]) {
+      group.position.set(p.x, p.y, 0)
+      group.rotation.z = p.th
+      st.angles = angles
+      knuckles.forEach((k, i) => {
+        k.k.rotation.z = angles[i]
+        k.roll.rotation.y = travel[i] / R
+      })
+      rear.forEach((r, i) => (r.rotation.y = travel[2 + i] / R))
+      linkage()
+    },
+    arms(beta: number) {
+      st.beta = beta
+      linkage()
+    },
+    scrub(u: number[]) {
+      lightPatches(patches, u)
+    },
+  }
+}
+

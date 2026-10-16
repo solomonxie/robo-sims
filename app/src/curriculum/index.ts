@@ -108,6 +108,7 @@ import { dutyCycleLesson, thermalLimitsLesson, torqueBudgetLesson } from '../les
 import { odometryLesson, slipLesson, turnRadiusLesson } from '../lessons/mobility/differential-drive'
 import { rollerGeometry, strafeMaths, whyTheySlip } from '../lessons/mobility/mecanum-wheels'
 import { omniWheelsLesson, swerveModule } from '../lessons/mobility/omni-swerve'
+import { bicycleModel, steeringGeometry } from '../lessons/mobility/ackermann-steering'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -448,6 +449,8 @@ const READY: Record<string, Lesson> = {
   'mobility/mecanum-wheels/why-they-slip': whyTheySlip,
   'mobility/omni-swerve/omni-wheels': omniWheelsLesson,
   'mobility/omni-swerve/swerve-module': swerveModule,
+  'mobility/ackermann-steering/steering-geometry': steeringGeometry,
+  'mobility/ackermann-steering/bicycle-model': bicycleModel,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -1,4 +1,3 @@
-import * as THREE from 'three/webgpu'
 import {
   HoloDrive,
   OMNI,
@@ -31,6 +30,7 @@ import {
   addLabel,
   addRod,
   floorMat,
+  floorTrail,
   floorView,
   glowMat,
   liveLabel,
@@ -57,26 +57,6 @@ function segAt(tour: TourSeg[], t: number) {
   return tour[tour.length - 1]
 }
 const tourLength = (tour: TourSeg[]) => tour.reduce((a, x) => a + x.s, 0)
-
-/** Trail of dots behind a robot on the floor, one every `step` metres. */
-function floorTrail(g: THREE.Object3D, max: number, step: number) {
-  const dots = pointCloud(g, max, 0.005 * (step / 0.008))
-  const s = { n: 0, acc: 0 }
-  return {
-    clear() {
-      Object.assign(s, { n: 0, acc: 0 })
-      dots.show(0)
-    },
-    add(prev: Pose, p: Pose) {
-      s.acc += Math.hypot(p.x - prev.x, p.y - prev.y)
-      if (s.acc < step) return
-      s.acc = 0
-      dots.set(s.n % max, [p.x, p.y, 0.004], GREY)
-      s.n++
-      dots.show(Math.min(max, s.n))
-    },
-  }
-}
 
 // --- Omni wheels: rollers at 90° slide sideways; kiwi and X bases, wheel speeds from (vx, vy, ω), top speed vs mecanum. ---
 

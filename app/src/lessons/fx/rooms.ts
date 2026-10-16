@@ -1,6 +1,6 @@
 // Rooms for mobile-robot lessons, drawn in metres (x, y floor, z up) inside a group the caller scales and turns: solids, a robot with a lidar head, point clouds and ray fans.
 import * as THREE from 'three/webgpu'
-import { CostGrid, INSCRIBED, LETHAL, Room, RoomSolid } from '../../core/physics'
+import { CostGrid, INSCRIBED, LETHAL, Pose, Room, RoomSolid } from '../../core/physics'
 import { B_FIELD, GREY, HIGH_V, glowMat, potentialColor, setGlow } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { IDLE } from './mcu'
@@ -156,4 +156,24 @@ export function crashWall(g: THREE.Object3D, x: number, size = 0.12) {
   box(g, [0.06, 0.7, 0.3], m, [x + 0.03, 0, 0.15])
   addLabel(g, 'wall', [x + 0.03, -0.5, 0.02], GREY, size)
   return (crashed: boolean) => setGlow(m, crashed ? HIGH_V : IDLE, crashed ? 1 : 0.2)
+}
+
+/** Trail of dots behind a robot on the floor, one every `step` metres. */
+export function floorTrail(g: THREE.Object3D, max: number, step: number, color = GREY) {
+  const dots = pointCloud(g, max, 0.005 * (step / 0.008))
+  const s = { n: 0, acc: 0 }
+  return {
+    clear() {
+      Object.assign(s, { n: 0, acc: 0 })
+      dots.show(0)
+    },
+    add(prev: Pose, p: Pose) {
+      s.acc += Math.hypot(p.x - prev.x, p.y - prev.y)
+      if (s.acc < step) return
+      s.acc = 0
+      dots.set(s.n % max, [p.x, p.y, 0.004], color)
+      s.n++
+      dots.show(Math.min(max, s.n))
+    },
+  }
 }
