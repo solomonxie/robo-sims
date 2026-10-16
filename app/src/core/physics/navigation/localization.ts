@@ -287,6 +287,40 @@ export function rigidFit(a: readonly XY[], b: readonly XY[]) {
   return { dth, tx: bx - (c * ax - s * ay), ty: by - (s * ax + c * ay) }
 }
 
+/** Nearest point of `pts` to (x, y) among those within `r` (bucket grid of cell r): [index, d²], [−1, ∞] when none. */
+export function nearestWithin(pts: readonly XY[], r: number) {
+  const cells = new Map<number, number[]>()
+  const key = (i: number, j: number) => i * 100003 + j
+  pts.forEach((p, k) => {
+    const c = key(Math.floor(p[0] / r), Math.floor(p[1] / r))
+    const b = cells.get(c)
+    if (b) b.push(k)
+    else cells.set(c, [k])
+  })
+  return (x: number, y: number): [number, number] => {
+    const ci = Math.floor(x / r)
+    const cj = Math.floor(y / r)
+    let bi = -1
+    let best = Infinity
+    for (let i = ci - 1; i <= ci + 1; i++)
+      for (let j = cj - 1; j <= cj + 1; j++) {
+        const b = cells.get(key(i, j))
+        if (!b) continue
+        for (let m = 0; m < b.length; m++) {
+          const p = pts[b[m]]
+          const dx = p[0] - x
+          const dy = p[1] - y
+          const d = dx * dx + dy * dy
+          if (d < best) {
+            best = d
+            bi = b[m]
+          }
+        }
+      }
+    return [bi, best]
+  }
+}
+
 export interface IcpIter {
   pose: Pose
   /** Scan point index → matched map point index, −1 = rejected (farther than `maxD`). */
@@ -297,6 +331,7 @@ export interface IcpIter {
 /** ICP: place the scan at the guess, pair each point with its nearest map point (≤ `maxD`), fit the rigid motion, repeat. */
 export function icpRun(scan: readonly XY[], map: readonly XY[], guess: Pose, iters: number, maxD: number): IcpIter[] {
   const out: IcpIter[] = []
+  const near = nearestWithin(map, maxD)
   let pose = { ...guess }
   for (let it = 0; it <= iters; it++) {
     const match = new Int32Array(scan.length).fill(-1)
@@ -304,11 +339,7 @@ export function icpRun(scan: readonly XY[], map: readonly XY[], guess: Pose, ite
     let se = 0
     scan.forEach((q, i) => {
       const w = scanWorld(pose, q)
-      let [best, bi] = [Infinity, -1]
-      for (let j = 0; j < map.length; j++) {
-        const d = (map[j][0] - w[0]) ** 2 + (map[j][1] - w[1]) ** 2
-        if (d < best) [best, bi] = [d, j]
-      }
+      const [bi, best] = near(w[0], w[1])
       if (best > maxD * maxD) return
       match[i] = bi
       se += best

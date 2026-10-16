@@ -16,9 +16,9 @@ const P = (p: XY) => ({ x: p[0], y: p[1] })
 const lerpPose = (a: Pose, b: Pose, u: number): Pose => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, th: a.th + wrapPi(b.th - a.th) * u })
 
 /** CLUTTER room on a tilted floor, the true robot, a ghost estimate and status lines over it. */
-function locStage(scene: THREE.Scene, hScale: number) {
+export function locStage(scene: THREE.Scene, hScale: number, opacity = 1) {
   const g = floorView(scene, RV.at, RV.k, RV.tilt)
-  roomModel(g, hScale).draw(CLUTTER)
+  roomModel(g, hScale, opacity).draw(CLUTTER)
   return {
     g,
     bot: diffBot(g),
@@ -29,7 +29,7 @@ function locStage(scene: THREE.Scene, hScale: number) {
 }
 
 /** Scope on the right: title, range note, x-axis ends and three text lines. */
-function errScope(scene: THREE.Scene, title: string, xLeft: string) {
+export function errScope(scene: THREE.Scene, title: string, xLeft: string) {
   const plot = scope(scene, WF.w, WF.h, { divs: [6, 4], zeroAt: 0 })
   plot.group.position.set(WF.x, WF.y, 0)
   addLabel(scene, title, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 1.7, 0.3], LABEL, 0.34, 'left')

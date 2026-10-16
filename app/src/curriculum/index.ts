@@ -148,6 +148,7 @@ import { graphSearchAHeuristic, graphSearchDLite, graphSearchGridMaps } from '..
 import { samplingPlannersRrtGrowth, samplingPlannersSmoothingPaths } from '../lessons/navigation/sampling-planners'
 import { pathTrackingPurePursuit, pathTrackingStanleyController } from '../lessons/navigation/path-tracking'
 import { localizationParticleFilter, localizationScanMatching } from '../lessons/navigation/localization'
+import { slamLoopClosure, slamPoseGraphs, slamTheChickenAndEggProblem } from '../lessons/navigation/slam'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -593,6 +594,9 @@ const READY: Record<string, Lesson> = {
   'navigation/path-tracking/stanley-controller': pathTrackingStanleyController,
   'navigation/localization/particle-filter': localizationParticleFilter,
   'navigation/localization/scan-matching': localizationScanMatching,
+  'navigation/slam/the-chicken-and-egg-problem': slamTheChickenAndEggProblem,
+  'navigation/slam/loop-closure': slamLoopClosure,
+  'navigation/slam/pose-graphs': slamPoseGraphs,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
