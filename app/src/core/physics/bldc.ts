@@ -176,6 +176,8 @@ export const propAmps = (volts: number, duty: number, m = ESC_MOTOR) => (volts *
 
 /** Plug in a `cells`-S pack: tones, the flight controller holds zero throttle to arm, then asks for `throttle` (−1…1; below
  *  0 only in 3D mode). The ESC slews duty, cuts it back to hold the current limit and derates above 100 °C. */
+/** Throttle the flight controller sends at `t`: zero until the ESC has armed, then `cmd`. */
+export const escCommand = (t: number, cmd: number, e = ESC) => (t >= e.goS ? cmd : 0)
 export function escRun(cells: number, throttle: number, threeD: boolean, seconds = 6, dt = 1e-4, m = ESC_MOTOR, e = ESC) {
   const k = kvToKt(m.kv)
   const v = packVolts(cells)
@@ -185,7 +187,7 @@ export function escRun(cells: number, throttle: number, threeD: boolean, seconds
   const every = Math.round(ESC_FRAME_S / dt)
   for (let i = 0; i * dt <= seconds + 1e-9; i++) {
     const t = i * dt
-    const want = t >= e.goS ? cmd : 0
+    const want = escCommand(t, cmd, e)
     const hotK = clamp01((e.cutC - st.temp) / (e.cutC - e.hotC))
     const limit = e.limitA * hotK
     let duty = clamp(want, st.duty - e.rampPerS * dt, st.duty + e.rampPerS * dt)

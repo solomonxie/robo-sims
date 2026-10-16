@@ -8,6 +8,7 @@ import {
   dshotBits,
   dshotFrame,
   dshotValue,
+  escCommand,
   escPulseUs,
   escRun,
   fieldAngle,
@@ -83,6 +84,8 @@ describe('hall sensors', () => {
 describe('ESC basics', () => {
   it('PWM 1–2 ms and DShot values; the DShot checksum', () => {
     expect(escPulseUs(0.5)).toBe(1500)
+    expect(escCommand(0.5, 0.6)).toBe(0)
+    expect(escCommand(2, 0.6)).toBe(0.6)
     expect(dshotValue(0)).toBe(0)
     expect(dshotValue(1)).toBe(2047)
     expect(dshotValue(-1, true)).toBe(1047)

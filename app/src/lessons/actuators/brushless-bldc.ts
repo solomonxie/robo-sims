@@ -19,6 +19,7 @@ import {
   dshotBits,
   dshotFrame,
   dshotValue,
+  escCommand,
   escPulseUs,
   escRun,
   fieldAngle,
@@ -364,7 +365,7 @@ const escParams = (p: Params) => {
 type EscQ = ReturnType<typeof escParams>
 const escKey = (q: EscQ) => `${q.cells}|${q.cmd}|${q.threeD}`
 const escMemo = memoBy(escKey, (q: EscQ) => escRun(q.cells, q.cmd, q.threeD, EC.seconds))
-const signalOf = (q: EscQ) => (q.mode === 'pwm' ? `${escPulseUs(q.cmd)} µs` : `DShot ${dshotValue(q.cmd, q.threeD)}`)
+const signalOf = (q: EscQ, cmd: number) => (q.mode === 'pwm' ? `${escPulseUs(cmd)} µs` : `DShot ${dshotValue(cmd, q.threeD)}`)
 
 export const escBasics: Lesson = {
   id: 'brushless-bldc-esc-basics',
@@ -482,23 +483,25 @@ export const escBasics: Lesson = {
             q.blocked || end.state === 'hot' ? HIGH_V : end.state === 'limit' ? HEAT : POWER,
           )
         }
-        const sigKey = `${q.mode}|${q.cmd}`
+        const f = fixedStepAt(run, t, ESC_FRAME_S)
+        const sent = escCommand(f.t, q.cmd)
+        const sigKey = `${q.mode}|${sent}|${q.threeD}`
         if (sigKey !== st.sigKey) {
           st.sigKey = sigKey
           const yS = (h: number) => (h ? 0.8 : -0.8)
           if (q.mode === 'pwm') {
-            const us = escPulseUs(q.cmd)
+            const us = escPulseUs(sent)
             sigTr.draw((u) => yS(u * 2500 > 200 && u * 2500 < 200 + us ? 1 : 0), null)
-            sigTag.set(`${us} µs pulse, 0…2.5 ms window, every 20 ms`, GREY)
+            sigTag.set(`${us} µs pulse${sent !== q.cmd ? ' (arming)' : ''}, 0…2.5 ms window, every 20 ms`, GREY)
           } else {
-            const v = dshotValue(q.cmd, q.threeD)
+            const v = dshotValue(sent, q.threeD)
             const bits = dshotBits(dshotFrame(v))
             sigTr.draw((u) => {
               const b = u * 16
               const i = Math.min(15, Math.floor(b))
               return yS(b - i < (bits[i] ? DSHOT600.one : DSHOT600.zero) ? 1 : 0)
             }, null)
-            sigTag.set(`${bits.join('')} · ${(16 * DSHOT600.bitUs).toFixed(1)} µs`, GREY)
+            sigTag.set(`${sent !== q.cmd ? 'arming: DShot 0 · ' : ''}${bits.join('')} · ${(16 * DSHOT600.bitUs).toFixed(1)} µs`, GREY)
           }
           code(
             q.mode === 'pwm'
@@ -506,7 +509,6 @@ export const escBasics: Lesson = {
               : ['for (int i = 0; i < 300; i++) dshot.send(0);  // arm', `dshot.send(${dshotValue(q.cmd, q.threeD)});  // every loop, ≥ 1 kHz`, q.threeD ? '// 3D: 48…1047 back, 1049…2047 forward' : q.blocked ? '// set 3D mode (or DIR command) to reverse' : '// 600 kbit/s, checksum, no calibration'],
           )
         }
-        const f = fixedStepAt(run, t, ESC_FRAME_S)
         const visW = (f.rpm / EC.rpmMax) * 2 * Math.PI * 2.2
         st.angle += visW * dt
         const e = commutationStep(st.angle)
@@ -523,9 +525,10 @@ export const escBasics: Lesson = {
       readouts: (p) => {
         const q = escParams(p)
         const f = fixedStepAt(escMemo(q), st.t, ESC_FRAME_S)
+        const sent = escCommand(f.t, q.cmd)
         return [
           { label: 'Sim time', value: `${msText(st.t)} (real time)` },
-          { label: 'Throttle', value: signalOf(q), tone: q.blocked ? 'warn' : 'ok' },
+          { label: 'Throttle', value: signalOf(q, sent), tone: q.blocked || sent !== q.cmd ? 'warn' : 'ok' },
           { label: 'Speed / current', value: `${rpmText(f.rpm)} · ${f.amps.toFixed(1)} A`, tone: f.amps >= ESC.limitA - 0.1 ? 'warn' : 'ok' },
           { label: 'ESC temperature', value: `${f.tempC.toFixed(0)} °C`, tone: f.tempC > ESC.hotC ? 'bad' : f.tempC > 70 ? 'warn' : 'ok' },
         ]
