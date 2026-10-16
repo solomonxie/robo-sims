@@ -1,12 +1,12 @@
-// Wheeled robots on a floor, in metres (x forward, y left, z up) inside a `floorView`: TT two-wheeler, mecanum, omni (kiwi / X), FRC swerve, an Ackermann RC car and a tracked (or 4WD skid-steer) chassis.
+// Wheeled robots on a floor, in metres (x forward, y left, z up) inside a `floorView`: TT two-wheeler, mecanum, omni (kiwi / X), FRC swerve, an Ackermann RC car, a tracked (or 4WD skid-steer) chassis and a two-wheeled self-balancer.
 import * as THREE from 'three/webgpu'
-import { ACKERMANN, MECANUM, MecLayout, OMNI, OmniBase, Pose, SWERVE, TANK, TT_TRACK_M, TT_WHEEL_MM, Wheel4, mecWheels, omniWheels, swerveModules } from '../../core/physics'
+import { ACKERMANN, BALANCER, MECANUM, MecLayout, OMNI, OmniBase, Pose, SWERVE, TANK, TT_TRACK_M, TT_WHEEL_MM, Wheel4, mecWheels, omniWheels, swerveModules } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildMecanum, buildWheel } from '../../models/motion'
 import { B_FIELD, HIGH_V, POWER, glowMat, setGlow } from './colors'
 import { gearPlastic, spurGear } from './gears'
 import { addRod, stretchRod } from './layout'
-import { sg90Servo } from './modules'
+import { esp32Board, i2cBreakout, sg90Servo } from './modules'
 
 const WHEEL_R = TT_WHEEL_MM / 2000
 const KIT_UNIT_M = 0.00254
@@ -469,6 +469,51 @@ export function trackedBot(parent: THREE.Object3D, { contact: L = TANK.contact, 
     },
     spin(left: number, right: number) {
       lightPatches(spinM, [left, right])
+    },
+  }
+}
+
+/** Body height above the axle of a `balanceBot` with its CoM `h` up. */
+export const balanceBotHeight = (h: number) => Math.max(0.1, 2 * h - 0.03)
+
+/** Two-wheeled self-balancer (TT motors, MPU-6050 low on the front, ESP32 deck, 2×18650 on top), CoM about `h` above the axle;
+ *  `shift` moves the battery forward (m). `set(tilt, roll)` leans the body about the axle and turns the wheels by `roll` m. */
+export function balanceBot(parent: THREE.Object3D, { h = BALANCER.h, shift = 0 } = {}) {
+  const group = add(parent, new THREE.Group())
+  const body = add(group, new THREE.Group(), [0, 0, WHEEL_R])
+  const H = balanceBotHeight(h)
+  const deck = mat('#e8ecf2', { rough: 0.3, opacity: 0.85 })
+  const brass = mat('#c9a24a', { metal: 0.4, rough: 0.4 })
+  for (const s of [1, -1]) box(body, [0.065, 0.022, 0.019], mat('#f2c12e', { rough: 0.55 }), [0.012, s * 0.045, 0])
+  const decks = [0.016, H * 0.55, H]
+  decks.forEach((z) => box(body, [0.09, 0.13, 0.003], deck, [0, 0, z]))
+  for (const x of [-0.038, 0.038]) for (const y of [-0.058, 0.058]) cylinder(body, 0.0025, H - 0.016, brass, [x, y, (0.016 + H) / 2], 'z', 8)
+  const face = (z: number) => {
+    const g = add(body, new THREE.Group(), [0, -0.066, z])
+    g.rotation.x = Math.PI / 2
+    return g
+  }
+  const imu = i2cBreakout(face(0.04), [0, 0, 0], { name: 'MPU-6050', k: 0.001 })
+  esp32Board(face(decks[1] + 0.02), [-0.009, 0, 0], KIT_UNIT_M)
+  box(body, [0.03, 0.022, 0.01], mat('#c8323c', { rough: 0.5 }), [0, 0, 0.026])
+  const pack = add(body, new THREE.Group(), [shift, 0, H + 0.013])
+  box(pack, [0.078, 0.042, 0.004], mat('#1c1c1f', { rough: 0.7 }), [0, 0, -0.01])
+  for (const y of [-0.0095, 0.0095]) cylinder(pack, 0.009, 0.065, mat('#2f6fd0', { rough: 0.45 }), [0, y, 0], 'x', 16)
+  const wheels = [1, -1].map((s) => {
+    const w = add(group, new THREE.Group(), [0, s * 0.075, WHEEL_R])
+    const tyre = add(w, buildWheel())
+    tyre.scale.setScalar(KIT_UNIT_M)
+    tyre.rotation.x = -s * (Math.PI / 2)
+    return w
+  })
+  return {
+    group,
+    body,
+    imu,
+    height: H,
+    set(tilt: number, roll: number) {
+      body.rotation.y = tilt
+      wheels.forEach((w) => (w.rotation.y = roll / WHEEL_R))
     },
   }
 }

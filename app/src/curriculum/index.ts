@@ -111,6 +111,7 @@ import { omniWheelsLesson, swerveModule } from '../lessons/mobility/omni-swerve'
 import { bicycleModel, steeringGeometry } from '../lessons/mobility/ackermann-steering'
 import { skidSteer, tractionLesson } from '../lessons/mobility/tracks-terrain'
 import { gaitCycle, legIk, zeroMomentPoint } from '../lessons/mobility/legged-walking'
+import { selfBalancingCar, tiltPid, whyItFalls } from '../lessons/mobility/balancing-robots'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -458,6 +459,9 @@ const READY: Record<string, Lesson> = {
   'mobility/legged-walking/gait-cycle': gaitCycle,
   'mobility/legged-walking/zero-moment-point': zeroMomentPoint,
   'mobility/legged-walking/leg-ik': legIk,
+  'mobility/balancing-robots/why-it-falls': whyItFalls,
+  'mobility/balancing-robots/tilt-pid': tiltPid,
+  'mobility/balancing-robots/self-balancing-car': selfBalancingCar,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
