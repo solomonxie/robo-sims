@@ -84,7 +84,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Actuators:
   - [x] DC motor
   - [x] H-bridge
-  - [ ] Servo
+  - [x] Servo
   - [ ] Stepper
   - [ ] Brushless (BLDC)
   - [ ] Field-oriented control
