@@ -1,9 +1,10 @@
 // Readouts: seven-segment digits, bar meter, multimeter and probes, phasor, clock face, USB logic analyser.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
-import { GREY, HIGH_V, LABEL, POWER, RING, glowMat } from './colors'
+import { GREY, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
 import { cableRun } from './layout'
 import { partLetter } from './parts'
+import { flatBox } from './shapes'
 import { label, liveLabel } from './text'
 
 const SEGMENTS: Record<string, string> = {
@@ -230,5 +231,34 @@ export function meterBar(parent: THREE.Object3D, at: V3, w: number, max: number,
     m.color.set(color)
     m.emissive.set(color)
     value.set(text, color)
+  }
+}
+
+/** Labelled horizontal count bars from `at` (left edge), length ∝ value / max; `set(values, texts?, colors?)`. */
+export function countBars(parent: THREE.Object3D, at: V3, labels: readonly string[], w = 5, { row = 0.62, size = 0.28, color = POWER } = {}) {
+  const bars = labels.map((text, j) => {
+    const y = at[1] - j * row
+    flatBox(parent, [w, row * 0.55, 0.05], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [at[0] + w / 2, y, 0])
+    const name = liveLabel(parent, [at[0] - 0.2, y, 0.2], { size, align: 'right' })
+    name.set(text, GREY)
+    const m = glowMat(color, 0.9)
+    const fill = flatBox(parent, [1, row * 0.42, 0.08], m, [at[0], y, 0.06])
+    const value = liveLabel(parent, [at[0] + w + 0.2, y, 0.2], { size: size * 0.95, align: 'left' })
+    return { name, m, fill, value }
+  })
+  return {
+    set(values: readonly number[], texts?: readonly string[], colors?: readonly string[]) {
+      const max = Math.max(1e-9, ...values.filter(Number.isFinite))
+      bars.forEach((b, j) => {
+        const v = Number.isFinite(values[j]) ? values[j] : 0
+        const len = Math.max(1e-3, (v / max) * w)
+        b.fill.scale.x = len
+        b.fill.position.x = at[0] + len / 2
+        const c = colors?.[j] ?? color
+        setGlow(b.m, c, 0.9)
+        b.value.set(texts?.[j] ?? `${Math.round(v)}`, c)
+      })
+    },
+    rename: (j: number, text: string, c = GREY) => bars[j].name.set(text, c),
   }
 }

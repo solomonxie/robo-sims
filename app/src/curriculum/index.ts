@@ -144,6 +144,7 @@ import { occupancyGridsLogOddsUpdate, occupancyGridsRayCasting } from '../lesson
 import { odometryCalibratingWheelSize, odometryDeadReckoning, odometryErrorGrowth } from '../lessons/navigation/odometry'
 import { obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceReactiveRules, obstacleAvoidanceWallFollowing } from '../lessons/navigation/obstacle-avoidance'
 import { mazeSolvingFloodFill, mazeSolvingMicromouse, mazeSolvingWallFollower } from '../lessons/navigation/maze-solving'
+import { graphSearchAHeuristic, graphSearchDLite, graphSearchGridMaps } from '../lessons/navigation/graph-search'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -580,6 +581,9 @@ const READY: Record<string, Lesson> = {
   'navigation/maze-solving/wall-follower': mazeSolvingWallFollower,
   'navigation/maze-solving/flood-fill': mazeSolvingFloodFill,
   'navigation/maze-solving/micromouse': mazeSolvingMicromouse,
+  'navigation/graph-search/grid-maps': graphSearchGridMaps,
+  'navigation/graph-search/a-heuristic': graphSearchAHeuristic,
+  'navigation/graph-search/d-lite': graphSearchDLite,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

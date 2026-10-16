@@ -16,12 +16,12 @@ function instanced(parent: THREE.Object3D, geo: THREE.BufferGeometry, m: THREE.M
   return im
 }
 
-/** `walls(colorOf)` shows each wall side (null hides it), `tiles(colorOf)` tints cells, `numbers(textOf, colorOf)` writes on them. */
-export function mazeModel(parent: THREE.Object3D, w: number, h: number, { cellM = MAZE.cellM, wallM = MAZE.wallM, numberSize = 0.09 } = {}) {
+/** `posts: false` + `walls(() => null)` = a plain grid map. `walls(colorOf)` shows each wall side (null hides it), `tiles(colorOf)` tints cells, `numbers(textOf, colorOf)` writes on them. */
+export function mazeModel(parent: THREE.Object3D, w: number, h: number, { cellM = MAZE.cellM, wallM = MAZE.wallM, numberSize = 0.09, posts = true } = {}) {
   const g = add(parent, new THREE.Group())
   flatBox(g, [w * cellM + wallM, h * cellM + wallM, 0.01], mat('#23262d', { rough: 0.85 }), [(w * cellM) / 2, (h * cellM) / 2, -0.005])
   const postMat = mat('#9aa0ab', { rough: 0.5 })
-  for (let x = 0; x <= w; x++) for (let y = 0; y <= h; y++) box(g, [wallM * 1.3, wallM * 1.3, WALL_H * 1.05], postMat, [x * cellM, y * cellM, (WALL_H * 1.05) / 2]).castShadow = false
+  if (posts) for (let x = 0; x <= w; x++) for (let y = 0; y <= h; y++) box(g, [wallM * 1.3, wallM * 1.3, WALL_H * 1.05], postMat, [x * cellM, y * cellM, (WALL_H * 1.05) / 2]).castShadow = false
   const sides: [number, number][] = []
   const ref = { w, h, walls: new Uint8Array(4 * w * h) }
   for (let c = 0; c < w * h; c++) for (const d of [2, 3, 0, 1]) if (d >= 2 || neighbour(ref, c, d) < 0) sides.push([c, d])
