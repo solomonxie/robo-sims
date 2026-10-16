@@ -131,6 +131,7 @@ import { workspaceDexterity, workspaceReach } from '../lessons/kinematics/worksp
 import { trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling } from '../lessons/kinematics/trajectories'
 import { grippersCompliance, grippersParallelJaw, grippersSuction } from '../lessons/kinematics/grippers'
 import { armBuildAssemble, armBuildDriveIk } from '../lessons/kinematics/robot-arm-build'
+import { dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits } from '../lessons/kinematics/dynamics'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -533,6 +534,9 @@ const READY: Record<string, Lesson> = {
   'kinematics/grippers/compliance': grippersCompliance,
   'kinematics/robot-arm-build/assemble-the-arm': armBuildAssemble,
   'kinematics/robot-arm-build/drive-it-with-ik': armBuildDriveIk,
+  'kinematics/dynamics/gravity-torque': dynamicsGravityTorque,
+  'kinematics/dynamics/inertia': dynamicsInertia,
+  'kinematics/dynamics/payload-limits': dynamicsPayloadLimits,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

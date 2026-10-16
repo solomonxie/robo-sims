@@ -12,6 +12,7 @@ const SPACING = 1.4
 const OVERBAR_Y = 7.3
 const OVERBARS = new Set(['̄', '̅'])
 const DOT_ABOVE = '\u0307'
+const DIAERESIS = '\u0308'
 
 /** Points along an ellipse, degrees CCW from +x; `to < from` runs clockwise. */
 function arc(cx: number, cy: number, rx: number, ry: number, from: number, to: number): Pt[] {
@@ -219,7 +220,7 @@ export interface TextLayout {
   width: number
 }
 
-/** Lays out one line of text; a combining overline (U+0304/U+0305) draws a bar over the previous glyph, so "Q̄" is Q̄; U+0307 a dot (θ̇).
+/** Lays out one line of text; a combining overline (U+0304/U+0305) draws a bar over the previous glyph, so "Q̄" is Q̄; U+0307 a dot (θ̇), U+0308 two (q̈).
  *  Unknown characters render as a gap. */
 export function layoutText(text: string): TextLayout {
   const lines: Polyline[] = []
@@ -232,6 +233,10 @@ export function layoutText(text: string): TextLayout {
     }
     if (ch === DOT_ABOVE) {
       if (prev) lines.push(dot(prev.x + prev.w / 2, OVERBAR_Y))
+      continue
+    }
+    if (ch === DIAERESIS) {
+      if (prev) lines.push(dot(prev.x + prev.w / 2 - 1.2, OVERBAR_Y), dot(prev.x + prev.w / 2 + 1.2, OVERBAR_Y))
       continue
     }
     const gl = GLYPHS[ch] ?? GLYPHS[' ']
