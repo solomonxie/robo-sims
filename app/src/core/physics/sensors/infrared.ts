@@ -61,21 +61,23 @@ export function tcrtAdc(offM: number) {
 }
 
 /** Sensor i's lateral offset from the bar centre (m), left negative. */
-export const sensorX = (i: number) => (i - (TCRT.count - 1) / 2) * TCRT.pitchM
+export const sensorX = (i: number, pitchM = TCRT.pitchM, count = TCRT.count) => (i - (count - 1) / 2) * pitchM
 
-const WHITE_ADC = tcrtAdc(1)
-const BLACK_ADC = tcrtAdc(0)
+export const WHITE_ADC = tcrtAdc(1)
+export const BLACK_ADC = tcrtAdc(0)
+/** Calibrated darkness 0 (white) … 1 (black). */
+export const darkness = (adc: number) => Math.max(0, Math.min(1, (adc - WHITE_ADC) / (BLACK_ADC - WHITE_ADC)))
 export const LOST = 0.08
 
 /** Line position under the bar (m, + = line to the right); `digital` thresholds each sensor first. Null = no line seen. */
-export function linePosition(adc: number[], digital: boolean): number | null {
+export function linePosition(adc: number[], digital: boolean, pitchM = TCRT.pitchM): number | null {
   const w = adc.map((a) => {
-    const f = Math.max(0, Math.min(1, (a - WHITE_ADC) / (BLACK_ADC - WHITE_ADC)))
+    const f = darkness(a)
     return digital ? (f > 0.5 ? 1 : 0) : f
   })
   const sum = w.reduce((a, b) => a + b, 0)
   if (sum < LOST) return null
-  return w.reduce((a, wi, i) => a + wi * sensorX(i), 0) / sum
+  return w.reduce((a, wi, i) => a + wi * sensorX(i, pitchM, adc.length), 0) / sum
 }
 
 
@@ -125,9 +127,10 @@ export function sensorAt(p: Pose, i: number) {
   return { x: p.x + c * CAR.barM - s * lat, y: p.y + s * CAR.barM + c * lat }
 }
 
-const readBar = (p: Pose) => Array.from({ length: TCRT.count }, (_, i) => {
+/** The bar's readings at pose `p` over tape `offset(x, y)` metres away. */
+export const readBar = (p: Pose, offset: (x: number, y: number) => number = trackOffset) => Array.from({ length: TCRT.count }, (_, i) => {
   const s = sensorAt(p, i)
-  return tcrtAdc(trackOffset(s.x, s.y))
+  return tcrtAdc(offset(s.x, s.y))
 })
 
 export interface Follower {

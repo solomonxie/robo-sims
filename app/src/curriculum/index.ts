@@ -118,6 +118,7 @@ import { chatter, thermostat } from '../lessons/control/bang-bang-hysteresis'
 import { derivativeKick, integralWindup, proportionalOnly, tuningByHand, zieglerNicholsLesson } from '../lessons/control/pid'
 import { encoderFeedback, feedForward, velocityPid } from '../lessons/control/speed-control'
 import { sCurve, trapezoidProfile } from '../lessons/control/position-control'
+import { errorFromSensors, intersections, pdSteering } from '../lessons/control/line-following'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -487,6 +488,9 @@ const READY: Record<string, Lesson> = {
   'control/speed-control/velocity-pid': velocityPid,
   'control/position-control/trapezoid-profile': trapezoidProfile,
   'control/position-control/s-curve': sCurve,
+  'control/line-following/error-from-sensors': errorFromSensors,
+  'control/line-following/pd-steering': pdSteering,
+  'control/line-following/intersections': intersections,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -57,9 +57,9 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).
 - `software/` — messaging (QoS, actions), urdf (`tf3`, `parseUrdf`, `ROVER`), frames (`odomPose`, `tfChain`), costmap (`inflate`, A* `planGrid`), btree (`btTick`, `NAV_TREE`), fetchbot, microros, telemetry, simulation (`physStep`, `twinRun`), remote (`stickToWheels`), safety (`wdtRun`, `estopRun`).
 - `mobility/` — diffdrive (`diffStep`, `squareRun`, `slipRun`), mecanum (`mecInverse`/`mecForward`, `twistStep`, `fitTwist`, `mecRun`), omni, swerve, ackermann (`steerAngles`, `bicycleStep`, `pursuitRun`, `parkPlan`), tracks (`TERRAINS`, `skidRun`, Bekker sinkage, `softPull`), legged (`GAITS`, `gaitFeet`, `legIK`, `zmpRun`), balance (`cartStep`, `balanceLoop`; PID from `control/pid`), quadcopter (`mix`, `quadBodyStep`, `attitudeLoop`), underwater (`rovTrim`, `buoyRun`, `allocate`, `rovRun`).
-- `control/` — loop (TT car `openLoopRun` timed move vs `closedLoopRun` P on encoders, `trialConditions` run spread, `ROLL_FLOORS`, `stallDuty`/`pDeadband`), bangbang (`bangBang` hysteresis switch, `thermostatRun`/`cycleStats` relay heater, `followRun` bang-bang/band/hold/P line follower, `relayLifeHours`), pid (`pidStep` plain; `pidTick` anti-windup/D-on-measurement/D filter; `stepMetrics`, `swing`, `ultimateGain`, `zieglerNichols`), arm (`ARM` rig, `armRun`, `loadDuty`, `pRestDeg`), speed (TT wheel `wheelStep`, `wheelCpr`/`speedStep`, `wheelFf`/`ffVolts` kS·kV·kA, `wheelSpeedRun` FF + PID on encoder counts, `stepSp`/`rampSp`, `speedStats`), position (`trapezoidMove`/`sCurveMove`/`stepMove` + `moveAt`, `positionRun` cascade P → FF + PI with car inertia and a mast spring-mass, `moveStats`).
+- `control/` — loop (TT car `openLoopRun` timed move vs `closedLoopRun` P on encoders, `trialConditions` run spread, `ROLL_FLOORS`, `stallDuty`/`pDeadband`), bangbang (`bangBang` hysteresis switch, `thermostatRun`/`cycleStats` relay heater, `followRun` bang-bang/band/hold/P line follower, `relayLifeHours`), pid (`pidStep` plain; `pidTick` anti-windup/D-on-measurement/D filter; `stepMetrics`, `swing`, `ultimateGain`, `zieglerNichols`), arm (`ARM` rig, `armRun`, `loadDuty`, `pRestDeg`), speed (TT wheel `wheelStep`, `wheelCpr`/`speedStep`, `wheelFf`/`ffVolts` kS·kV·kA, `wheelSpeedRun` FF + PID on encoder counts, `stepSp`/`rampSp`, `speedStats`), position (`trapezoidMove`/`sCurveMove`/`stepMove` + `moveAt`, `positionRun` cascade P → FF + PI with car inertia and a mast spring-mass, `moveStats`), linefollow (TCRT bar `barAt`/`errorSweep`/`sweepStats`, `Tape` polylines + `tapeDist`, `steerTick` PD → `turnWheels`, `steerRun` S-course, `junctionRun` FOLLOW/CREEP/SPIN crossing counter).
 - `actuators/` — dcmotor, hbridge, servo, stepper, bldc, foc, linear, solenoid, pumps, gearing, pneumatics, sizing.
-- `sensors/` — `ultrasonic`, `infrared`, `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
+- `sensors/` — `ultrasonic`, `infrared` (TCRT `linePosition`, `readBar(pose, offset)`, `darkness`), `tof`, `lidar`, `encoder` (`odoStep`), `imu`, `magnetometer` (`toBody`), `gps`, `camera`, `temperature`, `current` (`socRun`), `force`, `microphone` (TDOA `locate`), `fusion` (`kfPredict`/`kfUpdate`, `fuseRun`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise).
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
@@ -91,7 +91,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] PID
   - [x] Speed control
   - [x] Position control
-  - [ ] Line following
+  - [x] Line following
   - [ ] Stability
   - [ ] State-space & LQR
   - [ ] Model predictive control
