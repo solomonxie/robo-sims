@@ -1,7 +1,8 @@
-// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), NEMA17 stepper, BLDC outrunner, spur gear train.
+// Motors cut open: brushed DC motor (magnets, 3-slot armature, commutator and brushes), NEMA17 stepper, BLDC outrunner, spur gear train, lead screw.
 import * as THREE from 'three/webgpu'
 import { coilShares } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
+import { Helix } from '../../models/power'
 import { HIGH_V, LOW_V, NORTH, SOUTH } from './colors'
 import { heatGlow } from './heat'
 import { partLetter } from './parts'
@@ -287,6 +288,42 @@ export function gearTrain(parent: THREE.Object3D, at: V3, stages: number[], { mo
     radius: Math.max(mod * PINION, ...stages.map((n) => (mod * PINION * n) / 2)),
     set(motorAngle: number) {
       shafts.forEach((s, k) => (s.rotation.z = ((k % 2 ? 1 : -1) * motorAngle) / ratios[k]))
+    },
+  }
+}
+
+/** Lead screw along local +y from 0 to `length`, radius `r`, `starts` thread helices `lead` apart per turn (drawn coarse),
+ *  and its nut: a flanged brass nut, or a steel ball nut with its return tube. `set(y)` puts the nut at `y` and turns the
+ *  screw so the thread runs through it (−2π per lead). Rotate `group` to lay it down. */
+export function leadScrew(parent: THREE.Object3D, at: V3, length: number, { r = 0.4, lead = 1, starts = 1, ball = false } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const spin = add(group, new THREE.Group())
+  const steel = STEEL()
+  rod(spin, [0, 0, 0], [0, length, 0], r * 0.78, steel, 16)
+  const along = add(spin, new THREE.Group())
+  along.rotation.z = Math.PI / 2
+  const turns = length / lead
+  for (let k = 0; k < starts; k++) {
+    const h = add(along, mesh(new THREE.TubeGeometry(new Helix(r * 0.8, length, turns), Math.ceil(turns * 18), r * (ball ? 0.26 : 0.2), 6), steel))
+    h.rotation.x = (k * 2 * Math.PI) / starts
+  }
+  const nut = add(group, new THREE.Group())
+  const body = mat(ball ? '#9aa1ab' : '#c9a24a', { metal: 0.4, rough: 0.35 })
+  cylinder(nut, r * (ball ? 2.1 : 1.6), r * 2.6, body, [0, 0, 0], 'y', 28)
+  cylinder(nut, r * (ball ? 2.9 : 2.5), r * 0.4, body, [0, r * 1.1, 0], 'y', 28)
+  if (ball) {
+    const tube = mat('#6c737d', { metal: 0.35, rough: 0.4 })
+    rod(nut, [r * 2.1, -r * 0.9, r * 0.6], [r * 2.6, -r * 0.9, r * 0.6], r * 0.25, tube)
+    rod(nut, [r * 2.6, -r * 0.9, r * 0.6], [r * 2.6, r * 0.5, r * 0.6], r * 0.25, tube)
+    rod(nut, [r * 2.6, r * 0.5, r * 0.6], [r * 2.1, r * 0.5, r * 0.6], r * 0.25, tube)
+  }
+  return {
+    group,
+    spin,
+    nut,
+    set(y: number) {
+      nut.position.y = y
+      spin.rotation.y = (-2 * Math.PI * y) / lead
     },
   }
 }

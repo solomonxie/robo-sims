@@ -98,6 +98,7 @@ import { insideAHobbyServo, jitterAndPower, pulseToAngle } from './actuators/ser
 import { a4988AndTmcDrivers, fullHalfAndMicroSteps, missedSteps } from './actuators/stepper'
 import { escBasics, hallSensors, threePhaseDrive } from './actuators/brushless-bldc'
 import { clarkeAndPark, currentLoops } from './actuators/field-oriented-control'
+import { leadScrewLesson, limitSwitches } from './actuators/linear-actuators'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -110,5 +111,5 @@ export const UNITS: Unit[] = [
   { title: 'Microcontrollers', lessons: [outputAndInputModes, pullUps, driveStrength, interrupts, dutyCycle, frequencyChoice, servoPulses, averageVoltage, resolutionAndRange, sampling, noiseAndAveraging, esp32AdcQuirks, r2rLadder, audioOut, hardwareTimers, isrRules, millisWithoutDelay, framingAndBaud, levelAndNoise, gpsAndModules, addresses, pullUpResistors, readingAnImu, busScan, clockModes, chipSelect, sdCardsAndDisplays, differentialSignalling, arbitration, stationAndAp, httpAndWebSocket, bleGatt, espNow, deepSleep, wakeSources, batteryBudget, flashLayout, stackAndHeap, littleFs, tasksAndPriorities, queues, mutexes, bootModes, otaUpdates] },
   { title: 'Sensors', lessons: [timeOfFlight, beamAngle, softTargetErrors, obstacleSensor, lineFollower, sunlightInterference, vl53l0x, multiZoneRanging, scan2d, pointClouds, rangeAndResolution, quadrature, countsPerRevolution, speedFromTicks, accelerometer, gyroscope, complementaryFilter, drift, heading, hardIronCalibration, trilateration, fixAndAccuracy, rtk, rollingVsGlobalShutter, exposure, lensDistortion, thermistorCurve, oneWireProtocol, shuntResistor, ina219, stateOfCharge, strainGauge, capacitiveTouch, memsMic, soundSourceDirection, whyFuse, complementaryHeading, kalmanIntuition] },
   { title: 'Software', lessons: [superLoopVsRtos, hardwareAbstraction, fixedRateControlLoop, publishAndSubscribe, servicesAndActions, launchFiles, frameTree, writingAUrdf, costmaps, behaviourTrees, agentAndClient, serialTransport, physicsEngine, simToRealGap, sequenceAndFallback, blackboard, plottingLiveData, replayLogs, joystickOverBle, webSocketControl, latency, watchdog, eStop, faultStates] },
-  { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops] },
+  { title: 'Actuators', lessons: [backEmfLesson, torqueAndSpeedCurve, stallCurrent, gearboxes, fourSwitches, l298nVsModernDrivers, decayModes, shootThroughLesson, pulseToAngle, insideAHobbyServo, jitterAndPower, fullHalfAndMicroSteps, a4988AndTmcDrivers, missedSteps, threePhaseDrive, hallSensors, escBasics, clarkeAndPark, currentLoops, leadScrewLesson, limitSwitches] },
 ]

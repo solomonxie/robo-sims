@@ -1,9 +1,10 @@
-// Moving-contact controls, cut open: tact and toggle switches, rotary pot, E-stop.
+// Moving-contact controls, cut open: tact and toggle switches, rotary pot, E-stop, lever microswitch.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL, TIN } from '../../models/kit'
 import { Helix } from '../../models/power'
 import { glowHalo } from './circuit'
-import { COPPER, RING, potentialColor } from './colors'
+import { COPPER, RING, potentialColor, setGlow } from './colors'
+import { partLetter } from './parts'
 import { shellMat } from './shapes'
 import { clamp01, lerp } from './util'
 
@@ -278,6 +279,72 @@ export function estopButton(parent: THREE.Object3D, at: V3, k = 1) {
     set(press: number, twist = 0) {
       plunger.position.y = -0.7 * clamp01(press)
       cap.rotation.y = twist
+    },
+  }
+}
+
+const MSW = { w: 20, h: 10, d: 6.4, lever: 18, hinge: [-8.5, 10.6] as const, rest: 14, full: 3, roller: 2.4 }
+
+const mswAngle = (press: number) => lerp(MSW.rest, MSW.full, clamp01(press)) * (Math.PI / 180)
+const mswTip = (press: number) => {
+  const a = mswAngle(press)
+  return [MSW.hinge[0] + MSW.lever * Math.cos(a) - MSW.roller * Math.sin(a), MSW.hinge[1] + MSW.lever * Math.sin(a) + MSW.roller * Math.cos(a)] as const
+}
+/** Unpressed roller's right and top edges from a microswitch's `at`, at `k` units per mm. */
+export const microSwitchReach = (k: number): [number, number] => [(mswTip(0)[0] + MSW.roller) * k, (mswTip(0)[1] + MSW.roller) * k]
+
+/** KW12 lever microswitch (20 × 10 mm) facing +z, `k` units per mm, see-through front; `at` = middle of the body's bottom.
+ *  Lugs COM, NC, NO point down (`pins`). The lever is hinged top left with a roller on its right tip; pressing it pushes
+ *  the plunger, which snaps the COM leaf from NC (top contact) down to NO. `set(press 0..1, made)`: `made` is the contact
+ *  the leaf touches ('nc', 'no', or null mid-bounce), lit. */
+export function microSwitch(parent: THREE.Object3D, at: V3, k = 0.2) {
+  const group = add(parent, new THREE.Group(), at)
+  group.scale.setScalar(k)
+  const w = world(at, k)
+  const { w: W, h: H, d: D } = MSW
+  const black = mat('#1c1d22', { rough: 0.6 })
+  box(group, [W, H, 0.8], black, [0, H / 2, -D / 2 + 0.4])
+  box(group, [W, 0.8, D], black, [0, 0.4, 0])
+  box(group, [W, 0.8, D], black, [0, H - 0.4, 0])
+  for (const s of [-1, 1]) box(group, [0.8, H, D], black, [s * (W / 2 - 0.4), H / 2, 0])
+  add(group, mesh(new THREE.BoxGeometry(W, H, 0.2), shellMat('#6a6f7a', 0.12, 0.15)), [0, H / 2, D / 2]).castShadow = false
+  const lugX = { com: -7, nc: 0, no: 7 }
+  for (const x of Object.values(lugX)) box(group, [2.4, 4.2, 0.5], TIN(), [x, -2.1, 0])
+  Object.entries(lugX).forEach(([name, x]) => partLetter(group, name.toUpperCase(), [x, 2, D / 2 + 0.2], 1.2, '#ffffff'))
+
+  const copper = mat('#c8803f', { metal: 0.35, rough: 0.35 })
+  const z = D / 2 - 1.4
+  box(group, [1, 4, 0.6], copper, [lugX.com, 2.6, z])
+  const contact = () => new THREE.MeshStandardMaterial({ color: '#c8803f', metalness: 0.35, roughness: 0.35 })
+  const ncMat = contact()
+  const noMat = contact()
+  box(group, [0.6, 3.4, 0.6], copper, [5.6, 7.5, z])
+  box(group, [5.6, 0.6, 0.6], copper, [2.8, 9.2, z])
+  box(group, [0.6, 7.4, 0.6], copper, [lugX.nc, 5.4, z])
+  box(group, [1.6, 0.8, 0.8], ncMat, [5.6, 6.2, z])
+  box(group, [1.6, 0.8, 0.8], noMat, [5.6, 2, z])
+  box(group, [0.6, 1.6, 0.6], copper, [lugX.no - 0.6, 1.4, z])
+  box(group, [1.6, 0.6, 0.6], copper, [6.2, 1.6, z])
+  const leaf = add(group, new THREE.Group(), [lugX.com, 4.6, z])
+  box(leaf, [12.6, 0.35, 0.5], mat('#d5dae2', { metal: 0.4, rough: 0.25 }), [6.3, 0, 0])
+  const plunger = add(group, new THREE.Group(), [0.5, 0, 0])
+  box(plunger, [1.6, 3, 1.6], mat('#c23a2e', { rough: 0.5 }), [0, 0, 0])
+
+  const lever = add(group, new THREE.Group(), [MSW.hinge[0], MSW.hinge[1], 0])
+  const steel = STEEL()
+  box(lever, [MSW.lever, 0.5, 3.6], steel, [MSW.lever / 2, 0, 0])
+  cylinder(lever, MSW.roller, 2.8, mat('#2f3238', { rough: 0.5 }), [MSW.lever, MSW.roller, 0], 'z', 20)
+  cylinder(lever, 0.7, 4, steel, [0, 0, 0], 'z', 12)
+  return {
+    group,
+    pins: { com: w(lugX.com, -4.2), nc: w(lugX.nc, -4.2), no: w(lugX.no, -4.2) },
+    set(press: number, made: 'nc' | 'no' | null) {
+      lever.rotation.z = mswAngle(press)
+      const top = MSW.hinge[1] + (plunger.position.x - MSW.hinge[0]) * Math.tan(mswAngle(press))
+      plunger.position.y = Math.min(H + 1.2, top - 0.25) - 1.5
+      leaf.rotation.z = made === 'no' ? -0.17 : made === 'nc' ? 0.09 : -0.04
+      setGlow(ncMat, made === 'nc' ? RING : '#c8803f', made === 'nc' ? 0.9 : 0)
+      setGlow(noMat, made === 'no' ? RING : '#c8803f', made === 'no' ? 0.9 : 0)
     },
   }
 }
