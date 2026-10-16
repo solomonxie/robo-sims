@@ -1,4 +1,4 @@
-// Kinematics: rigid transforms (2D/3D, Euler, quaternions), frame trees, serial-chain FK, Jacobian, IK, workspace and trajectories.
+// Kinematics: rigid transforms (2D/3D, Euler, quaternions), frame trees, serial-chain FK, Jacobian, IK, workspace, trajectories and grippers.
 export * from './transforms'
 export * from './frametree'
 export * from './chain'
@@ -6,3 +6,4 @@ export * from './jacobian'
 export * from './ik'
 export * from './workspace'
 export * from './trajectory'
+export * from './gripper'

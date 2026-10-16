@@ -129,6 +129,7 @@ import { analyticIk, jacobianMethod, multipleSolutions } from '../lessons/kinema
 import { jacobianManipulability, jacobianSingularities } from '../lessons/kinematics/jacobian'
 import { workspaceDexterity, workspaceReach } from '../lessons/kinematics/workspace'
 import { trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling } from '../lessons/kinematics/trajectories'
+import { grippersCompliance, grippersParallelJaw, grippersSuction } from '../lessons/kinematics/grippers'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -526,6 +527,9 @@ const READY: Record<string, Lesson> = {
   'kinematics/trajectories/linear-interpolation': trajectoriesLinear,
   'kinematics/trajectories/splines': trajectoriesSplines,
   'kinematics/trajectories/time-scaling': trajectoriesTimeScaling,
+  'kinematics/grippers/parallel-jaw': grippersParallelJaw,
+  'kinematics/grippers/suction': grippersSuction,
+  'kinematics/grippers/compliance': grippersCompliance,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
