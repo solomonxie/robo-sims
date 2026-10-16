@@ -1,4 +1,4 @@
-// Mobility: differential drive, mecanum, omni, swerve, Ackermann, tracks, legs, balancing.
+// Mobility: differential drive, mecanum, omni, swerve, Ackermann, tracks, legs, balancing, quadcopter, underwater.
 export * from './diffdrive'
 export * from './mecanum'
 export * from './omni'
@@ -8,3 +8,4 @@ export * from './tracks'
 export * from './legged'
 export * from './balance'
 export * from './quadcopter'
+export * from './underwater'
