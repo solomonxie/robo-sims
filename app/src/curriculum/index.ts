@@ -102,6 +102,7 @@ import { escBasics, hallSensors, threePhaseDrive } from '../lessons/actuators/br
 import { clarkeAndPark, currentLoops } from '../lessons/actuators/field-oriented-control'
 import { leadScrewLesson, limitSwitches } from '../lessons/actuators/linear-actuators'
 import { peristalticPump, solenoidDrive } from '../lessons/actuators/solenoids-pumps'
+import { backlash, gearRatioLesson, planetaryGears, wormDrive } from '../lessons/actuators/gear-trains'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -425,6 +426,10 @@ const READY: Record<string, Lesson> = {
   'actuators/linear-actuators/limit-switches': limitSwitches,
   'actuators/solenoids-pumps/solenoid-drive': solenoidDrive,
   'actuators/solenoids-pumps/peristaltic-pump': peristalticPump,
+  'actuators/gear-trains/gear-ratio': gearRatioLesson,
+  'actuators/gear-trains/backlash': backlash,
+  'actuators/gear-trains/planetary-gears': planetaryGears,
+  'actuators/gear-trains/worm-drive': wormDrive,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

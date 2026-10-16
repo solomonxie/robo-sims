@@ -239,12 +239,17 @@ export function bldcMotor(parent: THREE.Object3D, at: V3, r = 2, { halls = false
   }
 }
 
-/** Spur gear in the xy plane (axis z) with `teeth` of module `mod`: pitch radius = mod·teeth / 2. */
-export function spurGear(parent: THREE.Object3D, teeth: number, mod: number, width: number, material: THREE.Material) {
+/** Spur gear in the xy plane (axis z) with `teeth` of module `mod`: pitch radius = mod·teeth / 2; `thick` = tooth thickness. */
+export function spurGear(parent: THREE.Object3D, teeth: number, mod: number, width: number, material: THREE.Material, thick = 1.5 * mod) {
   const g = add(parent, new THREE.Group())
   const rp = (mod * teeth) / 2
   cylinder(g, rp - 0.6 * mod, width, material, [0, 0, 0], 'z', Math.max(24, teeth * 2))
-  const t = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6 * mod, 1.5 * mod, width), material, teeth)
+  g.add(gearTeeth(teeth, rp, mod, width, material, thick))
+  return g
+}
+
+function gearTeeth(teeth: number, rp: number, mod: number, width: number, material: THREE.Material, thick: number) {
+  const t = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6 * mod, thick, width), material, teeth)
   const m = new THREE.Matrix4()
   const q = new THREE.Quaternion()
   const z = new THREE.Vector3(0, 0, 1)
@@ -254,7 +259,16 @@ export function spurGear(parent: THREE.Object3D, teeth: number, mod: number, wid
     t.setMatrixAt(i, m.compose(new THREE.Vector3(rp * Math.cos(a), rp * Math.sin(a), 0), q.setFromAxisAngle(z, a), one))
   }
   t.castShadow = true
-  g.add(t)
+  return t
+}
+
+/** Internal (ring) gear in the xy plane, teeth pointing in, pitch radius mod·teeth / 2, `rim` thick outside it. */
+export function ringGear(parent: THREE.Object3D, teeth: number, mod: number, width: number, material: THREE.Material, rim = 3 * mod) {
+  const g = add(parent, new THREE.Group())
+  const rp = (mod * teeth) / 2
+  const band = add(g, mesh(sectorGeometry(rp + 0.6 * mod, rp + 0.6 * mod + rim, 0, TAU, width), material), [0, 0, -width / 2])
+  band.castShadow = true
+  g.add(gearTeeth(teeth, rp, mod, width, material, 1.5 * mod))
   return g
 }
 
