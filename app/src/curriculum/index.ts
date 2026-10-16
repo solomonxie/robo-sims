@@ -101,6 +101,7 @@ import { a4988AndTmcDrivers, fullHalfAndMicroSteps, missedSteps } from '../lesso
 import { escBasics, hallSensors, threePhaseDrive } from '../lessons/actuators/brushless-bldc'
 import { clarkeAndPark, currentLoops } from '../lessons/actuators/field-oriented-control'
 import { leadScrewLesson, limitSwitches } from '../lessons/actuators/linear-actuators'
+import { peristalticPump, solenoidDrive } from '../lessons/actuators/solenoids-pumps'
 import { physics } from './physics'
 import { practice } from './practice'
 import { robotics } from './robotics'
@@ -422,6 +423,8 @@ const READY: Record<string, Lesson> = {
   'actuators/field-oriented-control/current-loops': currentLoops,
   'actuators/linear-actuators/lead-screw': leadScrewLesson,
   'actuators/linear-actuators/limit-switches': limitSwitches,
+  'actuators/solenoids-pumps/solenoid-drive': solenoidDrive,
+  'actuators/solenoids-pumps/peristaltic-pump': peristalticPump,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

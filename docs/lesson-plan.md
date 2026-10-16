@@ -89,7 +89,7 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
   - [x] Brushless (BLDC)
   - [x] Field-oriented control
   - [x] Linear actuators
-  - [ ] Solenoids & pumps
+  - [x] Solenoids & pumps
   - [ ] Gear trains
   - [ ] Pneumatics & soft robots
   - [ ] Motor selection
