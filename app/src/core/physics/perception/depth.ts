@@ -4,9 +4,9 @@ import { LIGHT_C, clamp, gaussAt, hash01 } from '../common'
 import { chain4, trans4 } from '../kinematics/transforms'
 import { P3 } from '../room'
 import { Mat4, apply4, invert4 } from '../software/urdf'
-import { Img, lumaOf, makeImg } from './image'
-import { grainImg } from './markers'
-import { Intrinsics, RenderScene, depthFromDisparity, pixelRay, sceneCaster } from './projection'
+import { Img, grainImg, lumaOf, makeImg } from './image'
+import { Intrinsics, depthFromDisparity, pixelRay } from './projection'
+import { RenderScene, sceneCaster } from './render'
 
 /** Hole reasons in a depth image. */
 export const DEPTH_HOLE = { ok: 0, unclear: 1, lr: 2, weak: 3 } as const

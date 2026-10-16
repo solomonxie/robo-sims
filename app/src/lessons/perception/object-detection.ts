@@ -1,13 +1,13 @@
 import * as THREE from 'three/webgpu'
 import {
-  ACCELERATORS, BBox, CAM_FPS, DETECT_MODELS, DET_CAM, DET_CLASSES, Det, DetObject, P3, Plane, boxIoU, detDataset, detFrame, frameBudget, matchDets, netCost, nmsSteps,
+  ACCELERATORS, BBox, CAM_FPS, DETECT_MODELS, DET_CAM, DET_CLASSES, Det, DetObject, P3, boxIoU, detDataset, detFrame, frameBudget, matchDets, netCost, nmsSteps,
   prAt, prCurve, runDetector, tinyMemory, travelOf, truthBoxes,
 } from '../../core/physics'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { scope } from '../fx/screens'
 import {
-  GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, diffBot, esp32Cam, flatBox, histChart, liveLabel, memoBy, meterBar, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
+  GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, diffBot, esp32Cam, flatBox, histChart, liveLabel, memoBy, meterBar, pixelBox, pixelGrid, planeStack, ringMarks, rodPool, setTf, showImg, showPlane, statusHeader, zUp,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -18,36 +18,6 @@ const kb = (b: number) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} M
 const macs = (m: number) => (m >= 1e9 ? `${(m / 1e9).toFixed(1)} G` : m >= 1e6 ? `${(m / 1e6).toFixed(1)} M` : `${f0(m / 1e3)} k`)
 const CLS_COLOR = ['#ff6a55', '#5b8cff', '#4fd37a']
 const FEAT_RGB: [number, number, number][] = [[1, 0.42, 0.33], [0.36, 0.55, 1], [0.31, 0.83, 0.48], [0.9, 0.9, 0.95]]
-type Grid = ReturnType<typeof pixelGrid>
-type Rods = ReturnType<typeof rodPool>
-
-/** Box (pixel edges) as 4 rods on a pixel grid of the image size. */
-function boxOnGrid(pool: Rods, i: number, grid: Grid, b: BBox, r: number, color: string, lift = 0.12) {
-  const [x0, y0, x1, y1] = [b[0] - 0.5, b[1] - 0.5, b[2] - 0.5, b[3] - 0.5]
-  const at = (x: number, y: number): V3 => {
-    const p = grid.cell(x, y)
-    return [p[0], p[1], p[2] + lift]
-  }
-  const c = [at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1)]
-  c.forEach((a, j) => pool.set(i + j, a, c[(j + 1) % 4], r, color))
-}
-
-/** Feature plane → grid, values scaled by `peak`, tinted. */
-function showPlane(grid: Grid, p: Plane, tint: [number, number, number], peak: number) {
-  for (let i = 0; i < p.w * p.h; i++) {
-    const v = Math.min(1, p.data[i] / peak) ** 0.8
-    grid.set(i, 0.1 + v * tint[0], 0.11 + v * tint[1], 0.14 + v * tint[2])
-  }
-  grid.commit()
-}
-
-/** A stack of same-size feature planes fanned in depth, in a tilted group. */
-function planeStack(scene: THREE.Object3D, at: V3, count: number, w: number, h: number, pitch: number, gap: V3) {
-  const g = add(scene, new THREE.Group(), at)
-  g.rotation.set(-0.2, 0.75, 0)
-  return Array.from({ length: count }, (_, i) => pixelGrid(g, [gap[0] * i, gap[1] * i, gap[2] * i], w, h, pitch))
-}
-
 // --- YOLO idea: one pass of a small CNN, a grid of cells each guessing a box, then confidence threshold and NMS. ---
 
 const SCENES: Record<string, { label: string; objs: DetObject[]; card: P3 | null }> = {
@@ -172,7 +142,7 @@ export const objectDetectionYoloIdea: Lesson = {
           const isCur = cur?.keep === i
           const firm = keptSoFar.has(i) || isCur
           const color = dropping ? (blink ? GREY : HIGH_V) : isCur ? RING : CLS_COLOR[d.cls]
-          boxOnGrid(boxes, 4 * r, out, d.box, firm ? 0.05 : 0.025, color, 0.12 + 0.01 * r)
+          pixelBox(boxes, 4 * r, out.cell, d.box, firm ? 0.05 : 0.025, color, 0.12 + 0.01 * r)
           const tl = out.cell(d.box[0] - 0.5, d.box[1] - 0.5)
           tags[r].group.position.set(tl[0], tl[1] + 0.22, 0.4)
           const crowded = !cur && S.cands.slice(0, i).some((e, j) => !dropped.has(j) && Math.abs(e.box[0] - d.box[0]) < 3 && Math.abs(e.box[1] - d.box[1]) < 2)
@@ -320,11 +290,11 @@ export const objectDetectionRunningOnAnEsp32Cam: Lesson = {
         let r = 0
         const kept = F.m.filter((x) => x.det.score >= thr)
         kept.forEach((x) => {
-          if (r < 16) boxOnGrid(boxes, 4 * r++, grid, x.det.box, 0.04, x.tp ? POWER : HIGH_V)
+          if (r < 16) pixelBox(boxes, 4 * r++, grid.cell, x.det.box, 0.04, x.tp ? POWER : HIGH_V)
         })
         F.truth.forEach((t) => {
           const hit = kept.some((x) => x.tp && x.det.cls === t.cls && iouAtLeast(x.det.box, t.box))
-          if (!hit && r < 16) boxOnGrid(boxes, 4 * r++, grid, t.box, 0.02, LABEL, 0.1)
+          if (!hit && r < 16) pixelBox(boxes, 4 * r++, grid.cell, t.box, 0.02, LABEL, 0.1)
         })
         boxes.hideFrom(4 * r)
         boxes.commit()

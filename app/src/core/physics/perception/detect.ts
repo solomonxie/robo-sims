@@ -3,13 +3,13 @@
 import { clamp, hash01 } from '../common'
 import { P3 } from '../room'
 import { Mat4 } from '../software/urdf'
-import { Img } from './image'
-import { grainImg } from './markers'
-import { Intrinsics, RenderScene, camTf, intrinsicsOf, projectPx, renderView } from './projection'
+import { Img, grainImg } from './image'
+import { Intrinsics, camTf, intrinsicsOf, projectPx } from './projection'
+import { RenderScene, renderView } from './render'
 
 /** Pixel box x0, y0, x1, y1 (edges, not centres). */
 export type BBox = [number, number, number, number]
-export const boxArea = (b: BBox) => Math.max(0, b[2] - b[0]) * Math.max(0, b[3] - b[1])
+const boxArea = (b: BBox) => Math.max(0, b[2] - b[0]) * Math.max(0, b[3] - b[1])
 
 /** Intersection over union of two boxes, 0…1. */
 export function boxIoU(a: BBox, b: BBox) {
@@ -43,7 +43,7 @@ const plane = (w: number, h: number): Plane => ({ w, h, data: new Float32Array(w
 /** 3 × 3 kernels [out][in][9] and one bias per output. */
 export interface ConvLayer { k: number[][][]; bias: number[] }
 
-export const planesOf = (img: Img): Plane[] =>
+const planesOf = (img: Img): Plane[] =>
   Array.from({ length: img.ch }, (_, c) => ({ w: img.w, h: img.h, data: Float32Array.from({ length: img.w * img.h }, (__, i) => img.data[i * img.ch + c] / 255) }))
 
 /** Same-size 3 × 3 convolution (edge pixels repeated) + bias, then ReLU. */
@@ -83,7 +83,7 @@ export function int8Layer(L: ConvLayer): ConvLayer {
   return { k: L.k.map((a) => a.map((b) => b.map(q))), bias: L.bias.map(q) }
 }
 /** uint8 activations on 0…`range`. */
-export const uint8Plane = (p: Plane, range: number): Plane => ({ ...p, data: p.data.map((v) => (Math.round(clamp(v / range, 0, 1) * 255) * range) / 255) })
+const uint8Plane = (p: Plane, range: number): Plane => ({ ...p, data: p.data.map((v) => (Math.round(clamp(v / range, 0, 1) * 255) * range) / 255) })
 
 // --- The hand-set network: colour/edge filters → pool 2 → class maps → pool 3 → one cell per 6 × 6 pixels ---
 
@@ -93,7 +93,7 @@ const LAPLACE = [0, -1, 0, -1, 4, -1, 0, -1, 0]
 const BOX3 = Array(9).fill(1 / 9)
 const outer = (k: readonly number[], per: readonly number[]) => per.map((s) => k.map((v) => v * s))
 const OPP = 0.65
-export const DET_NET = {
+const DET_NET = {
   conv1: {
     names: ['red', 'blue', 'green', 'edge'],
     k: [outer(BLUR, [1, -OPP, -OPP]), outer(BLUR, [-OPP, -OPP, 1]), outer(BLUR, [-OPP, 1.25, -OPP]), outer(LAPLACE, [0.6, 1.2, 0.2])],
@@ -181,9 +181,9 @@ export function netCost(w: number, h: number) {
 
 export interface DetObject { cls: number; x: number; y: number; size: number }
 type Rgb = [number, number, number]
-export const DET_RGB: Rgb[] = [[214, 58, 46], [40, 90, 220], [60, 190, 70]]
-export const CARDBOARD: Rgb = [190, 122, 72]
-export const DET_FOV = 45
+const DET_RGB: Rgb[] = [[214, 58, 46], [40, 90, 220], [60, 190, 70]]
+const CARDBOARD: Rgb = [190, 122, 72]
+const DET_FOV = 45
 export const DET_K: Intrinsics = intrinsicsOf(48, 36, DET_FOV)
 export const DET_CAM: Mat4 = camTf([0, 0, 0.24], 0, 0.32)
 const FLOOR = { tile: 0.2, a: [128, 126, 122] as Rgb, b: [92, 94, 98] as Rgb }
@@ -196,7 +196,7 @@ function solidOf(o: DetObject) {
   return { block: { min: [o.x - hx, o.y - hx, 0] as P3, max: [o.x + hx, o.y + hx, hz] as P3, rgb: o.cls === 1 ? DET_RGB[1] : DET_RGB[2] } }
 }
 
-export function detScene(objs: readonly DetObject[], cardboard: P3 | null = null): RenderScene {
+function detScene(objs: readonly DetObject[], cardboard: P3 | null = null): RenderScene {
   const solids = objs.map(solidOf)
   const blocks = solids.flatMap((s) => (s.block ? [s.block] : []))
   if (cardboard) blocks.push({ min: [cardboard[0] - 0.06, cardboard[1] - 0.09, 0], max: [cardboard[0] + 0.06, cardboard[1] + 0.09, cardboard[2]], rgb: CARDBOARD })

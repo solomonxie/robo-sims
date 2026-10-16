@@ -1,29 +1,24 @@
 // Colour tracking: mask clean-up (erode/dilate/open/close), connected blobs, a ball rendered into camera frames, and a pan servo steering toward the blob centroid.
-import { clamp, gaussAt } from '../common'
+import { clamp } from '../common'
 import { SG90_LOOP } from '../actuators/servo'
 import { MeasFilter, filterRun } from '../control/loopfilter'
 import { PID_MEM0, pidTick } from '../control/pid'
-import { Img, hsvMask, makeImg } from './image'
+import { Img, grainAt, hsvMask, makeImg } from './image'
+import { focalPx } from './projection'
 
 /** 3 × 3 min (erode) or max (dilate) of a binary mask as a row pass then a column pass; pixels outside the image are ignored. */
 function morph(mask: Img, erode: boolean): Img {
   const { w, h, ch, data } = mask
-  const a = new Uint8Array(w * h)
-  for (let i = 0; i < w * h; i++) a[i] = data[i * ch] > 127 ? 1 : 0
-  const pass = (src: Uint8Array, step: number, len: number, along: (i: number) => number) => {
-    const dst = new Uint8Array(w * h)
-    for (let i = 0; i < w * h; i++) {
-      const k = along(i)
-      let v = src[i]
-      if (k > 0) v = erode ? Math.min(v, src[i - step]) : Math.max(v, src[i - step])
-      if (k < len - 1) v = erode ? Math.min(v, src[i + step]) : Math.max(v, src[i + step])
-      dst[i] = v
-    }
-    return dst
-  }
-  const b = pass(pass(a, 1, w, (i) => i % w), w, h, (i) => Math.floor(i / w))
+  const n = w * h
+  const a = new Uint8Array(n)
+  for (let i = 0; i < n; i++) a[i] = data[i * ch] > 127 ? 1 : 0
+  const b = new Uint8Array(n)
+  const keep = erode ? 1 : 0
+  for (let y = 0, i = 0; y < h; y++)
+    for (let x = 0; x < w; x++, i++) b[i] = (x > 0 && a[i - 1] !== keep) || (x < w - 1 && a[i + 1] !== keep) ? 1 - keep : a[i]
   const out = makeImg(w, h, 1)
-  for (let i = 0; i < w * h; i++) out.data[i] = b[i] * 255
+  for (let y = 0, i = 0; y < h; y++)
+    for (let x = 0; x < w; x++, i++) out.data[i] = ((y > 0 && b[i - w] !== keep) || (y < h - 1 && b[i + w] !== keep) ? 1 - keep : b[i]) * 255
   return out
 }
 export const erodeMask = (mask: Img) => morph(mask, true)
@@ -34,7 +29,7 @@ export const openMask = (mask: Img) => dilateMask(erodeMask(mask))
 export const closeMask = (mask: Img) => erodeMask(dilateMask(mask))
 
 export type Cleanup = 'none' | 'open' | 'close' | 'both'
-export const cleanMask = (mask: Img, c: Cleanup) => (c === 'open' ? openMask(mask) : c === 'close' ? closeMask(mask) : c === 'both' ? closeMask(openMask(mask)) : mask)
+const cleanMask = (mask: Img, c: Cleanup) => (c === 'open' ? openMask(mask) : c === 'close' ? closeMask(mask) : c === 'both' ? closeMask(openMask(mask)) : mask)
 
 export interface MaskBlob {
   id: number
@@ -110,41 +105,31 @@ export function findBlob(img: Img, s: BlobSpec) {
 
 // --- A red ball in front of a wall and table, as a small camera frame ---
 
-let noiseTable: Float32Array | null = null
-const noiseAt = (k: number) => (noiseTable ??= Float32Array.from({ length: 8192 }, (_, i) => gaussAt(i)))[k % 8192]
-
-/** w × h frame (2 × 2 supersampled) with a shaded red ball of radius `r` px centred at (bx, by) px; Gaussian noise `sigma` (from a fixed table), draw `seed`. */
-export function ballFrame(w: number, h: number, bx: number, by: number, r: number, sigma = 0, seed = 0): Img {
-  const img = makeImg(w, h, 3)
-  img.data.set(backdrop(w, h))
-  const x0 = Math.max(0, Math.floor(bx - r - 1))
-  const x1 = Math.min(w - 1, Math.ceil(bx + r + 1))
-  const y0 = Math.max(0, Math.floor(by - r - 1))
-  const y1 = Math.min(h - 1, Math.ceil(by + r + 1))
-  for (let y = y0; y <= y1; y++)
-    for (let x = x0; x <= x1; x++) {
+/** Window x0…x1, y0…y1 (default: all) of a w × h frame (2 × 2 supersampled) with a shaded red ball of radius `r` px centred at (bx, by) px; table grain `sigma`, draw `seed`. */
+export function ballFrame(w: number, h: number, bx: number, by: number, r: number, sigma = 0, seed = 0, x0 = 0, y0 = 0, x1 = w - 1, y1 = h - 1): Img {
+  const img = makeImg(x1 - x0 + 1, y1 - y0 + 1, 3)
+  const back = backdrop(w, h)
+  const d = img.data
+  for (let y = y0, o = 0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++, o += 3) {
       const i = (y * w + x) * 3
-      let [cr, cg, cb] = [0, 0, 0]
+      let k = 0
       let inside = 0
-      for (let q = 0; q < 4; q++) {
-        const dx = (x + (q % 2 ? 0.25 : -0.25) - bx) / r
-        const dy = (y + (q > 1 ? 0.25 : -0.25) - by) / r
-        const rr = dx * dx + dy * dy
-        if (rr >= 1) continue
-        const k = 0.25 + 0.75 * Math.max(0, -0.45 * dx - 0.5 * dy + 0.74 * Math.sqrt(1 - rr))
-        cr += 210 * k
-        cg += 36 * k
-        cb += 30 * k
-        inside++
-      }
+      if (Math.abs(x - bx) < r + 1 && Math.abs(y - by) < r + 1)
+        for (let q = 0; q < 4; q++) {
+          const dx = (x + (q % 2 ? 0.25 : -0.25) - bx) / r
+          const dy = (y + (q > 1 ? 0.25 : -0.25) - by) / r
+          const rr = dx * dx + dy * dy
+          if (rr >= 1) continue
+          k += 0.25 + 0.75 * Math.max(0, -0.45 * dx - 0.5 * dy + 0.74 * Math.sqrt(1 - rr))
+          inside++
+        }
       const out = (4 - inside) / 4
-      img.data[i] = cr / 4 + img.data[i] * out
-      img.data[i + 1] = cg / 4 + img.data[i + 1] * out
-      img.data[i + 2] = cb / 4 + img.data[i + 2] * out
+      for (let j = 0; j < 3; j++) d[o + j] = clamp((BALL_RGB[j] * k) / 4 + back[i + j] * out + (sigma ? sigma * grainAt(i + j, seed) : 0), 0, 255)
     }
-  if (sigma) for (let i = 0; i < w * h * 3; i++) img.data[i] = clamp(img.data[i] + sigma * noiseAt(seed * 2731 + i), 0, 255)
   return img
 }
+const BALL_RGB = [210, 36, 30]
 
 const backdrops = new Map<string, Float32Array>()
 /** Grey wall over a wooden table (2 × 2 supersampled), cached per size. */
@@ -171,14 +156,13 @@ function backdrop(w: number, h: number) {
 // --- Pan servo tracking: camera on an SG90, ball on a line in front, PD on the centroid error ---
 
 export const PAN_CAM = { w: 48, h: 36, hfovDeg: 60, distM: 0.5, ballR: 0.05, limitDeg: 80, maxRate: 400, searchRate: 90, noise: 6, dt: 0.002, seconds: 6 }
-const focalPx = (c = PAN_CAM) => c.w / 2 / Math.tan((c.hfovDeg * Math.PI) / 360)
 
 /** Image column of a point `relDeg` left of the optical axis ((w − 1)/2 at 0, smaller x = further left). */
-export const columnOf = (relDeg: number, c = PAN_CAM) => (c.w - 1) / 2 - focalPx(c) * Math.tan((relDeg * Math.PI) / 180)
+export const columnOf = (relDeg: number, c = PAN_CAM) => (c.w - 1) / 2 - focalPx(c.hfovDeg, c.w) * Math.tan((relDeg * Math.PI) / 180)
 
 export type BallPath = 'step' | 'sweep' | 'dash'
 /** Ball position across the line (m, + = left) at time t. */
-export function ballX(path: BallPath, t: number, c = PAN_CAM) {
+function ballX(path: BallPath, t: number, c = PAN_CAM) {
   if (path === 'step') return t < 0.3 ? 0 : c.distM * Math.tan((25 * Math.PI) / 180)
   if (path === 'sweep') return 0.4 * Math.sin((2 * Math.PI * t) / 4)
   return clamp(-0.25 + 0.3 * Math.max(0, t - 0.5), -0.25, 0.5)
@@ -204,17 +188,31 @@ export interface PanSample {
 }
 export interface PanFrame {
   t: number
-  img: Img
-  mask: Img
+  /** Ball centre and radius (px) and grain draw: `panFrameImg` renders the frame. */
+  ball: [number, number, number]
+  seed: number
   cx: number | null
   cy: number | null
   cxF: number | null
 }
 
+export const panFrameImg = (fr: PanFrame, c = PAN_CAM) => ballFrame(c.w, c.h, ...fr.ball, c.noise, fr.seed)
+
+/** Blob search in a window 3 px around the ball (grain specks elsewhere never survive the opening); null when the ball is off the frame. */
+function ballInView([bx, by, r]: PanFrame['ball'], seed: number, c = PAN_CAM) {
+  const x0 = Math.max(0, Math.floor(bx - r - 4))
+  const x1 = Math.min(c.w - 1, Math.ceil(bx + r + 4))
+  const y0 = Math.max(0, Math.floor(by - r - 4))
+  const y1 = Math.min(c.h - 1, Math.ceil(by + r + 4))
+  if (x0 > x1 || y0 > y1) return null
+  const best = findBlob(ballFrame(c.w, c.h, bx, by, r, c.noise, seed, x0, y0, x1, y1), RED_BALL).best
+  return best && { cx: best.cx + x0, cy: best.cy + y0 }
+}
+
 /** Fixed-step run: the camera grabs a frame every 1/fps s, the result drives the servo one frame later (rate command = PD on the
  *  centroid error, integrated into the servo setpoint); the SG90 slews toward it with its own lag. Lost ball → turn toward where it was last seen. */
 export function panTrackRun(cfg: PanCfg, c = PAN_CAM) {
-  const f = focalPx(c)
+  const f = focalPx(c.hfovDeg, c.w)
   const cx0 = (c.w - 1) / 2
   const period = 1 / cfg.fps
   const filt = filterRun(cfg.filter)
@@ -254,10 +252,9 @@ export function panTrackRun(cfg: PanCfg, c = PAN_CAM) {
       }
       cmd = clamp(cmd + rate * period, -c.limitDeg, c.limitDeg)
       const rel = ballDeg - pan
-      const bx = columnOf(rel, c)
-      const img = ballFrame(c.w, c.h, bx, c.h * 0.62, (f * c.ballR) / Math.hypot(c.distM, ballX(cfg.path, t, c)), c.noise, frames.length)
-      const { mask, best } = findBlob(img, RED_BALL)
-      frames.push({ t, img, mask, cx: best?.cx ?? null, cy: best?.cy ?? null, cxF: null })
+      const ball: PanFrame['ball'] = [columnOf(rel, c), c.h * 0.62, (f * c.ballR) / Math.hypot(c.distM, ballX(cfg.path, t, c))]
+      const best = ballInView(ball, frames.length, c)
+      frames.push({ t, ball, seed: frames.length, cx: best?.cx ?? null, cy: best?.cy ?? null, cxF: null })
       pending = { cx: best?.cx ?? null }
     }
     if (k % 5 === 0) samples.push({ t, ballDeg, panDeg: pan, cmdDeg: cmd, seen, errPx, rate, frame: frames.length - 1 })

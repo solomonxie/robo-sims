@@ -1,18 +1,17 @@
 import * as THREE from 'three/webgpu'
 import {
-  DEPTH_HOLE, DEPTH_SENSORS, DepthSensor, P3, RenderScene, backProject, camTf, chain4, trans4, depthShot, depthStep, depthView, dotHits, edgePixels, intrinsicsOf, isStereo, tofSigmaM, tofWrapM, voxelGrid,
+  CHECKER_FLOOR, DEPTH_HOLE, DEPTH_SENSORS, DepthSensor, P3, RenderScene, backProject, camTf, chain4, trans4, depthShot, depthStep, depthView, dotHits, edgePixels, intrinsicsOf, isStereo, tofSigmaM, tofWrapM, voxelGrid,
 } from '../../core/physics'
+import { lengthText as cm } from '../../core/units'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
-  B_FIELD, GREY, HEAT, HIGH_V, IR_TINT, LABEL, POWER, RING, addLabel, camBody, flatBox, glowMat, liveLabel, memoBy, pixelGrid, pointCloud, ringMarks, rodPool, setTf, shellMat, showImg, statusHeader, zUp,
+  B_FIELD, GREY, HEAT, HIGH_V, IR_TINT, LABEL, POWER, RING, addLabel, camBody, checkerTiles, flatBox, frustum, glowMat, liveLabel, memoBy, pixelGrid, pointCloud, ringMarks, rodPool, setTf, shellMat, showImg, statusHeader, zUp,
 } from '../fx'
 import { Lesson, LegendItem, Params, Stage, n, opts, pick } from '../types'
-import { frustum } from './camera-model'
 
 const f0 = (v: number) => v.toFixed(0)
 const f1 = (v: number) => v.toFixed(1)
-const cm = (m: number) => (m >= 1 ? `${m.toFixed(2)} m` : m >= 0.01 ? `${f1(m * 100)} cm` : `${f1(m * 1000)} mm`)
 
 // --- Shared room: a plain box, a speckled ball and a brick wall in front of a depth camera 30 cm up. ---
 
@@ -20,14 +19,13 @@ const K = intrinsicsOf(80, 60, 50)
 const RIG = camTf([0, 0, 0.3], 0, 0.12)
 const WALL = 2.4
 const FLOOR_Y: [number, number] = [-1.3, 1.3]
-const TILE = 0.25
 const BOX = { y: [-0.5, -0.12] as [number, number], h: 0.42, half: 0.15, rgb: [150, 165, 185] as [number, number, number] }
 const BALL = { c: [1.25, 0.3, 0.16] as P3, r: 0.16, rgb: [235, 120, 50] as [number, number, number] }
 const Z_RANGE: [number, number] = [0.3, 2.6]
 const PHI_NOISE = 0.01
 const DOT_PITCH = 0.05
 const roomScene = (dist: number): RenderScene => ({
-  floor: { tile: TILE, a: [118, 112, 100], b: [70, 74, 82], x: [0, WALL], y: FLOOR_Y },
+  floor: { ...CHECKER_FLOOR, x: [0, WALL], y: FLOOR_Y },
   wallX: WALL,
   light: [-0.55, 0.3, 0.78],
   blocks: [{ min: [dist - BOX.half, BOX.y[0], 0], max: [dist + BOX.half, BOX.y[1], BOX.h], rgb: BOX.rgb }],
@@ -86,9 +84,7 @@ const pixelRgb = (S: Shot, i: number, show: keyof typeof SHOW): [number, number,
 /** The room in z-up metres: floor tiles, wall, box, ball, camera rig with projector/emitter, frustum rods; `set(S)` moves things. */
 function roomModel(g: THREE.Object3D, ghost: boolean) {
   const m = (c: string) => (ghost ? shellMat(c, 0.28, 0.6) : mat(c, { rough: 0.85 }))
-  for (let i = 0; i < Math.ceil(WALL / TILE); i++)
-    for (let j = Math.floor(FLOOR_Y[0] / TILE); j < Math.ceil(FLOOR_Y[1] / TILE); j++)
-      flatBox(g, [TILE, TILE, 0.004], mat((i + j) % 2 !== 0 ? '#464a52' : '#767064', { rough: 0.85 }), [(i + 0.5) * TILE, (j + 0.5) * TILE, ghost ? -0.015 : -0.002])
+  checkerTiles(g, [0, WALL], FLOOR_Y, CHECKER_FLOOR.tile, ghost ? -0.015 : -0.002)
   flatBox(g, [0.04, FLOOR_Y[1] - FLOOR_Y[0], 0.9], m('#d6cdb8'), [WALL + 0.02, 0, 0.45])
   const box = add(g, mesh(new THREE.BoxGeometry(2 * BOX.half, BOX.y[1] - BOX.y[0], BOX.h), m('#96a5b9')))
   const ball = add(g, mesh(new THREE.SphereGeometry(BALL.r, 28, 18), m('#eb7832')), BALL.c as V3)

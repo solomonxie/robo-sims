@@ -1,9 +1,8 @@
 import { LENSES } from '../sensors/camera'
 import { trans4 } from '../kinematics/transforms'
-import {
-  applyH, boardColor, boardPoints, boardPoses, boardShots, boardViews, calibrate, camTf, depthFromDisparity, depthStep, disparityPx, focalPx, fovOfFocal, groundHit, groundSpan, homography,
-  inImage, intrinsicsFromH, intrinsicsOf, lensFor, matchDisparity, pixelRay, poseFromH, projectPx, renderView, stereoRig, cropK, toPixel, triangulate,
-} from './projection'
+import { applyH, boardPoints, boardPoses, boardShots, boardViews, calibrate, homography, intrinsicsFromH, poseFromH } from './calibration'
+import { boardColor, renderView } from './render'
+import { camTf, cropK, depthFromDisparity, depthStep, disparityPx, focalPx, fovOfFocal, groundHit, groundSpan, inImage, intrinsicsOf, lensFor, matchDisparity, pixelRay, projectPx, stereoRig, toPixel, triangulate } from './projection'
 
 const K = intrinsicsOf(320, 240, 60)
 

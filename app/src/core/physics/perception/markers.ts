@@ -1,13 +1,15 @@
 // Fiducial tags (ArUco/AprilTag style): a 4 × 4 bit code inside a black border, a small dictionary with Hamming-distance error
 // correction and rotation, rendering into the camera image, detection (adaptive threshold → quad → unwarp → bits → ID) and pose.
-import { clamp, gaussAt, stdDev } from '../common'
+import { clamp, stdDev } from '../common'
 import { P3 } from '../room'
 import { Mat } from '../control/linalg'
 import { chain4, rotAbout4 } from '../kinematics/transforms'
 import { Mat4, invert4 } from '../software/urdf'
-import { Img, grayImg, makeImg } from './image'
+import { Img, grainImg, grayImg, makeImg, sampleImg } from './image'
 import { labelBlobs } from './tracking'
-import { Intrinsics, Plate, RenderScene, applyH, homography, poseFromH, renderView } from './projection'
+import { Intrinsics } from './projection'
+import { Plate, RenderScene, renderView } from './render'
+import { applyH, homography, poseFromH } from './calibration'
 
 type V2 = [number, number]
 type Rgb = [number, number, number]
@@ -93,18 +95,6 @@ export function adaptiveThreshold(gray: Img, r = 5, c = 10) {
   return { mask, mean }
 }
 
-/** Bilinear sample, pixel centres at integers. */
-export function sampleImg(img: Img, x: number, y: number) {
-  const x0 = clamp(Math.floor(x), 0, img.w - 1)
-  const y0 = clamp(Math.floor(y), 0, img.h - 1)
-  const x1 = Math.min(x0 + 1, img.w - 1)
-  const y1 = Math.min(y0 + 1, img.h - 1)
-  const fx = clamp(x - x0, 0, 1)
-  const fy = clamp(y - y0, 0, 1)
-  const at = (u: number, v: number) => img.data[(v * img.w + u) * img.ch]
-  return (at(x0, y0) * (1 - fx) + at(x1, y0) * fx) * (1 - fy) + (at(x0, y1) * (1 - fx) + at(x1, y1) * fx) * fy
-}
-
 const cross2 = (o: V2, a: V2, b: V2) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
 /** Total-least-squares line n·p = d through points. */
@@ -132,7 +122,7 @@ export interface TagQuad { corners: V2[]; fitErr: number; area: number; blob: nu
  * Four-sided outline of one dark blob: outer edge points per row and column (sub-pixel, where the grey crosses the local mean),
  * rough corners by farthest points, then a line fit per side; null if it is not a clean quadrilateral.
  */
-export function quadOf(gray: Img, mean: Float32Array, labels: Int32Array, id: number, box: [number, number, number, number]): TagQuad | null {
+function quadOf(gray: Img, mean: Float32Array, labels: Int32Array, id: number, box: [number, number, number, number]): TagQuad | null {
   const { w } = gray
   const [bx0, by0, bx1, by1] = box
   const on = (x: number, y: number) => x >= bx0 && x <= bx1 && y >= by0 && y <= by1 && labels[y * w + x] === id + 1
@@ -211,7 +201,7 @@ export function quadOf(gray: Img, mean: Float32Array, labels: Int32Array, id: nu
 }
 
 /** Cell-centre greys of the unwarped square (6 × 6, row by row) through the cell-grid → image homography. */
-export function sampleCells(gray: Img, H: Mat) {
+function sampleCells(gray: Img, H: Mat) {
   const out: number[] = []
   for (let r = 0; r < TAG_CELLS; r++) for (let c = 0; c < TAG_CELLS; c++) out.push(sampleImg(gray, ...applyH(H, [c + 0.5, r + 0.5])))
   return out
@@ -264,13 +254,6 @@ export function tagPose(k: Intrinsics, corners: readonly V2[], size: number): Ma
 
 /** World ← robot from a seen tag: world ← tag (map) · tag ← camera · camera ← robot. */
 export const robotFromTag = (worldTag: Mat4, camTag: Mat4, robotCam: Mat4) => chain4(worldTag, invert4(camTag), invert4(robotCam))
-
-const GRAIN = Array.from({ length: 8191 }, (_, i) => gaussAt(i * 31 + 7))
-/** Fast repeatable Gaussian grain (a cached 8191-sample table walked with a per-seed stride), σ in grey levels. */
-export const grainImg = (img: Img, sigma: number, seed = 1): Img => ({
-  ...img,
-  data: img.data.map((v, i) => clamp(v + sigma * GRAIN[(i * (2 * seed + 1) + seed * 977) % GRAIN.length], 0, 255)),
-})
 
 export interface JitterCfg { k: Intrinsics; Twc: Mat4; worldTag: Mat4; code: number; size: number; noise: number; frames: number; scene?: RenderScene; aa?: number }
 /** One clean render, then `frames` noisy copies through the detector: per frame the image, the scan and camera ← tag (null if missed). */

@@ -1,6 +1,6 @@
 // Image visuals: an Img on a pixel plate, a zoomed inset with RGB sub-pixels and values, a 3D brightness relief, a histogram chart, a hue wheel, instanced rods/arrows and ring markers.
 import * as THREE from 'three/webgpu'
-import { Img, hsvToRgb, lumaOf } from '../../core/physics'
+import { Img, Plane, hsvToRgb, lumaOf } from '../../core/physics'
 import { V3, add, mesh } from '../../models/kit'
 import { GREY, INK, LABEL, glowMat, setGlow } from './colors'
 import { addRod, stretchRod } from './layout'
@@ -8,6 +8,37 @@ import { pixelGrid } from './sensing'
 import { liveLabel } from './text'
 
 export type Rgb01 = [number, number, number]
+export type Grid = ReturnType<typeof pixelGrid>
+export type Rods = ReturnType<typeof rodPool>
+/** Grid point at (fractional) pixel x, y, lifted `lift` off the plate. */
+export function gridPoint(cell: Grid['cell'], x: number, y: number, lift = 0.15): V3 {
+  const p = cell(x, y)
+  return [p[0], p[1], p[2] + lift]
+}
+
+/** Box [x0, y0, x1, y1] in image units (pixel i spans i…i + 1) as rods i…i+3. */
+export function pixelBox(pool: Rods, i: number, cell: Grid['cell'], b: readonly number[], r: number, color: string, lift = 0.12) {
+  const [x0, y0, x1, y1] = b.map((v) => v - 0.5)
+  const c = [gridPoint(cell, x0, y0, lift), gridPoint(cell, x1, y0, lift), gridPoint(cell, x1, y1, lift), gridPoint(cell, x0, y1, lift)]
+  c.forEach((a, j) => pool.set(i + j, a, c[(j + 1) % 4], r, color))
+}
+
+/** Feature plane (w × h values) → grid, scaled by `peak`, tinted. */
+export function showPlane(grid: Grid, p: Plane, tint: Rgb01, peak: number) {
+  for (let i = 0; i < p.w * p.h; i++) {
+    const v = Math.min(1, p.data[i] / peak) ** 0.8
+    grid.set(i, 0.1 + v * tint[0], 0.11 + v * tint[1], 0.14 + v * tint[2])
+  }
+  grid.commit()
+}
+
+/** A stack of same-size feature planes fanned in depth, in a tilted group. */
+export function planeStack(parent: THREE.Object3D, at: V3, count: number, w: number, h: number, pitch: number, gap: V3) {
+  const g = add(parent, new THREE.Group(), at)
+  g.rotation.set(-0.2, 0.75, 0)
+  return Array.from({ length: count }, (_, i) => pixelGrid(g, [gap[0] * i, gap[1] * i, gap[2] * i], w, h, pitch))
+}
+
 /** Pixel values (0…255 per channel) → sRGB 0…1. */
 export type PixelView = (px: number[]) => Rgb01
 export const asIs: PixelView = (px) => (px.length === 1 ? [px[0] / 255, px[0] / 255, px[0] / 255] : [px[0] / 255, px[1] / 255, px[2] / 255])
@@ -16,7 +47,7 @@ const pxAt = (img: Img, i: number) => Array.from(img.data.subarray(i * img.ch, i
 const clip01 = (v: number) => Math.min(1, Math.max(0, v))
 
 /** Paints `img` onto a `pixelGrid` of the same size. */
-export function showImg(grid: ReturnType<typeof pixelGrid>, img: Img, view: PixelView = asIs) {
+export function showImg(grid: Grid, img: Img, view: PixelView = asIs) {
   for (let i = 0; i < img.w * img.h; i++) {
     const [r, g, b] = view(pxAt(img, i))
     grid.set(i, clip01(r), clip01(g), clip01(b))

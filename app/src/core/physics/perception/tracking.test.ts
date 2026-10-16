@@ -1,6 +1,6 @@
 import { Img, makeImg, setPixel } from './image'
 import { NO_FILTER } from '../control/loopfilter'
-import { PAN_CAM, RED_BALL, ballFrame, closeMask, columnOf, dilateMask, erodeMask, findBlob, labelBlobs, largestBlob, openMask, panStats, panTrackRun } from './tracking'
+import { PAN_CAM, RED_BALL, ballFrame, closeMask, columnOf, dilateMask, erodeMask, findBlob, labelBlobs, largestBlob, openMask, panFrameImg, panStats, panTrackRun } from './tracking'
 
 const fromRows = (rows: string[]): Img => {
   const img = makeImg(rows[0].length, rows.length, 1)
@@ -68,4 +68,13 @@ test('sweep: tracking error grows when the camera only sees 5 frames a second', 
   const slow = panStats(panTrackRun({ kp: 8, kd: 0, fps: 5, filter: NO_FILTER, path: 'sweep' }).samples)
   expect(fast.lostS).toBe(0)
   expect(fast.rms).toBeLessThan(slow.rms)
+})
+
+test('pan tracking: the windowed blob search finds what a full-frame search finds', () => {
+  const run = panTrackRun({ kp: 30, kd: 0, fps: 10, filter: NO_FILTER, path: 'dash' })
+  for (const fr of run.frames) {
+    const full = findBlob(panFrameImg(fr), RED_BALL).best
+    expect(fr.cx === null).toBe(full === null)
+    if (full) expect(fr.cx).toBeCloseTo(full.cx, 9)
+  }
 })

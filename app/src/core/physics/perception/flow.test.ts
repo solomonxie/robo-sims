@@ -1,7 +1,8 @@
 import { blockMatchAt, carpetPlate, flowField, flowHoldRun, flowRate, flowResidual, flowSpeed, imgDerivs, lkAt, medianFlow, tensorAt } from './flow'
 import { Img, makeImg } from './image'
 import { warpImg } from './features'
-import { camTf, intrinsicsOf, renderView } from './projection'
+import { camTf, intrinsicsOf } from './projection'
+import { renderView } from './render'
 
 const imgOf = (w: number, h: number, f: (x: number, y: number) => number): Img => {
   const img = makeImg(w, h, 1)

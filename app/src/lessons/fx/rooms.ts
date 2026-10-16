@@ -1,6 +1,6 @@
 // Rooms for mobile-robot lessons, drawn in metres (x, y floor, z up) inside a group the caller scales and turns: solids, a robot with a lidar head, point clouds and ray fans.
 import * as THREE from 'three/webgpu'
-import { CostGrid, INSCRIBED, LETHAL, OccGrid, Pose, Room, RoomSolid, probOf } from '../../core/physics'
+import { CHECKER_FLOOR, CostGrid, INSCRIBED, LETHAL, OccGrid, Pose, Room, RoomSolid, probOf } from '../../core/physics'
 import { B_FIELD, GREY, HIGH_V, glowMat, potentialColor, setGlow } from './colors'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { IDLE } from './mcu'
@@ -151,6 +151,13 @@ export function floorMat(g: THREE.Object3D, x: [number, number], y: [number, num
 }
 
 /** Wall across the floor at `x`; `hit(crashed)` lights it red. */
+/** 3D tiles of the renderer's checker floor over x × y (metres, z up), lying at height `z`. */
+export function checkerTiles(g: THREE.Object3D, x: readonly number[], y: readonly number[], tile = CHECKER_FLOOR.tile, z = -0.002) {
+  for (let i = Math.floor(x[0] / tile); i < Math.ceil(x[1] / tile); i++)
+    for (let j = Math.floor(y[0] / tile); j < Math.ceil(y[1] / tile); j++)
+      flatBox(g, [tile, tile, 0.004], mat((i + j) % 2 !== 0 ? '#464a52' : '#767064', { rough: 0.85 }), [(i + 0.5) * tile, (j + 0.5) * tile, z])
+}
+
 export function crashWall(g: THREE.Object3D, x: number, size = 0.12) {
   const m = glowMat(IDLE, 0.2)
   box(g, [0.06, 0.7, 0.3], m, [x + 0.03, 0, 0.15])

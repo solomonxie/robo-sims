@@ -32,7 +32,6 @@ export const occModel = (pHit = 0.7, pMiss = 0.4, clampP = 0.97): InverseModel =
 export const occGrid = (ox: number, oy: number, res: number, nx: number, ny: number): OccGrid => ({ ox, oy, res, nx, ny, lo: new Float32Array(nx * ny) })
 /** Same cells as costmap `roomGrid`: the room plus one ring for the walls. */
 export const roomOccGrid = (room: Room, res: number) => occGrid(-res, -res, res, Math.ceil(room.w / res) + 2, Math.ceil(room.d / res) + 2)
-export const cloneOcc = (g: OccGrid): OccGrid => ({ ...g, lo: g.lo.slice() })
 export const occCentre = (g: OccGrid, k: number): [number, number] => [g.ox + ((k % g.nx) + 0.5) * g.res, g.oy + (Math.floor(k / g.nx) + 0.5) * g.res]
 export const occCellOf = (g: OccGrid, x: number, y: number): [number, number] => [Math.floor((x - g.ox) / g.res), Math.floor((y - g.oy) / g.res)]
 export const occIndex = (g: OccGrid, i: number, j: number) => (i < 0 || j < 0 || i >= g.nx || j >= g.ny ? -1 : j * g.nx + i)
@@ -123,7 +122,7 @@ export function integrateScan(g: OccGrid, model: InverseModel, pose: Pose, beams
 }
 
 export type OccSensor = 'lidar' | 'sonar'
-export const SONAR_HALF = (HCSR04.halfDeg * Math.PI) / 180
+const SONAR_HALF = (HCSR04.halfDeg * Math.PI) / 180
 
 /** `n` lidar beams evenly round, or `n` HC-SR04s in a ring (range = nearest thing anywhere in the 30° cone). */
 export function occScan(room: Room, pose: Pose, sensor: OccSensor, n: number, maxM: number, z = 0.2): Beam[] {
@@ -145,7 +144,7 @@ export function occScan(room: Room, pose: Pose, sensor: OccSensor, n: number, ma
 export const occTruth = (room: Room, res: number) => staticLayer(room, res).cost.map((c) => (c === LETHAL ? 1 : 0))
 
 /** One pass (p 0.4) or one hit (p 0.7) already counts as known. */
-export const OCC_P = { occ: 0.58, free: 0.42 }
+const OCC_P = { occ: 0.58, free: 0.42 }
 export type CellState = 'unknown' | 'free' | 'occ'
 export const cellState = (l: number): CellState => (probOf(l) >= OCC_P.occ ? 'occ' : probOf(l) <= OCC_P.free ? 'free' : 'unknown')
 

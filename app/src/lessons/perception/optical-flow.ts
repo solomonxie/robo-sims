@@ -1,9 +1,8 @@
 import { Img, camTf, imgAt, makeImg, carpetColor, carpetPlate, fixedStepAt, flowField, flowHoldRun, imgDerivs, intrinsicsOf, medianFlow, renderView, tabletopImg, tensorAt, warpImg, warpPoint, FlowVec, FLOW_MIN_EIG } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, liveLabel, memoBy, pixelGrid, quadcopter, ringMarks, rodPool, scope, showImg, statusHeader, stretchArrow, zUp } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, frustum, liveLabel, memoBy, pixelGrid, quadcopter, ringMarks, rodPool, scope, showImg, statusHeader, stretchArrow, zUp } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
-import { frustum } from './camera-model'
 
 const f0 = (v: number) => v.toFixed(0)
 const f1 = (v: number) => v.toFixed(1)

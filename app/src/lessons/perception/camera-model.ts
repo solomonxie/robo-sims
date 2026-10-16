@@ -1,12 +1,13 @@
 import * as THREE from 'three/webgpu'
 import {
-  Ball, Intrinsics, LENSES, Lens, Mat4, NO_LENS, P3, apply4, boardPoints, boardShots, boardViews, calibrate, camTf, depthFromDisparity, depthStep, groundHit, groundSpan,
+  Ball, CHECKER_FLOOR, DEG, Intrinsics, LENSES, Lens, NO_LENS, P3, apply4, boardPoints, boardShots, boardViews, calibrate, camTf, depthFromDisparity, depthStep, groundHit, groundSpan,
   inImage, intrinsicsOf, invert4, lensFor, matchDisparity, mul4, pixelRay, projectPx, renderView, cropK, stereoRig, toPixel,
 } from '../../core/physics'
+import { lengthText as cm } from '../../core/units'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
-  AXIS_RGB, B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, flatBox, frameTriad, glowMat, histChart, liveLabel, matrixGrid, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
+  AXIS_RGB, B_FIELD, Grid, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, checkerTiles, flatBox, frameTriad, frustum, glowMat, gridPoint, histChart, imagePlanePoint, liveLabel, matrixGrid, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -14,39 +15,9 @@ const f0 = (v: number) => v.toFixed(0)
 const f1 = (v: number) => v.toFixed(1)
 const f2 = (v: number) => v.toFixed(2)
 const f3 = (v: number) => v.toFixed(3)
-const cm = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${f2(m)} m` : m >= 0.01 ? `${f1(m * 100)} cm` : `${f1(m * 1000)} mm`)
-const DEG = Math.PI / 180
-
-/** Frustum rods: optical centre → the 4 image corners at depth `s`, plus the image rectangle; uses rods i…i+7. */
-export function frustum(pool: ReturnType<typeof rodPool>, i: number, k: Intrinsics, Twc: Mat4, s: number, r: number, color: string) {
-  const o: V3 = [Twc[3], Twc[7], Twc[11]]
-  const c = [[-0.5, -0.5], [k.w - 0.5, -0.5], [k.w - 0.5, k.h - 0.5], [-0.5, k.h - 0.5]].map(([u, v]) => apply4(Twc, [((u - k.cx) / k.fx) * s, ((v - k.cy) / k.fy) * s, s]) as V3)
-  c.forEach((p, j) => {
-    pool.set(i + j, o, p, r * 0.6, color)
-    pool.set(i + 4 + j, p, c[(j + 1) % 4], r, color)
-  })
-}
-
-/** Point on the image plane (depth `s`) where pixel (u, v) sits. */
-const onPlane = (k: Intrinsics, Twc: Mat4, s: number, u: number, v: number) => apply4(Twc, [((u - k.cx) / k.fx) * s, ((v - k.cy) / k.fy) * s, s]) as V3
 
 /** Pixel (u, v) of a w × h camera → centre of the shown grid cell (cols × rows). */
-function gridAt(cell: (c: number, r: number) => V3, k: Intrinsics, cols: number, rows: number, u: number, v: number, lift = 0.15): V3 {
-  const [x, y] = [((u + 0.5) * cols) / k.w - 0.5, ((v + 0.5) * rows) / k.h - 0.5]
-  const [a, b] = [cell(0, 0), cell(1, 1)]
-  return [a[0] + x * (b[0] - a[0]), a[1] + y * (b[1] - a[1]), a[2] + lift]
-}
-
-const FLOOR = { tile: 0.25, a: [118, 112, 100] as [number, number, number], b: [70, 74, 82] as [number, number, number] }
-const DARK_TILE = '#464a52'
-const LIGHT_TILE = '#767064'
-
-/** 3D floor tiles matching the renderer's checker. */
-function floorTiles(g: THREE.Object3D, x: [number, number], y: [number, number], tile: number) {
-  for (let i = Math.floor(x[0] / tile); i < Math.ceil(x[1] / tile); i++)
-    for (let j = Math.floor(y[0] / tile); j < Math.ceil(y[1] / tile); j++)
-      flatBox(g, [tile, tile, 0.004], mat((i + j) % 2 !== 0 ? DARK_TILE : LIGHT_TILE, { rough: 0.85 }), [(i + 0.5) * tile, (j + 0.5) * tile, -0.002])
-}
+const gridAt = (cell: Grid['cell'], k: Intrinsics, cols: number, rows: number, u: number, v: number, lift = 0.15) => gridPoint(cell, ((u + 0.5) * cols) / k.w - 0.5, ((v + 0.5) * rows) / k.h - 0.5, lift)
 
 // --- Pinhole model: K and [R|t] take a floor scene to pixels; back-projected pixels hit the floor. ---
 
@@ -70,7 +41,7 @@ const pinParams = memoBy(pinKey, (p: Params) => {
   const ball = pick(BALLS, p.ball, 'red')
   const k = intrinsicsOf(QVGA.w, QVGA.h, fov)
   const Twc = camTf([0, 0, h], 0, tilt)
-  const img = renderView(k, Twc, { floor: { ...FLOOR, x: PIN.x, y: PIN.y }, balls: Object.values(PIN_BALLS) }, PIN.cols, PIN.rows, NO_LENS, 2)
+  const img = renderView(k, Twc, { floor: { ...CHECKER_FLOOR, x: PIN.x, y: PIN.y }, balls: Object.values(PIN_BALLS) }, PIN.cols, PIN.rows, NO_LENS, 2)
   const px = Object.fromEntries(BALL_KEYS.map((b) => [b, projectPx(k, Twc, PIN_BALLS[b].c)])) as Record<keyof typeof BALLS, [number, number, number]>
   const pc = apply4(invert4(Twc), PIN_BALLS[ball].c)
   const edge: (V3 | null)[] = []
@@ -118,7 +89,7 @@ export const cameraModelPinholeModel: Lesson = {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, PIN.at, PIN.k, 0.62, -0.3)
-    floorTiles(g, PIN.x, PIN.y, FLOOR.tile)
+    checkerTiles(g, PIN.x, PIN.y)
     const balls = BALL_KEYS.map((b) => {
       const s = add(g, mesh(new THREE.SphereGeometry(PIN_BALLS[b].r, 24, 16), mat(hex(PIN_BALLS[b].rgb), { rough: 0.45 })), PIN_BALLS[b].c as V3)
       s.castShadow = true
@@ -165,7 +136,7 @@ export const cameraModelPinholeModel: Lesson = {
           const col = b === S.ball ? RING : hex(PIN_BALLS[b].rgb)
           rods.set(8 + i, PIN_BALLS[b].c as V3, o as V3, b === S.ball ? 0.0035 : 0.0018, seen ? col : GREY)
           pierce[i].visible = seen
-          if (seen) pierce[i].position.set(...onPlane(S.k, S.Twc, PIN.plane, u, v))
+          if (seen) pierce[i].position.set(...imagePlanePoint(S.k, S.Twc, PIN.plane, u, v))
           if (seen) dots.set(i, gridAt(grid.cell, S.k, PIN.cols, PIN.rows, u, v), b === S.ball ? 0.42 : 0.3, col)
           else dots.set(i, [0, 0, -50], 0, GREY)
           balls[i].visible = true
@@ -404,7 +375,7 @@ const RES = { qvga: 'QVGA 320 × 240', vga: 'VGA 640 × 480', svga: 'SVGA 800 ×
 const RES_W = { qvga: 320, vga: 640, svga: 800 }
 const MATCH = { whole: 'Whole pixels', quarter: '¼ pixel (parabola fit)' }
 const ST = { h: 0.1, ballR: 0.06, at: [-16.4, -2.4, 0] as V3, k: 2.75, cols: 48, rows: 36, pitch: 0.13, imgL: [0.9, 1.6, 0] as V3, imgR: [8.0, 1.6, 0] as V3, hist: [1.4, -6.2, 0] as V3, histW: 10.6, histH: 2, bins: 48, patch: 3, maxZ: 4.5, wall: 4.75, ticks: 40 }
-const ST_SCENE = (z: number, base: number) => ({ floor: { ...FLOOR, x: [0, ST.wall] as [number, number], y: [-0.75, 0.75] as [number, number] }, balls: [{ c: [z, -base / 2, ST.ballR] as P3, r: ST.ballR, rgb: [225, 70, 40] as [number, number, number], speckle: 64 }], wallX: ST.wall })
+const ST_SCENE = (z: number, base: number) => ({ floor: { ...CHECKER_FLOOR, x: [0, ST.wall] as [number, number], y: [-0.75, 0.75] as [number, number] }, balls: [{ c: [z, -base / 2, ST.ballR] as P3, r: ST.ballR, rgb: [225, 70, 40] as [number, number, number], speckle: 64 }], wallX: ST.wall })
 
 const stKey = (p: Params) => ['base', 'depth', 'res', 'match'].map((k) => p[k]).join('|')
 const stParams = memoBy(stKey, (p: Params) => {
@@ -468,7 +439,7 @@ export const cameraModelStereoDepth: Lesson = {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, ST.at, ST.k, 0.8, -0.12)
-    floorTiles(g, [0, ST.wall], [-0.75, 0.75], FLOOR.tile)
+    checkerTiles(g, [0, ST.wall], [-0.75, 0.75])
     flatBox(g, [0.04, 1.5, 0.5], mat('#b4ab98', { rough: 0.9 }), [ST.wall + 0.02, 0, 0.25])
     const camL = add(g, new THREE.Group())
     const camR = add(g, new THREE.Group())

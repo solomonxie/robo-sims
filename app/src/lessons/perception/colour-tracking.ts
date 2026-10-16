@@ -1,11 +1,11 @@
 import * as THREE from 'three/webgpu'
 import {
-  Img, MaskBlob, MeasFilter, NO_FILTER, PAN_CAM, PanSample, Cleanup, filterDelay, findBlob, fixedStepAt, hsvMask, hsvToRgb, labelBlobs, largestBlob, maskIoU, noisyImg, panStats, panTrackRun, rgbToHsv, tabletopImg,
+  Img, MaskBlob, MeasFilter, NO_FILTER, PAN_CAM, PanSample, Cleanup, panFrameImg, filterDelay, findBlob, fixedStepAt, hsvMask, hsvToRgb, labelBlobs, largestBlob, maskIoU, noisyImg, panStats, panTrackRun, rgbToHsv, tabletopImg,
 } from '../../core/physics'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
-  B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, Rgb01, SIDE_SCOPE, addLabel, beamCone, controlLoop, esp32Cam, floorView, histChart, lapseClock, liveLabel, memoBy, pixelGrid, ringMarks, rodPool, scopeLabels, sg90Servo,
+  B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, Rgb01, SIDE_SCOPE, addLabel, beamCone, controlLoop, esp32Cam, floorView, histChart, lapseClock, gridPoint, liveLabel, memoBy, pixelBox, pixelGrid, ringMarks, rodPool, scopeLabels, sg90Servo,
   showImg, sideScope, statusHeader, traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
@@ -18,18 +18,7 @@ const rgb01 = (c: string): Rgb01 => {
   return [k.r, k.g, k.b]
 }
 
-/** Box (4 rods) around pixels x0…x1, y0…y1 of a grid; rods i…i+3 of `pool`. */
-function boxOn(pool: ReturnType<typeof rodPool>, i: number, cell: (c: number, r: number) => V3, pitch: number, b: MaskBlob, color: string, r = 0.05) {
-  const [a, z] = [cell(b.x0, b.y0), cell(b.x1, b.y1)]
-  const e = pitch / 2
-  const zz = a[2] + 0.12
-  const c: V3[] = [[a[0] - e, a[1] + e, zz], [z[0] + e, a[1] + e, zz], [z[0] + e, z[1] - e, zz], [a[0] - e, z[1] - e, zz]]
-  for (let k = 0; k < 4; k++) pool.set(i + k, c[k], c[(k + 1) % 4], r, color)
-}
-const cellAt = (cell: (c: number, r: number) => V3, x: number, y: number): V3 => {
-  const [a, b] = [cell(0, 0), cell(1, 1)]
-  return [a[0] + x * (b[0] - a[0]), a[1] + y * (b[1] - a[1]), a[2] + 0.15]
-}
+const blobBox = (b: MaskBlob) => [b.x0, b.y0, b.x1 + 1, b.y1 + 1]
 
 // --- HSV mask: hue window → clean-up (open / close) → connected blobs → the biggest one's box and centroid. ---
 
@@ -143,13 +132,13 @@ export const colourTrackingHsvMask: Lesson = {
         maskTag.set(`mask after ${CLEANUPS[S.clean].toLowerCase()} · ${S.blobs.length} blob${S.blobs.length === 1 ? '' : 's'}`, LABEL)
         let k = 0
         const others = S.blobs.filter((b) => b !== S.best).sort((a, b) => b.area - a.area).slice(0, HM.maxBlobs)
-        for (const b of others) boxOn(boxes, 4 * k++, mask.cell, HM.pitch, b, GREY, 0.03)
+        for (const b of others) pixelBox(boxes, 4 * k++, mask.cell, blobBox(b), 0.03, GREY)
         if (S.best) {
-          boxOn(boxes, 4 * k, mask.cell, HM.pitch, S.best, RING)
-          boxOn(boxes, 4 * k + 4, cam.cell, HM.pitch, S.best, RING)
+          pixelBox(boxes, 4 * k, mask.cell, blobBox(S.best), 0.05, RING)
+          pixelBox(boxes, 4 * k + 4, cam.cell, blobBox(S.best), 0.05, RING)
           k += 2
-          rings.set(0, cellAt(mask.cell, S.best.cx, S.best.cy), 0.32, RING)
-          rings.set(1, cellAt(cam.cell, S.best.cx, S.best.cy), 0.32, RING)
+          rings.set(0, gridPoint(mask.cell, S.best.cx, S.best.cy), 0.32, RING)
+          rings.set(1, gridPoint(cam.cell, S.best.cx, S.best.cy), 0.32, RING)
         } else rings.hideFrom(0)
         boxes.hideFrom(4 * k)
         boxes.commit()
@@ -252,7 +241,7 @@ export const colourTrackingCentroidSteering: Lesson = {
     const gridTag = liveLabel(scene, [CS.grid[0], CS.grid[1] + (PAN_CAM.h * CS.pitch) / 2 + 0.7, 0], { size: 0.34 })
     const marks = rodPool(scene, 3, { heads: true })
     const ring = ringMarks(scene, 1)
-    const cell = (x: number, y: number) => cellAt(grid.cell, x, y)
+    const cell = (x: number, y: number) => gridPoint(grid.cell, x, y)
 
     const loop = controlLoop(scene, [-9.5, -7.6, 0], { ctrl: 'PD', plant: 'SG90 pan', sensor: 'camera', w: 11, h: 3.2 })
     const plot = sideScope(scene, CS.scopeY, CS.scopeH, { divs: [6, 4] })
@@ -282,7 +271,7 @@ export const colourTrackingCentroidSteering: Lesson = {
         aim.commit()
         if (s.frame !== st.frame) {
           st.frame = s.frame
-          showImg(grid, fr.img)
+          showImg(grid, panFrameImg(fr))
           const mid = (PAN_CAM.w - 1) / 2
           const yTop = -1.4
           marks.set(0, cell(mid, -0.6), cell(mid, PAN_CAM.h - 0.4), 0.025, GREY)

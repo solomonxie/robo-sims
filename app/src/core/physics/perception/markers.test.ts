@@ -1,10 +1,11 @@
 import { DEG } from '../common'
 import { apply4, invert4, mul4 } from '../software/urdf'
-import { camTf, intrinsicsOf, projectPx, renderView } from './projection'
+import { camTf, intrinsicsOf, projectPx } from './projection'
+import { renderView } from './render'
 import {
-  TAG_CORRECT, TAG_DICT, TAG_MIN_DIST, adaptiveThreshold, decodeTag, findTags, grainImg, hamming, robotFromTag, rotBits, tagBits, tagCorners, tagJitterRun, tagPlate, tagPose, wallTagTf,
+  TAG_CORRECT, TAG_DICT, TAG_MIN_DIST, adaptiveThreshold, decodeTag, findTags, hamming, robotFromTag, rotBits, tagBits, tagCorners, tagJitterRun, tagPlate, tagPose, wallTagTf,
 } from './markers'
-import { makeImg } from './image'
+import { grainImg, makeImg } from './image'
 
 const K = intrinsicsOf(80, 60, 60)
 const CAM = camTf([0, 0, 0.15], 0, 0)

@@ -1,10 +1,9 @@
 // Optical flow on small grey images: brightness constancy, Lucas–Kanade on a window (structure tensor, aperture problem),
 // block matching, a sparse grid field, and flow from a downward camera → ground speed (v = flow·h/f, gyro de-rotation) → position hold.
 import { G, gaussAt } from '../common'
-import { Img, grayImg } from './image'
+import { Img, grayImg, sampleImg } from './image'
 import { eigen2 } from './features'
-import { sampleImg } from './markers'
-import { Plate } from './projection'
+import { Plate } from './render'
 import { trans4 } from '../kinematics/transforms'
 
 export interface Derivs { w: number; h: number; gx: Float32Array; gy: Float32Array }
@@ -45,7 +44,7 @@ export type FlowKind = 'corner' | 'edge' | 'flat'
 export interface FlowVec { x: number; y: number; u: number; v: number; kind: FlowKind; l1: number; l2: number; iters: number; err: number }
 
 /** Window kind from the per-pixel eigenvalues: both big (and λ2 ≥ λ1/20) = corner, one = edge (aperture problem), none = flat. */
-export const flowKind = (l1: number, l2: number, minEig: number): FlowKind => (l2 >= minEig && l2 * 20 >= l1 ? 'corner' : l1 >= minEig ? 'edge' : 'flat')
+const flowKind = (l1: number, l2: number, minEig: number): FlowKind => (l2 >= minEig && l2 * 20 >= l1 ? 'corner' : l1 >= minEig ? 'edge' : 'flat')
 
 /** Mean |b(x + u, y + v) − a(x, y)| over the window: brightness constancy says it is 0 at the true flow. */
 export function flowResidual(a: Img, b: Img, x: number, y: number, r: number, u: number, v: number) {

@@ -117,18 +117,20 @@ export function channelImg(img: Img, c: number): Img {
   return out
 }
 
-/** RGB 0…255 → [hue 0…360°, saturation 0…1, value 0…1]. Grey has hue 0 by convention. */
-export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const d = max - min
+function hueOf(r: number, g: number, b: number, max: number, d: number) {
   let h = 0
   if (d > 0) {
     if (max === r) h = 60 * (((g - b) / d) % 6)
     else if (max === g) h = 60 * ((b - r) / d + 2)
     else h = 60 * ((r - g) / d + 4)
   }
-  return [(h + 360) % 360, max > 0 ? d / max : 0, max / 255]
+  return (h + 360) % 360
+}
+/** RGB 0…255 → [hue 0…360°, saturation 0…1, value 0…1]. Grey has hue 0 by convention. */
+export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  const max = Math.max(r, g, b)
+  const d = max - Math.min(r, g, b)
+  return [hueOf(r, g, b, max, d), max > 0 ? d / max : 0, max / 255]
 }
 
 /** [hue °, saturation 0…1, value 0…1] → RGB 0…255. */
@@ -148,11 +150,13 @@ export function hsvMask(img: Img, hue: number, tol: number, sMin: number, vMin: 
   const out = makeImg(img.w, img.h, 1)
   const d = img.data
   for (let i = 0; i < img.w * img.h; i++) {
-    const [r, g, b] = [d[3 * i], d[3 * i + 1], d[3 * i + 2]]
+    const r = d[3 * i]
+    const g = d[3 * i + 1]
+    const b = d[3 * i + 2]
     const max = Math.max(r, g, b)
     const span = max - Math.min(r, g, b)
     if (max / 255 < vMin || max === 0 || span / max < sMin) continue
-    out.data[i] = hueGap(rgbToHsv(r, g, b)[0], hue) <= tol ? 255 : 0
+    out.data[i] = hueGap(hueOf(r, g, b, max, span), hue) <= tol ? 255 : 0
   }
   return out
 }
@@ -291,6 +295,24 @@ export function resizeImg(img: Img, w: number, h: number, mode: 'nearest' | 'bil
 
 /** Repeatable Gaussian noise of `sigma` (0…255 units), clipped; `seed` picks the draw. */
 export const noisyImg = (img: Img, sigma: number, seed = 0) => ({ ...img, data: img.data.map((v, i) => clamp(v + sigma * gaussAt(seed * 100003 + i), 0, 255)) })
+
+const GRAIN = Array.from({ length: 8191 }, (_, i) => gaussAt(i * 31 + 7))
+/** Repeatable Gaussian sample `i` of grain draw `seed` (a cached 8191-sample table walked with a per-seed stride). */
+export const grainAt = (i: number, seed: number) => GRAIN[(i * (2 * seed + 1) + seed * 977) % GRAIN.length]
+/** Fast repeatable Gaussian grain, σ in grey levels. */
+export const grainImg = (img: Img, sigma: number, seed = 1): Img => ({ ...img, data: img.data.map((v, i) => clamp(v + sigma * grainAt(i, seed), 0, 255)) })
+
+/** Bilinear sample, pixel centres at integers. */
+export function sampleImg(img: Img, x: number, y: number) {
+  const x0 = clamp(Math.floor(x), 0, img.w - 1)
+  const y0 = clamp(Math.floor(y), 0, img.h - 1)
+  const x1 = Math.min(x0 + 1, img.w - 1)
+  const y1 = Math.min(y0 + 1, img.h - 1)
+  const fx = clamp(x - x0, 0, 1)
+  const fy = clamp(y - y0, 0, 1)
+  const at = (u: number, v: number) => img.data[(v * img.w + u) * img.ch]
+  return (at(x0, y0) * (1 - fx) + at(x1, y0) * fx) * (1 - fy) + (at(x0, y1) * (1 - fx) + at(x1, y1) * fx) * fy
+}
 
 /** Values re-quantised to `bits` per channel (ADC codes stretched back to 0…255). */
 export const bitDepthImg = (img: Img, bits: number) => mapImg(img, (v) => (quantize(v, 256, bits) * 255) / (2 ** bits - 1))

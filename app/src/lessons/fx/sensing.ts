@@ -1,8 +1,10 @@
 // Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, light rays, and an image sensor pixel grid.
 import * as THREE from 'three/webgpu'
+import { Intrinsics, Mat4, apply4 } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildHcSr04 } from '../../models/modules'
 import { glowMat, setGlow } from './colors'
+import type { Rods } from './pixels'
 
 /** HC-SR04 lying with its transducers pointing along `heading` (rad, screen plane), `k` units per pitch; → the T and R grille centres. */
 export function hcSr04(parent: THREE.Object3D, at: V3, k: number, heading = 0) {
@@ -136,4 +138,17 @@ export function camBody(parent: THREE.Object3D, size = 0.03, color = '#2a2c32') 
   cylinder(g, size * 0.3, size * 0.3, mat('#14161b', { rough: 0.2 }), [0, 0, size * 0.02], 'z', 20)
   add(g, mesh(new THREE.CircleGeometry(size * 0.22, 24), glowMat('#5a7dff', 0.5)), [0, 0, size * 0.18]).castShadow = false
   return g
+}
+
+/** World point where pixel (u, v) sits on the image plane at depth `s` in front of camera `Twc`. */
+export const imagePlanePoint = (k: Intrinsics, Twc: Mat4, s: number, u: number, v: number) => apply4(Twc, [((u - k.cx) / k.fx) * s, ((v - k.cy) / k.fy) * s, s]) as V3
+
+/** Frustum rods: optical centre → the 4 image corners at depth `s`, plus the image rectangle; uses rods i…i+7. */
+export function frustum(pool: Rods, i: number, k: Intrinsics, Twc: Mat4, s: number, r: number, color: string) {
+  const o: V3 = [Twc[3], Twc[7], Twc[11]]
+  const c = [[-0.5, -0.5], [k.w - 0.5, -0.5], [k.w - 0.5, k.h - 0.5], [-0.5, k.h - 0.5]].map(([u, v]) => imagePlanePoint(k, Twc, s, u, v))
+  c.forEach((p, j) => {
+    pool.set(i + j, o, p, r * 0.6, color)
+    pool.set(i + 4 + j, p, c[(j + 1) % 4], r, color)
+  })
 }

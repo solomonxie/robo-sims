@@ -1,12 +1,12 @@
 import * as THREE from 'three/webgpu'
 import {
-  DEG, Mat4, P3, RenderScene, inImage, mapImg, TAG_BITS, TAG_CELLS, TAG_CORRECT, TAG_DICT, apply4, applyH, camTf, chain4, findTags, grainImg, intrinsicsOf, mul4, projectPx, renderView, resizeImg,
+  CHECKER_FLOOR, DEG, Mat4, P3, RenderScene, inImage, mapImg, TAG_BITS, TAG_CELLS, TAG_CORRECT, TAG_DICT, apply4, applyH, camTf, chain4, findTags, grainImg, intrinsicsOf, mul4, projectPx, renderView, resizeImg,
   robotFromTag, rotAbout4, spread3, tagBits, tagCorners, tagJitterRun, tagPlate, trans4, wallTagTf, wrapPi,
 } from '../../core/physics'
 import { V3, add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
-  GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, diffBot, flatBox, frameTriad, liveLabel, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
+  GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, camBody, checkerTiles, diffBot, frameTriad, liveLabel, memoBy, pixelGrid, ringMarks, rodPool, setTf, showImg, statusHeader, zUp,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
@@ -18,16 +18,8 @@ const mm = (m: number) => (m >= 0.1 ? `${f1(m * 100)} cm` : `${f1(m * 1000)} mm`
 const hexGrey = (v: number) => `#${Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0').repeat(3)}`
 type V2 = [number, number]
 
-const FLOOR = { tile: 0.25, a: [118, 112, 100] as [number, number, number], b: [70, 74, 82] as [number, number, number] }
 const WALL: [number, number, number] = [96, 104, 118]
 const FOV = 50
-
-function floorTiles(g: THREE.Object3D, x: [number, number], y: [number, number]) {
-  const t = FLOOR.tile
-  for (let i = Math.floor(x[0] / t); i < Math.ceil(x[1] / t); i++)
-    for (let j = Math.floor(y[0] / t); j < Math.ceil(y[1] / t); j++)
-      flatBox(g, [t, t, 0.004], mat((i + j) % 2 !== 0 ? '#464a52' : '#767064', { rough: 0.85 }), [(i + 0.5) * t, (j + 0.5) * t, -0.002])
-}
 
 /** Printed tag on a post, built in tag coords (x right, y up, z out of the face); `set(code, size, flip)` repaints it. */
 function tagModel(parent: THREE.Object3D) {
@@ -93,7 +85,7 @@ const detParams = memoBy(detKey, (p: Params) => {
   const flip = SMUDGE.slice(0, n(p, 'smudge'))
   const tag = wallTagTf([dist, 0, DET.cam[2]], Math.PI + angle, roll)
   const code = TAG_DICT[DET.code]
-  const scene: RenderScene = { floor: { ...FLOOR, ...DET_FLOOR }, plates: [tagPlate(tag, code, DET.size, flip)], sky: WALL }
+  const scene: RenderScene = { floor: { ...CHECKER_FLOOR, ...DET_FLOOR }, plates: [tagPlate(tag, code, DET.size, flip)], sky: WALL }
   const img = grainImg(renderView(DET_K, DET_CAM, scene, DET.w, DET.h, undefined, 2), DET.noise, 1)
   const scan = findTags(img)
   const hit = scan.tags[0] ?? null
@@ -135,7 +127,7 @@ export const fiducialMarkersDetectingATag: Lesson = {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, DET.at, 7.5, 0.5, 0.75)
-    floorTiles(g, DET_FLOOR.x, DET_FLOOR.y)
+    checkerTiles(g, DET_FLOOR.x, DET_FLOOR.y)
     const cam = add(g, new THREE.Group())
     camBody(cam, 0.08)
     setTf(cam, DET_CAM)
@@ -260,7 +252,7 @@ const poseParams = memoBy(poseKey, (p: Params) => {
   const k = intrinsicsOf(w, h, FOV)
   const robot = chain4(trans4([POSE.tag[0] - dist * Math.cos(angle), POSE.tag[1] - dist * Math.sin(angle), 0]), rotAbout4(2, angle))
   const Twc = mul4(robot, ROBOT_CAM)
-  const run = tagJitterRun({ k, Twc, worldTag: POSE_TAG, code: TAG_DICT[POSE.code], size, noise, frames: POSE.frames, scene: { floor: { ...FLOOR, ...POSE_FLOOR }, sky: WALL } })
+  const run = tagJitterRun({ k, Twc, worldTag: POSE_TAG, code: TAG_DICT[POSE.code], size, noise, frames: POSE.frames, scene: { floor: { ...CHECKER_FLOOR, ...POSE_FLOOR }, sky: WALL } })
   const truth = poseOf(robot)
   const [c, s] = [Math.cos(angle), Math.sin(angle)]
   const ests = run.frames.map((f) => {
@@ -320,7 +312,7 @@ export const fiducialMarkersPoseFromATag: Lesson = {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
     const g = zUp(scene, POSE.at, 4.6, 0.55, 0.5)
-    floorTiles(g, POSE_FLOOR.x, POSE_FLOOR.y)
+    checkerTiles(g, POSE_FLOOR.x, POSE_FLOOR.y)
     const tagM = tagModel(g)
     const tagTri = frameTriad(g, 0.12, '', LABEL, 0.004)
     setTf(tagTri.group, POSE_TAG)
