@@ -137,6 +137,7 @@ import { edgesFeaturesCannyEdges, edgesFeaturesConvolution, edgesFeaturesCorners
 import { colourTrackingCentroidSteering, colourTrackingHsvMask } from '../lessons/perception/colour-tracking'
 import { cameraModelCalibration, cameraModelPinholeModel, cameraModelStereoDepth } from '../lessons/perception/camera-model'
 import { fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag } from '../lessons/perception/fiducial-markers'
+import { objectDetectionEdgeAccelerators, objectDetectionRunningOnAnEsp32Cam, objectDetectionYoloIdea } from '../lessons/perception/object-detection'
 import { depthSensingDepthMap, depthSensingPointCloud } from '../lessons/perception/depth-sensing'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
@@ -556,6 +557,9 @@ const READY: Record<string, Lesson> = {
   'perception/camera-model/stereo-depth': cameraModelStereoDepth,
   'perception/fiducial-markers/detecting-a-tag': fiducialMarkersDetectingATag,
   'perception/fiducial-markers/pose-from-a-tag': fiducialMarkersPoseFromATag,
+  'perception/object-detection/yolo-idea': objectDetectionYoloIdea,
+  'perception/object-detection/running-on-an-esp32-cam': objectDetectionRunningOnAnEsp32Cam,
+  'perception/object-detection/edge-accelerators': objectDetectionEdgeAccelerators,
   'perception/depth-sensing/depth-map': depthSensingDepthMap,
   'perception/depth-sensing/point-cloud': depthSensingPointCloud,
 }
