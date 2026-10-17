@@ -1,6 +1,9 @@
 import * as THREE from 'three/webgpu'
+import { Mat2, V2, apply2 } from '../../core/physics'
 import { V3, mesh } from '../../models/kit'
-import { faceFront } from './frames'
+import { LABEL, RING, glowMat, setGlow } from './colors'
+import { AXIS_RGB, faceFront } from './frames'
+import { addRod, stretchRod } from './layout'
 import { pointCloud } from './rooms'
 import { stretchArrow } from './shapes'
 import { liveLabel } from './text'
@@ -81,6 +84,44 @@ export function parallelogram(parent: THREE.Object3D, color: string, opacity = 0
       ;[o, pa, c, o, c, pb].forEach((v, i) => pos.set(v, i * 3))
       geo.attributes.position.needsUpdate = true
       geo.computeVertexNormals()
+    },
+  }
+}
+
+const box2 = (x0: number, x1: number, y0: number, y1: number): V2[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]
+/** Top-view robot outline in metres, x forward: body with a nose, two wheels. */
+export const ROBOT_OUTLINE: V2[][] = [
+  [[-0.3, -0.18], [0.18, -0.18], [0.34, 0], [0.18, 0.18], [-0.3, 0.18], [-0.3, -0.18]],
+  box2(-0.14, 0.1, 0.2, 0.28),
+  box2(-0.14, 0.1, -0.28, -0.2),
+]
+
+/** A plane carried by a 2×2 row-major matrix M (z = 0 of `parent`): faint fixed grid, warped grid (x axis red, y axis green) and outlines; `set(M, gridColor, outlineColor)`. */
+export function warpGrid(parent: THREE.Object3D, { half = 1, step = 0.25, r = 0.006, outline = ROBOT_OUTLINE } = {}) {
+  const ticks = Array.from({ length: Math.round((2 * half) / step) + 1 }, (_, i) => -half + i * step)
+  const ghostM = glowMat('#3c414b', 0.1)
+  for (const t of ticks) {
+    stretchRod(addRod(parent, ghostM), [t, -half, 0], [t, half, 0], r * 0.6)
+    stretchRod(addRod(parent, ghostM), [-half, t, 0], [half, t, 0], r * 0.6)
+  }
+  const lineM = glowMat(LABEL, 0.5)
+  const axisM = AXIS_RGB.slice(0, 2).map((c) => glowMat(c, 0.9))
+  const lines = ticks.flatMap((t) => {
+    const axis = Math.abs(t) < 1e-9
+    return [
+      { a: [-half, t] as V2, b: [half, t] as V2, rod: addRod(parent, axis ? axisM[0] : lineM), w: axis ? 1.6 : 1 },
+      { a: [t, -half] as V2, b: [t, half] as V2, rod: addRod(parent, axis ? axisM[1] : lineM), w: axis ? 1.6 : 1 },
+    ]
+  })
+  const outM = glowMat(RING, 0.9)
+  const segs = outline.flatMap((poly) => poly.slice(1).map((b, i) => ({ a: poly[i], b, rod: addRod(parent, outM) })))
+  const at = (M: Mat2, p: V2, z: number): V3 => [...apply2(M, p), z]
+  return {
+    set(M: Mat2, gridColor = LABEL, outlineColor = RING) {
+      setGlow(lineM, gridColor, 0.5)
+      setGlow(outM, outlineColor, 0.9)
+      for (const l of lines) stretchRod(l.rod, at(M, l.a, 0.004 * l.w), at(M, l.b, 0.004 * l.w), r * l.w)
+      for (const s of segs) stretchRod(s.rod, at(M, s.a, 0.01), at(M, s.b, 0.01), r * 1.8)
     },
   }
 }

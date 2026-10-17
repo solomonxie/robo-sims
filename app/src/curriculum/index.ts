@@ -172,6 +172,7 @@ import { pressureFluidsBarometerAltitude, pressureFluidsBernoulli } from '../les
 import { gravityInertiaAccelerometerReading, gravityInertiaFreeFall } from '../lessons/waves/gravity-inertia'
 import { heatTransferCoolingARegulator, heatTransferThermalResistance } from '../lessons/waves/heat-transfer'
 import { vectorsCrossProduct, vectorsDotProduct, vectorsProjection } from '../lessons/math/vectors'
+import { matricesInverse, matricesMatrixMultiply, matricesRotationMatrix } from '../lessons/math/matrices'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -687,6 +688,9 @@ const READY: Record<string, Lesson> = {
   'math/vectors/dot-product': vectorsDotProduct,
   'math/vectors/cross-product': vectorsCrossProduct,
   'math/vectors/projection': vectorsProjection,
+  'math/matrices/rotation-matrix': matricesRotationMatrix,
+  'math/matrices/matrix-multiply': matricesMatrixMultiply,
+  'math/matrices/inverse': matricesInverse,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
