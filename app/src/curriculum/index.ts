@@ -152,6 +152,7 @@ import { slamLoopClosure, slamPoseGraphs, slamTheChickenAndEggProblem } from '..
 import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from '../lessons/navigation/swarm-multi-robot'
 import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from '../lessons/ai/neural-nets-101'
 import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
+import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -607,6 +608,9 @@ const READY: Record<string, Lesson> = {
   'ai/neural-nets-101/overfitting': neuralNets101Overfitting,
   'ai/tinyml/quantization': tinymlQuantization,
   'ai/tinyml/gesture-recognition': tinymlGestureRecognition,
+  'ai/reinforcement-learning/reward-and-policy': reinforcementLearningRewardAndPolicy,
+  'ai/reinforcement-learning/q-learning-gridworld': reinforcementLearningQLearningGridworld,
+  'ai/reinforcement-learning/sim-to-real': reinforcementLearningSimToReal,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

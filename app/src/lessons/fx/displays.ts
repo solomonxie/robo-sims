@@ -247,8 +247,9 @@ export function countBars(parent: THREE.Object3D, at: V3, labels: readonly strin
     return { name, m, fill, value }
   })
   return {
-    set(values: readonly number[], texts?: readonly string[], colors?: readonly string[]) {
-      const max = Math.max(1e-9, ...values.filter(Number.isFinite))
+    /** Bars ∝ value ÷ `full` (default: the largest value). */
+    set(values: readonly number[], texts?: readonly string[], colors?: readonly string[], full?: number) {
+      const max = full ?? Math.max(1e-9, ...values.filter(Number.isFinite))
       bars.forEach((b, j) => {
         const v = Number.isFinite(values[j]) ? values[j] : 0
         const len = Math.max(1e-3, (v / max) * w)
