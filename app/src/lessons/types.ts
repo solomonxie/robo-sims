@@ -73,6 +73,9 @@ export const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? '
 export const n = (p: Params, k: string) => Number(p[k])
 /** `v` if it is a key of `rec`, else the default `d`. */
 export const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)
+/** `{ key: name }` from a record of `{ name }` entries. */
+export const namesOf = <R extends Record<string, { name: string }>>(rec: R) =>
+  Object.fromEntries(Object.entries(rec).map(([k, v]) => [k, v.name])) as Record<keyof R & string, string>
 /** Choice options from a `{ value: label }` record. */
 export const opts = <R extends Record<string, string>>(rec: R) => (Object.keys(rec) as (keyof R & string)[]).map((k) => ({ value: k, label: rec[k] }))
 

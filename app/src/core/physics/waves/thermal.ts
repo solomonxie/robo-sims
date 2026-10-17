@@ -3,10 +3,10 @@ import { LIGHT_C } from '../common'
 
 const H = 6.62607015e-34
 const KB = 1.380649e-23
-export const SIGMA_SB = 5.670374419e-8
-export const WIEN_B = 2.897771955e-3
+const SIGMA_SB = 5.670374419e-8
+const WIEN_B = 2.897771955e-3
 export const kelvinOf = (c: number) => c + 273.15
-export const celsiusOf = (k: number) => k - 273.15
+const celsiusOf = (k: number) => k - 273.15
 
 /** Black-body spectral exitance at `lambdaM` (m), W/(m²·µm). */
 export function planckExitance(lambdaM: number, tK: number) {
@@ -55,7 +55,7 @@ export type EmitSurface = keyof typeof EMISSIVITY
 export const leaving = (tC: number, eps: number, ambC: number) => eps * SIGMA_SB * kelvinOf(tC) ** 4 + (1 - eps) * SIGMA_SB * kelvinOf(ambC) ** 4
 
 /** Temperature a radiometer set to `epsSet` shows for radiance `L` with the room at `ambC`. */
-export const readC = (L: number, ambC: number, epsSet = 0.95) =>
+const readC = (L: number, ambC: number, epsSet = 0.95) =>
   celsiusOf(Math.max(0, (L - (1 - epsSet) * SIGMA_SB * kelvinOf(ambC) ** 4) / (epsSet * SIGMA_SB)) ** 0.25)
 
 /** What a thermometer gun / thermal camera set to ε = `epsSet` reads off a surface at `tC` with emissivity `eps`. */

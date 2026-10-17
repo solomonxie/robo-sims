@@ -15,6 +15,7 @@ import {
   ductRadius,
   dynamicPa,
   fixedStepAt,
+  kelvinOf,
   paPerMetre,
   pitotSpeedError,
   venturi,
@@ -45,7 +46,7 @@ import {
   titledScope,
   traceRun,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, n, opts, pick } from '../types'
 
 const VIEW = sideView(-1.5, -1)
 const mText = (m: number) => `${m.toFixed(1)} m`
@@ -53,7 +54,7 @@ const pa = (x: number) => (Math.abs(x) < 0.05 ? '0 Pa' : `${x < 0 ? '−' : ''}$
 
 // --- Bernoulli: a venturi duct; continuity speeds the flow up in the neck and the static pressure drops by ½ρ(v₂² − v₁²). ---
 
-const FLUID_NAMES = Object.fromEntries(Object.entries(FLUIDS).map(([k, v]) => [k, v.name])) as Record<FluidKind, string>
+const FLUID_NAMES = namesOf(FLUIDS)
 const PITOT_NOISE = 1
 const bnParams = (p: Params) => ({ v1: n(p, 'v1'), throat: n(p, 'throat'), fluid: pick(FLUIDS, p.fluid, 'air') as FluidKind })
 type BnQ = ReturnType<typeof bnParams>
@@ -225,8 +226,8 @@ export const pressureFluidsBernoulli: Lesson = {
 const BA_S = 7200
 const BA_DT = 30
 const NOISE_S = 10
-const OS_NAMES = Object.fromEntries(Object.entries(OVERSAMPLING).map(([k, v]) => [k, v.name])) as Record<Oversampling, string>
-const IIR_NAMES = Object.fromEntries(Object.entries(IIR_COEFFS).map(([k, v]) => [k, v.name])) as Record<IirCoeff, string>
+const OS_NAMES = namesOf(OVERSAMPLING)
+const IIR_NAMES = namesOf(IIR_COEFFS)
 const baParams = (p: Params) => ({
   holdM: n(p, 'hold'),
   driftPaPerH: n(p, 'drift') * 100,
@@ -344,7 +345,7 @@ export const pressureFluidsBarometerAltitude: Lesson = {
 
         tickLabels.forEach((t, i) => {
           const h = (i / TICKS) * R.maxH
-          t.set(`${Math.round(h)} m  ${hpaText(airPressureAt(h, f.p0, q.tempC + 273.15), 1)}`)
+          t.set(`${Math.round(h)} m  ${hpaText(airPressureAt(h, f.p0, kelvinOf(q.tempC)), 1)}`)
         })
         holdLine.position.y = yAt(q.holdM)
         holdTag.group.position.y = yAt(q.holdM) + 0.35

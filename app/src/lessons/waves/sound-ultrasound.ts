@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
+  DEG,
   HCSR04,
   PANEL_HALF,
   SONARS,
@@ -205,7 +206,7 @@ export const soundUltrasoundSpeedOfSound: Lesson = {
 const ER = { sx: -15.4, sy: -1, sc: 4.4, onScreenS: 3.2, dbLo: -10, dbHi: 40 }
 const SURFACES = { wall: 'Hard wall', cardboard: 'Cardboard', curtain: 'Curtain', foam: 'Foam' } as const
 const SURF_COLOR: Record<keyof typeof SURFACES, string> = { wall: '#9b8f86', cardboard: '#b88a55', curtain: '#7a5a8c', foam: '#c9c27a' }
-const HALF = (HCSR04.halfDeg * Math.PI) / 180
+const HALF = HCSR04.halfDeg * DEG
 const erParams = (p: Params) => ({
   kind: pick(SONARS, p.sonar, 'hcsr04') as SonarKind,
   m: n(p, 'dist'),

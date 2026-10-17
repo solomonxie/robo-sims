@@ -2,10 +2,11 @@
 // BMP280 oversampling/IIR noise, weather drift and the temperature error of a drone holding a baro altitude.
 import { G, gaussAt } from '../common'
 import { WATERS } from '../mobility/underwater'
+import { kelvinOf } from './thermal'
 
 export const P_SEA = 101_325
 /** Vapour pressure of water near 20 °C (Pa): below it the throat boils (cavitates). */
-export const VAPOUR_PA = 2_340
+const VAPOUR_PA = 2_340
 export const FLUIDS = {
   air: { name: 'Air', rho: 1.2 },
   water: { name: 'Water', rho: WATERS.fresh },
@@ -46,16 +47,16 @@ export function venturi(v1: number, throat: number, fluid: FluidKind, inletD = 0
 }
 
 /** ISA lapse rate (K/m), sea-level temperature (K), gas constant of dry air (J/(kg·K)) and the exponent g/(R·L). */
-export const LAPSE = 0.0065
-export const T_SEA = 288.15
-export const R_AIR = 287.05
+const LAPSE = 0.0065
+const T_SEA = 288.15
+const R_AIR = 287.05
 export const BARO_N = G / (R_AIR * LAPSE)
 
 /** Pressure at height h above a ground of pressure p0 and temperature t0 (K), constant lapse. */
 export const airPressureAt = (h: number, p0 = P_SEA, t0 = T_SEA) => p0 * (1 - (LAPSE * h) / t0) ** BARO_N
 /** The barometric formula the firmware uses: height above the reference pressure, assuming the standard 15 °C. */
 export const baroAltitude = (p: number, pRef = P_SEA, t0 = T_SEA) => (t0 / LAPSE) * (1 - (p / pRef) ** (1 / BARO_N))
-export const airDensity = (p: number, tK: number) => p / (R_AIR * tK)
+const airDensity = (p: number, tK: number) => p / (R_AIR * tK)
 /** Pressure change per metre of climb, ρg (Pa/m): about 12 near sea level. */
 export const paPerMetre = (h: number, p0 = P_SEA, t0 = T_SEA) => airDensity(airPressureAt(h, p0, t0), t0 - LAPSE * h) * G
 
@@ -97,7 +98,7 @@ export interface BaroHoldCfg {
  *  pressure by `driftPaPerH` and the air is `tempC` (not the 15 °C the formula assumes). True height every `dt` for `seconds`. */
 export function baroHoldRun(cfg: BaroHoldCfg, seconds: number, dt: number) {
   const target = airPressureAt(cfg.holdM)
-  const tg = cfg.tempC + 273.15
+  const tg = kelvinOf(cfg.tempC)
   const run: { t: number; p0: number; h: number }[] = []
   for (let t = 0; t <= seconds + 1e-9; t += dt) {
     const p0 = P_SEA + (cfg.driftPaPerH * t) / 3600

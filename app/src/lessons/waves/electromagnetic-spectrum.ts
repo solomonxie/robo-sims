@@ -4,7 +4,7 @@ import { hertz, lengthText, pct, sci, si, wavelengthText } from '../../core/unit
 import { add, box, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { BAND_TINT, B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, emWave, flatBox, glowMat, liveLabel, memoBy, setGlow, sideView, spectrumStrip, statusHeader } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, n, opts, pick } from '../types'
 
 const VIEW = sideView(-2.2, -1.4)
 const STRIP = { x0: -16.5, w: 29 }
@@ -199,7 +199,7 @@ export const electromagneticSpectrumWhereSensorsLive: Lesson = {
     'Glass is clear to light and near IR but a wall to thermal IR (8–14 µm) and to most UV: a thermal camera cannot see through a window, and needs a germanium lens. Fog scatters light and IR but not radar.',
     'Losses are rough, for a typical thickness (a brick wall, a window, 100 m of fog, 2 cm of water); real numbers depend on moisture, metal and angle.',
   ],
-  controls: [{ kind: 'choice', key: 'part', options: opts(Object.fromEntries(PART_LIST.map((k) => [k, SPECTRUM_PARTS[k].name])) as Record<SpectrumPart, string>), initial: 'wifi' }],
+  controls: [{ kind: 'choice', key: 'part', options: opts(namesOf(SPECTRUM_PARTS)), initial: 'wifi' }],
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)

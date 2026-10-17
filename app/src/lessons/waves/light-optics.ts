@@ -49,7 +49,7 @@ import {
   stretchRod,
   titledScope,
 } from '../fx'
-import { Lesson, Params, Stage, angleSlider, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, angleSlider, n, opts, pick } from '../types'
 
 const VIEW = sideView(-2.2, -0.6)
 const pctTenths = (f: number) => `${fixedText(f * 100, 1)} %`
@@ -85,7 +85,7 @@ function aimedBlock(parent: THREE.Object3D, color: string) {
 
 const RF = { o: [-9, -6.8, 0.2] as V3, src: 9, det: 9, fan: 7.5, rays: 37, half: 8 }
 const FINISH_LIST = Object.keys(FINISHES) as Finish[]
-const FINISH_NAMES = Object.fromEntries(FINISH_LIST.map((k) => [k, FINISHES[k].name])) as Record<Finish, string>
+const FINISH_NAMES = namesOf(FINISHES)
 const FINISH_LOOK: Record<Finish, { color: string; rough: number; metal: number }> = {
   mirror: { color: '#d8e0ea', rough: 0.05, metal: 1 },
   paper: { color: '#f2f0ea', rough: 1, metal: 0 },
@@ -368,7 +368,7 @@ export const lightOpticsRefraction: Lesson = {
 
         const deg = (u: number) => u * 90
         const ok = R.t2Curve.flatMap((v, i) => (Number.isFinite(v) ? [i] : []))
-        t2Tr.points(ok.map((i) => i / 90), ok.map((i) => -top.h / 2 + (R.t2Curve[i] / 90) * top.h))
+        t2Tr.points(ok.map((i) => i / 90), ok.map((i) => -top.h / 2 + (R.t2Curve[i] / 90) * top.h), R.t2 === null ? null : ok.indexOf(R.th))
         rTr.draw((u) => -bot.h / 2 + R.rCurve[Math.round(deg(u))] * bot.h, R.th / 90)
         critTop(R.crit === null ? null : R.crit / 90)
         critBot(R.crit === null ? null : R.crit / 90)

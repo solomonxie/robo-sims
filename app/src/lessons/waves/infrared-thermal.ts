@@ -18,7 +18,7 @@ import {
   thermalImage,
   wienPeakM,
 } from '../../core/physics'
-import { cmText, fixedText, pct, watts } from '../../core/units'
+import { celsiusText, cmText, fixedText, pct, watts } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -47,10 +47,9 @@ import {
   statusHeader,
   titledScope,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, n, opts, pick } from '../types'
 
 const VIEW = sideView(-2.2, -0.8)
-const degC = (c: number, digits = 0) => `${fixedText(c, digits)} °C`
 const umText = (m: number) => `${fixedText(m * 1e6, m < 3e-6 ? 2 : 1)} µm`
 const perM2 = (w: number) => `${watts(w)}/m²`
 const shareText = (f: number) => (f < 0.001 ? (f < 1e-9 ? '0 %' : '< 0.1 %') : f < 0.1 ? `${fixedText(f * 100, 1)} %` : pct(f))
@@ -107,7 +106,7 @@ export const infraredThermalBlackBodyRadiation: Lesson = {
   tagline: 'Everything warm glows; at room temperature the glow is at 10 µm',
   formula: (p) => {
     const R = bbRun(bbParams(p))
-    return `T = ${degC(R.c)} = ${Math.round(R.tK)} K · Wien: λ_peak = 2898 µm·K / T = ${umText(R.peak)} · Stefan–Boltzmann: M = ε·σ·T⁴ = ${R.eps} × 5.67e-8 × ${Math.round(R.tK)}⁴ = ${perM2(R.M)} · net into a ${DESK_ROOM_C} °C room: ε·σ·(T⁴ − T_room⁴) = ${fixedText(R.netMw * 10, 1)} W/m²`
+    return `T = ${celsiusText(R.c)} = ${Math.round(R.tK)} K · Wien: λ_peak = 2898 µm·K / T = ${umText(R.peak)} · Stefan–Boltzmann: M = ε·σ·T⁴ = ${R.eps} × 5.67e-8 × ${Math.round(R.tK)}⁴ = ${perM2(R.M)} · net into a ${DESK_ROOM_C} °C room: ε·σ·(T⁴ − T_room⁴) = ${fixedText(R.netMw * 10, 1)} W/m²`
   },
   legend: [
     { color: HEAT, label: 'This surface: spectrum ε × Planck (log axes)', shape: 'dot' },
@@ -185,7 +184,7 @@ export const infraredThermalBlackBodyRadiation: Lesson = {
           return [[C[0] + Math.cos(a) * r0, C[1] + Math.sin(a) * r0, 0], [C[0] + Math.cos(a) * (r0 + len * pulse), C[1] + Math.sin(a) * (r0 + len * pulse), 0]] as [V3, V3]
         }))
         setGlow(rayM, IR_TINT, 0.3 + 0.25 * len)
-        tTag.set(`${degC(R.c)} = ${Math.round(R.tK)} K`, R.glow > 0 ? HEAT : LABEL)
+        tTag.set(`${celsiusText(R.c)} = ${Math.round(R.tK)} K`, R.glow > 0 ? HEAT : LABEL)
         finishTag.set(`${EMISSIVITY[R.s].name}, ε ${R.eps}`)
         bars.set(R.byFinish, R.byFinish.map(perM2), SURFACE_LIST.map((k) => (k === R.s ? HEAT : GREY)))
 
@@ -194,7 +193,7 @@ export const infraredThermalBlackBodyRadiation: Lesson = {
         plot.right.set(`peak ${umText(R.peak)}`, RING)
         BANDS.forEach((b, i) => bandTags[i].set(shareText(R.shares[b]), BAND_COLORS[b]))
 
-        head.status.set(`Black-body radiation · ${degC(R.c)}`, LABEL)
+        head.status.set(`Black-body radiation · ${celsiusText(R.c)}`, LABEL)
         head.event.set(R.glow > 0 ? 'hot enough to glow visibly red' : R.c < DESK_ROOM_C ? 'colder than the room: absorbs more than it sends' : 'invisible glow: all infrared', R.glow > 0 ? HEAT : R.c < DESK_ROOM_C ? B_FIELD : POWER)
         head.sub.set(`band shares of a black body at this temperature · room ${DESK_ROOM_C} °C`)
       },
@@ -213,7 +212,7 @@ export const infraredThermalBlackBodyRadiation: Lesson = {
 
 // --- Thermal camera: a thermopile array views a desk; pixels average radiance over their footprint, shiny metal reads cold. ---
 
-const CAM_NAMES = Object.fromEntries(Object.entries(THERMAL_CAMS).map(([k, c]) => [k, c.name])) as Record<ThermalCam, string>
+const CAM_NAMES = namesOf(THERMAL_CAMS)
 const MOTOR_FINISHES = { paint: 'Motor painted black', anodised: 'Motor anodised', aluminium: 'Motor bare aluminium' } as const
 type MotorFinish = keyof typeof MOTOR_FINISHES
 const TC = { k: 14, cx: -9.2, cy: -2.6, x0: -17, x1: -1.6, y0: -8.6, y1: 3.4, hx: 7.2, hy: -1.5, hw: 12, hh: 9 }
@@ -228,7 +227,7 @@ const tcRun = memoBy(
     return { ...q, scene, img, reg, regRead: img.at(reg.x, reg.y), motorRead: img.at(motor.x, motor.y), gun: apparentC(65, EMISSIVITY[q.f].eps) }
   },
 )
-const readText = (c: number | null) => (c === null ? 'out of view' : degC(c, 1))
+const readText = (c: number | null) => (c === null ? 'out of view' : celsiusText(c, 1))
 const toPanel = (x: number, y: number): [number, number] => [TC.cx + (x - DESK_AIM[0]) * TC.k, TC.cy + (y - DESK_AIM[1]) * TC.k]
 
 /** Desk scene in front view at TC.k units per metre; `motor(finish)` restyles the motor can. */
@@ -280,7 +279,7 @@ export const infraredThermalThermalCamera: Lesson = {
   formula: (p) => {
     const R = tcRun(tcParams(p))
     const c = THERMAL_CAMS[R.cam]
-    return `pixel footprint = 2·d·tan(FOV/2) / pixels = 2 × ${R.d.toFixed(2)} m × tan(${c.hfov}°/2) / ${c.cols} = ${cmText(R.img.fp.px)} · 1.2 cm regulator fills ${pct(Math.min(1, (0.012 * 0.012) / (R.img.fp.px * R.img.fp.py)))} of a pixel · motor at 65 °C, ε ${EMISSIVITY[R.f].eps}, camera set to ε 0.95 → reads ${degC(R.gun, 1)}`
+    return `pixel footprint = 2·d·tan(FOV/2) / pixels = 2 × ${R.d.toFixed(2)} m × tan(${c.hfov}°/2) / ${c.cols} = ${cmText(R.img.fp.px)} · 1.2 cm regulator fills ${pct(Math.min(1, (0.012 * 0.012) / (R.img.fp.px * R.img.fp.py)))} of a pixel · motor at 65 °C, ε ${EMISSIVITY[R.f].eps}, camera set to ε 0.95 → reads ${celsiusText(R.gun, 1)}`
   },
   legend: [
     { color: RING, label: 'Field of view and pixel footprints on the scene', shape: 'dot' },
@@ -367,9 +366,9 @@ export const infraredThermalThermalCamera: Lesson = {
         }
         const hc = G.grid.cell(img.hotCol, img.hotRow)
         hotTag.group.position.set(Math.min(hc[0] + G.pitch, TC.hx + TC.hw / 2 - 2), hc[1] + G.pitch + 0.3, 0.5)
-        hotTag.set(`max ${degC(img.hi, 1)}`)
-        scaleLo.set(degC(img.lo, 1), LABEL)
-        scaleHi.set(degC(img.hi, 1), LABEL)
+        hotTag.set(`max ${celsiusText(img.hi, 1)}`)
+        scaleLo.set(celsiusText(img.lo, 1), LABEL)
+        scaleHi.set(celsiusText(img.hi, 1), LABEL)
         camTag.set(`${THERMAL_CAMS[R.cam].hfov}°×${THERMAL_CAMS[R.cam].vfov}° · pixel ${cmText(img.fp.px)} at ${R.d.toFixed(2)} m`)
 
         const regLost = R.regRead === null || R.regRead < 50
@@ -386,7 +385,7 @@ export const infraredThermalThermalCamera: Lesson = {
           { label: 'Pixel footprint', value: cmText(R.img.fp.px) },
           { label: 'Regulator (90 °C) reads', value: readText(R.regRead), tone: R.regRead !== null && R.regRead > 75 ? 'ok' : 'warn' },
           { label: 'Motor (65 °C) reads', value: readText(R.motorRead), tone: R.motorRead !== null && R.motorRead > 55 ? 'ok' : 'warn' },
-          { label: 'Hottest pixel', value: degC(R.img.hi, 1) },
+          { label: 'Hottest pixel', value: celsiusText(R.img.hi, 1) },
         ]
       },
     }

@@ -76,13 +76,14 @@ export function scope(
       head.visible = headU !== null
       if (headU !== null) head.position.set(xAt(headU), clip(y(headU)), SCREEN_Z)
     }
-    /** Polyline through (us[i], ys[i]) in the given order, up to `samples` points; the head dot sits on the last. */
-    const points = (us: readonly number[], ys: readonly number[]) => {
+    /** Polyline through (us[i], ys[i]) in the given order, up to `samples` points; the head dot sits on point `headI` (default the last, null hides it). */
+    const points = (us: readonly number[], ys: readonly number[], headI?: number | null) => {
       const k = Math.min(samples, us.length)
       for (let i = 0; i < k; i++) pts[i].set(xAt(us[i]), clip(ys[i]), SCREEN_Z)
       lay(k)
-      head.visible = k > 0
-      if (k) head.position.copy(pts[k - 1])
+      const h = headI === undefined ? k - 1 : headI
+      head.visible = h !== null && h >= 0 && h < k
+      if (head.visible) head.position.copy(pts[h!])
     }
     return {
       group: line,

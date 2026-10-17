@@ -47,12 +47,12 @@ import {
   titledScope,
   traceRun,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, n, opts, pick, toneOf } from '../types'
 
 const VIEW = sideView(-1.5, -1)
 const AMB = 25
 const minText = (s: number) => (s < 60 ? `${Math.round(s)} s` : hoursText(s / 3600))
-const toneC = (c: number) => (c < 100 ? 'ok' : c < 150 ? 'warn' : 'bad')
+const toneC = (c: number) => toneOf(c < 100, c < 150)
 
 // --- Thermal resistance: a 2 W TO-220 part on a plate; the heat path as series °C/W, then the warm-up through C·θ. ---
 
@@ -61,9 +61,9 @@ const TR_S = 1800
 const TR_DT = 2
 const TR_MAX = 300
 const K = 0.13
-const SOLID_NAMES = Object.fromEntries(Object.entries(SOLIDS).map(([k, v]) => [k, v.name])) as Record<PlateSolid, string>
-const JOINT_NAMES = Object.fromEntries(Object.entries(INTERFACES).map(([k, v]) => [k, v.name])) as Record<Interface, string>
-const AIR_NAMES = Object.fromEntries(Object.entries(AIRFLOW).map(([k, v]) => [k, v.name])) as Record<Airflow, string>
+const SOLID_NAMES = namesOf(SOLIDS)
+const JOINT_NAMES = namesOf(INTERFACES)
+const AIR_NAMES = namesOf(AIRFLOW)
 const SOLID_LOOK: Record<PlateSolid, { color: string; metal: number; rough: number }> = {
   copper: { color: '#c87533', metal: 0.7, rough: 0.3 },
   aluminium: { color: '#c9cdd3', metal: 0.6, rough: 0.35 },
@@ -220,7 +220,7 @@ const CR_S = 1200
 const CR_DT = 0.5
 const CR_MAX = 200
 const JC_7805 = 5
-const COOLER_NAMES = Object.fromEntries(Object.entries(REG_COOLERS).map(([k, v]) => [k, v.name])) as Record<RegCooler, string>
+const COOLER_NAMES = namesOf(REG_COOLERS)
 const crParams = (p: Params) => ({ vin: n(p, 'vin'), a: n(p, 'amps'), k: pick(REG_COOLERS, p.cooler, 'bare') as RegCooler })
 type CrQ = ReturnType<typeof crParams>
 const crKey = (q: CrQ) => `${q.vin} ${q.a} ${q.k}`

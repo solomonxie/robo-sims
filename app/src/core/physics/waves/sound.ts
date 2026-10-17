@@ -1,5 +1,5 @@
 // Sound as a pressure wave: its speed in air, water and steel, echo ranging (ringing, tilted panels, double bounces) and the Doppler shift. SI units.
-import { SOUND_C } from '../common'
+import { DEG, SOUND_C, clamp } from '../common'
 import { HCSR04, Reflector, Sonar, THRESHOLD, Target, beamGain, burstS, echoVia, speedOfSound, spread, targetRefl } from '../sensors/ultrasonic'
 
 export const SOUND_MEDIA = { air: 'Air', water: 'Water', steel: 'Steel' } as const
@@ -9,7 +9,7 @@ export type SoundMedium = keyof typeof SOUND_MEDIA
 export function soundSpeedIn(m: SoundMedium, tempC: number) {
   if (m === 'air') return speedOfSound(tempC)
   if (m === 'steel') return 5100
-  const T = Math.min(40, Math.max(0, tempC))
+  const T = clamp(tempC, 0, 40)
   return 1402.4 + 5.04 * T - 0.0581 * T ** 2 + 0.000334 * T ** 3
 }
 /** The rule of thumb c ≈ 331 + 0.6·T. */
@@ -22,7 +22,7 @@ export const fixedSpeedRead = (m: number, tempC: number, assumedC = SOUND_C) => 
 export const SONARS = { hcsr04: 'HC-SR04 · two cans', jsn: 'JSN-SR04T · one can' } as const
 export type SonarKind = keyof typeof SONARS
 /** `ringS`: after the burst the transducer rings this long above the threshold; `tau`: its decay time. */
-export const SONAR_RING: Record<SonarKind, { ringS: number; tau: number }> = {
+const SONAR_RING: Record<SonarKind, { ringS: number; tau: number }> = {
   hcsr04: { ringS: 0.03e-3, tau: 0.02e-3 },
   jsn: { ringS: 1.3e-3, tau: 0.3e-3 },
 }
@@ -31,7 +31,7 @@ const FACE_REFL = 0.4
 export const PANEL_HALF = 0.4
 
 /** The receiver can't hear anything until ringing falls below the threshold. */
-export const blankS = (k: SonarKind) => burstS() + SONAR_RING[k].ringS
+const blankS = (k: SonarKind) => burstS() + SONAR_RING[k].ringS
 export const blindRange = (k: SonarKind, c = SOUND_C) => (c * blankS(k)) / 2
 
 export interface RangeEcho {
@@ -44,7 +44,7 @@ export interface RangeEcho {
 /** A flat panel `m` ahead turned `tiltDeg`: the direct echo (null if the bounce misses the panel), its double bounce, and what the sensor reads. */
 export function echoRanging(kind: SonarKind, m: number, tiltDeg: number, surface: Target, tempC = 20) {
   const c = speedOfSound(tempC)
-  const tilt = (tiltDeg * Math.PI) / 180
+  const tilt = tiltDeg * DEG
   const s: Sonar = { x: 0, y: 0, heading: 0 }
   const panel: Reflector = {
     kind: 'wall',

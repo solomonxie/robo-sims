@@ -4,11 +4,12 @@ import { G } from '../common'
 import { Vec3 } from '../../fields'
 import { accelPitch } from '../mcu/i2c'
 import { toBody } from '../sensors/magnetometer'
+import { FLUIDS } from './fluids'
 
-const RHO_AIR = 1.2
+const RHO_AIR = FLUIDS.air.rho
 /** MPU-6050 at its widest range: ±16 g; harder knocks clip. */
 export const ACCEL_FS_G = 16
-export const ACCEL_ODR_S = 0.001
+const ACCEL_ODR_S = 0.001
 
 /** Dropped things: mass, drag area Cd·A (m²), contact stiffness (N/m) and damping ratio of what hits the floor. */
 export const DROP_BODIES = {

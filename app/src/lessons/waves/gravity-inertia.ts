@@ -15,6 +15,7 @@ import {
   addLabel,
   cursorBar,
   forceArrow,
+  lapseClock,
   liveLabel,
   memoBy,
   phoneModel,
@@ -25,7 +26,7 @@ import {
   statusHeader,
   titledScope,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, namesOf, n, opts, pick } from '../types'
 
 const gText = (g: number, digits = 2) => `${signed(Math.abs(g) < 0.5 * 10 ** -digits ? 0 : g, digits)} g`
 /** Body reading (X fwd, Y left, Z up) → proof-mass offset in scene axes (x right, y up, z out): it lags opposite to f. */
@@ -36,7 +37,7 @@ const massOffset = (f: Vec3, k: number, lim: number): V3 => {
 
 // --- Free fall: drop an IMU; it reads ~0 g in the air (drag only), a clipped spike on impact, then 1 g again. ---
 
-const BODY_NAMES = Object.fromEntries(Object.entries(DROP_BODIES).map(([k, v]) => [k, v.name])) as Record<DropBody, string>
+const BODY_NAMES = namesOf(DROP_BODIES)
 const ffParams = (p: Params) => ({ h: n(p, 'h'), body: pick(DROP_BODIES, p.body, 'phone') as DropBody, thr: n(p, 'thr') })
 type FfQ = ReturnType<typeof ffParams>
 const ffKey = (q: FfQ) => `${q.h} ${q.body}`
@@ -200,7 +201,7 @@ export const gravityInertiaFreeFall: Lesson = {
 
 // --- Accelerometer reading: the proof mass in everyday motions; tilt from the accelerometer is only right when a = 0. ---
 
-const MOTION_NAMES = Object.fromEntries(Object.entries(MOTIONS).map(([k, v]) => [k, v.name])) as Record<Motion, string>
+const MOTION_NAMES = namesOf(MOTIONS)
 const TURN_R = 1
 const arParams = (p: Params) => ({ motion: pick(MOTIONS, p.motion, 'forward') as Motion, aG: n(p, 'a'), pitch: n(p, 'pitch') * DEG })
 const arRun = memoBy(
@@ -286,17 +287,15 @@ export const gravityInertiaAccelerometerReading: Lesson = {
     const axisTexts = [0, 1, 2].map((i) => liveLabel(scene, [CELL[0] - 3.4, CELL[1] - 6.0 - i * 0.75, 0.3], { size: 0.34, align: 'left' }))
     const magText = liveLabel(scene, [CELL[0] - 3.4, CELL[1] - 8.3, 0.3], { size: 0.32, align: 'left' })
     const tiltText = liveLabel(scene, [ROBOT[0] - 7.5, ROBOT[1] - 4.6, 4.2], { size: 0.32, align: 'left' })
-    const st = { key: '', t: 0 }
+    const clock = lapseClock(Infinity, 1, 0)
     return {
       scene,
       view: sideView(-1.5, -1.5),
       frame(dt, p) {
         const R = arRun(p)
-        const key = `${R.motion} ${R.aG} ${R.pitch}`
-        if (key !== st.key) [st.key, st.t] = [key, 0]
-        st.t += dt
-        const off = turnY(arMotion(R.motion, R.aG, st.t), YAW)
-        const heading = YAW + (R.motion === 'turn' ? ((st.t % LOOP_S) / LOOP_S) * TURN_SPIN : 0)
+        const t = clock(dt, `${R.motion} ${R.aG} ${R.pitch}`)
+        const off = turnY(arMotion(R.motion, R.aG, t), YAW)
+        const heading = YAW + (R.motion === 'turn' ? ((t % LOOP_S) / LOOP_S) * TURN_SPIN : 0)
         rig.position.set(ROBOT[0] + off[0], ROBOT[1] + off[1], ROBOT[2] + off[2])
         tilt.rotation.z = R.pitch
         rig.rotation.y = heading

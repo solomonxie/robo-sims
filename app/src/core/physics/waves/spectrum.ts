@@ -27,7 +27,7 @@ export type EmBand = (typeof EM_BANDS)[number]
 export const emBandOf = (m: number): EmBand => EM_BANDS.find((b) => m >= b.lo && m < b.hi) ?? EM_BANDS[0]
 
 /** Everyday things for a sense of size, m. */
-export const SIZE_REFS = [
+const SIZE_REFS = [
   { name: 'a house', m: 8 },
   { name: 'a person', m: 1.7 },
   { name: 'a phone', m: 0.15 },
