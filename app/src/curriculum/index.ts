@@ -173,6 +173,7 @@ import { gravityInertiaAccelerometerReading, gravityInertiaFreeFall } from '../l
 import { heatTransferCoolingARegulator, heatTransferThermalResistance } from '../lessons/waves/heat-transfer'
 import { vectorsCrossProduct, vectorsDotProduct, vectorsProjection } from '../lessons/math/vectors'
 import { matricesInverse, matricesMatrixMultiply, matricesRotationMatrix } from '../lessons/math/matrices'
+import { trigonometryAtan2, trigonometryLawOfCosines, trigonometryUnitCircle } from '../lessons/math/trigonometry'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -691,6 +692,9 @@ const READY: Record<string, Lesson> = {
   'math/matrices/rotation-matrix': matricesRotationMatrix,
   'math/matrices/matrix-multiply': matricesMatrixMultiply,
   'math/matrices/inverse': matricesInverse,
+  'math/trigonometry/unit-circle': trigonometryUnitCircle,
+  'math/trigonometry/atan2': trigonometryAtan2,
+  'math/trigonometry/law-of-cosines': trigonometryLawOfCosines,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
