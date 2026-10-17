@@ -1,7 +1,8 @@
-// Microcontroller views: firmware code lines, in-pin MOSFET symbol, LED load.
+// Microcontroller views: firmware code lines, in-pin MOSFET symbol, LED load, memory bar map.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, mat } from '../../models/kit'
-import { GREY, HEAT, LABEL, LED_RED, POWER } from './colors'
+import { GREY, HEAT, HIGH_V, LABEL, LED_RED, POWER, glowMat, setGlow } from './colors'
+import { flatBox } from './shapes'
 import { ledLamp, resistorAlong } from './circuit'
 import { wire } from './layout'
 import { partLetter } from './parts'
@@ -70,4 +71,38 @@ export function ledLoad(parent: THREE.Object3D, at: V3, from: number, r: number,
   wire(g, [[0.4, 0, 0], [0.4, -3.4, 0]], 0.2)
   groundAt(g, [0.4, -3.4, 0])
   return { g, lamp }
+}
+
+/** Memory bar rows from `at` (left edge), `w` = a row's capacity; `set(row, capacity, segments [bytes, colour][], text)`
+ *  stacks the segments; past capacity the bar is cut and the end glows red. */
+export function memoryMap(parent: THREE.Object3D, at: V3, w: number, rows: readonly string[], { row = 0.7, size = 0.28, segs = 3 } = {}) {
+  const items = rows.map((name, j) => {
+    const y = at[1] - j * row
+    flatBox(parent, [w, row * 0.6, 0.05], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [at[0] + w / 2, y, 0])
+    liveLabel(parent, [at[0] - 0.2, y, 0.2], { size, align: 'right' }).set(name, GREY)
+    const parts = Array.from({ length: segs }, () => {
+      const m = glowMat(POWER, 0.8)
+      return { m, box: flatBox(parent, [1, row * 0.46, 0.08], m, [at[0], y, 0.06]) }
+    })
+    const over = flatBox(parent, [0.12, row * 0.7, 0.1], glowMat(HIGH_V, 1.4), [at[0] + w, y, 0.08])
+    const value = liveLabel(parent, [at[0] + w + 0.25, y, 0.2], { size: size * 0.95, align: 'left' })
+    return { parts, over, value }
+  })
+  return {
+    set(j: number, capacity: number, segments: readonly [number, string][], text: string, color = LABEL) {
+      const R = items[j]
+      let x = 0
+      R.parts.forEach((p, i) => {
+        const [bytes, c] = segments[i] ?? [0, POWER]
+        const len = Math.max(0, Math.min(w - x, (bytes / capacity) * w))
+        p.box.visible = len > 1e-3
+        p.box.scale.x = Math.max(1e-3, len - (len > 0.06 ? 0.04 : 0))
+        p.box.position.x = at[0] + x + len / 2
+        setGlow(p.m, c, 0.8)
+        x += len
+      })
+      R.over.visible = segments.reduce((s, [b]) => s + b, 0) > capacity
+      R.value.set(text, color)
+    },
+  }
 }

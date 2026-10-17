@@ -151,6 +151,7 @@ import { localizationParticleFilter, localizationScanMatching } from '../lessons
 import { slamLoopClosure, slamPoseGraphs, slamTheChickenAndEggProblem } from '../lessons/navigation/slam'
 import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from '../lessons/navigation/swarm-multi-robot'
 import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from '../lessons/ai/neural-nets-101'
+import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -604,6 +605,8 @@ const READY: Record<string, Lesson> = {
   'ai/neural-nets-101/perceptron': neuralNets101Perceptron,
   'ai/neural-nets-101/gradient-descent': neuralNets101GradientDescent,
   'ai/neural-nets-101/overfitting': neuralNets101Overfitting,
+  'ai/tinyml/quantization': tinymlQuantization,
+  'ai/tinyml/gesture-recognition': tinymlGestureRecognition,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

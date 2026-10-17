@@ -150,6 +150,7 @@ import { localizationParticleFilter, localizationScanMatching } from './navigati
 import { slamLoopClosure, slamPoseGraphs, slamTheChickenAndEggProblem } from './navigation/slam'
 import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from './navigation/swarm-multi-robot'
 import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from './ai/neural-nets-101'
+import { tinymlGestureRecognition, tinymlQuantization } from './ai/tinyml'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -168,5 +169,5 @@ export const UNITS: Unit[] = [
   { title: 'Kinematics', lessons: [rotation2d, homogeneousTransforms, coordFrameTree, twoLinkArm, denavitHartenberg, analyticIk, multipleSolutions, jacobianMethod, jacobianSingularities, jacobianManipulability, workspaceReach, workspaceDexterity, trajectoriesLinear, trajectoriesSplines, trajectoriesTimeScaling, grippersParallelJaw, grippersSuction, grippersCompliance, armBuildAssemble, armBuildDriveIk, dynamicsGravityTorque, dynamicsInertia, dynamicsPayloadLimits] },
   { title: 'Perception', lessons: [imageBasicsRgbHsv, imageBasicsThresholding, imageBasicsHistogram, edgesFeaturesConvolution, edgesFeaturesCannyEdges, edgesFeaturesCorners, colourTrackingHsvMask, colourTrackingCentroidSteering, cameraModelPinholeModel, cameraModelCalibration, cameraModelStereoDepth, fiducialMarkersDetectingATag, fiducialMarkersPoseFromATag, objectDetectionYoloIdea, objectDetectionRunningOnAnEsp32Cam, objectDetectionEdgeAccelerators, depthSensingDepthMap, depthSensingPointCloud, opticalFlowLucasKanade, opticalFlowVisualOdometry, occupancyGridsRayCasting, occupancyGridsLogOddsUpdate] },
   { title: 'Navigation', lessons: [odometryDeadReckoning, odometryErrorGrowth, odometryCalibratingWheelSize, obstacleAvoidanceReactiveRules, obstacleAvoidanceBraitenbergVehicles, obstacleAvoidanceWallFollowing, mazeSolvingWallFollower, mazeSolvingFloodFill, mazeSolvingMicromouse, graphSearchGridMaps, graphSearchAHeuristic, graphSearchDLite, samplingPlannersRrtGrowth, samplingPlannersSmoothingPaths, pathTrackingPurePursuit, pathTrackingStanleyController, localizationParticleFilter, localizationScanMatching, slamTheChickenAndEggProblem, slamLoopClosure, slamPoseGraphs, swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation] },
-  { title: 'AI', lessons: [neuralNets101Perceptron, neuralNets101GradientDescent, neuralNets101Overfitting] },
+  { title: 'AI', lessons: [neuralNets101Perceptron, neuralNets101GradientDescent, neuralNets101Overfitting, tinymlQuantization, tinymlGestureRecognition] },
 ]

@@ -52,14 +52,15 @@ export function seriesRmsError(shape: Periodic, terms: Harmonic[], samples = 204
  *  `hann` tapers the window so off-bin tones leak less. */
 export function dftAmplitudes(samples: number[], hann = false) {
   const N = samples.length
-  const w = samples.map((x, i) => (hann ? x * (1 - Math.cos((2 * Math.PI * i) / N)) : x))
+  const cos = Array.from({ length: N }, (_, i) => Math.cos((2 * Math.PI * i) / N))
+  const sin = Array.from({ length: N }, (_, i) => Math.sin((2 * Math.PI * i) / N))
+  const w = samples.map((x, i) => (hann ? x * (1 - cos[i]) : x))
   return Array.from({ length: Math.floor(N / 2) + 1 }, (_, m) => {
     let re = 0
     let im = 0
-    for (let i = 0; i < N; i++) {
-      const a = (2 * Math.PI * m * i) / N
-      re += w[i] * Math.cos(a)
-      im -= w[i] * Math.sin(a)
+    for (let i = 0, k = 0; i < N; i++, k = (k + m) % N) {
+      re += w[i] * cos[k]
+      im -= w[i] * sin[k]
     }
     return (Math.hypot(re, im) / N) * (m === 0 || m === N / 2 ? 1 : 2)
   })
