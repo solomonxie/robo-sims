@@ -159,6 +159,7 @@ import { kinematicsConstantAcceleration, kinematicsProjectileMotion, kinematicsV
 import { torqueLeversLeverTypes, torqueLeversMomentArm, torqueLeversStaticBalance } from '../lessons/mechanics/torque-levers'
 import { rotationAngularMomentum, rotationFlywheel, rotationMomentOfInertia } from '../lessons/mechanics/rotation'
 import { energyWorkEfficiency, energyWorkKineticAndPotential, energyWorkWorkAndPower } from '../lessons/mechanics/energy-work'
+import { frictionTractionRollingResistance, frictionTractionStaticVsKinetic, frictionTractionWheelSlip } from '../lessons/mechanics/friction-traction'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -643,6 +644,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/energy-work/kinetic-and-potential': energyWorkKineticAndPotential,
   'mechanics/energy-work/work-and-power': energyWorkWorkAndPower,
   'mechanics/energy-work/efficiency': energyWorkEfficiency,
+  'mechanics/friction-traction/static-vs-kinetic': frictionTractionStaticVsKinetic,
+  'mechanics/friction-traction/rolling-resistance': frictionTractionRollingResistance,
+  'mechanics/friction-traction/wheel-slip': frictionTractionWheelSlip,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
