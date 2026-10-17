@@ -180,6 +180,7 @@ import { probabilityBayesRule, probabilityGaussianNoise, probabilityVariance } f
 import { linearAlgebraEigenvectors, linearAlgebraLeastSquares } from '../lessons/math/linear-algebra'
 import { differentialEquationsEulerIntegration, differentialEquationsStepSize } from '../lessons/math/differential-equations'
 import { signalsSampleRate, signalsZTransformIntuition } from '../lessons/math/signals'
+import { fastenersHeatSetInserts, fastenersMetricSizes, fastenersThreadLocker } from '../lessons/materials/fasteners'
 import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
@@ -723,6 +724,9 @@ const READY: Record<string, Lesson> = {
   'materials/stress-strain/safety-factor': stressStrainSafetyFactor,
   'materials/laser-cnc/kerf': laserCncKerf,
   'materials/laser-cnc/acrylic-vs-plywood': laserCncAcrylicVsPlywood,
+  'materials/fasteners/metric-sizes': fastenersMetricSizes,
+  'materials/fasteners/heat-set-inserts': fastenersHeatSetInserts,
+  'materials/fasteners/thread-locker': fastenersThreadLocker,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
