@@ -97,8 +97,8 @@ export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 
 export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -digits ? (0).toFixed(digits) : v.toFixed(digits).replace('-', '−'))
 /** Torque: 0.25 → "0.25 N·m". */
 export const nmText = (t: number, digits = 2) => `${fixedText(t, digits)} N·m`
-/** Hundredths of a mm: 0.00022 → "0.22 mm". */
-export const mmHundredths = (m: number) => `${fixedText(m * 1000, 2)} mm`
+/** Millimetres to `digits`: 0.22 → "0.2 mm", (0.22, 2) → "0.22 mm". */
+export const mmFixed = (mm: number, digits = 1) => `${fixedText(mm, digits)} mm`
 /** fixedText of each entry: `(x, y, z)`. */
 export const tupleText = (v: readonly number[], digits = 2) => `(${v.map((x) => fixedText(x, digits)).join(', ')})`
 /** fixedText as a factor in a written product: negatives in brackets. */

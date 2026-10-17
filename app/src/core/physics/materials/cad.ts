@@ -8,7 +8,7 @@ export const MOTOR_FACES = {
   nema17: { name: 'NEMA17', face: 42.3, bolt: 31, boss: 22, screw: 'm3' },
   nema23: { name: 'NEMA23', face: 57.2, bolt: 47.1, boss: 38.1, screw: 'm5' },
 } as const
-export type MotorFaceKey = keyof typeof MOTOR_FACES
+type MotorFaceKey = keyof typeof MOTOR_FACES
 
 /** Bracket sketch rules: margin round the motor face, boss clearance, solid PLA density (g/cm³). */
 export const SKETCH = { margin: 6, bossClear: 0.5, pla: 1.24 }
@@ -64,7 +64,7 @@ export const plateAreaMm2 = (p: PlateSketch) =>
 /** Solid mass (g) of the plate extruded `t` mm. */
 export const plateMassG = (p: PlateSketch, t: number, density = SKETCH.pla) => (plateAreaMm2(p) * t * density) / 1000
 
-export type SketchEntity = 'outline' | 'boss' | 'holes'
+type SketchEntity = 'outline' | 'boss' | 'holes'
 /** Free DOF before any constraint: rectangle 4 (the tool adds horizontal/vertical), each circle 3 (x, y, r). */
 export const ENTITY_DOF: Record<SketchEntity, number> = { outline: 4, boss: 3, holes: 12 }
 /** Constraints in the order a designer adds them; `dim` = a driving dimension shown on the sketch. */
@@ -97,7 +97,7 @@ export function sketchStatus(k: number) {
 // --- Assemblies: mates remove a part's 6 DOF; screw length vs the motor's tapped holes ---
 
 export type Dof = 'x' | 'y' | 'z' | 'rx' | 'ry' | 'rz'
-export const ALL_DOF: readonly Dof[] = ['x', 'y', 'z', 'rx', 'ry', 'rz']
+const ALL_DOF: readonly Dof[] = ['x', 'y', 'z', 'rx', 'ry', 'rz']
 export type AsmPart = 'bracket' | 'motor' | 'wheel' | 'screws'
 export const ASM_PARTS: readonly AsmPart[] = ['bracket', 'motor', 'wheel', 'screws']
 /** Each part's own frame has z along its axis (motor shaft, wheel hub, screw). */
@@ -140,7 +140,7 @@ export function screwFit(L: number, t: number, tap = MOTOR_TAP) {
 
 /** A 60 mm wheel, 10 mm wide, 5 mm bore. */
 export const STL_WHEEL = { R: 30, r: 2.5, h: 10 }
-export const STL_BYTES = { header: 84, perTri: 50, asciiPerTri: 250 }
+const STL_BYTES = { header: 84, perTri: 50, asciiPerTri: 250 }
 export const INCH_MM = 25.4
 
 /** Segments round a circle of radius R so the chord error stays under `tol` mm and adjacent normals within `angleDeg`. */

@@ -104,7 +104,7 @@ export const HARNESS = {
   paired: { name: 'side by side', gap: 0.0025, pitch: 0 },
   twisted: { name: 'twisted pair', gap: 0.0025, pitch: 0.02 },
 }
-export type Harness = keyof typeof HARNESS
+type Harness = keyof typeof HARNESS
 
 const MU0_2PI = 2e-7
 

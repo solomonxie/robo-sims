@@ -16,7 +16,7 @@ import {
   heatsinkView,
   jointHeat,
 } from '../../core/physics'
-import { amps, celsiusText, fixedText, mmTenths, newtonsText, pct, thetaText, watts } from '../../core/units'
+import { amps, celsiusText, fixedText, mmTenths, newtonsText, nmText, pct, thetaText, watts } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -60,7 +60,6 @@ import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
 const AMB = 25
 const TJ_MAX = 150
-const nm = (v: number) => `${fixedText(v, 2)} N·m`
 const minText = (s: number) => `${Math.round(s / 60)} min`
 
 // --- Heatsinks: a TO-220 MOSFET on a 40 mm plate-fin sink; fin count, orientation, airflow, mounting, enclosure. ---
@@ -233,7 +232,7 @@ export const thermalDesignMotorHeating: Lesson = {
   formula: (p) => {
     const q = mhParams(p)
     const R = mhRun(q)
-    return `gravity torque = m·g·L + m_arm·g·L/2 = ${nm(R.needNm)} · I_busy = ${amps(R.ampsBusy)}, I_idle = ${amps(R.ampsIdle)} · P = I²R → ${watts(R.wattsBusy)} / ${watts(R.wattsIdle)} · steady T = Ta + Rth·(D·P_busy + (1 − D)·P_idle) = ${q.ambC} + ${R.d.kPerW} K/W × … ≈ ${Number.isFinite(R.steadyC) ? celsiusText(R.steadyC) : 'runaway'} vs ${celsiusText(R.d.maxC)} · τ = ${minText(R.d.tauS)} (typical)`
+    return `gravity torque = m·g·L + m_arm·g·L/2 = ${nmText(R.needNm)} · I_busy = ${amps(R.ampsBusy)}, I_idle = ${amps(R.ampsIdle)} · P = I²R → ${watts(R.wattsBusy)} / ${watts(R.wattsIdle)} · steady T = Ta + Rth·(D·P_busy + (1 − D)·P_idle) = ${q.ambC} + ${R.d.kPerW} K/W × … ≈ ${Number.isFinite(R.steadyC) ? celsiusText(R.steadyC) : 'runaway'} vs ${celsiusText(R.d.maxC)} · τ = ${minText(R.d.tauS)} (typical)`
   },
   legend: [
     { color: RING, label: 'Winding temperature (time-lapse)', shape: 'dot' },
@@ -329,7 +328,7 @@ export const thermalDesignMotorHeating: Lesson = {
         bars.rename(2, servo ? 'peak (stall)' : 'hold, full I')
         bars.set(
           [R.needNm, R.contNm, R.peakNm, R.idleHoldNm],
-          [nm(R.needNm), `${nm(R.contNm)} at ${q.ambC} °C`, nm(R.peakNm), servo ? 'n/a for a servo' : nm(R.idleHoldNm)],
+          [nmText(R.needNm), `${nmText(R.contNm)} at ${q.ambC} °C`, nmText(R.peakNm), servo ? 'n/a for a servo' : nmText(R.idleHoldNm)],
           [FORCE, R.needNm > R.contNm ? HIGH_V : POWER, GREY, R.slipsIdle ? HIGH_V : POWER],
         )
 
@@ -364,8 +363,8 @@ export const thermalDesignMotorHeating: Lesson = {
         const q = mhParams(p)
         const R = mhRun(q)
         return [
-          { label: 'Torque needed', value: nm(R.needNm), tone: toneOf(R.needNm <= R.contNm, R.canLift) },
-          { label: `Continuous at ${q.ambC} °C`, value: nm(R.contNm) },
+          { label: 'Torque needed', value: nmText(R.needNm), tone: toneOf(R.needNm <= R.contNm, R.canLift) },
+          { label: `Continuous at ${q.ambC} °C`, value: nmText(R.contNm) },
           { label: 'Heat, busy / idle', value: `${watts(R.wattsBusy)} / ${watts(R.wattsIdle)}` },
           { label: 'Steady winding', value: Number.isFinite(R.steadyC) && R.steadyC < 999 ? celsiusText(R.steadyC) : 'runaway', tone: tempTone(R.steadyC, R.d.maxC) },
         ]

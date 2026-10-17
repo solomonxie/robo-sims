@@ -100,7 +100,7 @@ export function beltLoop(parent: THREE.Object3D, r1: number, r2: number, C: numb
   }
 }
 
-export type CouplerLook = 'rigid' | 'helical' | 'jaw'
+type CouplerLook = 'rigid' | 'helical' | 'jaw'
 
 /** Shaft coupler along +x from 0 to `len` mm, outside diameter `od`; set screws on top of each hub.
  *  `set(spin, rise)`: hubs turn about their axes, the right end sits `rise` scene units higher (the flexible middle takes it). */

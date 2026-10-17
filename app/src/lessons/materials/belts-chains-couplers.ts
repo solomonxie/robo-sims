@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { BELT_MOTOR, COUPLERS, COUPLING, CouplerKey, CouplerVerdict, GRIPS, GT2, GripKey, BeltVerdict, MIN_MESH, beltDrive, couplerView, equivOffsetMm } from '../../core/physics'
-import { degText, fixedText, hertz, mpsText, newtonsText, nmText } from '../../core/units'
+import { degText, fixedText, hertz, mmFixed, mpsText, newtonsText, nmText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -35,7 +35,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const mm = (v: number, digits = 1) => `${fixedText(v, digits)} mm`
 
 // --- Timing belt: a 20T GT2 motor pulley driving a bigger output pulley; ratio, teeth in mesh, tension window, stretch. ---
 
@@ -63,7 +62,7 @@ export const beltsChainsCouplersTimingBelt: Lesson = {
   tagline: 'Toothed belt between two pulleys: a gear ratio over a distance, if the tension is right',
   formula: (p) => {
     const { z2, T0, Tm, D } = tbRun(p)
-    return `ratio = ${z2}T / ${TB.z1}T = ${fixedText(D.ratio, 2)} · belt speed v = ω·r = ${mpsText(D.beltMps)} at ${BELT_MOTOR.rpm} rpm · pull Fe = T/r = ${nmText(Tm)} / ${mm(D.r1, 2)} = ${newtonsText(D.pull, 1)} · tight = T0 + Fe/2 = ${newtonsText(D.tight, 1)}, slack = T0 − Fe/2 = ${newtonsText(D.slack, 1)} · teeth jump above ≈ ${newtonsText(D.jumpN, 0)} (2.5·T0 or ${GT2.toothN} N per tooth in mesh, typical) · T0 ${newtonsText(T0, 0)}`
+    return `ratio = ${z2}T / ${TB.z1}T = ${fixedText(D.ratio, 2)} · belt speed v = ω·r = ${mpsText(D.beltMps)} at ${BELT_MOTOR.rpm} rpm · pull Fe = T/r = ${nmText(Tm)} / ${mmFixed(D.r1, 2)} = ${newtonsText(D.pull, 1)} · tight = T0 + Fe/2 = ${newtonsText(D.tight, 1)}, slack = T0 − Fe/2 = ${newtonsText(D.slack, 1)} · teeth jump above ≈ ${newtonsText(D.jumpN, 0)} (2.5·T0 or ${GT2.toothN} N per tooth in mesh, typical) · T0 ${newtonsText(T0, 0)}`
   },
   legend: [
     { color: '#d9d4c7', label: 'Every 10th belt tooth', shape: 'dot' },
@@ -170,10 +169,10 @@ export const beltsChainsCouplersTimingBelt: Lesson = {
         plot.right.set(`motor ${nmText(Tm)}`, FORCE)
 
         rows[0].set(`ratio ${fixedText(D.ratio, 2)} : ${BELT_MOTOR.rpm} → ${fixedText(D.outRpm, 0)} rpm, ${nmText(D.outNm)} out`, LABEL)
-        rows[1].set(`belt ${mpsText(D.beltMps)} · loop ${mm(D.lengthMm, 0)} = ${Math.round(D.lengthMm / GT2.pitch)} teeth`, GREY)
-        rows[2].set(`stretch ${mm(D.stretchMm, 2)} → output winds up ${degText(D.windupDeg, 2)}`, D.windupDeg > 0.5 ? HEAT : LABEL)
+        rows[1].set(`belt ${mpsText(D.beltMps)} · loop ${mmFixed(D.lengthMm, 0)} = ${Math.round(D.lengthMm / GT2.pitch)} teeth`, GREY)
+        rows[2].set(`stretch ${mmFixed(D.stretchMm, 2)} → output winds up ${degText(D.windupDeg, 2)}`, D.windupDeg > 0.5 ? HEAT : LABEL)
         rows[3].set(`pluck the span: ≈ ${hertz(D.pluck)} (typical)`, GREY)
-        head.status.set(`Timing belt · GT2 ${TB.z1}T → ${z2}T · ${mm(C, 0)} · T0 ${newtonsText(T0, 0)} · ${nmText(Tm)}`)
+        head.status.set(`Timing belt · GT2 ${TB.z1}T → ${z2}T · ${mmFixed(C, 0)} · T0 ${newtonsText(T0, 0)} · ${nmText(Tm)}`)
         head.sub.set('6 mm GT2 belt, values typical; slack span sag exaggerated', GREY)
         head.event.set(...VERDICT_TB[D.verdict])
       },
@@ -216,7 +215,7 @@ export const beltsChainsCouplersShaftCouplers: Lesson = {
   tagline: 'Joining a motor shaft to a lead screw: flexible beats rigid when the shafts never line up',
   formula: (p) => {
     const { e, ang, V } = scRun(p)
-    return `misalignment ≈ offset + θ·L/2 = ${mm(e, 2)} + ${degText(ang, 1)} · ${COUPLING.length / 2} mm = ${mm(equivOffsetMm(e, ang), 2)} · side force = k·e = ${newtonsText(V.force, 1)} (coupler in series with shafts and mount) · motor shaft stress σ = F·L·c/I = ${fixedText(V.stressPa / 1e6, 0)} MPa, reversed every turn · hub grip ${nmText(V.grip)} (typical)`
+    return `misalignment ≈ offset + θ·L/2 = ${mmFixed(e, 2)} + ${degText(ang, 1)} · ${COUPLING.length / 2} mm = ${mmFixed(equivOffsetMm(e, ang), 2)} · side force = k·e = ${newtonsText(V.force, 1)} (coupler in series with shafts and mount) · motor shaft stress σ = F·L·c/I = ${fixedText(V.stressPa / 1e6, 0)} MPa, reversed every turn · hub grip ${nmText(V.grip)} (typical)`
   },
   legend: [
     { color: FORCE, label: 'Side force on the motor shaft', shape: 'dot' },
@@ -342,9 +341,9 @@ export const beltsChainsCouplersShaftCouplers: Lesson = {
         const c = V.c
         rows[0].set(`side force ${newtonsText(V.force, 1)} → front bearing ${newtonsText(V.bearing, 0)}`, V.force > BELT_MOTOR.radialN ? HIGH_V : LABEL)
         rows[1].set(`shaft bending ±${fixedText(V.stressPa / 1e6, 0)} MPa, ${SC.rpm} times a minute`, V.stressPa > 60e6 ? HEAT : GREY)
-        rows[2].set(`${c.name} allows ${mm(c.maxOffset, 2)}, ${degText(c.maxDeg, c.maxDeg < 1 ? 2 : 0)} (typical)`, V.overRated ? HEAT : GREY)
+        rows[2].set(`${c.name} allows ${mmFixed(c.maxOffset, 2)}, ${degText(c.maxDeg, c.maxDeg < 1 ? 2 : 0)} (typical)`, V.overRated ? HEAT : GREY)
         rows[3].set(`taken up by: coupler ${Math.round(sh.coupler * 100)} %, shafts ${Math.round((sh.motor + sh.screw) * 100)} %, mount ${Math.round(sh.mount * 100)} %`, GREY)
-        head.status.set(`Shaft couplers · ${c.name} · ${mm(e, 2)} offset · ${degText(ang, 1)} · ${GRIPS[gk].name}`)
+        head.status.set(`Shaft couplers · ${c.name} · ${mmFixed(e, 2)} offset · ${degText(ang, 1)} · ${GRIPS[gk].name}`)
         head.sub.set(`5 mm motor shaft to 8 mm lead screw, misalignment drawn ×${SC.exag}`, GREY)
         head.event.set(...VERDICT_SC[V.verdict])
       },

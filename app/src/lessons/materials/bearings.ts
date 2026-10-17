@@ -10,8 +10,9 @@ import {
   ballBearingView,
   ballLoads,
   bushingView,
+  frictionTorque,
 } from '../../core/physics'
-import { celsiusText, fixedText, newtonsText, pct, spanText } from '../../core/units'
+import { celsiusText, fixedText, mmFixed, newtonsText, pct, spanText } from '../../core/units'
 import { V3, add, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -47,7 +48,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const mm = (v: number, digits = 1) => `${fixedText(v, digits)} mm`
 const nmm = (T: number) => `${fixedText(T * 1000, T < 0.001 ? 3 : T < 0.01 ? 2 : T < 0.1 ? 1 : 0)} N·mm`
 
 // --- Ball bearings: an open 608/625/MR63 spinning under the near bearing's load, the two-bearing wheel shaft, friction vs a plain hole. ---
@@ -68,7 +68,7 @@ export const bearingsBallBearings: Lesson = {
   tagline: 'Balls roll between two races, so a loaded shaft spins almost freely',
   formula: (p) => {
     const { load, spacing, overhang, V } = bbRun(p)
-    return `lever balance about the near bearing: far = W·a/s = ${newtonsText(load, 0)} · ${mm(overhang, 0)} / ${mm(spacing, 0)} = ${newtonsText(V.far, 1)} · near = W + far = ${newtonsText(V.near, 1)} · busiest ball ≈ 4.4·F/z = ${newtonsText(V.peakBall, 1)} · friction T = μ·F·d/2, μ ≈ ${ROLLING_MU} rolling vs ${PLAIN_HOLE_MU} in a printed hole (typical) · static safety C0/F = ${fixedText(V.life.s0, 1)}`
+    return `lever balance about the near bearing: far = W·a/s = ${newtonsText(load, 0)} · ${mmFixed(overhang, 0)} / ${mmFixed(spacing, 0)} = ${newtonsText(V.far, 1)} · near = W + far = ${newtonsText(V.near, 1)} · busiest ball ≈ 4.4·F/z = ${newtonsText(V.peakBall, 1)} · friction T = μ·F·d/2, μ ≈ ${ROLLING_MU} rolling vs ${PLAIN_HOLE_MU} in a printed hole (typical) · static safety C0/F = ${fixedText(V.life.s0, 1)}`
   },
   legend: [
     { color: POWER, label: 'Lightly loaded ball', shape: 'dot' },
@@ -165,8 +165,8 @@ export const bearingsBallBearings: Lesson = {
           cylinder(side, S.wheelR, 1, mat('#3a3f4a', { rough: 0.8 }), [xw, S.y, 0], 'x', 32)
           addLabel(side, 'near', [xn, S.y - (b.D / 2) * bs - 1.7, 0.3], RING, 0.26)
           addLabel(side, 'far', [xf - (b.B * bs) / 2 - 0.6, S.y, 0.3], GREY, 0.26, 'right')
-          addLabel(side, `s ${mm(spacing, 0)}`, [(xn + xf) / 2, S.y + (b.D / 2) * bs + 1.7, 0.3], GREY, 0.24)
-          addLabel(side, `a ${mm(overhang, 0)}`, [(xn + xw) / 2, S.y + 0.9, 0.3], GREY, 0.24)
+          addLabel(side, `s ${mmFixed(spacing, 0)}`, [(xn + xf) / 2, S.y + (b.D / 2) * bs + 1.7, 0.3], GREY, 0.24)
+          addLabel(side, `a ${mmFixed(overhang, 0)}`, [(xn + xw) / 2, S.y + 0.9, 0.3], GREY, 0.24)
         }
         const scale = 2.2 / Math.max(V.near, 1e-9)
         const top = S.y + (b.D / 2) * bs + 1.2
@@ -176,7 +176,7 @@ export const bearingsBallBearings: Lesson = {
         arrows[2]([xf, bot - V.far * scale, 0.8], [xf, bot, 0.8], newtonsText(V.far, 0), [-1.5, -V.far * scale - 0.2, 0])
 
         const T = V.torque
-        const bronze = (BUSHINGS.bronze.mu * V.near * b.d) / 2000
+        const bronze = frictionTorque(BUSHINGS.bronze.mu, V.near, b.d)
         bars.set([T.ball, bronze, T.plain], [nmm(T.ball), nmm(bronze), nmm(T.plain)], [POWER, HEAT, HIGH_V])
 
         const s0 = V.life.s0
@@ -184,8 +184,8 @@ export const bearingsBallBearings: Lesson = {
         rows[0].set(`near ${newtonsText(V.near, 0)} · far ${newtonsText(V.far, 0)} for a ${newtonsText(load, 0)} wheel`, RING)
         rows[1].set(`${b.name}: C0 ${newtonsText(b.C0, 0)} → static safety ${fixedText(s0, 1)}`, toneColor[okS!])
         rows[2].set(`life L10 ${spanText(V.life.hours)} at ${BB.rpm} rpm (typical)`, V.life.hours > 5000 ? POWER : HEAT)
-        rows[3].set(`printed seat: press ${mm(V.seat.press, 2)} · slip ${mm(V.seat.slip, 2)} (typical)`, GREY)
-        head.status.set(`Ball bearings · ${b.name} · wheel ${newtonsText(load, 0)} · s ${mm(spacing, 0)} · a ${mm(overhang, 0)}`)
+        rows[3].set(`printed seat: press ${mmFixed(V.seat.press, 2)} · slip ${mmFixed(V.seat.slip, 2)} (typical)`, GREY)
+        head.status.set(`Ball bearings · ${b.name} · wheel ${newtonsText(load, 0)} · s ${mmFixed(spacing, 0)} · a ${mmFixed(overhang, 0)}`)
         head.sub.set(`near bearing face-on, balls coloured by load; ${b.use}`, GREY)
         head.event.set(
           s0 < 1 ? `${b.name} overloaded: the busiest ball dents the races, pick a bigger bearing or space them wider` : `rolling: ${Math.round(T.plain / T.ball)}× less friction than a plain hole`,
@@ -319,7 +319,7 @@ export const bearingsBushings: Lesson = {
         loadArrow([BU.end[0], top + len, 1.4], [BU.end[0], top, 1.4], newtonsText(load, 0), [1.3, len + 0.4, 0])
         tempTag.set(`contact ≈ ${celsiusText(s.tempC)}, ${m.name} limit ${celsiusText(m.maxC)}`, s.tempC > m.maxC ? HIGH_V : hot > 0.6 ? HEAT : POWER)
         arm.rotation.z = Math.sin(st.t * 2.2) * s.tilt * BU.tiltExag
-        playTag.set(`tip play ±${mm(s.play / 2, 2)}`, s.play > 1 ? HEAT : LABEL)
+        playTag.set(`tip play ±${mmFixed(s.play / 2, 2)}`, s.play > 1 ? HEAT : LABEL)
 
         bars.set([...V.all.map((a) => a.torque), V.ballTorque], [...V.all.map((a) => nmm(a.torque)), nmm(V.ballTorque)], [...BUSH_KEYS.map((b) => (b === bk ? RING : BUSH_TINT[b])), POWER])
 
@@ -337,7 +337,7 @@ export const bearingsBushings: Lesson = {
 
         rows[0].set(`P ${fixedText(s.p, 2)} MPa · v ${fixedText(s.v, 2)} m/s · PV ${pct(s.ratio)} of limit`, VERDICT[s.verdict][1])
         rows[1].set(`friction ${nmm(s.torque)} → ${fixedText(s.heatW, 2)} W of heat`, s.heatW > 1 ? HEAT : LABEL)
-        rows[2].set(`clearance ${mm(clear, 2)} → tilt ${fixedText((s.tilt * 180) / Math.PI, 2)}°`, GREY)
+        rows[2].set(`clearance ${mmFixed(clear, 2)} → tilt ${fixedText((s.tilt * 180) / Math.PI, 2)}°`, GREY)
         rows[3].set(`ball bearing: ${nmm(V.ballTorque)}, ${fixedText(V.ballHeat, 3)} W`, POWER)
         head.status.set(`Bushings · ${m.name} · ${newtonsText(load, 0)} · ${rpm} rpm`)
         head.sub.set(`${d} mm steel shaft, clearance drawn ×${BU.exag}; values typical`, GREY)
@@ -350,7 +350,7 @@ export const bearingsBushings: Lesson = {
           { label: 'PV / limit', value: pct(s.ratio), tone: toneOf(s.ratio <= 0.5, s.ratio <= 1) },
           { label: 'Friction', value: nmm(s.torque) },
           { label: 'Contact', value: celsiusText(s.tempC), tone: s.verdict === 'melts' ? 'bad' : undefined },
-          { label: 'Tip play', value: mm(s.play, 2) },
+          { label: 'Tip play', value: mmFixed(s.play, 2) },
         ]
       },
     }

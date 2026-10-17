@@ -24,7 +24,7 @@ import {
   screwFor,
   sizeFromCaliper,
 } from '../../core/physics'
-import { celsiusText, fixedText, newtonsText, pct } from '../../core/units'
+import { celsiusText, fixedText, mmFixed, newtonsText, pct } from '../../core/units'
 import { V3, add, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -41,6 +41,7 @@ import {
   WIDE_VIEW,
   addLabel,
   caliper,
+  clearMeshes,
   countBars,
   flatBox,
   forceArrow,
@@ -67,13 +68,7 @@ const look = (sk: ScrewKey, hk: HeadKey): ScrewLook => {
   const s = METRIC_SCREWS[sk]
   return { d: s.d, pitch: s.pitch, hex: s.hex[hk], head: SCREW_HEADS[hk] }
 }
-const mm = (v: number, digits = 1) => `${fixedText(v, digits)} mm`
 const INTO_TINT: Record<IntoKey, string> = { nut: MATERIAL_TINT.steel, aluminium: MATERIAL_TINT.al6061, plastic: MATERIAL_TINT.pla }
-/** Disposes and drops every child of `g`. */
-function clearGroup(g: THREE.Object3D) {
-  g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
-  g.clear()
-}
 /** Section of a slab with a hole: two blocks either side of a `gap`-wide hole, `w` wide overall, top at y. */
 function slabSection(parent: THREE.Object3D, x: number, y: number, w: number, gap: number, t: number, m: THREE.Material) {
   const side = (w - gap) / 2
@@ -103,7 +98,7 @@ export const fastenersMetricSizes: Lesson = {
   formula: (p) => {
     const { R, ik, stack } = msRun(p)
     const name = `${R.s.name} × ${R.s.pitch}`
-    return `${name}: tap drill ≈ d − pitch = ${mm(R.s.tap, 2)} · clearance hole ${mm(R.s.clear)} · length ≥ stack + ${ik === 'nut' ? 'nut + 2 threads' : `${THREAD_INTO[ik].engage}·d`} = ${mm(stack, 0)} + ${mm(R.grip)} = ${mm(R.need)} → ${R.length === null ? 'longer than stock' : `${R.s.name} × ${R.length}`}`
+    return `${name}: tap drill ≈ d − pitch = ${mmFixed(R.s.tap, 2)} · clearance hole ${mmFixed(R.s.clear)} · length ≥ stack + ${ik === 'nut' ? 'nut + 2 threads' : `${THREAD_INTO[ik].engage}·d`} = ${mmFixed(stack, 0)} + ${mmFixed(R.grip)} = ${mmFixed(R.need)} → ${R.length === null ? 'longer than stock' : `${R.s.name} × ${R.length}`}`
   },
   legend: [
     { color: RING, label: 'Chosen screw', shape: 'dot' },
@@ -166,7 +161,7 @@ export const fastenersMetricSizes: Lesson = {
         const key = `${sk}|${hk}|${ik}|${stack}`
         if (key !== built) {
           built = key
-          clearGroup(section)
+          clearMeshes(section)
           const S = MS.sec
           const s = R.s
           const len = R.length ?? R.need
@@ -196,11 +191,11 @@ export const fastenersMetricSizes: Lesson = {
           const eBot = face - len * K
           const ex = S.x + W / 2 + 0.5
           flatBox(section, [0.22, Math.max(0.05, eTop - eBot), 0.1], glowMat(ok ? POWER : HIGH_V, 1), [ex, (eTop + eBot) / 2, 0.3])
-          addLabel(section, ok ? `engaged ${mm(R.engaged)}` : 'no stock length', [ex + 0.4, (eTop + eBot) / 2 + 0.25, 0.3], ok ? POWER : HIGH_V, 0.28, 'left')
-          addLabel(section, ik === 'nut' ? `${mm(R.past)} past the nut` : `need ≥ ${mm(R.grip)}`, [ex + 0.4, (eTop + eBot) / 2 - 0.4, 0.3], GREY, 0.24, 'left')
-          addLabel(section, `stack ${mm(stack, 0)}`, [ex + 0.4, (face + eTop) / 2, 0.3], MATERIAL_TINT.plywood, 0.26, 'left')
-          addLabel(section, `clearance ${mm(s.clear)}`, [S.x - W / 2 - 0.3, (face + eTop) / 2, 0.3], MATERIAL_TINT.plywood, 0.26, 'right')
-          addLabel(section, ik === 'nut' ? `nut ${mm(s.nutAF, 1)} AF` : `tap drill ${mm(s.tap, 2)}`, [S.x - W / 2 - 0.3, eTop - 0.9, 0.3], INTO_TINT[ik], 0.26, 'right')
+          addLabel(section, ok ? `engaged ${mmFixed(R.engaged)}` : 'no stock length', [ex + 0.4, (eTop + eBot) / 2 + 0.25, 0.3], ok ? POWER : HIGH_V, 0.28, 'left')
+          addLabel(section, ik === 'nut' ? `${mmFixed(R.past)} past the nut` : `need ≥ ${mmFixed(R.grip)}`, [ex + 0.4, (eTop + eBot) / 2 - 0.4, 0.3], GREY, 0.24, 'left')
+          addLabel(section, `stack ${mmFixed(stack, 0)}`, [ex + 0.4, (face + eTop) / 2, 0.3], MATERIAL_TINT.plywood, 0.26, 'left')
+          addLabel(section, `clearance ${mmFixed(s.clear)}`, [S.x - W / 2 - 0.3, (face + eTop) / 2, 0.3], MATERIAL_TINT.plywood, 0.26, 'right')
+          addLabel(section, ik === 'nut' ? `nut ${mmFixed(s.nutAF, 1)} AF` : `tap drill ${mmFixed(s.tap, 2)}`, [S.x - W / 2 - 0.3, eTop - 0.9, 0.3], INTO_TINT[ik], 0.26, 'right')
           addLabel(section, `${s.name} × ${Number.isInteger(len) ? len : fixedText(len, 1)}`, [S.x, S.top + 0.8, 0.3], ok ? RING : HIGH_V, 0.34)
         }
 
@@ -215,26 +210,26 @@ export const fastenersMetricSizes: Lesson = {
         cs.group.visible = true
         cs.group.position.set(C.at[0] + (read / 2) * C.k, C.at[1] - 0.5 - 10 * C.k, -0.1)
         cal.set(read)
-        calTag.set(`reads ${mm(read, 2)} → ${METRIC_SCREWS[named].name}`, RING)
-        pitchTag.set(`pitch ${mm(R.s.pitch, 2)}: ${Math.round(5 / R.s.pitch)} threads in 5 mm`, LABEL)
+        calTag.set(`reads ${mmFixed(read, 2)} → ${METRIC_SCREWS[named].name}`, RING)
+        pitchTag.set(`pitch ${mmFixed(R.s.pitch, 2)}: ${Math.round(5 / R.s.pitch)} threads in 5 mm`, LABEL)
         useTag.set(`robots: ${R.s.use}`, GREY)
 
         const ok = R.length !== null
-        rows[0].set(ok ? `buy ${R.s.name} × ${R.length}, ${R.head.name.toLowerCase()}` : `${R.s.name}: ${mm(R.need, 0)} needed, no stock length`, ok ? RING : HIGH_V)
-        rows[1].set(`pitch ${mm(R.s.pitch, 2)} · ${mm(R.hex)} hex key`, LABEL)
-        rows[2].set(`clearance ${mm(R.s.clear)} · tap drill ${mm(R.s.tap, 2)}`, LABEL)
-        rows[3].set(ik === 'nut' ? `nut ${mm(R.s.nutH)} + 2 threads = ${mm(R.grip)}` : `${THREAD_INTO[ik].name}: ≥ ${THREAD_INTO[ik].engage}·d = ${mm(R.grip)} (typical)`, GREY)
+        rows[0].set(ok ? `buy ${R.s.name} × ${R.length}, ${R.head.name.toLowerCase()}` : `${R.s.name}: ${mmFixed(R.need, 0)} needed, no stock length`, ok ? RING : HIGH_V)
+        rows[1].set(`pitch ${mmFixed(R.s.pitch, 2)} · ${mmFixed(R.hex)} hex key`, LABEL)
+        rows[2].set(`clearance ${mmFixed(R.s.clear)} · tap drill ${mmFixed(R.s.tap, 2)}`, LABEL)
+        rows[3].set(ik === 'nut' ? `nut ${mmFixed(R.s.nutH)} + 2 threads = ${mmFixed(R.grip)}` : `${THREAD_INTO[ik].name}: ≥ ${THREAD_INTO[ik].engage}·d = ${mmFixed(R.grip)} (typical)`, GREY)
         head.status.set(`Metric sizes · ${R.s.name} · ${R.head.name} · into ${THREAD_INTO[ik].name.toLowerCase()}`)
-        head.sub.set(`plates ${mm(stack, 0)} thick, joint section enlarged`, GREY)
-        head.event.set(ok ? `${R.s.name} × ${R.length}: ${mm(R.engaged)} of thread engaged, ${fixedText(R.threads, 0)} turns` : 'too long for stock screws: use a longer standoff or a thinner stack', ok ? POWER : HIGH_V)
+        head.sub.set(`plates ${mmFixed(stack, 0)} thick, joint section enlarged`, GREY)
+        head.event.set(ok ? `${R.s.name} × ${R.length}: ${mmFixed(R.engaged)} of thread engaged, ${fixedText(R.threads, 0)} turns` : 'too long for stock screws: use a longer standoff or a thinner stack', ok ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const { R } = msRun(p)
         return [
           { label: 'Screw', value: R.length === null ? '—' : `${R.s.name} × ${R.length}`, tone: R.length === null ? 'bad' : 'ok' },
-          { label: 'Clearance hole', value: mm(R.s.clear) },
-          { label: 'Tap drill', value: mm(R.s.tap, 2) },
-          { label: 'Hex key', value: mm(R.hex) },
+          { label: 'Clearance hole', value: mmFixed(R.s.clear) },
+          { label: 'Tap drill', value: mmFixed(R.s.tap, 2) },
+          { label: 'Hex key', value: mmFixed(R.hex) },
         ]
       },
     }
@@ -265,7 +260,7 @@ export const fastenersHeatSetInserts: Lesson = {
   tagline: 'Brass threads melted into plastic: strong, and they survive re-assembly',
   formula: (p) => {
     const { I, P, ak, wall } = hsRun(p)
-    return `pull-out ≈ τ · shear area · wall factor · τ PLA ≈ 20 MPa (printed, typical) · insert: π · 4.6 mm · 5.7 mm · knurl fill ${pct(I.fill)} · screw: π · 3 mm · 6 mm · ½ · nut: hex perimeter × 2 mm cover · wall ${mm(wall)} of ${mm(ANCHORS[ak].wallFull)} → ${pct(P.wallK)} · ${ANCHORS[ak].name} ≈ ${newtonsText(P.force, 0)}`
+    return `pull-out ≈ τ · shear area · wall factor · τ PLA ≈ 20 MPa (printed, typical) · insert: π · 4.6 mm · 5.7 mm · knurl fill ${pct(I.fill)} · screw: π · 3 mm · 6 mm · ½ · nut: hex perimeter × 2 mm cover · wall ${mmFixed(wall)} of ${mmFixed(ANCHORS[ak].wallFull)} → ${pct(P.wallK)} · ${ANCHORS[ak].name} ≈ ${newtonsText(P.force, 0)}`
   },
   legend: [
     { color: ANCHOR_COLOR.insert, label: 'Heat-set insert', shape: 'dot' },
@@ -326,7 +321,7 @@ export const fastenersHeatSetInserts: Lesson = {
         const key = `${ak}|${wall}`
         if (key !== built) {
           built = key
-          clearGroup(boss)
+          clearMeshes(boss)
           if (ak === 'nut') {
             const pocketTop = top - 2 * k
             const pocketBot = pocketTop - 2.6 * k
@@ -337,8 +332,8 @@ export const fastenersHeatSetInserts: Lesson = {
             slabSection(boss, HS.x, top, W * k, hole * k, HS.depth * k, plaM)
           }
           add(boss, new THREE.Mesh(new THREE.BoxGeometry(14, HS.base * k, W * k * 0.6), plaM), [HS.x, bot + (HS.base * k) / 2, -W * k * 0.3])
-          addLabel(boss, `wall ${mm(wall)}`, [HS.x + (W * k) / 2 + 0.3, top - 1.2, 0.3], MATERIAL_TINT.pla, 0.28, 'left')
-          addLabel(boss, `hole ${mm(hole)}`, [HS.x + (W * k) / 2 + 0.3, top - 2, 0.3], GREY, 0.26, 'left')
+          addLabel(boss, `wall ${mmFixed(wall)}`, [HS.x + (W * k) / 2 + 0.3, top - 1.2, 0.3], MATERIAL_TINT.pla, 0.28, 'left')
+          addLabel(boss, `hole ${mmFixed(hole)}`, [HS.x + (W * k) / 2 + 0.3, top - 2, 0.3], GREY, 0.26, 'left')
         }
 
         const t = clock(dt, `${ak}|${wall}|${tempC}`)
@@ -395,9 +390,9 @@ export const fastenersHeatSetInserts: Lesson = {
         const ri = ANCHOR_KEYS.indexOf(ak)
         rows[0].set(`${a.name}: ${newtonsText(R.force, 0)} pull-out (typical)`, ANCHOR_COLOR[ak])
         rows[1].set(`after 5 re-assemblies: ${newtonsText(reused[ri], 0)}`, reused[ri] < 0.9 * R.force ? HEAT : POWER)
-        rows[2].set(R.wallK < 1 ? `wall ${mm(wall)}: ${pct(R.wallK)} strength, aim ${mm(a.wallFull)}` : `wall ${mm(wall)}: full strength`, toneOf(R.wallK >= 1, R.wallK >= 0.75) === 'ok' ? POWER : R.wallK >= 0.75 ? HEAT : HIGH_V)
+        rows[2].set(R.wallK < 1 ? `wall ${mmFixed(wall)}: ${pct(R.wallK)} strength, aim ${mmFixed(a.wallFull)}` : `wall ${mmFixed(wall)}: full strength`, toneOf(R.wallK >= 1, R.wallK >= 0.75) === 'ok' ? POWER : R.wallK >= 0.75 ? HEAT : HIGH_V)
         rows[3].set(ak === 'insert' ? `iron ${celsiusText(tempC)}: knurls ${pct(I.fill)} filled` : 'no iron needed', ak === 'insert' ? (I.fill >= 0.9 ? POWER : HIGH_V) : GREY)
-        head.status.set(`Heat-set inserts · ${a.name} · wall ${mm(wall)}${ak === 'insert' ? ` · iron ${celsiusText(tempC)}` : ''}`)
+        head.status.set(`Heat-set inserts · ${a.name} · wall ${mmFixed(wall)}${ak === 'insert' ? ` · iron ${celsiusText(tempC)}` : ''}`)
         head.sub.set(`M3 in a printed PLA boss, cut in half: install, then pull until it fails by ${installed ? R.mode : 'never going in'}`, GREY)
         head.event.set(...phase)
       },

@@ -1,4 +1,5 @@
 // Bearings: ball bearings (load per ball, two-bearing shaft, rolling vs sliding friction) and plain bushings (PV limit, heat, wobble).
+import { rpmToRadS } from '../actuators/stepper'
 
 /** Deep-groove ball bearings, mm and N (catalogue values, typical): bore d, outside D, width B, balls, dynamic C, static C0. */
 export const BALL_BEARINGS = {
@@ -78,7 +79,7 @@ export function bushingState(bk: BushingKey, loadN: number, rpm: number, clear: 
   const v = (Math.PI * d * rpm) / 60000
   const pv = p * v
   const torque = frictionTorque(mu, loadN, d)
-  const heatW = torque * ((rpm * 2 * Math.PI) / 60)
+  const heatW = torque * rpmToRadS(rpm)
   const tempC = BUSHING.ambientC + heatW * BUSHING.rthKW
   const ratio = pv / m.pv
   const verdict: BushingVerdict = p > m.pMax ? 'crushed' : tempC > m.maxC ? 'melts' : ratio > 1 || v > m.vMax ? 'wears' : ratio > 0.5 ? 'warm' : 'ok'

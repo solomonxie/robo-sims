@@ -4,9 +4,10 @@ import { G, clamp01 } from '../common'
 import { DRIVES, Drive, ampsAt, hotOhms, ratedNm, stallA } from '../actuators/sizing'
 import { NEMA17 } from '../actuators/stepper'
 import { INTERFACES, SOLIDS, TAB, conductionR, radiationG } from '../waves/heat'
+import { kelvinOf } from '../waves/thermal'
 
 /** Air near 50 °C: conductivity, kinematic viscosity, diffusivity, Prandtl, ρ·cp (J/(m³·K)). */
-export const AIR_50C = { k: 0.027, nu: 1.8e-5, alpha: 2.55e-5, pr: 0.71, rhoCp: 1.2 * 1005 }
+const AIR_50C = { k: 0.027, nu: 1.8e-5, alpha: 2.55e-5, pr: 0.71, rhoCp: 1.2 * 1005 }
 
 /** 40 × 40 mm aluminium plate-fin sink, 20 mm fins 1.2 mm thick on a 3 mm base, black anodised. */
 export const SINK = { w: 0.04, l: 0.04, finH: 0.02, finT: 0.0012, baseT: 0.003, k: SOLIDS.aluminium.k, eps: 0.85 }
@@ -45,8 +46,8 @@ export const E_BOX = { dims: [0.16, 0.12, 0.06] as const, wallT: 0.002, wallK: 0
 export const finGap = (fins: number) => (SINK.w - fins * SINK.finT) / (fins - 1)
 
 /** Natural convection between vertical plates (Bar-Cohen & Rohsenow), W/(m²·K). */
-export function channelNaturalH(gap: number, dT: number, ambC: number) {
-  const beta = 1 / (ambC + dT / 2 + 273.15)
+function channelNaturalH(gap: number, dT: number, ambC: number) {
+  const beta = 1 / kelvinOf(ambC + dT / 2)
   const ra = (G * beta * Math.max(dT, 0.1) * gap ** 3) / (AIR_50C.nu * AIR_50C.alpha)
   const el = (ra * gap) / SINK.l
   const nu = (576 / el ** 2 + 2.873 / Math.sqrt(el)) ** -0.5
@@ -54,7 +55,7 @@ export function channelNaturalH(gap: number, dT: number, ambC: number) {
 }
 
 /** Forced flow in the channels (developing laminar, Teertstra), with flow bypassing dense fins: V = v·s/(s + 1.5 mm). */
-export function channelForcedH(gap: number, v: number) {
+function channelForcedH(gap: number, v: number) {
   if (v <= 0) return 0
   const vc = (v * gap) / (gap + 1.5e-3)
   const re = ((vc * gap) / AIR_50C.nu) * (gap / SINK.l)
@@ -93,14 +94,14 @@ export function boxAirRise(air: SinkAir, watts: number, ambC: number) {
   let rise = watts / ua
   let flowG = 0
   for (let i = 0; i < 40; i++) {
-    const stackQ = A.vent > 0 ? 0.6 * A.vent * Math.sqrt((G * E_BOX.ventH * rise) / (ambC + 273.15)) : 0
+    const stackQ = A.vent > 0 ? 0.6 * A.vent * Math.sqrt((G * E_BOX.ventH * rise) / kelvinOf(ambC)) : 0
     flowG = AIR_50C.rhoCp * (stackQ + A.fanQ)
     rise = 0.5 * rise + (0.5 * watts) / (ua + flowG)
   }
   return { rise, ua, flowG }
 }
 
-export interface SinkCfg {
+interface SinkCfg {
   watts: number
   fins: number
   orient: SinkOrient
@@ -133,7 +134,7 @@ export const ARM_JOINT = { lengthM: 0.15, armKg: 0.06, beltRatio: 5, periodS: 60
 export const PLA_CREEP_C = 60
 
 export type JointDrive = 'servo' | 'stepper'
-export interface JointCfg {
+interface JointCfg {
   drive: JointDrive
   payloadKg: number
   busy: number

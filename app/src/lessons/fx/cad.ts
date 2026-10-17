@@ -8,7 +8,7 @@ import { addRod, stretchRod } from './layout'
 export const SKETCH_FREE = '#4da3ff'
 export const SKETCH_FIXED = '#f2f2f2'
 
-export type PenLine = { pts: readonly (readonly [number, number])[]; color: string }
+type PenLine = { pts: readonly (readonly [number, number])[]; color: string }
 
 /** Pool of rods drawing polylines in the xy plane of `parent`; `draw(lines)` reuses rods and hides the rest. */
 export function sketchPen(parent: THREE.Object3D, r = 0.05) {

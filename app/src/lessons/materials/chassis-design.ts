@@ -16,7 +16,7 @@ import {
   flatMutual,
   sclTrace,
 } from '../../core/physics'
-import { accelText, celsiusText, degText, fixedText, pct, si, volts } from '../../core/units'
+import { accelText, celsiusText, degText, fixedText, mmText, pct, si, volts } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -51,7 +51,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const mm = (m: number) => `${Math.round(m * 1000)} mm`
 
 // --- Layout and balance: slide the battery, pick the deck, wheelbase and IMU spot; CoM, wheel loads, slip and tip limits. ---
 
@@ -85,7 +84,7 @@ export const chassisDesignLayoutAndBalance: Lesson = {
   tagline: 'Where the battery and boards sit sets the grip, the tip-over limits and what the IMU feels',
   formula: (p) => {
     const { L, B } = lbRun(p)
-    return `CoM x = Σm·x / Σm = ${mm(B.x)} (axle = 0, caster at −${mm(L)}) · drive share = (x + L)/L = ${pct(B.share)} · pull away before slip a = μg(x + L)/(L + μh) = ${accelText(B.accel)} · nose over when braking b = g·|x|/h · brake ${accelText(B.brake)} (${B.brakeBy}) · turn tips at g·d/h = ${accelText(B.turnTip)}, slides at μg = ${accelText(B.turnSlip)} · IMU ω²r = ${accelText(B.imuAccel)} at ${CHASSIS.spinHz} turn/s · μ ${CHASSIS.mu}, h ${mm(B.h)} (typical)`
+    return `CoM x = Σm·x / Σm = ${mmText(B.x)} (axle = 0, caster at −${mmText(L)}) · drive share = (x + L)/L = ${pct(B.share)} · pull away before slip a = μg(x + L)/(L + μh) = ${accelText(B.accel)} · nose over when braking b = g·|x|/h · brake ${accelText(B.brake)} (${B.brakeBy}) · turn tips at g·d/h = ${accelText(B.turnTip)}, slides at μg = ${accelText(B.turnSlip)} · IMU ω²r = ${accelText(B.imuAccel)} at ${CHASSIS.spinHz} turn/s · μ ${CHASSIS.mu}, h ${mmText(B.h)} (typical)`
   },
   legend: [
     { color: '#f2f2f2', label: 'Centre of mass (above its floor point)', shape: 'dot' },
@@ -225,13 +224,13 @@ export const chassisDesignLayoutAndBalance: Lesson = {
         brakeTag.set('brake')
         plot.lo.set(`battery ${LB.bMin * 1000} mm`)
         plot.hi.set(`+${LB.bMax * 1000} mm`)
-        plot.right.set(`${mm(bx)}`, RING)
+        plot.right.set(`${mmText(bx)}`, RING)
 
-        rows[0].set(`CoM ${mm(-B.x)} behind the axle, ${mm(B.h)} up · ${Math.round(B.kg * 1000)} g`, LABEL)
+        rows[0].set(`CoM ${mmText(-B.x)} behind the axle, ${mmText(B.h)} up · ${Math.round(B.kg * 1000)} g`, LABEL)
         rows[1].set(`drive wheels carry ${pct(Math.max(0, B.share))}, caster ${pct(Math.max(0, 1 - B.share))}`, B.share < 0.5 || !B.stable ? HEAT : LABEL)
-        rows[2].set(`IMU ${mm(B.imuR)} off centre: ${accelText(B.imuAccel)} = ${degText(B.imuTiltDeg, 0)} false tilt`, B.imuAccel > 1 ? HEAT : GREY)
+        rows[2].set(`IMU ${mmText(B.imuR)} off centre: ${accelText(B.imuAccel)} = ${degText(B.imuTiltDeg, 0)} false tilt`, B.imuAccel > 1 ? HEAT : GREY)
         rows[3].set(deck === 'top' ? 'top deck: easy battery swap, CoM higher' : 'under the plate: CoM low, harder to swap', GREY)
-        head.status.set(`Layout and balance · battery ${mm(bx)} · ${DECKS[deck].name.replace('battery ', '')} · wheelbase ${mm(L)}`)
+        head.status.set(`Layout and balance · battery ${mmText(bx)} · ${DECKS[deck].name.replace('battery ', '')} · wheelbase ${mmText(L)}`)
         head.sub.set(`${Math.round(B.kg * 1000)} g robot on 65 mm wheels, μ ${CHASSIS.mu}, masses typical`, GREY)
         head.event.set(...v)
       },
@@ -280,7 +279,7 @@ export const chassisDesignCableRouting: Lesson = {
   formula: (p) => {
     const { h, sep, R } = crRun(p)
     const H = HARNESS[h]
-    return `drop = I·R = ${MOTOR_LEAD.amps} A × ${fixedText(R.run.ohms, 3)} Ω = ${volts(R.run.drop)} (${pct(R.dropFrac)} of ${MOTOR_LEAD.packV} V) · M = μ0/2π·[ln((d+g)/d) − ln((d+g+s)/(d+s))]·ℓ = ${si(flatMutual(H.gap, MOTOR_LEAD.victimGap, sep) * R.beside, 'H', 2)}${H.pitch ? ', × twist residual' : ''} → ${si(R.henries, 'H', 2)} · spike = M·I/t = ${volts(R.spike)} per ${MOTOR_LEAD.edgeS * 1e9} ns PWM edge · d ${mm(sep)}, s ${fixedText(H.gap * 1000, 1)} mm, g ${MOTOR_LEAD.victimGap * 1000} mm, ℓ ${mm(R.beside)} (typical)`
+    return `drop = I·R = ${MOTOR_LEAD.amps} A × ${fixedText(R.run.ohms, 3)} Ω = ${volts(R.run.drop)} (${pct(R.dropFrac)} of ${MOTOR_LEAD.packV} V) · M = μ0/2π·[ln((d+g)/d) − ln((d+g+s)/(d+s))]·ℓ = ${si(flatMutual(H.gap, MOTOR_LEAD.victimGap, sep) * R.beside, 'H', 2)}${H.pitch ? ', × twist residual' : ''} → ${si(R.henries, 'H', 2)} · spike = M·I/t = ${volts(R.spike)} per ${MOTOR_LEAD.edgeS * 1e9} ns PWM edge · d ${mmText(sep)}, s ${fixedText(H.gap * 1000, 1)} mm, g ${MOTOR_LEAD.victimGap * 1000} mm, ℓ ${mmText(R.beside)} (typical)`
   },
   legend: [
     { color: '#d8322c', label: 'Motor and battery leads (amps)', shape: 'dot' },
@@ -440,7 +439,7 @@ export const chassisDesignCableRouting: Lesson = {
         victTag.set('SDA + GND')
         stretchRod(gapRod, [pc + (H.gap / 2) * xk, -0.7, 0.2], [vx, -0.7, 0.2], 0.03)
         gapTag.group.position.set((pc + vx) / 2, -1.2, 0.3)
-        gapTag.set(`gap ${mm(sep)}`)
+        gapTag.set(`gap ${mmText(sep)}`)
 
         sclTr.points(tUs, tUs.map((u) => sy(Math.max(-1.5, Math.min(5, sclTrace(u * CR.win, R.spike, 1.2e-6))))), null)
         setGlow(sclTr.material, R.spike > MOTOR_LEAD.marginV ? HIGH_V : '#f2c12e', 1)
@@ -464,9 +463,9 @@ export const chassisDesignCableRouting: Lesson = {
 
         rows[0].set(`motor leads AWG ${gauge}, ${Math.round(len * 100)} cm: ${fixedText(R.run.ohms, 3)} Ω out and back`, LABEL)
         rows[1].set(`at ${MOTOR_LEAD.amps} A stall: drop ${volts(R.run.drop)} (${pct(R.dropFrac)}), wire ${celsiusText(R.run.tempC)}`, R.verdict === 'sag' || R.verdict === 'hot' ? HEAT : GREY)
-        rows[2].set(`${HARNESS[h].name}, ${mm(R.beside)} beside I²C: ${si(R.henries, 'H', 2)} → ${volts(R.spike)} spikes`, R.spike > MOTOR_LEAD.marginV ? HIGH_V : GREY)
+        rows[2].set(`${HARNESS[h].name}, ${mmText(R.beside)} beside I²C: ${si(R.henries, 'H', 2)} → ${volts(R.spike)} spikes`, R.spike > MOTOR_LEAD.marginV ? HIGH_V : GREY)
         rows[3].set('cross I²C at 90° · tie down by the wheels · plug at boards', GREY)
-        head.status.set(`Cable routing · ${HARNESS[h].name} · ${mm(sep)} from I²C · AWG ${gauge} · ${Math.round(len * 100)} cm`)
+        head.status.set(`Cable routing · ${HARNESS[h].name} · ${mmText(sep)} from I²C · AWG ${gauge} · ${Math.round(len * 100)} cm`)
         head.sub.set(`2S ${MOTOR_LEAD.packV} V, ${MOTOR_LEAD.amps} A stall, ${MOTOR_LEAD.edgeS * 1e9} ns PWM edges, values typical`, GREY)
         head.event.set(...VERDICT_CR[R.verdict])
       },

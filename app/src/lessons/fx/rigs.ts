@@ -10,10 +10,11 @@ import { addLabel, liveLabel } from './text'
 export const sideView = (x: number, y: number, radius = 52) => ({ center: [x, y, 0] as V3, radius, polar: 1.45, azimuth: 0 })
 export const SIDE_VIEW = sideView(-2.2, -0.4)
 export const SIDE_SCOPE = { x: 6.4, w: 10.5 }
-/** Wide board (Maths): the scene on the left, plots on the right; LEFT holds two stacked plots, RIGHT one low plot. */
+/** Wide board: the scene on the left, plots on the right; LEFT holds two stacked plots, RIGHT one low plot, TALL one mid plot. */
 export const WIDE_VIEW = sideView(-1.2, -1, 56)
 export const WIDE_LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
 export const WIDE_RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
+export const WIDE_TALL = { x: 8.6, w: 11.8, y: -5.9, h: 7.2 }
 
 export function statusHeader(scene: THREE.Object3D) {
   return {

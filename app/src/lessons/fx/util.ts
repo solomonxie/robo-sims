@@ -40,6 +40,12 @@ export function emptyGroup(g: THREE.Group) {
   g.clear()
 }
 
+/** Like `emptyGroup` but keeps the materials, for groups rebuilt with long-lived materials. */
+export function clearMeshes(g: THREE.Object3D) {
+  g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
+  g.clear()
+}
+
 /** Grows or shrinks a part in place; hidden when gone. */
 export function presence(o: THREE.Object3D, p: number) {
   o.visible = p > 0.01

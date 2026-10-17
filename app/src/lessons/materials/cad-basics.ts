@@ -27,7 +27,7 @@ import {
   tessellateWheel,
   wheelTriangles,
 } from '../../core/physics'
-import { bytesText, fixedText } from '../../core/units'
+import { bytesText, fixedText, mmFixed } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -42,6 +42,7 @@ import {
   WIDE_RIGHT,
   WIDE_VIEW,
   addLabel,
+  clearMeshes,
   countBars,
   frameTriad,
   glide,
@@ -61,11 +62,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const mm = (v: number, digits = 1) => `${fixedText(v, digits)} mm`
-const dispose = (g: THREE.Object3D) => {
-  g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
-  g.clear()
-}
 
 // --- Sketch and extrude: a motor-mount plate sketched, constrained, then extruded; the motor size drives every dimension. ---
 
@@ -86,7 +82,7 @@ export const cadBasicsSketchAndExtrude: Lesson = {
   tagline: 'Draw a 2D profile, pin it down with dimensions and constraints, then pull it into a solid',
   formula: (p) => {
     const { P, t, S, area, mass } = seRun(p)
-    return `sketch DOF: rectangle 4 + 5 circles × 3 = 19 · each constraint removes some · ${S.total} left · area = ${P.w}² − fillets − holes = ${fixedText(area, 0)} mm² · volume = area × ${mm(t, 0)} = ${fixedText((area * t) / 1000, 1)} cm³ · mass = ${SKETCH.pla} g/cm³ × V = ${fixedText(mass, 1)} g (solid PLA, typical)`
+    return `sketch DOF: rectangle 4 + 5 circles × 3 = 19 · each constraint removes some · ${S.total} left · area = ${P.w}² − fillets − holes = ${fixedText(area, 0)} mm² · volume = area × ${mmFixed(t, 0)} = ${fixedText((area * t) / 1000, 1)} cm³ · mass = ${SKETCH.pla} g/cm³ × V = ${fixedText(mass, 1)} g (solid PLA, typical)`
   },
   legend: [
     { color: SKETCH_FREE, label: 'Under-constrained: can still move', shape: 'dot' },
@@ -200,7 +196,7 @@ export const cadBasicsSketchAndExtrude: Lesson = {
         rows[0].set(`DOF left: outline ${L.outline}, boss ${L.boss}, holes ${L.holes}`, S.total ? SKETCH_FREE : SKETCH_FIXED)
         rows[1].set(S.last ? `last: ${S.last}` : 'no constraints yet: everything floats', GREY)
         rows[2].set(S.total ? `next: ${SKETCH_STEPS[seRun(p).k].name}` : 'fully constrained: safe to edit', S.total ? GREY : POWER)
-        rowsR[0].set(`plate ${P.w} × ${P.h} × ${mm(t, 1)}, fillet R${P.fillet}`, LABEL)
+        rowsR[0].set(`plate ${P.w} × ${P.h} × ${mmFixed(t, 1)}, fillet R${P.fillet}`, LABEL)
         rowsR[1].set(`area ${fixedText(area, 0)} mm² → ${fixedText(mass, 1)} g solid PLA (typical)`, GREY)
         rowsR[2].set(`${P.screw} clearance Ø${holes[0].w} on a ${fixedText(MOTOR_FACES[mk].bolt, 1)} mm square`, GREY)
         head.status.set(`Sketch and extrude · ${MOTOR_FACES[mk].name} mount · ${S.total} of 19 DOF free`)
@@ -251,7 +247,7 @@ export const cadBasicsAssemblies: Lesson = {
   tagline: 'Parts placed by mates: each one removes degrees of freedom until nothing can move',
   formula: (p) => {
     const { A, F, len } = asRun(p)
-    return `4 parts × 6 DOF = 24 · fixed −6, coincident face −3, concentric −2 (round boss) or −4 (shaft in a hub), parallel −1 · ${A.total} left · screw M3×${len}: thread in motor = ${len} − ${AS.t} plate = ${mm(F.engage, 0)}, tap ${MOTOR_TAP.depth} mm deep (typical) → overlap ${mm(F.clash, 1)} = ${fixedText(F.clashMm3, 1)} mm³ each`
+    return `4 parts × 6 DOF = 24 · fixed −6, coincident face −3, concentric −2 (round boss) or −4 (shaft in a hub), parallel −1 · ${A.total} left · screw M3×${len}: thread in motor = ${len} − ${AS.t} plate = ${mmFixed(F.engage, 0)}, tap ${MOTOR_TAP.depth} mm deep (typical) → overlap ${mmFixed(F.clash, 1)} = ${fixedText(F.clashMm3, 1)} mm³ each`
   },
   legend: [
     { color: '#ff5a5a', label: 'Part frame: x red, y green, z blue', shape: 'dot' },
@@ -322,7 +318,7 @@ export const cadBasicsAssemblies: Lesson = {
         st.t += dt
         if (len !== builtLen) {
           builtLen = len
-          dispose(screwG)
+          clearMeshes(screwG)
           const s = METRIC_SCREWS.m3
           spinners = []
           threads = [[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([sx, sy]) => {
@@ -372,7 +368,7 @@ export const cadBasicsAssemblies: Lesson = {
         total.set(`total ${A.total} of 24 DOF free`, A.total <= 1 ? POWER : LABEL)
         rows[0].set(A.last ? `last mate: ${A.last.kind}, ${A.last.what}` : 'no mates: every part floats', A.last ? RING : GREY)
         rows[1].set(k < MATES.length ? `next: ${MATES[k].kind}, ${MATES[k].what}` : 'screw spin left free: harmless', GREY)
-        rows[2].set(`M3 × ${len}: ${mm(F.engage, 0)} of thread in a ${MOTOR_TAP.depth} mm tap, longest ${mm(F.ideal, 1)}`, VERDICT_AS[F.verdict][1])
+        rows[2].set(`M3 × ${len}: ${mmFixed(F.engage, 0)} of thread in a ${MOTOR_TAP.depth} mm tap, longest ${mmFixed(F.ideal, 1)}`, VERDICT_AS[F.verdict][1])
         rows[3].set(collide ? `interference ${fixedText(F.clashMm3, 1)} mm³ per screw (red)` : 'interference check: no overlaps', collide ? HIGH_V : POWER)
         head.status.set(`Assemblies · ${k} of ${MATES.length} mates · ${A.total} DOF free · M3 × ${len}`)
         head.sub.set('bracket, NEMA17, 60 mm wheel, 4 screws; motor drawn see-through', GREY)
@@ -383,7 +379,7 @@ export const cadBasicsAssemblies: Lesson = {
         return [
           { label: 'DOF free', value: `${A.total} of 24`, tone: toneOf(A.total <= 1, A.total <= 6) },
           { label: 'Motor DOF', value: `${A.free.motor.length}`, tone: toneOf(A.free.motor.length === 0, false) },
-          { label: 'Thread', value: mm(F.engage, 0), tone: toneOf(F.verdict === 'ok', false) },
+          { label: 'Thread', value: mmFixed(F.engage, 0), tone: toneOf(F.verdict === 'ok', false) },
           { label: 'Clash', value: F.clash ? `${fixedText(F.clashMm3, 1)} mm³` : 'none', tone: toneOf(!F.clash, false) },
         ]
       },
@@ -501,7 +497,7 @@ export const cadBasicsExportingStl: Lesson = {
         edges.rotation.z = bad.rotation.z = wheel.rotation.z
         const inch = units === 'inch'
         tiny.visible = inch
-        tinyTag.set(inch ? `slicer sees ${mm(V.seenMm, 2)}` : '', HIGH_V)
+        tinyTag.set(inch ? `slicer sees ${mmFixed(V.seenMm, 2)}` : '', HIGH_V)
         boreTag.set(`Ø5 shaft, hole Ø${fixedText(V.bore, 2)} across flats`, V.bore < 2 * STL_WHEEL.r - 0.05 ? HIGH_V : POWER)
 
         curve.points(us, us.map((u) => {
@@ -515,7 +511,7 @@ export const cadBasicsExportingStl: Lesson = {
 
         rows[0].set(`rim ${V.nOut} segments, error ${fixedText(V.errOut * 1000, 1)} µm · bore ${V.nIn}, error ${fixedText(chordError(STL_WHEEL.r, V.nIn) * 1000, 1)} µm`, LABEL)
         rows[1].set(`${V.tris} triangles → ${bytesText(V.bytes)} binary, ~${bytesText(V.ascii)} ASCII (typical)`, LABEL)
-        rows[2].set(`STL has no units: slicer reads ${mm(V.seenMm, inch ? 2 : 0)} across`, inch ? HIGH_V : GREY)
+        rows[2].set(`STL has no units: slicer reads ${mmFixed(V.seenMm, inch ? 2 : 0)} across`, inch ? HIGH_V : GREY)
         rows[3].set(C.watertight ? `watertight: every edge in 2 triangles` : `not watertight: ${C.open} open edges`, C.watertight ? POWER : HIGH_V)
         rows[4].set(C.consistent ? `normals all outward · volume ${fixedText(C.volume / 1000, 1)} cm³` : `${C.flippedEdges} edges with clashing normals: 1 flipped triangle`, C.consistent ? GREY : HIGH_V)
         head.status.set(`Exporting STL · 60 mm wheel · tolerance ${fixedText(tol, 3)} mm, ${angle}°`)
@@ -536,7 +532,7 @@ export const cadBasicsExportingStl: Lesson = {
         return [
           { label: 'Triangles', value: `${V.tris}` },
           { label: 'File', value: bytesText(V.bytes) },
-          { label: 'Bore', value: mm(V.bore, 2), tone: toneOf(V.bore >= 4.95, V.bore >= 4.9) },
+          { label: 'Bore', value: mmFixed(V.bore, 2), tone: toneOf(V.bore >= 4.95, V.bore >= 4.9) },
           { label: 'Mesh', value: C.watertight && C.consistent ? 'closed' : 'faulty', tone: toneOf(C.watertight && C.consistent, false) },
         ]
       },

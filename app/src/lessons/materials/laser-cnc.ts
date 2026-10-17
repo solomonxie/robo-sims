@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { CHASSIS_PLATE, Contour, FITS, FitKey, HOLES, MATERIALS, MOUNT, SHEETS, SheetKey, contourPoints, cutContour, kerfView, plateCompare } from '../../core/physics'
-import { fixedText, mmHundredths, newtonsText, paText, signed, si } from '../../core/units'
+import { fixedText, mmFixed, newtonsText, paText, signed, si } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -13,6 +13,7 @@ import {
   MATERIAL_TINT,
   POWER,
   RING,
+  WIDE_TALL,
   WIDE_VIEW,
   addLabel,
   addRod,
@@ -36,8 +37,7 @@ import {
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
 const SHEET_KEYS = Object.keys(SHEETS) as SheetKey[]
-const mm2 = (mm: number) => mmHundredths(mm / 1000)
-const PLOT = { x: 8.6, y: -5.9, w: 11.8, h: 7.2 }
+const PLOT = WIDE_TALL
 const FIT_COLOR: Record<FitKey, string> = { loose: HEAT, slip: RING, press: POWER, tight: HIGH_V }
 const CHAR = '#4a2e18'
 
@@ -70,7 +70,7 @@ export const laserCncKerf: Lesson = {
   tagline: 'The beam has a width: cut parts come out small and holes big',
   formula: (p) => {
     const { V, comp } = kfRun(p)
-    return `line energy = P/v = ${fixedText(V.jmm, 1)} J/mm · kerf k = ${mm2(V.kerf)} · uncompensated: outlines −k, holes +k · offset c away from the part: outline 100 mm → 100 − k + 2c = ${mm2(V.outline)}, hole 20 mm → 20 + k − 2c = ${mm2(V.hole)} · tab-and-slot gap = 2·(k − 2c) = ${signed(V.gap, 2)} mm at c = ${mm2(comp)} · c = k/2 = ${mm2(V.ideal)} gives true size`
+    return `line energy = P/v = ${fixedText(V.jmm, 1)} J/mm · kerf k = ${mmFixed(V.kerf, 2)} · uncompensated: outlines −k, holes +k · offset c away from the part: outline 100 mm → 100 − k + 2c = ${mmFixed(V.outline, 2)}, hole 20 mm → 20 + k − 2c = ${mmFixed(V.hole, 2)} · tab-and-slot gap = 2·(k − 2c) = ${signed(V.gap, 2)} mm at c = ${mmFixed(comp, 2)} · c = k/2 = ${mmFixed(V.ideal, 2)} gives true size`
   },
   legend: [
     { color: GREY, label: 'Drawn line (CAD)', shape: 'dot' },
@@ -198,13 +198,13 @@ export const laserCncKerf: Lesson = {
           c.position.set(ja[0] + (i ? 1 : -1) * (slotW / 2 + over / 2), ja[1], 0.8)
         })
         const col = FIT_COLOR[V.fit]
-        tabTag.set(`tab ${mm2(V.tab)}`, LABEL)
-        slotTag.set(`slot ${mm2(V.slot)}`, LABEL)
+        tabTag.set(`tab ${mmFixed(V.tab, 2)}`, LABEL)
+        slotTag.set(`slot ${mmFixed(V.slot, 2)}`, LABEL)
         fitTag.set(FITS[V.fit].split(':')[0], col)
 
-        rows[0].set(V.through ? `kerf k = ${mm2(V.kerf)} at ${power} % (${fixedText(V.jmm, 1)} J/mm)` : `${power} %: only ${Math.round(V.depth * 100)} % deep, not through`, V.through ? LABEL : HIGH_V)
-        rows[1].set(`outline 100 mm cuts to ${mm2(V.outline)}`, Math.abs(V.outline - 100) < 0.015 ? POWER : GREY)
-        rows[2].set(`20 mm hole cuts to ${mm2(V.hole)}`, Math.abs(V.hole - 20) < 0.015 ? POWER : GREY)
+        rows[0].set(V.through ? `kerf k = ${mmFixed(V.kerf, 2)} at ${power} % (${fixedText(V.jmm, 1)} J/mm)` : `${power} %: only ${Math.round(V.depth * 100)} % deep, not through`, V.through ? LABEL : HIGH_V)
+        rows[1].set(`outline 100 mm cuts to ${mmFixed(V.outline, 2)}`, Math.abs(V.outline - 100) < 0.015 ? POWER : GREY)
+        rows[2].set(`20 mm hole cuts to ${mmFixed(V.hole, 2)}`, Math.abs(V.hole - 20) < 0.015 ? POWER : GREY)
         rows[3].set(`3 mm tab in 3 mm slot: gap ${signed(V.gap, 2)} mm`, col)
 
         const tight = SHEETS[sk].tightMm
@@ -224,16 +224,16 @@ export const laserCncKerf: Lesson = {
         plot.hi.set(`${KF.cMax} mm`)
         plot.right.set(`gap ${signed(V.gap, 2)} mm`, col)
 
-        head.status.set(`Kerf · ${SHEETS[sk].name} · ${power} % · offset ${mm2(comp)}`)
+        head.status.set(`Kerf · ${SHEETS[sk].name} · ${power} % · offset ${mmFixed(comp, 2)}`)
         head.sub.set('40 W CO2 laser cutting a 100 × 70 mm chassis plate, holes first', GREY)
         head.event.set(V.through ? FITS[V.fit] : 'not cut through: the part stays stuck in the sheet', V.through ? col : HIGH_V)
       },
       readouts: (p) => {
         const { V } = kfRun(p)
         return [
-          { label: 'Kerf width k', value: V.through ? mm2(V.kerf) : 'not through', tone: V.through ? undefined : 'bad' },
-          { label: 'Outline (100 mm drawn)', value: mm2(V.outline), tone: toneOf(Math.abs(V.outline - 100) < 0.03, Math.abs(V.outline - 100) < 0.15) },
-          { label: 'Hole (20 mm drawn)', value: mm2(V.hole), tone: toneOf(Math.abs(V.hole - 20) < 0.03, Math.abs(V.hole - 20) < 0.15) },
+          { label: 'Kerf width k', value: V.through ? mmFixed(V.kerf, 2) : 'not through', tone: V.through ? undefined : 'bad' },
+          { label: 'Outline (100 mm drawn)', value: mmFixed(V.outline, 2), tone: toneOf(Math.abs(V.outline - 100) < 0.03, Math.abs(V.outline - 100) < 0.15) },
+          { label: 'Hole (20 mm drawn)', value: mmFixed(V.hole, 2), tone: toneOf(Math.abs(V.hole - 20) < 0.03, Math.abs(V.hole - 20) < 0.15) },
           { label: 'Tab-and-slot fit', value: `${signed(V.gap, 2)} mm, ${FITS[V.fit].split(':')[0]}`, tone: toneOf(V.fit === 'press', V.fit === 'slip') },
         ]
       },
@@ -375,7 +375,7 @@ export const laserCncAcrylicVsPlywood: Lesson = {
         rows[0].set(R.cracked ? `cracks above ${newtonsText(R.breakN, 1)}` : `SF ${fixedText(R.sf, 1)} (breaks at ${newtonsText(R.breakN, 0)})`, sfColor(R.sf))
         rows[1].set(`stiffness ${fixedText(R.kPerMm)} N/mm vs ${fixedText(other.kPerMm)}`, tint)
         rows[2].set(`plate 150 × 100: ${Math.round(R.grams)} g, about $${fixedText(R.cost)}`, LABEL)
-        rows[3].set(sk === 'acrylic' ? `stiff as 3 mm ply at ${mm2(R.tSameStiff * 1000)}` : 'char and glue: slower, wider kerf', GREY)
+        rows[3].set(sk === 'acrylic' ? `stiff as 3 mm ply at ${mmFixed(R.tSameStiff * 1000, 2)}` : 'char and glue: slower, wider kerf', GREY)
 
         head.status.set(`Acrylic vs plywood · ${SHEETS[sk].name} · ${HOLES[hk].name} · F ${newtonsText(F, 1)}`)
         head.sub.set('motor mount 80 mm past a standoff, plate 60 mm wide, sag to scale', GREY)

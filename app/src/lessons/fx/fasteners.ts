@@ -6,7 +6,7 @@ import { INK } from './colors'
 import { liveLabel } from './text'
 
 const SCREW_STEEL = () => mat('#c3c9d2', { metal: 0.35, rough: 0.35 }, true)
-export const BRASS = () => mat('#d4a642', { metal: 0.8, rough: 0.3 })
+const BRASS = () => mat('#d4a642', { metal: 0.8, rough: 0.3 })
 
 export interface ScrewLook {
   d: number

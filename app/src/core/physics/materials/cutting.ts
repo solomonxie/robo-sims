@@ -1,8 +1,8 @@
 // Laser cutting: kerf width from power, kerf compensation, press-fit joints; acrylic vs plywood chassis plates.
 import { MATERIALS, beamStiffness, bendingStress, cantileverDeflection, rectI, strengthOf } from './stress'
 
-export const LASER_W = 40
-export const SPOT_MM = 0.1
+const LASER_W = 40
+const SPOT_MM = 0.1
 
 /** 3 mm sheets on a 40 W CO₂ laser: feed speed, line energy (J/mm) to cut through, kerf growth per J/mm, char per J/mm. */
 export const SHEETS = {
@@ -10,7 +10,7 @@ export const SHEETS = {
   plywood: { name: '3 mm plywood', speed: 12, cutJmm: 1.5, widen: 0.06, char: 0.09, density: 680, sheetCost: 4, tightMm: -0.15 },
 } as const
 export type SheetKey = keyof typeof SHEETS
-export const SHEET_T = 0.003
+const SHEET_T = 0.003
 
 /** Line energy J/mm at `powerPct`, the kerf it leaves (mm), how deep it gets (1 = through) and the char band on each edge (mm). */
 export function kerfOf(sk: SheetKey, powerPct: number) {
@@ -87,10 +87,10 @@ export function kerfView(sk: SheetKey, powerPct: number, comp: number) {
 // --- Acrylic vs plywood: the same 3 mm plate as a cantilever motor mount ---
 
 export const MOUNT = { L: 0.08, b: 0.06, plateW: 0.15, plateH: 0.1, sheetM2: 0.6 * 0.4 }
-export const HOLE_KT = 2.5
-export const NOTCH_Q = { acrylic: 0.9, plywood: 0.3 } as const
+const HOLE_KT = 2.5
+const NOTCH_Q = { acrylic: 0.9, plywood: 0.3 } as const
 /** Hoop stress an over-tightened screw leaves round its hole, felt in proportion to notch sensitivity. */
-export const SCREW_PRE_PA = 20e6
+const SCREW_PRE_PA = 20e6
 export const HOLES = {
   plain: { name: 'Plain plate', kt: false, screw: false },
   hole: { name: 'Drilled screw hole', kt: true, screw: false },

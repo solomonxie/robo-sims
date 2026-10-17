@@ -3,9 +3,8 @@ import * as THREE from 'three/webgpu'
 import { V3, add, mat, mesh } from '../../models/kit'
 
 const RACE_STEEL = () => mat('#d3d8e0', { metal: 0.3, rough: 0.35 })
-export const BRONZE = () => mat('#b9803f', { metal: 0.6, rough: 0.4 })
 
-export interface BearingLook {
+interface BearingLook {
   d: number
   D: number
   B: number

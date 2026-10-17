@@ -9,7 +9,6 @@ export const METRIC_SCREWS = {
   m5: { name: 'M5', d: 5, pitch: 0.8, clear: 5.5, tap: 4.2, nutAF: 8, nutH: 4, hex: { cap: 4, button: 3, csk: 3 }, use: '2020 extrusion' },
 } as const
 export type ScrewKey = keyof typeof METRIC_SCREWS
-export type ScrewSize = (typeof METRIC_SCREWS)[ScrewKey]
 
 /** Head diameter and height as multiples of d; a countersunk head sinks into the top plate, so its length counts from the top face. */
 export const SCREW_HEADS = {
@@ -20,7 +19,7 @@ export const SCREW_HEADS = {
 export type HeadKey = keyof typeof SCREW_HEADS
 
 /** Common stock lengths (mm). */
-export const STOCK_LENGTHS = [4, 5, 6, 8, 10, 12, 14, 16, 20, 25, 30, 35, 40] as const
+const STOCK_LENGTHS = [4, 5, 6, 8, 10, 12, 14, 16, 20, 25, 30, 35, 40] as const
 
 /** What the screw threads into; engagement in multiples of d (typical rules of thumb). */
 export const THREAD_INTO = {
@@ -62,7 +61,7 @@ export function sizeFromCaliper(mm: number): ScrewKey {
 // --- Anchoring an M3 screw in a printed PLA boss ---
 
 /** Typical: printed PLA thread/knurl shear strength (Pa); M3 short insert 4.6 mm × 5.7 mm in a 4.0 mm hole. */
-export const PLA_SHEAR_PA = 20e6
+const PLA_SHEAR_PA = 20e6
 export const M3_INSERT = { od: 4.6, len: 5.7, hole: 4.0 }
 export const PLA_SOFT_C = 160
 export const ANCHORS = {
@@ -116,7 +115,7 @@ export const M3_PROOF_N = 5.03e-6 * 580e6
 export const JOINT_MU = 0.15
 /** Typical transverse shake force at the joint per g of vibration (N/g). */
 export const SHAKE_N_PER_G = 25
-export const SHAKE_HZ = 50
+const SHAKE_HZ = 50
 
 /** T = K·F·d → clamp preload F (N) from torque T (N·m) on a d-mm screw. */
 export const preloadOf = (T: number, dMm = 3, K = NUT_FACTOR) => T / (K * dMm * 1e-3)

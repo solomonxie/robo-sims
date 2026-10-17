@@ -31,6 +31,7 @@ import {
   MATERIAL_TINT,
   POWER,
   RING,
+  WIDE_TALL,
   WIDE_VIEW,
   addLabel,
   addRod,
@@ -57,9 +58,8 @@ import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 const MAT_KEYS = Object.keys(MATERIALS) as MaterialKey[]
 const SEC_KEYS = Object.keys(SECTIONS) as SectionKey[]
 const pctText = (eps: number, digits = 2) => `${fixedText(eps * 100, digits)} %`
-const mpa = (pa: number) => paText(pa)
 const mm4 = (I: number) => `${Math.round(I * 1e12)} mm⁴`
-const PLOT = { x: 8.6, y: -5.9, w: 11.8, h: 7.2 }
+const PLOT = WIDE_TALL
 
 // --- Hooke's law: an end-loaded arm link; σ = E·ε at the root, δ = FL³/(3EI) at the tip, and I decides most of it. ---
 
@@ -83,7 +83,7 @@ export const stressStrainHookesLaw: Lesson = {
   tagline: 'Stress is proportional to strain: every part is a stiff spring',
   formula: (p) => {
     const { F, V } = hkRun(p)
-    return `σ = E·ε (Hooke) · pull: σ = F/A = ${newtonsText(F, 1)} / ${Math.round(V.area * 1e6)} mm² = ${mpa(V.pull)} · bend: σ = M·c/I = F·L·c/I = ${mpa(V.sigma)} · ε = σ/E = ${pctText(V.eps, 3)} · δ = F·L³/(3·E·I) = ${si(V.delta, 'm')} · k = 3·E·I/L³ = ${fixedText(V.k / 1000)} N/mm`
+    return `σ = E·ε (Hooke) · pull: σ = F/A = ${newtonsText(F, 1)} / ${Math.round(V.area * 1e6)} mm² = ${paText(V.pull)} · bend: σ = M·c/I = F·L·c/I = ${paText(V.sigma)} · ε = σ/E = ${pctText(V.eps, 3)} · δ = F·L³/(3·E·I) = ${si(V.delta, 'm')} · k = 3·E·I/L³ = ${fixedText(V.k / 1000)} N/mm`
   },
   legend: [
     { color: LABEL, label: 'Arm link, 200 mm, end load', shape: 'dot' },
@@ -156,8 +156,8 @@ export const stressStrainHookesLaw: Lesson = {
         iTag.set(`I ${mm4(V.I)}`, RING)
         bars.set(V.tips.map((d) => Math.min(d, V.tips[0])), V.tips.map((d) => si(d, 'm')), SEC_KEYS.map((k) => (k === secKey ? tint : GREY)))
 
-        rows[0].set(`pull: σ = F/A = ${mpa(V.pull)} (${Math.round(V.area * 1e6)} mm²)`, GREY)
-        rows[1].set(`bend: σ = F·L·c/I = ${mpa(V.sigma)} at the root`, V.elastic ? LABEL : HIGH_V)
+        rows[0].set(`pull: σ = F/A = ${paText(V.pull)} (${Math.round(V.area * 1e6)} mm²)`, GREY)
+        rows[1].set(`bend: σ = F·L·c/I = ${paText(V.sigma)} at the root`, V.elastic ? LABEL : HIGH_V)
         rows[2].set(`ε = σ/E = ${pctText(V.eps, 3)} (E ${paText(V.m.E)})`, POWER)
         rows[3].set(`k = 3EI/L³ = ${fixedText(V.k / 1000)} N/mm, F = k·δ`, RING)
 
@@ -179,16 +179,16 @@ export const stressStrainHookesLaw: Lesson = {
         ;(marker.material as THREE.MeshStandardMaterial).emissive.set(V.elastic ? RING : HIGH_V)
         plot.lo.set('ε 0')
         plot.hi.set(pctText(HK.epsMax, 1))
-        plot.right.set(`σ ${mpa(V.sigma)}`, V.elastic ? RING : HIGH_V)
+        plot.right.set(`σ ${paText(V.sigma)}`, V.elastic ? RING : HIGH_V)
 
         head.status.set(`Hooke’s law · ${V.m.short} · ${SECTIONS[secKey].name} · F ${newtonsText(F, 1)}`)
         head.sub.set('arm link 200 mm long, clamped at the servo, load at the tip', GREY)
-        head.event.set(V.elastic ? `σ ${mpa(V.sigma)} below ${mpa(V.strength)}: on the straight line, springs back` : `σ ${mpa(V.sigma)} past ${mpa(V.strength)}: off the line, see Yield strength`, V.elastic ? POWER : HIGH_V)
+        head.event.set(V.elastic ? `σ ${paText(V.sigma)} below ${paText(V.strength)}: on the straight line, springs back` : `σ ${paText(V.sigma)} past ${paText(V.strength)}: off the line, see Yield strength`, V.elastic ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const { V } = hkRun(p)
         return [
-          { label: 'Root stress σ', value: mpa(V.sigma), tone: toneOf(V.sigma < V.strength / 2, V.elastic) },
+          { label: 'Root stress σ', value: paText(V.sigma), tone: toneOf(V.sigma < V.strength / 2, V.elastic) },
           { label: 'Strain ε', value: pctText(V.eps, 3) },
           { label: 'Tip sag δ', value: si(V.delta, 'm') },
           { label: 'Stiffness k', value: `${fixedText(V.k / 1000)} N/mm` },
@@ -220,7 +220,7 @@ export const stressStrainYieldStrength: Lesson = {
   tagline: 'Past the straight line a part bends for good, or snaps',
   formula: (p) => {
     const { m, path } = ysRun(p)
-    return `tensile test: σ = F/A₀, ε = ΔL/L₀ · elastic while σ < σy: σ = E·ε · ${m.short}: E ${paText(m.E)}, ${m.ductile ? `yield σy ${mpa(m.yieldPa)} at ε ${pctText(yieldStrain(m))}, UTS ${mpa(m.utsPa)}` : `no yield, breaks at ${mpa(strengthOf(m))}`}, breaks at ε ${pctText(m.failStrain, 0)} · release from ε = ${pctText(path.top)}: springs back σ/E, keeps ${pctText(path.set)}`
+    return `tensile test: σ = F/A₀, ε = ΔL/L₀ · elastic while σ < σy: σ = E·ε · ${m.short}: E ${paText(m.E)}, ${m.ductile ? `yield σy ${paText(m.yieldPa)} at ε ${pctText(yieldStrain(m))}, UTS ${paText(m.utsPa)}` : `no yield, breaks at ${paText(strengthOf(m))}`}, breaks at ε ${pctText(m.failStrain, 0)} · release from ε = ${pctText(path.top)}: springs back σ/E, keeps ${pctText(path.set)}`
   },
   legend: [
     { color: LABEL, label: 'Test bar, 50 mm gauge', shape: 'dot' },
@@ -291,19 +291,19 @@ export const stressStrainYieldStrength: Lesson = {
         const topY = bar.topY()
         const arrowLen = (sig / m.utsPa) * 1.2
         up([YS.at[0], topY, 0.6], [YS.at[0], topY + arrowLen, 0.6], '')
-        sigTag.set(`σ ${mpa(sig)}`, FORCE)
+        sigTag.set(`σ ${paText(sig)}`, FORCE)
         lenTag.set(`${fixedText(YS.gaugeMm * (1 + eps), 2)} mm`, eps > yieldStrain(m) * 1.001 && m.ductile ? RING : LABEL)
 
         yieldLine.set(py(strengthOf(m)))
         yieldTag.group.position.set(w / 2 - 0.3, py(strengthOf(m)) + 0.45, 0.4)
-        yieldTag.set(m.ductile ? `yield ${mpa(m.yieldPa)}` : `breaks ${mpa(strengthOf(m))}`, HEAT)
-        topTag.set(mpa(sigMax))
+        yieldTag.set(m.ductile ? `yield ${paText(m.yieldPa)}` : `breaks ${paText(strengthOf(m))}`, HEAT)
+        topTag.set(paText(sigMax))
         plot.lo.set('ε 0')
         plot.hi.set(pctText(epsMax, 1))
-        plot.right.set(`now ε ${pctText(eps)}, σ ${mpa(sig)}`, regimeColor(regime))
+        plot.right.set(`now ε ${pctText(eps)}, σ ${paText(sig)}`, regimeColor(regime))
 
-        rows[0].set(m.ductile ? `straight to ε ${pctText(yieldStrain(m))}, then yields at ${mpa(m.yieldPa)}` : `no yield: curves and snaps at ${mpa(strengthOf(m))}`, GREY)
-        rows[1].set(`pulled to ε ${pctText(path.top)}, σ ${mpa(path.peakStress)}`, LABEL)
+        rows[0].set(m.ductile ? `straight to ε ${pctText(yieldStrain(m))}, then yields at ${paText(m.yieldPa)}` : `no yield: curves and snaps at ${paText(strengthOf(m))}`, GREY)
+        rows[1].set(`pulled to ε ${pctText(path.top)}, σ ${paText(path.peakStress)}`, LABEL)
         rows[2].set(path.broke ? `broke at ε ${pctText(m.failStrain, 1)}` : path.set > 0 ? `let go: springs back ${pctText(path.top - path.set)}, keeps ${pctText(path.set)}` : 'let go: back to its exact length', path.broke ? HIGH_V : path.set > 0 ? RING : POWER)
         rows[3].set(`stretch drawn ×${YS.exag}: elastic part is invisible`, GREY)
         head.status.set(`Yield strength · ${m.name} · pull to ε ${pctText(peak)}`)
@@ -313,8 +313,8 @@ export const stressStrainYieldStrength: Lesson = {
       readouts: (p) => {
         const { m, path, regime } = ysRun(p)
         return [
-          { label: m.ductile ? 'Yield strength σy' : 'Breaking stress', value: mpa(strengthOf(m)) },
-          { label: 'Peak stress reached', value: path.broke ? 'broke' : mpa(path.peakStress), tone: path.broke ? 'bad' : undefined },
+          { label: m.ductile ? 'Yield strength σy' : 'Breaking stress', value: paText(strengthOf(m)) },
+          { label: 'Peak stress reached', value: path.broke ? 'broke' : paText(path.peakStress), tone: path.broke ? 'bad' : undefined },
           { label: 'Permanent set', value: path.broke ? '—' : `${pctText(path.set)} (${fixedText(path.set * YS.gaugeMm, 2)} mm)`, tone: toneOf(path.set === 0 && !path.broke, !path.broke) },
           { label: 'Regime', value: REGIME_TEXT[regime].split(':')[0], tone: toneOf(regime === 'elastic', regime === 'plastic') },
         ]
@@ -346,7 +346,7 @@ export const stressStrainSafetyFactor: Lesson = {
   tagline: 'Size the part for the worst day, then add a margin',
   formula: (p) => {
     const { t, R, need } = sfRun(p)
-    return `worst-case load F = m·g × ${fixedText(R.factor)} = ${newtonsText(R.F, 1)} · root moment M = F·L = ${fixedText(R.F * BRACKET.L)} N·m · rectangle b × t: σ = M·(t/2)/I = 6·M/(b·t²) = ${mpa(R.sigma)} at t = ${fixedText(t * 1000, 1)} mm · SF = strength / σ = ${mpa(R.strength)} / ${mpa(R.sigma)} = ${fixedText(R.sf)} · SF ${SF.target} needs t ≥ ${Number.isFinite(need) ? `${fixedText(need * 1000, 1)} mm` : 'more than 100 mm'}`
+    return `worst-case load F = m·g × ${fixedText(R.factor)} = ${newtonsText(R.F, 1)} · root moment M = F·L = ${fixedText(R.F * BRACKET.L)} N·m · rectangle b × t: σ = M·(t/2)/I = 6·M/(b·t²) = ${paText(R.sigma)} at t = ${fixedText(t * 1000, 1)} mm · SF = strength / σ = ${paText(R.strength)} / ${paText(R.sigma)} = ${fixedText(R.sf)} · SF ${SF.target} needs t ≥ ${Number.isFinite(need) ? `${fixedText(need * 1000, 1)} mm` : 'more than 100 mm'}`
   },
   legend: [
     { color: POWER, label: 'SF 2–3: right-sized', shape: 'dot' },
@@ -403,14 +403,14 @@ export const stressStrainSafetyFactor: Lesson = {
         const dLen = Math.min(4.5, wLen * R.factor)
         wArrow([tx + 1.9, ty - 1.2, 1], [tx + 1.9, ty - 1.2 - wLen, 1], 'm·g', [-0.9, 0.4, 0])
         dArrow([tx + 2.9, ty - 1.2, 1], [tx + 2.9, ty - 1.2 - dLen, 1], R.factor > 1.01 ? `×${fixedText(R.factor, 1)}` : '', [0.9, -0.3, 0])
-        rootTag.set(`max σ ${mpa(R.sigma)} at the root`, sfColor(R.sf))
+        rootTag.set(`max σ ${paText(R.sigma)} at the root`, sfColor(R.sf))
 
         bars.set(each.map((s) => Math.min(s, SF.sfMax)), each.map((s) => fixedText(s, 1)), each.map((s, i) => (MAT_KEYS[i] === mk ? sfColor(s) : GREY)), SF.sfMax)
 
         const sf = R.sf
         rows[0].set(`F = ${kg.toFixed(1)} kg · g × ${fixedText(R.factor)} = ${newtonsText(R.F, 1)}`, FORCE)
-        rows[1].set(`σ = 6·F·L/(b·t²) = ${mpa(R.sigma)} (b 20, L 150 mm)`, LABEL)
-        rows[2].set(`SF = ${mpa(R.strength)} / ${mpa(R.sigma)} = ${fixedText(sf)}: ${sfVerdict(sf)}`, sfColor(sf))
+        rows[1].set(`σ = 6·F·L/(b·t²) = ${paText(R.sigma)} (b 20, L 150 mm)`, LABEL)
+        rows[2].set(`SF = ${paText(R.strength)} / ${paText(R.sigma)} = ${fixedText(sf)}: ${sfVerdict(sf)}`, sfColor(sf))
         rows[3].set(Number.isFinite(need) ? `SF ${SF.target} needs t ≥ ${fixedText(need * 1000, 1)} mm` : `SF ${SF.target} out of reach`, POWER)
 
         const u = (t * 1000 - SF.tMin) / (SF.tMax - SF.tMin)
@@ -427,7 +427,7 @@ export const stressStrainSafetyFactor: Lesson = {
         const { R, need } = sfRun(p)
         return [
           { label: 'Worst-case load', value: `${newtonsText(R.F, 1)} (×${fixedText(R.factor, 1)})` },
-          { label: 'Root stress σ', value: mpa(R.sigma) },
+          { label: 'Root stress σ', value: paText(R.sigma) },
           { label: 'Safety factor', value: fixedText(R.sf), tone: toneOf(R.sf >= SF_BAND[0] && R.sf <= SF_BAND[1], R.sf >= 1) },
           { label: `Thickness for SF ${SF.target}`, value: Number.isFinite(need) ? `${fixedText(need * 1000, 1)} mm` : '> 100 mm' },
         ]

@@ -115,7 +115,7 @@ export function sectionProps(rects: readonly Rect[]) {
 }
 export const rectI = (b: number, t: number) => (b * t ** 3) / 12
 
-export const axialStress = (F: number, area: number) => F / area
+const axialStress = (F: number, area: number) => F / area
 export const bendingStress = (M: number, c: number, I: number) => (M * c) / I
 /** Cantilever with an end load F: deflection at x from the root (x = L: the tip, F·L³/(3EI)). */
 export const cantileverDeflection = (F: number, L: number, E: number, I: number, x = L) => (F * x * x * (3 * L - x)) / (6 * E * I)
@@ -154,7 +154,7 @@ export const LOAD_CASES = {
   swing: { name: 'Fast swing, 15 m/s²', accel: 15, drop: 0 },
   bump: { name: 'Payload drops 10 mm', accel: 0, drop: 0.01 },
 } as const
-export type LoadCase = keyof typeof LOAD_CASES
+type LoadCase = keyof typeof LOAD_CASES
 
 export const BRACKET = { L: 0.15, b: 0.02 }
 

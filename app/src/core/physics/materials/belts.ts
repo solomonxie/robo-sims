@@ -1,5 +1,6 @@
 // Belts and couplers: GT2 timing belt drive (ratio, teeth in mesh, tension, skipping, stretch) and shaft couplers (misalignment, set-screw grip).
 import { trainRatio } from '../actuators/gearing'
+import { rpmToRadS } from '../actuators/stepper'
 import { shaftLoads } from './bearings'
 import { preloadOf } from './fasteners'
 import { MATERIALS, beamStiffness, bendingStress } from './stress'
@@ -15,13 +16,13 @@ export const BELT_MOTOR = { rpm: 300, radialN: 28, hubMaxN: 80 }
 export const pitchRadiusMm = (z: number, p = GT2.pitch) => (z * p) / (2 * Math.PI)
 /** Open belt over pulleys of radius r1 ≤ r2, centres C apart. */
 export const wrapRad = (r1: number, r2: number, C: number) => Math.PI - 2 * Math.asin(Math.min(1, (r2 - r1) / C))
-export const spanMm = (r1: number, r2: number, C: number) => Math.sqrt(Math.max(0, C * C - (r2 - r1) ** 2))
+const spanMm = (r1: number, r2: number, C: number) => Math.sqrt(Math.max(0, C * C - (r2 - r1) ** 2))
 export const beltLengthMm = (r1: number, r2: number, C: number) => 2 * spanMm(r1, r2, C) + r1 * wrapRad(r1, r2, C) + r2 * (2 * Math.PI - wrapRad(r1, r2, C))
 export const teethInMesh = (z: number, wrap: number) => Math.floor((z * wrap) / (2 * Math.PI))
 /** Largest belt pull (N) before teeth jump: the lower of tension-limited and tooth-shear-limited. */
-export const jumpPullN = (tensionN: number, mesh: number) => Math.min(JUMP_K * tensionN, mesh * GT2.toothN)
+const jumpPullN = (tensionN: number, mesh: number) => Math.min(JUMP_K * tensionN, mesh * GT2.toothN)
 /** Pluck frequency of a span: f = √(T/μ) / 2L. */
-export const pluckHz = (tensionN: number, spanM: number, massKgM = GT2.massKgM) => Math.sqrt(tensionN / massKgM) / (2 * spanM)
+const pluckHz = (tensionN: number, spanM: number, massKgM = GT2.massKgM) => Math.sqrt(tensionN / massKgM) / (2 * spanM)
 
 export type BeltVerdict = 'skips' | 'few teeth' | 'slack' | 'tight' | 'ok'
 
@@ -54,7 +55,7 @@ export function beltDrive(z1: number, z2: number, C: number, tensionN: number, m
     hubN,
     stretchMm,
     windupDeg: ((stretchMm / r2) * 180) / Math.PI,
-    beltMps: (((rpm * 2 * Math.PI) / 60) * r1) / 1000,
+    beltMps: (rpmToRadS(rpm) * r1) / 1000,
     outRpm: rpm / ratio,
     outNm: motorNm * ratio * 0.98,
     lengthMm: beltLengthMm(r1, r2, C),
@@ -84,7 +85,7 @@ const bendK = (d: number, L: number) => beamStiffness(L / 1000, MATERIALS.steel.
 const CHAIN = { motor: bendK(COUPLING.motorD, COUPLING.motorL), screw: bendK(COUPLING.screwRoot, COUPLING.screwL), mount: COUPLING.mountK }
 export const shaftChainK = () => 1 / (1 / CHAIN.motor + 1 / CHAIN.screw + 1 / CHAIN.mount)
 /** Share of the misalignment each spring takes up (series springs: ∝ compliance). */
-export function offsetShares(ck: CouplerKey) {
+function offsetShares(ck: CouplerKey) {
   const c = { coupler: 1 / COUPLERS[ck].kRad, motor: 1 / CHAIN.motor, screw: 1 / CHAIN.screw, mount: 1 / CHAIN.mount }
   const sum = c.coupler + c.motor + c.screw + c.mount
   return { coupler: c.coupler / sum, motor: c.motor / sum, screw: c.screw / sum, mount: c.mount / sum }
@@ -105,9 +106,9 @@ export const GRIPS = {
   clamp: { name: 'Clamp hub', screwNm: 1 },
 } as const
 export type GripKey = keyof typeof GRIPS
-export const GRIP_MU = 0.15
+const GRIP_MU = 0.15
 /** The screw tip bearing on a flat drives the shaft by shape, not friction (typical gain). */
-export const DFLAT_GAIN = 4
+const DFLAT_GAIN = 4
 
 /** Torque (N·m) the hub holds on the motor shaft before slipping. */
 export function gripNm(gk: GripKey, dMm = COUPLING.motorD) {
