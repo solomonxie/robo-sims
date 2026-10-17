@@ -191,6 +191,7 @@ import { thermalDesignHeatsinks, thermalDesignMotorHeating } from '../lessons/ma
 import { howFdmWorksAnatomyOfAPrinter, howFdmWorksCartesianCorexyDelta, howFdmWorksHotendAndExtruder, howFdmWorksLayerByLayer } from '../lessons/printing/how-fdm-works'
 import { otherProcessesChoosingAProcess, otherProcessesSlaAndMslaResin, otherProcessesSlsNylonPowder } from '../lessons/printing/other-processes'
 import { printerMotionAxesAndEndstops, printerMotionBeltsVsLeadScrews, printerMotionInputShaping, printerMotionStepsPerMm } from '../lessons/printing/printer-motion'
+import { filamentsCarbonFibreBlends, filamentsDryingWetFilament, filamentsFlexibleTpu, filamentsGlassTransitionTemp, filamentsMaterialProperties } from '../lessons/printing/filaments'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -757,6 +758,11 @@ const READY: Record<string, Lesson> = {
   'printing/printer-motion/belts-vs-lead-screws': printerMotionBeltsVsLeadScrews,
   'printing/printer-motion/steps-per-mm': printerMotionStepsPerMm,
   'printing/printer-motion/input-shaping': printerMotionInputShaping,
+  'printing/filaments/material-properties': filamentsMaterialProperties,
+  'printing/filaments/glass-transition-temp': filamentsGlassTransitionTemp,
+  'printing/filaments/flexible-tpu': filamentsFlexibleTpu,
+  'printing/filaments/carbon-fibre-blends': filamentsCarbonFibreBlends,
+  'printing/filaments/drying-wet-filament': filamentsDryingWetFilament,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
