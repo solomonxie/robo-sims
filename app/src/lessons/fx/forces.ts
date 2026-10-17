@@ -1,13 +1,14 @@
-// Mechanics side views: a TT car with payload blocks, a centre-of-mass marker, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig, an unbalanced motor.
+// Mechanics side views: a TT car with payload blocks, a centre-of-mass marker, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig, an accelerometer proof mass, an unbalanced motor.
 import * as THREE from 'three/webgpu'
 import { TT_CAR } from '../../core/physics'
 import { STEEL, V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { Helix } from '../../models/power'
 import { GREY, glowMat } from './colors'
-import { flatBox, sectorGeometry, stretchArrow } from './shapes'
+import { flatBox, sectorGeometry, shellMat, stretchArrow } from './shapes'
 import { liveLabel } from './text'
 
 const BLOCK_KG = 0.5
+const X_AXIS = new THREE.Vector3(1, 0, 0)
 
 /** Side-on TT car facing +x, `k` units per metre, origin on the ground under its centre.
  *  `set(travel, loadKg, [rear, front])` spins the wheels by `travel` m (or each by its own) and stacks one brass block per 0.5 kg. */
@@ -71,12 +72,48 @@ export function scrollTape(parent: THREE.Object3D, at: V3, len: number, step: nu
 export function coilSpring(parent: THREE.Object3D, r: number, turns: number, thickness = 0.06) {
   const g = add(parent, new THREE.Group())
   add(g, mesh(new THREE.TubeGeometry(new Helix(r, 1, turns), turns * 16, thickness, 6), STEEL())).castShadow = false
+  const d = new THREE.Vector3()
   const set = (a: V3, b: V3) => {
     g.position.set(...a)
-    g.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
-    g.scale.x = Math.max(1e-3, Math.hypot(b[0] - a[0], b[1] - a[1]))
+    d.set(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+    const len = d.length()
+    if (len > 1e-9) g.quaternion.setFromUnitVectors(X_AXIS, d.divideScalar(len))
+    g.scale.x = Math.max(1e-3, len)
   }
   return Object.assign(set, { group: g })
+}
+
+/** Accelerometer cell: a see-through box (half-size `h`) with a proof mass (half-size `m`) on six coil springs, one per face.
+ *  `set(off)` moves the mass by `off` (local units); it lags opposite to the specific force. */
+export function proofMassBox(parent: THREE.Object3D, at: V3, { h = 2, m = 0.6, color = '#c9ced8' } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  box(group, [2 * h, 2 * h, 2 * h], shellMat('#9fd8ff', 0.12), [0, 0, 0]).castShadow = false
+  const edge = mat('#5a606b', { metal: 0.4, rough: 0.5 })
+  for (const [i, j] of [[0, 1], [1, 2], [0, 2]])
+    for (const s of [-1, 1])
+      for (const t of [-1, 1]) {
+        const p: V3 = [0, 0, 0]
+        p[i] = s * h
+        p[j] = t * h
+        const size: V3 = [0.08, 0.08, 0.08]
+        size[3 - i - j] = 2 * h
+        box(group, size, edge, p).castShadow = false
+      }
+  const mass = box(group, [2 * m, 2 * m, 2 * m], mat(color, { metal: 0.3, rough: 0.35 }), [0, 0, 0])
+  const springs = [0, 1, 2].flatMap(() => [-1, 1].map(() => coilSpring(group, m * 0.4, 6, 0.04)))
+  const set = (off: V3) => {
+    mass.position.set(...off)
+    for (let i = 0; i < 3; i++)
+      [-1, 1].forEach((s, k) => {
+        const wall: V3 = [0, 0, 0]
+        wall[i] = s * h
+        const face: V3 = [...off]
+        face[i] += s * m
+        springs[2 * i + k](wall, face)
+      })
+  }
+  set([0, 0, 0])
+  return { group, mass, set }
 }
 
 export const rigBlockH = (kg: number) => 0.5 + 1.4 * Math.min(1, kg)
