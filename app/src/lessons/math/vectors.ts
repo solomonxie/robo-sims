@@ -27,6 +27,7 @@ import {
   titledScope,
   vecArrow,
   zUp,
+  textRows,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 
@@ -35,7 +36,6 @@ const dg = (rad: number) => degText(toDeg(rad), 0)
 const fp = (v: number) => (v < -0.005 ? `(${f2(v)})` : f2(v))
 const xyz = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
 const PLOT = { x: 8.2, w: 11, y: 1.6, h: 6 }
-const textRows = (scene: THREE.Object3D, k: number, x = 2.7, y = -3.3) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * 0.8, 0.2], { size: 0.34, align: 'left' }))
 
 // --- Dot product: heading · to-target. Its sign says ahead or behind, its size is the target's shadow on the heading, cos θ checks the field of view. ---
 

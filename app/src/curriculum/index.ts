@@ -176,6 +176,7 @@ import { matricesInverse, matricesMatrixMultiply, matricesRotationMatrix } from 
 import { trigonometryAtan2, trigonometryLawOfCosines, trigonometryUnitCircle } from '../lessons/math/trigonometry'
 import { quaternionsGimbalLock, quaternionsQuaternionRotate, quaternionsSlerp } from '../lessons/math/quaternions'
 import { calculusDerivativeAsSlope, calculusIntegralAsArea, calculusNumericalIntegration } from '../lessons/math/calculus'
+import { probabilityBayesRule, probabilityGaussianNoise, probabilityVariance } from '../lessons/math/probability'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -703,6 +704,9 @@ const READY: Record<string, Lesson> = {
   'math/calculus/derivative-as-slope': calculusDerivativeAsSlope,
   'math/calculus/integral-as-area': calculusIntegralAsArea,
   'math/calculus/numerical-integration': calculusNumericalIntegration,
+  'math/probability/gaussian-noise': probabilityGaussianNoise,
+  'math/probability/bayes-rule': probabilityBayesRule,
+  'math/probability/variance': probabilityVariance,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

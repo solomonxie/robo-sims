@@ -24,6 +24,7 @@ import {
   titledScope,
   vecArrow,
   warpGrid,
+  textRows,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 
@@ -34,7 +35,6 @@ const pair = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
 const mat2Text = (M: Mat2) => `[${f2(M[0])} ${f2(M[1])}; ${f2(M[2])} ${f2(M[3])}]`
 const COLS = [AXIS_RGB[0], AXIS_RGB[1]]
 const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const textRows = (scene: THREE.Object3D, k: number, x: number, y: number, size = 0.34) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * 0.8, 0.2], { size, align: 'left' }))
 const vec3 = (p: readonly number[], z: number): V3 => [p[0], p[1], z]
 
 // --- Rotation matrix: its columns are where the x and y axes land; unit length, square to each other, det = +1. ---

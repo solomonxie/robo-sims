@@ -26,28 +26,22 @@ import {
   statusHeader,
   titledScope,
   vecArrow,
+  plotY,
+  textRows,
+  meterTrack,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const textRows = (scene: THREE.Object3D, k: number, x: number, y: number, size = 0.32) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * 0.75, 0.2], { size, align: 'left' }))
 const LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
 const RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
 const leftPair = (scene: THREE.Object3D, titles: [string, string], colors: [string, string], zero: [number, number]) => [
   titledScope(scene, LEFT.top, LEFT.topH, titles[0], colors[0], zero[0], LEFT.x, LEFT.w),
   titledScope(scene, LEFT.low, LEFT.lowH, titles[1], colors[1], zero[1], LEFT.x, LEFT.w),
 ]
-/** Maps a value in [lo, hi] onto a plot `h` tall (scene units from its centre). */
-const yMap = (lo: number, hi: number, h: number) => (v: number) => ((v - lo) / (hi - lo)) * h - h / 2
 const dot = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(c, 1.2)))
 const stripTops = (strips: readonly Strip[], u: (t: number) => number, y: (v: number) => number): [number[], number[]] => [strips.flatMap((s) => [u(s.t0), u(s.t1)]), strips.flatMap((s) => [y(s.y0), y(s.y1)])]
 const ms = (v: number) => mpsText(v, 3).replace('-', '−')
-const track = (scene: THREE.Object3D, at: V3, k: number, x: [number, number]) => {
-  const g = floorView(scene, at, k, -0.25)
-  floorMat(g, x, [-0.1, 0.1])
-  for (let m = 0; m <= x[1] + 1e-9; m += 0.5) addLabel(g, `${m} m`, [m, -0.14, 0.01], GREY, 0.03)
-  return g
-}
 
 // --- Derivative as slope: a secant over Δt on the encoder curve shrinks to the tangent; noise makes small Δt jumpy. ---
 
@@ -107,8 +101,8 @@ export const calculusDerivativeAsSlope: Lesson = {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
     const [px, pv] = leftPair(scene, ['position x(t) from the encoder', 'speed: slope at every t'], [POWER, HEAT], [(0 - DS.lo) / (DS.hi - DS.lo), 0.5])
-    const yx = yMap(DS.lo, DS.hi, px.h)
-    const yv = yMap(-DS.vMax, DS.vMax, pv.h)
+    const yx = plotY(DS.lo, DS.hi, px.h)
+    const yv = plotY(-DS.vMax, DS.vMax, pv.h)
     const trX = px.s.trace(POWER, { samples: 301, radius: 0.05 })
     const trTan = px.s.trace(B_FIELD, { samples: 2, radius: 0.05 })
     const trSec = px.s.trace(RING, { samples: 2, radius: 0.07 })
@@ -120,16 +114,16 @@ export const calculusDerivativeAsSlope: Lesson = {
     const trV = pv.s.trace(B_FIELD, { samples: 241, radius: 0.05 })
     const trEst = pv.s.trace(HEAT, { samples: 300, radius: 0.04 })
     const pe = titledScope(scene, RIGHT.y, RIGHT.h, 'error vs step Δt', LABEL, 0, RIGHT.x, RIGHT.w)
-    const ye = yMap(0, DS.eMax, pe.h)
+    const ye = plotY(0, DS.eMax, pe.h)
     const trTr = pe.s.trace(B_FIELD, { samples: 61, radius: 0.05 })
     const trNo = pe.s.trace(HEAT, { samples: 61, radius: 0.05 })
     const trAt = pe.s.trace(RING, { samples: 2, radius: 0.06 })
 
-    const g = track(scene, [2.6, 1.2, 0], 15, [-0.05, 0.75])
+    const g = meterTrack(scene, [2.6, 1.2, 0], 15, [-0.05, 0.75])
     const bot = diffBot(add(g, new THREE.Group()))
     const ghost = diffBot(add(g, new THREE.Group()), { ghost: RING })
     const dxArrow = vecArrow(g, RING, 0.006, 0.05)
-    const rows = textRows(scene, 4, 1.6, -2.3)
+    const rows = textRows(scene, 4, 1.6, -2.3, 0.32, 0.75)
     return {
       scene,
       view: VIEW,
@@ -244,7 +238,7 @@ export const calculusIntegralAsArea: Lesson = {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
     const [pv, px] = leftPair(scene, ['speed v(t): area = distance', 'position x(t) = area so far'], [B_FIELD, POWER], [-IA.vLo / (IA.vHi - IA.vLo), 0.1])
-    const yv = yMap(IA.vLo, IA.vHi, pv.h)
+    const yv = plotY(IA.vLo, IA.vHi, pv.h)
     const fill = areaStrips(pv.s, 48)
     const trTops = pv.s.trace(HEAT, { samples: 100, radius: 0.04 })
     const trV = pv.s.trace(B_FIELD, { samples: 241, radius: 0.05 })
@@ -252,13 +246,13 @@ export const calculusIntegralAsArea: Lesson = {
     const trX = px.s.trace(POWER, { samples: 241, radius: 0.05 })
     const trSum = px.s.trace(HEAT, { samples: 100, radius: 0.05 })
 
-    const g = track(scene, [1.8, 1.2, 0], 6.8, [-0.1, 1.8])
+    const g = meterTrack(scene, [1.8, 1.2, 0], 6.8, [-0.1, 1.8])
     const bot = diffBot(add(g, new THREE.Group()))
     bot.group.scale.setScalar(2)
     const ghost = diffBot(add(g, new THREE.Group()), { ghost: HEAT })
     ghost.group.scale.setScalar(2)
     const trail = pointCloud(g, 61, 0.012)
-    const rows = textRows(scene, 3, 1.6, -2.2, 0.34)
+    const rows = textRows(scene, 3, 1.6, -2.2, 0.34, 0.75)
     const bars = countBars(scene, [6.2, -6.6, 0.2], ['forward', 'backing up', 'net ∫v dt', 'distance'], 6.4, { row: 1.8, size: 0.34 })
     return {
       scene,
@@ -272,7 +266,7 @@ export const calculusIntegralAsArea: Lesson = {
         edge.points([u(T), u(T)], [-pv.h / 2, pv.h / 2], null)
         pv.right.set(`${N} × Δt ${secsText(T / N)}`, HEAT)
 
-        const yx = yMap(-IA.xHi[drive] / 9, IA.xHi[drive], px.h)
+        const yx = plotY(-IA.xHi[drive] / 9, IA.xHi[drive], px.h)
         trX.draw((x) => yx(lineDriveAt(drive, x * IA.T).x), u(T))
         trSum.points(A.running.map((_, i) => u((i * T) / N)), A.running.map(yx))
         px.lo.set('0 s')
@@ -323,7 +317,7 @@ const niRun = memoBy(
   },
 )
 const niClock = lapseClock(TURN.T, 1, 1.5)
-const errY = (h: number) => (e: number) => yMap(NI.eLo, NI.eHi, h)(Math.log10(Math.max(e, 10 ** NI.eLo)))
+const errY = (h: number) => (e: number) => plotY(NI.eLo, NI.eHi, h)(Math.log10(Math.max(e, 10 ** NI.eLo)))
 
 export const calculusNumericalIntegration: Lesson = {
   id: 'calculus-numerical-integration',
@@ -355,8 +349,8 @@ export const calculusNumericalIntegration: Lesson = {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
     const [pr, pa] = leftPair(scene, ['gyro rate ω (°/s) and slices', 'heading θ = area so far'], [B_FIELD, POWER], [-NI.rLo / (NI.rHi - NI.rLo), -NI.aLo / (NI.aHi - NI.aLo)])
-    const yr = yMap(NI.rLo, NI.rHi, pr.h)
-    const ya = yMap(NI.aLo, NI.aHi, pa.h)
+    const yr = plotY(NI.rLo, NI.rHi, pr.h)
+    const ya = plotY(NI.aLo, NI.aHi, pa.h)
     const fill = areaStrips(pr.s, 4 * NI.nMax)
     const trTops = pr.s.trace(HEAT, { samples: 8 * NI.nMax, radius: 0.04 })
     const trR = pr.s.trace(B_FIELD, { samples: 201, radius: 0.05 })
@@ -375,7 +369,7 @@ export const calculusNumericalIntegration: Lesson = {
     const ghost = diffBot(add(g, new THREE.Group()), { ghost: HEAT })
     const north = vecArrow(g, GREY, 0.003, 0.03)
     const sweep = pointCloud(g, 90, 0.005)
-    const rows = textRows(scene, 3, 1.6, -3.6, 0.3)
+    const rows = textRows(scene, 3, 1.6, -3.6, 0.3, 0.75)
     return {
       scene,
       view: VIEW,

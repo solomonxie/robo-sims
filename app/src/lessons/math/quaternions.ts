@@ -18,7 +18,6 @@ import {
   frameTriad,
   gimbalRings,
   glowMat,
-  liveLabel,
   memoBy,
   pointCloud,
   quadcopter,
@@ -26,6 +25,7 @@ import {
   titledScope,
   vecArrow,
   zUp,
+  textRows,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
 
@@ -34,7 +34,6 @@ const dg = (rad: number) => radText(rad, 0)
 const xyz = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
 const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
 const PLOT = { x: 8.2, w: 11, y: 1.6, h: 6 }
-const textRows = (scene: THREE.Object3D, k: number, x = 2.7, y = -3.3) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * 0.8, 0.2], { size: 0.34, align: 'left' }))
 const at = (v: readonly number[], k = 1): V3 => [v[0] * k, v[1] * k, v[2] * k]
 const turnTo = (o: THREE.Object3D, q: Quat) => o.quaternion.set(q[1], q[2], q[3], q[0])
 const ball = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 10), glowMat(c, 1)))

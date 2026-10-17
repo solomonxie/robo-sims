@@ -91,3 +91,8 @@ export function titledScope(scene: THREE.Object3D, y: number, h: number, title: 
   const hi = liveLabel(scene, [x + w / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'right' })
   return { s, right, lo, hi, h }
 }
+
+/** `k` left-aligned live text rows from (x, y) down, `gap` apart. */
+export const textRows = (scene: THREE.Object3D, k: number, x = 2.7, y = -3.3, size = 0.34, gap = 0.8) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * gap, 0.2], { size, align: 'left' }))
+/** Maps a value in [lo, hi] onto a plot `h` tall (scene units from its centre). */
+export const plotY = (lo: number, hi: number, h: number) => (v: number) => ((v - lo) / (hi - lo)) * h - h / 2

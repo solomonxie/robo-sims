@@ -27,6 +27,7 @@ import {
   stretchRod,
   titledScope,
   vecArrow,
+  textRows,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
 
@@ -34,7 +35,6 @@ const f2 = (v: number) => fixedText(v)
 const dg = (rad: number) => radText(rad, 0)
 const rd = (rad: number) => `${f2(rad)} rad`
 const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const textRows = (scene: THREE.Object3D, k: number, x: number, y: number, size = 0.34) => Array.from({ length: k }, (_, i) => liveLabel(scene, [x, y - i * 0.8, 0.2], { size, align: 'left' }))
 const ball = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 18, 12), glowMat(c, 1.1)))
 const ringDots = (g: THREE.Object3D, k: number, r: number) => {
   const dots = pointCloud(g, k, r)

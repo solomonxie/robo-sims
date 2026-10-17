@@ -222,3 +222,11 @@ export function occTiles(parent: THREE.Object3D, max: number, gap = 0.9) {
     },
   }
 }
+
+/** Tilted floor strip over x metres with a label every 0.5 m. */
+export function meterTrack(scene: THREE.Object3D, at: V3, k: number, x: [number, number]) {
+  const g = floorView(scene, at, k, -0.25)
+  floorMat(g, x, [-0.1, 0.1])
+  for (let m = 0; m <= x[1] + 1e-9; m += 0.5) addLabel(g, `${m} m`, [m, -0.14, 0.01], GREY, 0.03)
+  return g
+}
