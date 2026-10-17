@@ -160,6 +160,7 @@ import { torqueLeversLeverTypes, torqueLeversMomentArm, torqueLeversStaticBalanc
 import { rotationAngularMomentum, rotationFlywheel, rotationMomentOfInertia } from '../lessons/mechanics/rotation'
 import { energyWorkEfficiency, energyWorkKineticAndPotential, energyWorkWorkAndPower } from '../lessons/mechanics/energy-work'
 import { frictionTractionRollingResistance, frictionTractionStaticVsKinetic, frictionTractionWheelSlip } from '../lessons/mechanics/friction-traction'
+import { oscillationsDamping, oscillationsResonance, oscillationsSpringMass } from '../lessons/mechanics/oscillations'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -647,6 +648,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/friction-traction/static-vs-kinetic': frictionTractionStaticVsKinetic,
   'mechanics/friction-traction/rolling-resistance': frictionTractionRollingResistance,
   'mechanics/friction-traction/wheel-slip': frictionTractionWheelSlip,
+  'mechanics/oscillations/spring-mass': oscillationsSpringMass,
+  'mechanics/oscillations/damping': oscillationsDamping,
+  'mechanics/oscillations/resonance': oscillationsResonance,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

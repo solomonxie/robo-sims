@@ -1,4 +1,4 @@
-// Mechanics side views: a TT car with payload blocks, labelled force arrows, a scrolling floor tape, a coil spring.
+// Mechanics side views: a TT car with payload blocks, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig.
 import * as THREE from 'three/webgpu'
 import { TT_CAR } from '../../core/physics'
 import { STEEL, V3, add, box, cylinder, mat, mesh } from '../../models/kit'
@@ -75,5 +75,41 @@ export function coilSpring(parent: THREE.Object3D, r: number, turns: number, thi
     g.position.set(...a)
     g.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
     g.scale.x = Math.max(1e-3, Math.hypot(b[0] - a[0], b[1] - a[1]))
+  }
+}
+
+export const rigBlockH = (kg: number) => 0.5 + 1.4 * Math.min(1, kg)
+
+/** Mass hanging from a ceiling bracket at `top` on a coil spring, optional oil damper beside it.
+ *  `set(y, kg, oil)` puts the block's top at height y (local), sizes it by mass and tints the damper by `oil` 0…1. */
+export function springRig(parent: THREE.Object3D, top: V3, { damper = false, w = 3 } = {}) {
+  const g = add(parent, new THREE.Group(), top)
+  const steel = mat('#8a919c', { metal: 0.6, rough: 0.35 })
+  box(g, [w + (damper ? 3.2 : 1.6), 0.35, 2], steel, [damper ? 0.8 : 0, 0.18, 0])
+  const spring = coilSpring(g, w * 0.22, 12, 0.07)
+  const block = box(g, [w, 1, w], mat('#b8923a', { metal: 0.4, rough: 0.4 }), [0, 0, 0])
+  const hook = box(g, [0.3, 0.3, 0.3], steel, [0, 0, 0])
+  const dx = w / 2 + 0.9
+  const oilM = glowMat(GREY, 0.3)
+  const body = damper ? cylinder(g, 0.42, 2.6, oilM, [dx, -1.3, 0]) : null
+  const rod = damper ? cylinder(g, 0.1, 1, steel, [dx, 0, 0]) : null
+  const arm = damper ? box(g, [dx - w / 2 + 0.3, 0.2, 0.3], steel, [0, 0, 0]) : null
+  return {
+    group: g,
+    set(y: number, kg: number, oil = 0) {
+      const h = rigBlockH(kg)
+      block.scale.y = h
+      block.position.y = y - h / 2
+      hook.position.y = y + 0.1
+      spring([0, y + 0.2, 0], [0, 0, 0])
+      if (!body || !rod || !arm) return
+      oilM.color.setHSL(0.08, 0.6, 0.2 + 0.4 * oil)
+      oilM.emissive.copy(oilM.color)
+      oilM.emissiveIntensity = 0.2 + 0.6 * oil
+      const yt = -2.3
+      rod.scale.y = Math.max(0.01, yt - (y - 0.1))
+      rod.position.y = (yt + y - 0.1) / 2
+      arm.position.set(w / 2 + (dx - w / 2) / 2 - 0.15, y - 0.1, 0)
+    },
   }
 }
