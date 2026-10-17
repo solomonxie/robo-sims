@@ -99,6 +99,8 @@ export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -
 export const nmText = (t: number, digits = 2) => `${fixedText(t, digits)} N·m`
 /** Millimetres to `digits`: 0.22 → "0.2 mm", (0.22, 2) → "0.22 mm". */
 export const mmFixed = (mm: number, digits = 1) => `${fixedText(mm, digits)} mm`
+/** Millimetres shown in micrometres. */
+export const umText = (mm: number, digits = 0) => `${fixedText(mm * 1000, digits)} µm`
 /** fixedText of each entry: `(x, y, z)`. */
 export const tupleText = (v: readonly number[], digits = 2) => `(${v.map((x) => fixedText(x, digits)).join(', ')})`
 /** fixedText as a factor in a written product: negatives in brackets. */

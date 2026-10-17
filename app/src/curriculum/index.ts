@@ -190,6 +190,7 @@ import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStren
 import { thermalDesignHeatsinks, thermalDesignMotorHeating } from '../lessons/materials/thermal-design'
 import { howFdmWorksAnatomyOfAPrinter, howFdmWorksCartesianCorexyDelta, howFdmWorksHotendAndExtruder, howFdmWorksLayerByLayer } from '../lessons/printing/how-fdm-works'
 import { otherProcessesChoosingAProcess, otherProcessesSlaAndMslaResin, otherProcessesSlsNylonPowder } from '../lessons/printing/other-processes'
+import { printerMotionAxesAndEndstops, printerMotionBeltsVsLeadScrews, printerMotionInputShaping, printerMotionStepsPerMm } from '../lessons/printing/printer-motion'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -752,6 +753,10 @@ const READY: Record<string, Lesson> = {
   'printing/other-processes/sla-and-msla-resin': otherProcessesSlaAndMslaResin,
   'printing/other-processes/sls-nylon-powder': otherProcessesSlsNylonPowder,
   'printing/other-processes/choosing-a-process': otherProcessesChoosingAProcess,
+  'printing/printer-motion/axes-and-endstops': printerMotionAxesAndEndstops,
+  'printing/printer-motion/belts-vs-lead-screws': printerMotionBeltsVsLeadScrews,
+  'printing/printer-motion/steps-per-mm': printerMotionStepsPerMm,
+  'printing/printer-motion/input-shaping': printerMotionInputShaping,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
