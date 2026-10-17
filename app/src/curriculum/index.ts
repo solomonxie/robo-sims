@@ -180,6 +180,7 @@ import { probabilityBayesRule, probabilityGaussianNoise, probabilityVariance } f
 import { linearAlgebraEigenvectors, linearAlgebraLeastSquares } from '../lessons/math/linear-algebra'
 import { differentialEquationsEulerIntegration, differentialEquationsStepSize } from '../lessons/math/differential-equations'
 import { signalsSampleRate, signalsZTransformIntuition } from '../lessons/math/signals'
+import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
@@ -720,6 +721,8 @@ const READY: Record<string, Lesson> = {
   'materials/stress-strain/hooke-s-law': stressStrainHookesLaw,
   'materials/stress-strain/yield-strength': stressStrainYieldStrength,
   'materials/stress-strain/safety-factor': stressStrainSafetyFactor,
+  'materials/laser-cnc/kerf': laserCncKerf,
+  'materials/laser-cnc/acrylic-vs-plywood': laserCncAcrylicVsPlywood,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

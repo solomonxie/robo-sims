@@ -95,6 +95,8 @@ export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)
 /** Fixed digits with a true minus, values that round to zero unsigned. */
 export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -digits ? (0).toFixed(digits) : v.toFixed(digits).replace('-', '−'))
+/** Hundredths of a mm: 0.00022 → "0.22 mm". */
+export const mmHundredths = (m: number) => `${fixedText(m * 1000, 2)} mm`
 /** fixedText of each entry: `(x, y, z)`. */
 export const tupleText = (v: readonly number[], digits = 2) => `(${v.map((x) => fixedText(x, digits)).join(', ')})`
 /** fixedText as a factor in a written product: negatives in brackets. */
