@@ -1,6 +1,9 @@
 import * as THREE from 'three/webgpu'
-import { add, box, mat, mesh } from '../../models/kit'
-import { HEAT, HIGH_V, glowMat } from './colors'
+import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
+import { celsiusText, thetaText } from '../../core/units'
+import { GREY, HEAT, HIGH_V, LABEL, glowMat, ironbow, setGlow } from './colors'
+import { flatBox } from './shapes'
+import { addLabel, liveLabel } from './text'
 import { clamp01, rand } from './util'
 
 /** Red-hot glow for a material: 0 = off, 1 = bright orange. */
@@ -90,6 +93,82 @@ export function smoke(parent: THREE.Object3D, width: number, { count = 24, rise 
         puffs.setMatrixAt(i, m.compose(p, q, sc.setScalar(Math.max(0.001, s))))
       }
       puffs.instanceMatrix.needsUpdate = true
+    },
+  }
+}
+
+/** Heat path drawn as a series circuit from `at`, `w` wide: node columns rise with °C (like volts) above resistors in a row,
+ *  the biggest drop glowing brightest. `set(temps, thetas, watts)`: node °C, °C/W per stage. */
+export function thermalLadder(parent: THREE.Object3D, at: V3, nodes: readonly string[], stages: readonly string[], { w = 16, h = 5, maxC = 200, limitC = 150 } = {}) {
+  const g = add(parent, new THREE.Group(), at)
+  const dx = w / (nodes.length - 1)
+  flatBox(g, [w, 0.08, 0.08], glowMat(GREY, 0.4), [w / 2, 0, -0.1])
+  const col = new THREE.Color()
+  const cols = nodes.map((name, i) => {
+    const m = glowMat(HEAT, 0.8)
+    const bar = flatBox(g, [0.8, 1, 0.5], m, [i * dx, 0.5, 0])
+    addLabel(g, name, [i * dx, -0.75, 0.3], LABEL, 0.3)
+    return { m, bar, tag: liveLabel(g, [i * dx, 1, 0.4], { size: 0.32 }) }
+  })
+  const res = stages.map((name, i) => {
+    const x = (i + 0.5) * dx
+    const m = glowMat(HEAT, 0.5)
+    flatBox(g, [dx * 0.42, 0.42, 0.4], m, [x, 0, 0])
+    addLabel(g, name, [x, -0.75, 0.3], GREY, 0.28)
+    return { m, val: liveLabel(g, [x, -1.3, 0.3], { size: 0.26 }), drop: liveLabel(g, [x, -1.85, 0.3], { size: 0.26 }) }
+  })
+  const yLim = (limitC / maxC) * h
+  const dash = glowMat(HIGH_V, 0.6)
+  for (let x = -0.4; x < w + 0.4; x += 0.7) flatBox(g, [0.35, 0.07, 0.05], dash, [x + 0.17, yLim, -0.2])
+  addLabel(g, `${limitC} °C`, [w + 0.7, yLim, 0.3], HIGH_V, 0.28, 'left')
+  const flow = liveLabel(g, [-0.9, 0, 0.3], { size: 0.32, align: 'right' })
+  return {
+    group: g,
+    set(temps: readonly number[], thetas: readonly number[], watts: string) {
+      const total = Math.max(1e-9, temps[0] - temps[temps.length - 1])
+      cols.forEach((c, i) => {
+        const t = temps[i]
+        const hh = Math.max(0.05, Math.min(h * 1.15, (t / maxC) * h))
+        c.bar.scale.y = hh
+        c.bar.position.y = hh / 2
+        ironbow(0.15 + 0.85 * clamp01(t / maxC), col)
+        c.m.color.copy(col)
+        c.m.emissive.copy(col)
+        c.tag.group.position.y = hh + 0.45
+        c.tag.set(celsiusText(t), t >= limitC ? HIGH_V : LABEL)
+      })
+      res.forEach((r, i) => {
+        const d = temps[i] - temps[i + 1]
+        setGlow(r.m, HEAT, 0.15 + 1.3 * clamp01(d / total))
+        r.val.set(thetaText(thetas[i]), LABEL)
+        r.drop.set(`−${celsiusText(d, d < 9.95 ? 1 : 0)}`, d / total > 0.5 ? HEAT : GREY)
+      })
+      flow.set(watts, HEAT)
+    },
+  }
+}
+
+/** Square cooling fan facing +z, `size` across; `spin(dt, rate)` turns the rotor. */
+export function boxFan(parent: THREE.Object3D, at: V3, size = 3) {
+  const g = add(parent, new THREE.Group(), at)
+  const frame = mat('#1c1d22', { rough: 0.6 })
+  const b = size * 0.1
+  for (const s of [-1, 1]) {
+    box(g, [size, b, size * 0.25], frame, [0, (s * (size - b)) / 2, 0])
+    box(g, [b, size, size * 0.25], frame, [(s * (size - b)) / 2, 0, 0])
+  }
+  const rotor = add(g, new THREE.Group())
+  cylinder(rotor, size * 0.15, size * 0.2, frame, [0, 0, 0], 'z', 20)
+  const blade = mat('#3a3d46', { rough: 0.5 })
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2
+    const bl = box(rotor, [size * 0.3, size * 0.13, 0.05], blade, [Math.cos(a) * size * 0.27, Math.sin(a) * size * 0.27, 0])
+    bl.rotation.set(0.5, 0, a, 'ZXY')
+  }
+  return {
+    group: g,
+    spin(dt: number, rate: number) {
+      rotor.rotation.z -= dt * rate
     },
   }
 }

@@ -84,6 +84,10 @@ export const lengthText = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${m
 export const wavelengthText = (m: number) => (m >= 0.01 ? lengthText(m) : si(m, 'm', 3))
 export const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
 export const cmWhole = (m: number) => `${Math.round(m * 100)} cm`
+/** Whole °C, or `digits` decimals. */
+export const celsiusText = (c: number, digits = 0) => `${fixedText(c, digits)} °C`
+/** Thermal resistance, °C/W: two decimals under 1, one under 10, else whole. */
+export const thetaText = (r: number) => `${r < 1 ? r.toFixed(2) : r < 10 ? r.toFixed(1) : Math.round(r)} °C/W`
 export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
 /** Radians as degrees, values that round to zero shown as 0. */
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)

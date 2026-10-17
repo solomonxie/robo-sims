@@ -52,7 +52,7 @@ const TO220_LEGS = 1
  *  `transistorPart`: D at `at` + (0, scale), S at `at` − (0, scale). 'TO-220' stands upright at 0.75 × `scale`: legs G D S
  *  pointing down, S two pitches right of G; the drain is taken off the tab's bolt hole, straight above the middle leg.
  *  `set(f, heat)`: f = drain current / full scale glows the die, heat 0..1 reddens the epoxy. */
-export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220', { scale = 1.6 } = {}) {
+export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220', { scale = 1.6, letters = ['G', 'S', 'D'] as readonly string[] } = {}) {
   if (pkg === 'TO-92') {
     const t = transistorPart(parent, at, { scale, letters: ['D', 'G', 'S'] })
     return { group: t.group, pins: { d: t.pins.c, g: t.pins.b, s: t.pins.e }, die: t.die, set: t.set }
@@ -70,9 +70,9 @@ export function fetPart(parent: THREE.Object3D, at: V3, pkg: 'TO-92' | 'TO-220',
   const die: V3 = [at[0] + k, y0 + 0.5 * h * k, at[2]]
   const halo = glowHalo(parent, [die[0], die[1], at[2] + t * k], 1.1 * k)
   const tag = 0.4 * scale
-  partLetter(parent, 'G', [at[0] - 0.6 * k, at[1] - 0.9 * k, at[2]], tag)
-  partLetter(parent, 'S', [at[0] + 2.8 * k, at[1] + 0.6 * k, at[2]], tag)
-  partLetter(parent, 'D', [d[0] + 1.6 * k, d[1], at[2]], tag)
+  partLetter(parent, letters[0], [at[0] - 0.6 * k, at[1] - 0.9 * k, at[2]], tag)
+  partLetter(parent, letters[1], [at[0] + 2.8 * k, at[1] + 0.6 * k, at[2]], tag)
+  partLetter(parent, letters[2], [d[0] + 1.6 * k, d[1], at[2]], tag, LABEL, letters[2].length > 1 ? 'left' : 'center')
   return {
     group,
     pins: { d, g: at, s: [at[0] + 2 * k, at[1], at[2]] as V3 },

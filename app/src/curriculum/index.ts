@@ -168,6 +168,7 @@ import { soundUltrasoundDoppler, soundUltrasoundEchoRanging, soundUltrasoundSpee
 import { lightOpticsLensesAndFocus, lightOpticsReflection, lightOpticsRefraction } from '../lessons/waves/light-optics'
 import { infraredThermalBlackBodyRadiation, infraredThermalThermalCamera } from '../lessons/waves/infrared-thermal'
 import { electromagneticSpectrumWavelengthAndFrequency, electromagneticSpectrumWhereSensorsLive } from '../lessons/waves/electromagnetic-spectrum'
+import { heatTransferCoolingARegulator, heatTransferThermalResistance } from '../lessons/waves/heat-transfer'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -674,6 +675,8 @@ const READY: Record<string, Lesson> = {
   'waves/infrared-thermal/thermal-camera': infraredThermalThermalCamera,
   'waves/electromagnetic-spectrum/wavelength-and-frequency': electromagneticSpectrumWavelengthAndFrequency,
   'waves/electromagnetic-spectrum/where-sensors-live': electromagneticSpectrumWhereSensorsLive,
+  'waves/heat-transfer/thermal-resistance': heatTransferThermalResistance,
+  'waves/heat-transfer/cooling-a-regulator': heatTransferCoolingARegulator,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
