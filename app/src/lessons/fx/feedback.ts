@@ -196,3 +196,51 @@ export function sPlane(parent: THREE.Object3D, at: V3, per: number, reMin: numbe
     },
   }
 }
+
+/** z-plane screen: unit circle (inside tinted stable), `per` units of z per scene unit, ±`span` both ways.
+ *  `xy(re, im)` → screen point (clipped, flag inside); `poles(list)` crosses, `zeros(list)` rings. */
+export function zPlane(parent: THREE.Object3D, at: V3, per: number, span: number) {
+  const side = (2 * span) / per
+  const plot = scope(parent, side, side, { divs: [Math.round(2 * span * 2), Math.round(2 * span * 2)], zeroAt: 0.5 })
+  plot.group.position.set(...at)
+  const g = plot.group
+  const r = 1 / per
+  const disc = add(g, new THREE.Mesh(new THREE.CircleGeometry(r, 72), new THREE.MeshBasicMaterial({ color: POWER, transparent: true, opacity: 0.12 })), [0, 0, 0.04])
+  disc.castShadow = false
+  add(g, new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 8, 96), glowMat(POWER, 0.9)), [0, 0, 0.15]).castShadow = false
+  addLabel(g, 'Im', [-0.3, side / 2 - 0.35, 0.3], GREY, 0.28, 'right')
+  addLabel(g, 'Re', [side / 2 - 0.3, 0.3, 0.3], GREY, 0.28, 'right')
+  addLabel(g, '1', [r + 0.25, -0.35, 0.3], GREY, 0.26, 'left')
+  addLabel(g, 'stable', [0, -r * 0.55, 0.3], POWER, 0.26)
+  addLabel(g, 'unstable', [side / 2 - 0.25, -side / 2 + 0.35, 0.3], HIGH_V, 0.24, 'right')
+  const xy = (re: number, im: number): [number, number, boolean] => {
+    const [x, y] = [re / per, im / per]
+    const [cx, cy] = [Math.min(side / 2, Math.max(-side / 2, x)), Math.min(side / 2, Math.max(-side / 2, y))]
+    return [cx, cy, cx === x && cy === y]
+  }
+  const marks = (k: number, cross: boolean) =>
+    Array.from({ length: k }, () => {
+      const m = glowMat(RING, 1.1)
+      const c = add(g, new THREE.Group())
+      if (cross) for (const s of [1, -1]) flatBox(c, [0.62, 0.13, 0.1], m, [0, 0, 0.3]).rotation.z = (s * Math.PI) / 4
+      else add(c, new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.06, 8, 32), m), [0, 0, 0.3])
+      return { c, m }
+    })
+  const place = (pool: ReturnType<typeof marks>, list: readonly { re: number; im: number }[], color: string) =>
+    pool.forEach(({ c, m }, k) => {
+      const p = list[k]
+      c.visible = !!p
+      if (!p) return
+      const [x, y] = xy(p.re, p.im)
+      c.position.set(x, y, 0)
+      setGlow(m, color, 1.1)
+    })
+  const [crosses, rings] = [marks(4, true), marks(2, false)]
+  return {
+    group: g,
+    side,
+    xy,
+    poles: (list: readonly { re: number; im: number }[], color = RING) => place(crosses, list, color),
+    zeros: (list: readonly { re: number; im: number }[], color = LABEL) => place(rings, list, color),
+  }
+}
