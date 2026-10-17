@@ -181,6 +181,7 @@ import { linearAlgebraEigenvectors, linearAlgebraLeastSquares } from '../lessons
 import { differentialEquationsEulerIntegration, differentialEquationsStepSize } from '../lessons/math/differential-equations'
 import { signalsSampleRate, signalsZTransformIntuition } from '../lessons/math/signals'
 import { bearingsBallBearings, bearingsBushings } from '../lessons/materials/bearings'
+import { beltsChainsCouplersShaftCouplers, beltsChainsCouplersTimingBelt } from '../lessons/materials/belts-chains-couplers'
 import { fastenersHeatSetInserts, fastenersMetricSizes, fastenersThreadLocker } from '../lessons/materials/fasteners'
 import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
@@ -730,6 +731,8 @@ const READY: Record<string, Lesson> = {
   'materials/fasteners/thread-locker': fastenersThreadLocker,
   'materials/bearings/ball-bearings': bearingsBallBearings,
   'materials/bearings/bushings': bearingsBushings,
+  'materials/belts-chains-couplers/timing-belt': beltsChainsCouplersTimingBelt,
+  'materials/belts-chains-couplers/shaft-couplers': beltsChainsCouplersShaftCouplers,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
