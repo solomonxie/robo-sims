@@ -50,3 +50,14 @@ export function ironbow(f: number, out = new THREE.Color()): THREE.Color {
   const i = Math.min(IRONBOW.length - 2, Math.floor(x))
   return out.copy(IRONBOW[i]).lerp(IRONBOW[i + 1], x - i)
 }
+
+const SPECTRAL = [[380, '#610061'], [420, '#6a00ff'], [460, '#0066ff'], [490, '#00d4ff'], [520, '#00ff2a'], [570, '#e1ff00'], [600, '#ffa500'], [640, '#ff2100'], [700, '#d00000'], [750, '#600000']].map(([nm, c]) => [nm as number, lit(c as string)] as const)
+/** Approximate colour of light at `nm` (dark outside 380–750). */
+export function spectralColor(nm: number, out = new THREE.Color()): THREE.Color {
+  if (nm <= SPECTRAL[0][0]) return out.copy(SPECTRAL[0][1])
+  const i = SPECTRAL.findIndex(([l]) => l >= nm)
+  if (i < 0) return out.copy(SPECTRAL[SPECTRAL.length - 1][1])
+  const [l0, c0] = SPECTRAL[i - 1]
+  const [l1, c1] = SPECTRAL[i]
+  return out.copy(c0).lerp(c1, (nm - l0) / (l1 - l0))
+}

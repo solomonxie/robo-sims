@@ -1,8 +1,9 @@
-// Fields and magnets: field lines, arrow grids, charges, compass, coil.
+// Fields and magnets: field lines, arrow grids, charges, compass, coil, travelling EM wave.
 import * as THREE from 'three/webgpu'
 import { Vec3, coilField, loopLines } from '../../core/fields'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
 import { B_FIELD, COPPER, HIGH_V, LOW_V, NORTH, RING, SOUTH, glowMat } from './colors'
+import { rodBetween, shadowlessRod, stretchRod } from './layout'
 import { plusGeometry } from './shapes'
 import { UP, clamp01 } from './util'
 
@@ -301,4 +302,27 @@ export function barMagnet(parent: THREE.Object3D, size: V3) {
   box(group, [l / 2, h, d], north, [l / 4, 0, 0])
   box(group, [l / 2, h, d], south, [-l / 4, 0, 0])
   return group
+}
+
+/** Travelling plane EM wave along x from `x0` to `x1` at height `y`: E arrows up the screen, B arrows into depth.
+ *  `set(lambda, phase, amp)`: wavelength in scene units, phase in cycles; fades in over `fadeIn` units. */
+export function emWave(parent: THREE.Object3D, x0: number, x1: number, { y = 0, arrows = 120, fadeIn = 2.5, axis = '#46645a' } = {}) {
+  rodBetween(parent, [x0, y, 0], [x1, y, 0], mat(axis, { emissive: '#1a2a24' }), 0.05)
+  const e = Array.from({ length: arrows }, () => add(parent, shadowlessRod(glowMat(HIGH_V, 0.9))))
+  const b = Array.from({ length: arrows }, () => add(parent, shadowlessRod(glowMat(B_FIELD, 0.8))))
+  const tipGeo = new THREE.SphereGeometry(0.12, 8, 6)
+  const tipM = glowMat(HIGH_V, 1.2)
+  const tips = Array.from({ length: arrows }, () => add(parent, mesh(tipGeo, tipM)))
+  return {
+    set(lambda: number, phase: number, amp: number) {
+      for (let i = 0; i < arrows; i++) {
+        const x = x0 + ((i + 0.5) / arrows) * (x1 - x0)
+        const v = amp * Math.min(1, (x - x0) / fadeIn) * Math.sin(2 * Math.PI * ((x - x0) / lambda - phase))
+        stretchRod(e[i], [x, y, 0], [x, y + v, 0], 0.05)
+        stretchRod(b[i], [x, y, 0], [x, y, v * 0.8], 0.045)
+        tips[i].position.set(x, y + v, 0)
+        tips[i].visible = Math.abs(v) > 0.15
+      }
+    },
+  }
 }

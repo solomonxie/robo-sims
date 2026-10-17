@@ -1,6 +1,9 @@
 import { DEG, toDeg } from './physics/common'
 
 const PREFIXES: [number, string][] = [
+  [1e18, 'E'],
+  [1e15, 'P'],
+  [1e12, 'T'],
   [1e9, 'G'],
   [1e6, 'M'],
   [1e3, 'k'],
@@ -77,6 +80,8 @@ export const mmText = (m: number) => `${Math.round(m * 1000)} mm`
 export const mmTenths = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 ? 1 : 0)} mm`
 /** m from 1 m, cm (1 decimal) from 1 cm, else mm; ∞ for Infinity. */
 export const lengthText = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${m.toFixed(2)} m` : m >= 0.01 ? `${(m * 100).toFixed(1)} cm` : `${(m * 1000).toFixed(1)} mm`)
+/** Wavelength: cm/m via `lengthText` from 1 cm up, SI prefixes below ("940 nm"). */
+export const wavelengthText = (m: number) => (m >= 0.01 ? lengthText(m) : si(m, 'm', 3))
 export const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
 export const cmWhole = (m: number) => `${Math.round(m * 100)} cm`
 export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`

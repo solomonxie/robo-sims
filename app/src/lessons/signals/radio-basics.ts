@@ -27,7 +27,6 @@ import {
   LABEL,
   POWER,
   RING,
-  UNIT_ROD,
   addLabel,
   benchScope,
   emptyGroup,
@@ -37,7 +36,7 @@ import {
   liveLabel,
   scope,
   setGlow,
-  stretchRod,
+  emWave,
 } from '../fx'
 import { Lesson, Params, Stage, pick } from '../types'
 
@@ -304,11 +303,7 @@ export const antennaTypes: Lesson = {
     const scene = createStage({ span: 22 })
     const holder = add(scene, new THREE.Group(), [AX, 0, 0])
     const antTag = liveLabel(scene, [AX, -5.2, 0], { size: 0.5 })
-    rod(scene, [WX0, 0, 0], [WX1, 0, 0], 0.05, mat('#46645a', { emissive: '#1a2a24' }))
-    const e = Array.from({ length: ARROWS }, () => add(scene, mesh(UNIT_ROD, glowMat(HIGH_V, 0.9))))
-    const b = Array.from({ length: ARROWS }, () => add(scene, mesh(UNIT_ROD, glowMat(B_FIELD, 0.8))))
-    for (const m of [...e, ...b]) m.castShadow = false
-    const eTip = Array.from({ length: ARROWS }, () => add(scene, mesh(new THREE.SphereGeometry(0.12, 8, 6), glowMat(HIGH_V, 1.2))))
+    const wave = emWave(scene, WX0, WX1, { arrows: ARROWS })
     addLabel(scene, 'E', [WX1 + 0.8, AMP * 0.7, 0], HIGH_V, 0.7, 'left')
     addLabel(scene, 'B', [WX1 + 0.8, -0.4, AMP * 0.8], B_FIELD, 0.7, 'left')
 
@@ -353,15 +348,7 @@ export const antennaTypes: Lesson = {
         st.t += dt
         const ph = st.t * WAVE_HZ
         const amp = AMP * Math.min(1.2, 10 ** (s.gain / 20) / 10 ** (2.15 / 20))
-        for (let i = 0; i < ARROWS; i++) {
-          const x = WX0 + ((i + 0.5) / ARROWS) * (WX1 - WX0)
-          const fade = Math.min(1, (x - WX0) / 2.5)
-          const v = amp * fade * Math.sin(2 * Math.PI * ((x - WX0) / lu - ph))
-          stretchRod(e[i], [x, 0, 0], [x, v, 0], 0.05)
-          stretchRod(b[i], [x, 0, 0], [x, 0, v * 0.8], 0.045)
-          eTip[i].position.set(x, v, 0)
-          eTip[i].visible = Math.abs(v) > 0.15
-        }
+        wave.set(lu, ph, amp)
         const drive = Math.cos(2 * Math.PI * ph)
         for (const g of st.segs) g.m.emissiveIntensity = 1.8 * g.w * Math.abs(drive)
       },
