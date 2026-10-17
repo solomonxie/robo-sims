@@ -47,30 +47,19 @@ import {
   liveLabel,
   memoBy,
   robotCar,
-  scope,
   setGlow,
   sideView,
   statusHeader,
+  titledScope,
   wavePool,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const VIEW = sideView(-2.2, -0.6)
-const { x: PX, w: PW } = SIDE_SCOPE
+const { x: PX } = SIDE_SCOPE
 const msPrecise = (s: number) => msText(s, 2)
 const hzText = (f: number) => (f >= 1000 ? `${(f / 1000).toFixed(f >= 10000 ? 2 : 3)} kHz` : `${f.toFixed(1)} Hz`)
 const dHz = (d: number) => `${d < 0 ? '−' : '+'}${hzText(Math.abs(d))}`
-
-/** Scope at (PX, y) with a left title, a live right title and live min/max axis labels under it. */
-function panel(scene: THREE.Object3D, y: number, h: number, title: string, color: string, zeroAt = 0) {
-  const s = scope(scene, PW, h, { divs: [10, 4], zeroAt })
-  s.group.position.set(PX, y, 0)
-  addLabel(scene, title, [PX - PW / 2, y + h / 2 + 1.1, 0.3], color, 0.3, 'left')
-  const right = liveLabel(scene, [PX + PW / 2, y + h / 2 + 1.1, 0.3], { size: 0.28, align: 'right' })
-  const lo = liveLabel(scene, [PX - PW / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'left' })
-  const hi = liveLabel(scene, [PX + PW / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'right' })
-  return { s, right, lo, hi, h }
-}
 
 // --- Speed of sound: one clap races down air, water and steel; temperature changes air's speed and a fixed-343 sketch's range. ---
 
@@ -144,14 +133,14 @@ export const soundUltrasoundSpeedOfSound: Lesson = {
     const span = liveLabel(scene, [(SS.x0 + SS.x1) / 2, SS.lanes[2] - 1.5, 0.3], { size: 0.28, color: GREY })
     const waves = wavePool(scene, 9, 14, 0.13)
 
-    const top = panel(scene, 1.8, 4.2, 'c in air vs T (grey: 331 + 0.6·T)', B_FIELD, 0)
+    const top = titledScope(scene, 1.8, 4.2, 'c in air vs T (grey: 331 + 0.6·T)', B_FIELD, 0)
     const cExact = top.s.trace(B_FIELD, { samples: 66, radius: 0.06 })
     const cLin = top.s.trace(GREY, { samples: 2, radius: 0.03 })
     const [cLo, cHi] = [310, 370]
     const yC = (c: number) => -top.h / 2 + ((c - cLo) / (cHi - cLo)) * top.h
     top.lo.set(`${SS.tMin} °C`)
     top.hi.set(`${SS.tMax} °C`)
-    const bot = panel(scene, -5.2, 4.2, '343 m/s sketch: error', HEAT, 0.5)
+    const bot = titledScope(scene, -5.2, 4.2, '343 m/s sketch: error', HEAT, 0.5)
     const errTr = bot.s.trace(HEAT, { samples: 66, radius: 0.06 })
     bot.lo.set(`${SS.tMin} °C`)
     bot.hi.set(`${SS.tMax} °C`)
@@ -287,7 +276,7 @@ export const soundUltrasoundEchoRanging: Lesson = {
     const waves = wavePool(scene, 8, 40, 0.12)
     const ruler = liveLabel(scene, [0, ER.sy - 4.4, 0.3], { size: 0.32 })
 
-    const eg = panel(scene, -1, 8, 'echogram', LABEL, (0 - ER.dbLo) / (ER.dbHi - ER.dbLo))
+    const eg = titledScope(scene, -1, 8, 'echogram', LABEL, (0 - ER.dbLo) / (ER.dbHi - ER.dbLo))
     eg.s.level(RING).set(-eg.h / 2 + ((0 - ER.dbLo) / (ER.dbHi - ER.dbLo)) * eg.h)
     const ringTr = eg.s.trace(HEAT, { samples: 220, radius: 0.05 })
     const echoTr = eg.s.trace(POWER, { samples: 220, radius: 0.06 })
@@ -445,12 +434,12 @@ export const soundUltrasoundDoppler: Lesson = {
     const sonar = hcSr04(scene, [DV.sonarX + 5.05 * 0.22, DV.y, 0], 0.22, Math.PI)
     const waves = wavePool(scene, 30, 72, 0.1)
 
-    const sc = panel(scene, 1.6, 4.2, `${DV.cycles} cycles of the sent tone`, LABEL, 0.5)
+    const sc = titledScope(scene, 1.6, 4.2, `${DV.cycles} cycles of the sent tone`, LABEL, 0.5)
     const sent = sc.s.trace(GREY, { samples: 260, radius: 0.04 })
     const up = sc.s.trace(B_FIELD, { samples: 260, radius: 0.05 })
     const dn = sc.s.trace(HEAT, { samples: 260, radius: 0.05 })
     sc.lo.set('0')
-    const sh = panel(scene, -5.4, 4.2, 'pitch shift vs speed', LABEL, 0.5)
+    const sh = titledScope(scene, -5.4, 4.2, 'pitch shift vs speed', LABEL, 0.5)
     const upCurve = sh.s.trace(B_FIELD, { samples: 61, radius: 0.05 })
     const dnCurve = sh.s.trace(HEAT, { samples: 61, radius: 0.05 })
     sh.lo.set('0')

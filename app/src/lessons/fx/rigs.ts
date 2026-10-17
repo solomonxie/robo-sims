@@ -80,3 +80,14 @@ export function plotPanel(scene: THREE.Object3D, at: V3, w: number, h: number, s
   addLabel(scene, `${seconds} s`, [at[0] + w / 2, at[1] - h / 2 - 1.1, 0.3], GREY, 0.26, 'right')
   return plot
 }
+
+/** Scope `SIDE_SCOPE` wide at (x, y) with a left title, a live right title and live min/max axis labels under it. */
+export function titledScope(scene: THREE.Object3D, y: number, h: number, title: string, color: string, zeroAt = 0, x = SIDE_SCOPE.x, w = SIDE_SCOPE.w) {
+  const s = scope(scene, w, h, { divs: [10, 4], zeroAt })
+  s.group.position.set(x, y, 0)
+  addLabel(scene, title, [x - w / 2, y + h / 2 + 1.1, 0.3], color, 0.3, 'left')
+  const right = liveLabel(scene, [x + w / 2, y + h / 2 + 1.1, 0.3], { size: 0.28, align: 'right' })
+  const lo = liveLabel(scene, [x - w / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'left' })
+  const hi = liveLabel(scene, [x + w / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'right' })
+  return { s, right, lo, hi, h }
+}
