@@ -2,7 +2,7 @@
 
 -include Local.mk
 DEVICE ?= $(error set DEVICE=<udid> or put it in Local.mk)
-APP = app/ios/build/Build/Products/Release-iphoneos/RoboSims.app
+APP = /tmp/robosims-build/Build/Products/Release-iphoneos/RoboSims.app
 BUNDLE_ID := $(or $(shell sed -n "s/^PRODUCT_BUNDLE_IDENTIFIER *= *//p" app/ios/Local.xcconfig 2>/dev/null),com.example.robosims)
 
 install:
@@ -27,7 +27,7 @@ check-expo:
 # Release build with the JS bundle embedded; Metro only runs as the bundler inside this build.
 ios-build:
 	cd app/ios && xcodebuild -workspace RoboSims.xcworkspace -scheme RoboSims \
-	  -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build \
+	  -configuration Release -destination 'generic/platform=iOS' -derivedDataPath /tmp/robosims-build \
 	  -allowProvisioningUpdates build | tail -30
 
 ios-install:
