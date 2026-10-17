@@ -171,6 +171,7 @@ import { electromagneticSpectrumWavelengthAndFrequency, electromagneticSpectrumW
 import { pressureFluidsBarometerAltitude, pressureFluidsBernoulli } from '../lessons/waves/pressure-fluids'
 import { gravityInertiaAccelerometerReading, gravityInertiaFreeFall } from '../lessons/waves/gravity-inertia'
 import { heatTransferCoolingARegulator, heatTransferThermalResistance } from '../lessons/waves/heat-transfer'
+import { vectorsCrossProduct, vectorsDotProduct, vectorsProjection } from '../lessons/math/vectors'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -683,6 +684,9 @@ const READY: Record<string, Lesson> = {
   'waves/pressure-fluids/barometer-altitude': pressureFluidsBarometerAltitude,
   'waves/gravity-inertia/free-fall': gravityInertiaFreeFall,
   'waves/gravity-inertia/accelerometer-reading': gravityInertiaAccelerometerReading,
+  'math/vectors/dot-product': vectorsDotProduct,
+  'math/vectors/cross-product': vectorsCrossProduct,
+  'math/vectors/projection': vectorsProjection,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
