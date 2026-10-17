@@ -155,6 +155,7 @@ import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tiny
 import { speechWakeWordsKeywordSpotting, speechWakeWordsVoiceCommands } from '../lessons/ai/speech-wake-words'
 import { anomalyDetectionThresholdsVsModels, anomalyDetectionVibrationBaselines } from '../lessons/ai/anomaly-detection'
 import { newtonsLawsFMA, newtonsLawsFreeBodyDiagrams, newtonsLawsFriction } from '../lessons/mechanics/newton-s-laws'
+import { kinematicsConstantAcceleration, kinematicsProjectileMotion, kinematicsVelocityTime } from '../lessons/mechanics/kinematics'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -627,6 +628,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/newton-s-laws/f-m-a': newtonsLawsFMA,
   'mechanics/newton-s-laws/free-body-diagrams': newtonsLawsFreeBodyDiagrams,
   'mechanics/newton-s-laws/friction': newtonsLawsFriction,
+  'mechanics/kinematics/constant-acceleration': kinematicsConstantAcceleration,
+  'mechanics/kinematics/velocity-vs-time-plots': kinematicsVelocityTime,
+  'mechanics/kinematics/projectile-motion': kinematicsProjectileMotion,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
