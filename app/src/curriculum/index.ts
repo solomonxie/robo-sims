@@ -182,6 +182,7 @@ import { differentialEquationsEulerIntegration, differentialEquationsStepSize } 
 import { signalsSampleRate, signalsZTransformIntuition } from '../lessons/math/signals'
 import { bearingsBallBearings, bearingsBushings } from '../lessons/materials/bearings'
 import { beltsChainsCouplersShaftCouplers, beltsChainsCouplersTimingBelt } from '../lessons/materials/belts-chains-couplers'
+import { cadBasicsAssemblies, cadBasicsExportingStl, cadBasicsSketchAndExtrude } from '../lessons/materials/cad-basics'
 import { fastenersHeatSetInserts, fastenersMetricSizes, fastenersThreadLocker } from '../lessons/materials/fasteners'
 import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
@@ -733,6 +734,9 @@ const READY: Record<string, Lesson> = {
   'materials/bearings/bushings': bearingsBushings,
   'materials/belts-chains-couplers/timing-belt': beltsChainsCouplersTimingBelt,
   'materials/belts-chains-couplers/shaft-couplers': beltsChainsCouplersShaftCouplers,
+  'materials/cad-basics/sketch-and-extrude': cadBasicsSketchAndExtrude,
+  'materials/cad-basics/assemblies': cadBasicsAssemblies,
+  'materials/cad-basics/exporting-stl': cadBasicsExportingStl,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
