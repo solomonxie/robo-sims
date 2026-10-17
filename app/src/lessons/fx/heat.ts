@@ -172,3 +172,47 @@ export function boxFan(parent: THREE.Object3D, at: V3, size = 3) {
     },
   }
 }
+
+/** Clones every standard material under `group` so `set(f)` can tint it like a thermal camera (0 = off, 1 = white-hot). */
+export function heatTint(group: THREE.Object3D) {
+  const mats: THREE.MeshStandardMaterial[] = []
+  group.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (m.isMesh && m.material instanceof THREE.MeshStandardMaterial) mats.push((m.material = m.material.clone()))
+  })
+  const c = new THREE.Color()
+  return (f: number) => {
+    const t = clamp01(f)
+    ironbow(0.25 + 0.75 * t, c)
+    for (const m of mats) {
+      m.emissive.copy(c)
+      m.emissiveIntensity = t * 0.6
+    }
+  }
+}
+
+/** Plate-fin heatsink: base in the xy plane (w along x, l along y) behind z = 0, fins along y standing out along +z,
+ *  sizes in mm × `k`. `set(fins)` rebuilds the fins; `heat(f)` tints it. */
+export function finnedSink(parent: THREE.Object3D, at: V3, s: { w: number; l: number; finH: number; finT: number; baseT: number }, k: number) {
+  const group = add(parent, new THREE.Group(), at)
+  const m = new THREE.MeshStandardMaterial({ color: '#7d838e', roughness: 0.4, metalness: 0.55 })
+  box(group, [s.w * k, s.l * k, s.baseT * k], m, [0, 0, (-s.baseT * k) / 2])
+  const fins = add(group, new THREE.Group())
+  const geo = new THREE.BoxGeometry(s.finT * k, s.l * k, s.finH * k)
+  let count = 0
+  const c = new THREE.Color()
+  return {
+    group,
+    set(n: number) {
+      if (n === count) return
+      count = n
+      fins.clear()
+      for (let i = 0; i < n; i++) add(fins, mesh(geo, m), [(-s.w / 2 + s.finT / 2 + (i * (s.w - s.finT)) / (n - 1)) * k, 0, (s.finH * k) / 2])
+    },
+    heat(f: number) {
+      ironbow(0.15 + 0.7 * clamp01(f), c)
+      m.emissive.copy(c)
+      m.emissiveIntensity = clamp01(f) * 0.3
+    },
+  }
+}

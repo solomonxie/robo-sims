@@ -187,6 +187,7 @@ import { chassisDesignCableRouting, chassisDesignLayoutAndBalance } from '../les
 import { fastenersHeatSetInserts, fastenersMetricSizes, fastenersThreadLocker } from '../lessons/materials/fasteners'
 import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
+import { thermalDesignHeatsinks, thermalDesignMotorHeating } from '../lessons/materials/thermal-design'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -740,6 +741,8 @@ const READY: Record<string, Lesson> = {
   'materials/cad-basics/exporting-stl': cadBasicsExportingStl,
   'materials/chassis-design/layout-and-balance': chassisDesignLayoutAndBalance,
   'materials/chassis-design/cable-routing': chassisDesignCableRouting,
+  'materials/thermal-design/heatsinks': thermalDesignHeatsinks,
+  'materials/thermal-design/motor-heating': thermalDesignMotorHeating,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
