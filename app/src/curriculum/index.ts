@@ -153,6 +153,7 @@ import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from '../lesso
 import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from '../lessons/ai/neural-nets-101'
 import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
+import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -611,6 +612,8 @@ const READY: Record<string, Lesson> = {
   'ai/reinforcement-learning/reward-and-policy': reinforcementLearningRewardAndPolicy,
   'ai/reinforcement-learning/q-learning-gridworld': reinforcementLearningQLearningGridworld,
   'ai/reinforcement-learning/sim-to-real': reinforcementLearningSimToReal,
+  'ai/imitation-learning/behaviour-cloning': imitationLearningBehaviourCloning,
+  'ai/imitation-learning/data-collection': imitationLearningDataCollection,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
