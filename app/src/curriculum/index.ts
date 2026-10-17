@@ -158,6 +158,7 @@ import { newtonsLawsFMA, newtonsLawsFreeBodyDiagrams, newtonsLawsFriction } from
 import { kinematicsConstantAcceleration, kinematicsProjectileMotion, kinematicsVelocityTime } from '../lessons/mechanics/kinematics'
 import { torqueLeversLeverTypes, torqueLeversMomentArm, torqueLeversStaticBalance } from '../lessons/mechanics/torque-levers'
 import { rotationAngularMomentum, rotationFlywheel, rotationMomentOfInertia } from '../lessons/mechanics/rotation'
+import { energyWorkEfficiency, energyWorkKineticAndPotential, energyWorkWorkAndPower } from '../lessons/mechanics/energy-work'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -639,6 +640,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/rotation/moment-of-inertia': rotationMomentOfInertia,
   'mechanics/rotation/angular-momentum': rotationAngularMomentum,
   'mechanics/rotation/flywheel': rotationFlywheel,
+  'mechanics/energy-work/kinetic-and-potential': energyWorkKineticAndPotential,
+  'mechanics/energy-work/work-and-power': energyWorkWorkAndPower,
+  'mechanics/energy-work/efficiency': energyWorkEfficiency,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

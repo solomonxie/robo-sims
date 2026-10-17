@@ -1,4 +1,4 @@
-// Readouts: seven-segment digits, bar meter, multimeter and probes, phasor, clock face, USB logic analyser.
+// Readouts: seven-segment digits, bar meter, count bars, loss waterfall, multimeter and probes, phasor, clock face, USB logic analyser.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
 import { GREY, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
@@ -261,5 +261,39 @@ export function countBars(parent: THREE.Object3D, at: V3, labels: readonly strin
       })
     },
     rename: (j: number, text: string, c = GREY) => bars[j].name.set(text, c),
+  }
+}
+
+/** Waterfall of `labels.length` columns from `at` (bottom left), `w` wide, `h` tall: each column a kept part with a
+ *  lost part stacked on top, heights ÷ `full`; `set(kept, lost, texts, full, colors?)`, text above each column. */
+export function lossWaterfall(parent: THREE.Object3D, at: V3, labels: readonly string[], w: number, h: number, { size = 0.28, keep = POWER, lose = HIGH_V } = {}) {
+  const col = w / labels.length
+  flatBox(parent, [w, 0.06, 0.05], new THREE.MeshStandardMaterial({ color: '#3a3f4a', roughness: 0.8 }), [at[0] + w / 2, at[1] - 0.03, 0])
+  const cols = labels.map((text, j) => {
+    const x = at[0] + col * (j + 0.5)
+    const name = liveLabel(parent, [x, at[1] - 0.5, 0.2], { size })
+    name.set(text, GREY)
+    const parts = [keep, lose].map((c) => {
+      const m = glowMat(c, 0.9)
+      return { m, box: flatBox(parent, [col * 0.62, 1, 0.08], m, [x, at[1], 0.06]) }
+    })
+    return { x, name, parts, value: liveLabel(parent, [x, at[1], 0.2], { size: size * 0.95 }) }
+  })
+  return {
+    set(kept: readonly number[], lost: readonly number[], texts: readonly string[], full: number, colors?: readonly (readonly [string, string])[]) {
+      cols.forEach((c, j) => {
+        const hs = [kept[j], lost[j]].map((v) => Math.max(1e-3, (Math.max(0, v) / full) * h))
+        let y = at[1]
+        c.parts.forEach((p, i) => {
+          p.box.scale.y = hs[i]
+          p.box.position.y = y + hs[i] / 2
+          y += hs[i]
+          setGlow(p.m, colors?.[j]?.[i] ?? (i ? lose : keep), 0.9)
+        })
+        c.value.group.position.y = y + 0.45
+        c.value.set(texts[j], colors?.[j]?.[1] ?? LABEL)
+      })
+    },
+    rename: (j: number, text: string, c = GREY) => cols[j].name.set(text, c),
   }
 }
