@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
-import { DEG, crossView, dotView, polar3, projectionView, sub3, toDeg } from '../../core/physics'
+import { DEG, crossView, dotView, polar3, projectionView, sub3 } from '../../core/physics'
 import { Vec3 } from '../../core/fields'
-import { degText, fixedText, lengthText, signed } from '../../core/units'
+import { factorText, fixedText, lengthText, radText, signed, tupleText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -28,13 +28,10 @@ import {
   vecArrow,
   zUp,
   textRows,
+  WIDE_VIEW,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 
-const f2 = (v: number) => fixedText(v)
-const dg = (rad: number) => degText(toDeg(rad), 0)
-const fp = (v: number) => (v < -0.005 ? `(${f2(v)})` : f2(v))
-const xyz = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
 const PLOT = { x: 8.2, w: 11, y: 1.6, h: 6 }
 
 // --- Dot product: heading · to-target. Its sign says ahead or behind, its size is the target's shadow on the heading, cos θ checks the field of view. ---
@@ -57,7 +54,7 @@ export const vectorsDotProduct: Lesson = {
   tagline: 'Is the target in front of me? One multiply-add answers it',
   formula: (p) => {
     const { h, b, D, fov } = dpRun(p)
-    return `h·b = hx·bx + hy·by = ${f2(h[0])}·${fp(b[0])} + ${f2(h[1])}·${fp(b[1])} = ${f2(D.dot)} m = |h||b| cos θ = 1 · ${f2(D.lb)} · cos ${dg(D.theta)} · ${D.ahead ? 'ahead (> 0)' : 'behind (≤ 0)'} · cos θ ${f2(D.cos)} ${D.inView ? '≥' : '<'} cos ${fov / 2}° = ${f2(Math.cos((fov / 2) * DEG))} → ${D.inView ? 'in view' : 'out of view'}`
+    return `h·b = hx·bx + hy·by = ${fixedText(h[0])}·${factorText(b[0])} + ${fixedText(h[1])}·${factorText(b[1])} = ${fixedText(D.dot)} m = |h||b| cos θ = 1 · ${fixedText(D.lb)} · cos ${radText(D.theta)} · ${D.ahead ? 'ahead (> 0)' : 'behind (≤ 0)'} · cos θ ${fixedText(D.cos)} ${D.inView ? '≥' : '<'} cos ${fov / 2}° = ${fixedText(Math.cos((fov / 2) * DEG))} → ${D.inView ? 'in view' : 'out of view'}`
   },
   legend: [
     { color: B_FIELD, label: 'Heading h (length 1)', shape: 'dot' },
@@ -109,7 +106,7 @@ export const vectorsDotProduct: Lesson = {
     const rows = textRows(scene, 4)
     return {
       scene,
-      view: { center: [-1.2, -1, 0], radius: 56, polar: 1.45, azimuth: 0 },
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { h, b, D, fov, bearing } = dpRun(p)
         if (fov !== coneFov) {
@@ -124,7 +121,7 @@ export const vectorsDotProduct: Lesson = {
         const off = b[0] > 1e-9 ? -0.1 : 0.1
         hArrow([0, 0.02, z + 0.01], [h[0] * 0.45, 0.02 + h[1] * 0.45, z + 0.01], 'h', [-off, -0.1, 0])
         bArrow([0, 0, z], tip, 'b', [0.04, 0.04, 0])
-        shadow([off, 0, z + 0.02], [off, D.along, z + 0.02], `h·b = ${f2(D.dot)} m`, [off * 6, D.along >= 0 ? -0.1 : 0.1, 0])
+        shadow([off, 0, z + 0.02], [off, D.along, z + 0.02], `h·b = ${fixedText(D.dot)} m`, [off * 6, D.along >= 0 ? -0.1 : 0.1, 0])
         drop(tip, [off, D.along, z], GREY)
         arc([0, 0, z], [h[0], h[1], 0], [b[0], b[1], 0], 0.22, LABEL, 'θ')
         fovMat.color.set(D.inView ? POWER : GREY)
@@ -137,11 +134,11 @@ export const vectorsDotProduct: Lesson = {
         thrTag.set(`cos ${fov / 2}°`, RING)
         plot.lo.set('−180°')
         plot.hi.set('+180°')
-        plot.right.set(`now ${signed(bearing, 0)}°: ${f2(D.cos)}`, D.inView ? POWER : LABEL)
-        rows[0].set(`h·b = ${f2(h[0])}·${fp(b[0])} + ${f2(h[1])}·${fp(b[1])} = ${f2(D.dot)} m`, HEAT)
-        rows[1].set(`|h||b| cos θ = 1 · ${f2(D.lb)} · cos ${dg(D.theta)} = ${f2(D.dot)} m`, LABEL)
+        plot.right.set(`now ${signed(bearing, 0)}°: ${fixedText(D.cos)}`, D.inView ? POWER : LABEL)
+        rows[0].set(`h·b = ${fixedText(h[0])}·${factorText(b[0])} + ${fixedText(h[1])}·${factorText(b[1])} = ${fixedText(D.dot)} m`, HEAT)
+        rows[1].set(`|h||b| cos θ = 1 · ${fixedText(D.lb)} · cos ${radText(D.theta)} = ${fixedText(D.dot)} m`, LABEL)
         rows[2].set(D.ahead ? 'positive → target ahead' : Math.abs(D.dot) < 1e-9 ? 'zero → exactly abeam' : 'negative → target behind', D.ahead ? POWER : HIGH_V)
-        rows[3].set(`cos θ ${f2(D.cos)} ${D.inView ? '≥' : '<'} cos ${fov / 2}° ${f2(c0)} → ${D.inView ? 'in view' : 'out of view'}`, D.inView ? POWER : GREY)
+        rows[3].set(`cos θ ${fixedText(D.cos)} ${D.inView ? '≥' : '<'} cos ${fov / 2}° ${fixedText(c0)} → ${D.inView ? 'in view' : 'out of view'}`, D.inView ? POWER : GREY)
         head.status.set(`Dot product · target ${lengthText(D.lb)} away at ${Math.abs(bearing)}°${sideWord(bearing)}`)
         head.sub.set('top view · robot faces up the floor · tape every 0.5 m · robot drawn 2.8× size', GREY)
         head.event.set(D.inView ? 'in the camera cone: turn the tracker on' : D.ahead ? 'ahead, but outside the field of view' : 'behind the robot: the shadow points backwards', D.inView ? POWER : D.ahead ? RING : HIGH_V)
@@ -149,8 +146,8 @@ export const vectorsDotProduct: Lesson = {
       readouts: (p) => {
         const { D, fov } = dpRun(p)
         return [
-          { label: 'h·b (shadow on heading)', value: `${f2(D.dot)} m` },
-          { label: 'Angle θ = acos(h·b / |b|)', value: dg(D.theta) },
+          { label: 'h·b (shadow on heading)', value: `${fixedText(D.dot)} m` },
+          { label: 'Angle θ = acos(h·b / |b|)', value: radText(D.theta) },
           { label: 'Ahead or behind', value: D.ahead ? 'ahead' : 'behind or abeam', tone: D.ahead ? 'ok' : 'bad' },
           { label: `In a ${fov}° field of view`, value: D.inView ? 'yes' : 'no', tone: toneOf(D.inView, D.ahead) },
         ]
@@ -167,7 +164,7 @@ const CROSS_USES = {
   normal: { name: 'Surface normal', a: 'edge e1', b: 'edge e2', c: 'n', la: 0.3, lb: 0.2, au: ' m', bu: ' m', cu: 'm²' },
 } as const
 type CrossUse = keyof typeof CROSS_USES
-const CP = { at: [-9.6, -2.3, 0] as V3, k: 6.4, da: 1, db: 0.8, up: 0.5 }
+const CP = { at: [-9.6, -3.6, 0] as V3, k: 7.2, da: 1, db: 0.8, up: 0.5 }
 const cpRun = memoBy(
   (p: Params) => `${p.theta} ${p.lift} ${p.use}`,
   (p: Params) => {
@@ -187,7 +184,7 @@ export const vectorsCrossProduct: Lesson = {
   tagline: 'An arrow at right angles to both: turn side, torque, surface normal',
   formula: (p) => {
     const { a, b, C, U } = cpRun(p)
-    return `a × b = (ay bz − az by, az bx − ax bz, ax by − ay bx) = ${xyz(C.c)} ${U.cu} · |a × b| = |a||b| sin θ = ${f2(U.la * U.lb)} · sin ${dg(C.theta)} = ${f2(C.area)} ${U.cu} · 2D: ax by − ay bx = ${f2(a[0] * b[1] - a[1] * b[0])} → ${C.turn}`
+    return `a × b = (ay bz − az by, az bx − ax bz, ax by − ay bx) = ${tupleText(C.c)} ${U.cu} · |a × b| = |a||b| sin θ = ${fixedText(U.la * U.lb)} · sin ${radText(C.theta)} = ${fixedText(C.area)} ${U.cu} · 2D: ax by − ay bx = ${fixedText(a[0] * b[1] - a[1] * b[0])} → ${C.turn}`
   },
   legend: [
     { color: B_FIELD, label: 'a', shape: 'dot' },
@@ -234,7 +231,7 @@ export const vectorsCrossProduct: Lesson = {
     const rows = textRows(scene, 4)
     return {
       scene,
-      view: { center: [-1.2, -1, 0], radius: 56, polar: 1.45, azimuth: 0 },
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { use, U, a, b, C, da, db, theta, lift: up } = cpRun(p)
         const z = 0.04
@@ -261,11 +258,11 @@ export const vectorsCrossProduct: Lesson = {
         plot.lo.set('−180°')
         plot.hi.set('+180°')
         plot.right.set(`z ${signed(C.z / (U.la * U.lb), 2)} |a||b|`, C.turn === 'left' ? POWER : C.turn === 'right' ? HIGH_V : LABEL)
-        const unitOf = (v: number, s: string) => `${f2(v)}${s}`
-        rows[0].set(`a = ${xyz(a)}${U.au}, b = ${xyz(b)}${U.bu}`, LABEL)
-        rows[1].set(`a × b = ${xyz(C.c)} ${U.cu}`, POWER)
-        rows[2].set(`|a × b| = ${unitOf(U.la, '')} · ${unitOf(U.lb, '')} · sin ${dg(C.theta)} = ${f2(C.area)} ${U.cu}`, HEAT)
-        rows[3].set(use === 'turn' ? turnText(C.turn) : use === 'torque' ? `τz ${signed(C.z, 2)} N·m: ${C.z > 0 ? 'counter-clockwise' : C.z < 0 ? 'clockwise' : 'no turn'} from above` : `n = ${xyz(C.area > 1e-9 ? C.c.map((v) => v / C.area) : [0, 0, 0])}: ${Math.abs(up) < 1 ? 'flat floor, n straight up' : 'tilted face, n tilts too'}`, C.turn === 'right' ? HIGH_V : POWER)
+        const unitOf = (v: number, s: string) => `${fixedText(v)}${s}`
+        rows[0].set(`a = ${tupleText(a)}${U.au}, b = ${tupleText(b)}${U.bu}`, LABEL)
+        rows[1].set(`a × b = ${tupleText(C.c)} ${U.cu}`, POWER)
+        rows[2].set(`|a × b| = ${unitOf(U.la, '')} · ${unitOf(U.lb, '')} · sin ${radText(C.theta)} = ${fixedText(C.area)} ${U.cu}`, HEAT)
+        rows[3].set(use === 'turn' ? turnText(C.turn) : use === 'torque' ? `τz ${signed(C.z, 2)} N·m: ${C.z > 0 ? 'counter-clockwise' : C.z < 0 ? 'clockwise' : 'no turn'} from above` : `n = ${tupleText(C.area > 1e-9 ? C.c.map((v) => v / C.area) : [0, 0, 0])}: ${Math.abs(up) < 1 ? 'flat floor, n straight up' : 'tilted face, n tilts too'}`, C.turn === 'right' ? HIGH_V : POWER)
         head.status.set(`Cross product · ${U.name} · floor angle ${signed(theta, 0)}°, b lifted ${signed(up, 0)}°`)
         head.sub.set('3D view · floor tape every 0.5 m · arrows drawn at a fixed length', GREY)
         head.event.set(C.area < 1e-9 ? 'a and b parallel: no area, no cross product' : `a × b stands square to a and b: ${C.turn === 'straight' ? 'lies in the floor' : C.turn === 'left' ? 'thumb up' : 'thumb down'}`, C.area < 1e-9 ? HIGH_V : POWER)
@@ -273,9 +270,9 @@ export const vectorsCrossProduct: Lesson = {
       readouts: (p) => {
         const { C, U } = cpRun(p)
         return [
-          { label: 'a × b', value: `${xyz(C.c)} ${U.cu}` },
-          { label: 'Length = parallelogram area', value: `${f2(C.area)} ${U.cu}` },
-          { label: 'Angle θ', value: dg(C.theta) },
+          { label: 'a × b', value: `${tupleText(C.c)} ${U.cu}` },
+          { label: 'Length = parallelogram area', value: `${fixedText(C.area)} ${U.cu}` },
+          { label: 'Angle θ', value: radText(C.theta) },
           { label: 'z sign: b seen from above', value: C.turn, tone: C.turn === 'straight' ? 'warn' : 'ok' },
         ]
       },
@@ -285,7 +282,7 @@ export const vectorsCrossProduct: Lesson = {
 
 // --- Projection: split p − a into along the path, across it in the plane, and off the plane; the closest point on a segment clamps. ---
 
-const PJ = { at: [-12, -1.8, 0] as V3, k: 8.4, s0: -0.4, s1: 1.4, N: 145 }
+const PJ = { at: [-12, -3, 0] as V3, k: 8.4, s0: -0.4, s1: 1.4, N: 145 }
 const pjParams = (p: Params) => ({ x: n(p, 'x'), y: n(p, 'y'), z: n(p, 'z'), tilt: n(p, 'tilt') })
 const planeN = (tilt: number): Vec3 => [0, -Math.sin(tilt * DEG), Math.cos(tilt * DEG)]
 const A: Vec3 = [0, 0, 0]
@@ -312,7 +309,7 @@ export const vectorsProjection: Lesson = {
   tagline: 'How far along, how far off: a line follower\'s two numbers',
   formula: (p) => {
     const { P } = pjRun(p)
-    return `v = p − a · along = v·u = ${f2(P.along)} m (t = ${f2(P.t)}) · across = v·m = ${f2(P.side)} m · off the plane = v·n = ${f2(P.up)} m · v = (v·u)u + (v·m)m + (v·n)n · shadow = p − (v·n)n · closest on segment: t clamped to 0…1 → ${lengthText(P.segDist)}`
+    return `v = p − a · along = v·u = ${fixedText(P.along)} m (t = ${fixedText(P.t)}) · across = v·m = ${fixedText(P.side)} m · off the plane = v·n = ${fixedText(P.up)} m · v = (v·u)u + (v·m)m + (v·n)n · shadow = p − (v·n)n · closest on segment: t clamped to 0…1 → ${lengthText(P.segDist)}`
   },
   legend: [
     { color: RING, label: 'v = p − a', shape: 'dot' },
@@ -370,7 +367,7 @@ export const vectorsProjection: Lesson = {
     const yOf = (d: number) => -PLOT.h / 2 + (Math.min(d, 1) / 1) * PLOT.h
     return {
       scene,
-      view: { center: [-1.2, -1, 0], radius: 56, polar: 1.45, azimuth: 0 },
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { x, y, z, tilt, P } = pjRun(p)
         ramp.rotation.x = tilt * DEG
@@ -399,20 +396,20 @@ export const vectorsProjection: Lesson = {
         plot.lo.set(`${PJ.s0} m`)
         plot.hi.set(`${PJ.s1} m`)
         plot.right.set(`now ${lengthText(P.segDist)}${P.clamped ? ', end' : ''}`, P.clamped ? HIGH_V : LABEL)
-        rows[0].set(`along v·u = ${f2(P.along)} m → t = ${f2(P.t)}${P.clamped ? `, clamped to ${P.tc}` : ''}`, HEAT)
+        rows[0].set(`along v·u = ${fixedText(P.along)} m → t = ${fixedText(P.t)}${P.clamped ? `, clamped to ${P.tc}` : ''}`, HEAT)
         rows[1].set(`across v·m = ${signed(P.side, 2)} m (${P.side >= 0 ? 'left' : 'right'} of the path)`, B_FIELD)
-        rows[2].set(`off the ramp v·n = ${f2(P.up)} m → shadow = p − (v·n)n`, POWER)
-        rows[3].set(`check: ${f2(P.along)}² + ${fp(P.side)}² + ${fp(P.up)}² = |v|² = ${f2(Math.hypot(...sub3([x, y, z], A)) ** 2)}`, GREY)
-        head.status.set(`Projection · p = ${xyz(pt)} m · ramp ${tilt}°`)
+        rows[2].set(`off the ramp v·n = ${fixedText(P.up)} m → shadow = p − (v·n)n`, POWER)
+        rows[3].set(`check: ${fixedText(P.along)}² + ${factorText(P.side)}² + ${factorText(P.up)}² = |v|² = ${fixedText(Math.hypot(...sub3([x, y, z], A)) ** 2)}`, GREY)
+        head.status.set(`Projection · p = ${tupleText(pt)} m · ramp ${tilt}°`)
         head.sub.set('3D view · path a → b is 1 m on the ramp · floor tape every 0.5 m', GREY)
         head.event.set(P.clamped ? `past ${P.t < 0 ? 'a' : 'b'}: the closest point is the end, not the foot` : 'between a and b: the closest point is the foot of the perpendicular', P.clamped ? HIGH_V : POWER)
       },
       readouts: (p) => {
         const { P } = pjRun(p)
         return [
-          { label: 'Along (t)', value: `${f2(P.along)} m (${f2(P.t)})`, tone: P.clamped ? 'warn' : 'ok' },
+          { label: 'Along (t)', value: `${fixedText(P.along)} m (${fixedText(P.t)})`, tone: P.clamped ? 'warn' : 'ok' },
           { label: 'Cross-track (+ left)', value: `${signed(P.side, 2)} m` },
-          { label: 'Off the plane', value: `${f2(P.up)} m` },
+          { label: 'Off the plane', value: `${fixedText(P.up)} m` },
           { label: 'Distance to segment', value: lengthText(P.segDist), tone: P.clamped ? 'warn' : 'ok' },
         ]
       },

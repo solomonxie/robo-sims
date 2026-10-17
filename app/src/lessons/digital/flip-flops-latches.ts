@@ -24,6 +24,7 @@ import {
   signalWire,
   timingDiagram,
   wire,
+  rand01,
 } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
@@ -136,7 +137,7 @@ export const srLatch: Lesson = {
         const [q, nq] = v.state
         s.race = !S && !R && q === nq ? s.race + dt : 0
         if (s.race > RACE_S) {
-          const w = bit(Math.random() < 0.5)
+          const w = bit(rand01() < 0.5)
           v.state = [w, bit(!w)]
           s.race = 0
         }

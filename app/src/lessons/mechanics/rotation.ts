@@ -1,9 +1,9 @@
-import { FLYWHEELS, Flywheel, RPM_PER_RADS, RotorShape, SHOOTER, SPINNER, SpinMode, fixedStepAt, raceAngle, reactionRatio, rotorInertias, shooterRun, spinRace, spinnerRun } from '../../core/physics'
+import { FLYWHEELS, RPM_PER_RADS, RotorShape, SHOOTER, SPINNER, SpinMode, fixedStepAt, raceAngle, reactionRatio, rotorInertias, shooterRun, spinRace, spinnerRun } from '../../core/physics'
 import { energyText, mpsText, secsText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, dotPen, lapseClock, liveLabel, memoBy, plotPanel, sideView, statusHeader, tiltRig, traceRun } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
+import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
 const VIEW = sideView(-2.4, -0.4)
@@ -318,7 +318,7 @@ export const rotationAngularMomentum: Lesson = {
 // --- Flywheel: a ball shooter with no / small / big flywheel; energy ½Iω² per shot, speed sag and spin-up time. ---
 
 const FW = { k: 42, at: [-10, -1.6, 0] as V3, ballR: 0.025, plot: [7.2, 1.2, 0] as V3, w: 11, h: 4.6, bars: [4.6, -4, 0] as V3, draw: 1 / 40, fly: 0.4, flyK: 0.025, rest: 1.5 }
-const WHEELS = Object.fromEntries(Object.entries(FLYWHEELS).map(([k, v]) => [k, v.name])) as Record<Flywheel, string>
+const WHEELS = namesOf(FLYWHEELS)
 const fwParams = (p: Params) => ({ fly: pick(WHEELS, p.fly, 'small'), gap: n(p, 'gap'), ballKg: n(p, 'ball') / 1000 })
 type FwQ = ReturnType<typeof fwParams>
 const fwKey = (q: FwQ) => `${q.fly}|${q.gap}|${q.ballKg}`

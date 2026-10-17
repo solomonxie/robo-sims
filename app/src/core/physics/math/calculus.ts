@@ -3,11 +3,11 @@ import { gaussAt } from '../common'
 
 // --- A robot driving a straight line: speed v = a + b·sin(2πt/P), position x = ∫v. ---
 
-export const DRIVE_T = 6
+const DRIVE_T = 6
 export const ENCODER_DT = 0.02
 const PERIOD = 4
 export const LINE_DRIVES = { cruise: { a: 0.25, b: 0.15 }, reverse: { a: 0.05, b: 0.3 } } as const
-export type LineDrive = keyof typeof LINE_DRIVES
+type LineDrive = keyof typeof LINE_DRIVES
 
 /** Position (m), speed (m/s) and acceleration (m/s²) at t. */
 export function lineDriveAt(kind: LineDrive, t: number) {
@@ -17,7 +17,7 @@ export function lineDriveAt(kind: LineDrive, t: number) {
 }
 
 /** Encoder position samples every `dt` with Gaussian noise σ (m), repeatable. */
-export const encoderSamples = (kind: LineDrive, sigma: number, dt = ENCODER_DT, T = DRIVE_T) =>
+const encoderSamples = (kind: LineDrive, sigma: number, dt = ENCODER_DT, T = DRIVE_T) =>
   Array.from({ length: Math.round(T / dt) + 1 }, (_, i) => lineDriveAt(kind, i * dt).x + sigma * gaussAt(i + 101))
 
 /**

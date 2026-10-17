@@ -37,6 +37,7 @@ import {
   siliconCrystal,
   ticks,
   wire,
+  rand01,
 } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
@@ -225,7 +226,7 @@ export const bandGap: Lesson = {
           const taken = new Set(excited.flatMap((e) => [e.hole, e.holeFrom]))
           if (pairs.length < want) {
             const open = Array.from({ length: VB_COLS * 2 }, (_, i) => i).filter((i) => !taken.has(i))
-            const hole = open[Math.floor(Math.random() * open.length)]
+            const hole = open[Math.floor(rand01() * open.length)]
             const from = dotAt(hole, new THREE.Vector3())
             const to = cbSpot()
             excited.push({ hole, holeFrom: hole, holeT: 1, wait: rand(0.8, 2), up: 0, from: from.clone().setX(from.x - BX), to, fall: -1, fallFrom: new THREE.Vector3(), p: to.clone(), v: new THREE.Vector3() })
@@ -250,7 +251,7 @@ export const bandGap: Lesson = {
               const opts = neighbours(e.hole).filter((j) => !taken.has(j))
               if (opts.length) {
                 e.holeFrom = e.hole
-                e.hole = opts[Math.floor(Math.random() * opts.length)]
+                e.hole = opts[Math.floor(rand01() * opts.length)]
                 e.holeT = 0
                 taken.add(e.hole)
               }
@@ -265,7 +266,7 @@ export const bandGap: Lesson = {
             e.up = Math.min(1, e.up + dt / 0.5)
             continue
           }
-          if (Math.random() < dt * 2) e.v.set(rand(-1, 1), rand(-0.5, 0.5), 0).setLength(thermal)
+          if (rand01() < dt * 2) e.v.set(rand(-1, 1), rand(-0.5, 0.5), 0).setLength(thermal)
           e.p.addScaledVector(e.v, dt)
           const floor = m === 'copper' ? OVERLAP + 0.3 : 0.35
           if (Math.abs(e.p.x) > BW / 2 - 0.4) {

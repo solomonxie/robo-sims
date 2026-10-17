@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { stdDev } from '../common'
 import { integrateRate } from '../sensors/imu'
 import { RULES, Rule, TURN, areaView, diffTradeoff, gyroIntegrate, integrateRule, lineDriveAt, ruleErrors, ruleStrips, runningIntegral, secantView, turnAngle, turnRate } from './calculus'
@@ -85,14 +86,15 @@ describe('numerical integration', () => {
     expect(g.angles[8] - gyroIntegrate('trap', 16, 0).angles[8]).toBeCloseTo(4, 9)
   })
   it('recomputes fast', () => {
-    const t0 = performance.now()
-    for (let i = 0; i < 20; i++) {
-      secantView('reverse', 1, 0.3, 0.002)
-      areaView('reverse', 6, 48)
-      gyroIntegrate('simpson', 32, 3)
-      ruleErrors('trap', Array.from({ length: 16 }, (_, k) => 2 + 2 * k))
-    }
-    expect((performance.now() - t0) / 20).toBeLessThan(50)
+    const ms = medianMs(() => {
+      for (let i = 0; i < 20; i++) {
+        secantView('reverse', 1, 0.3, 0.002)
+        areaView('reverse', 6, 48)
+        gyroIntegrate('simpson', 32, 3)
+        ruleErrors('trap', Array.from({ length: 16 }, (_, k) => 2 + 2 * k))
+      }
+    })
+    expect(ms / 20).toBeLessThan(50)
   })
 })
 

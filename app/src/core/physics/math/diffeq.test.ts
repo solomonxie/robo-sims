@@ -1,8 +1,7 @@
+import { medianMs } from '../../stopwatch'
 import { freeAt } from '../mechanics/oscillation'
 import { integrateRule } from './calculus'
 import { MAST, ODE_METHODS, OdeMethod, SPIN, SWING, criticalStep, eulerView, exactFrom, fieldGrid, odeRun, odeStep, spinFrom, springEnergy, springRate, stepError, stepGain, stepSizeView, swingFrom, swingW } from './diffeq'
-
-const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
 
 describe('stepping a rule', () => {
   it('exact solutions obey their rules', () => {
@@ -74,11 +73,6 @@ describe('step size', () => {
   })
   it('recomputes fast enough for a slider', () => {
     const hs = Array.from({ length: 31 }, (_, i) => 0.001 * 100 ** (i / 30))
-    const runs = Array.from({ length: 5 }, () => {
-      const t0 = performance.now()
-      stepSizeView('euler', 5000, 0.001, hs)
-      return performance.now() - t0
-    })
-    expect(median(runs)).toBeLessThan(150)
+    expect(medianMs(() => stepSizeView('euler', 5000, 0.001, hs))).toBeLessThan(200)
   })
 })

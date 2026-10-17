@@ -28,13 +28,11 @@ import {
   titledScope,
   vecArrow,
   textRows,
+  WIDE_VIEW,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
 
-const f2 = (v: number) => fixedText(v)
-const dg = (rad: number) => radText(rad, 0)
-const rd = (rad: number) => `${f2(rad)} rad`
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
+const rd = (rad: number) => `${fixedText(rad)} rad`
 const ball = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 18, 12), glowMat(c, 1.1)))
 const ringDots = (g: THREE.Object3D, k: number, r: number) => {
   const dots = pointCloud(g, k, r)
@@ -50,7 +48,7 @@ const quadName = (q: number) => ['on an axis', 'quadrant I', 'quadrant II', 'qua
 
 // --- Unit circle: a point going round; cos θ and sin θ are its x and y shadows, unrolled into waves. ---
 
-const UC = { at: [-9.6, -4, 0] as V3, k: 5.4, x: 9.4, w: 11, h: 5.6, ys: 0.4, yc: -8.4, span: 360 }
+const UC = { at: [-9.6, -5.2, 0] as V3, k: 5.8, x: 9.4, w: 11, h: 6, ys: -0.4, yc: -9.6, span: 360 }
 const ucRun = memoBy(
   (p: Params) => `${p.th}`,
   (p: Params) => {
@@ -65,7 +63,7 @@ export const trigonometryUnitCircle: Lesson = {
   tagline: 'cos and sin are just the x and y of a point going round',
   formula: (p) => {
     const { th, U } = ucRun(p)
-    return `point = (cos θ, sin θ) · θ = ${th}° = ${rd(U.th)} (180° = π rad) · cos θ = ${f2(U.x)}, sin θ = ${f2(U.y)} · cos² + sin² = ${f2(U.check)} · same direction as ${dg(U.wrapped)} (wrapped to −180°…+180°) · ${f2(U.turns)} turns`
+    return `point = (cos θ, sin θ) · θ = ${th}° = ${rd(U.th)} (180° = π rad) · cos θ = ${fixedText(U.x)}, sin θ = ${fixedText(U.y)} · cos² + sin² = ${fixedText(U.check)} · same direction as ${radText(U.wrapped)} (wrapped to −180°…+180°) · ${fixedText(U.turns)} turns`
   },
   legend: [
     { color: RING, label: 'Radius 1 at angle θ', shape: 'dot' },
@@ -107,10 +105,10 @@ export const trigonometryUnitCircle: Lesson = {
       const plot = titledScope(scene, s.y, UC.h, s.title, s.c, 0.5, UC.x, UC.w)
       return { ...s, plot, tr: plot.s.trace(s.c, { samples: 241, radius: 0.06 }) }
     })
-    const rows = textRows(scene, 2, -16.4, -11.6, 0.34)
+    const rows = textRows(scene, 2, -16.4, -13.2, 0.34)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { th, U } = ucRun(p)
         const swept = Math.abs(U.th)
@@ -126,7 +124,7 @@ export const trigonometryUnitCircle: Lesson = {
         sinA([U.x, 0, 0.04], [U.x, U.y, 0.04], 'sin', [U.x >= 0 ? 0.14 : -0.14, 0, 0])
         drops[0](P, [U.x, 0, 0.03], GREY)
         drops[1](P, [0, U.y, 0.03], GREY)
-        arc([0, 0, 0.03], [1, 0, 0], [U.x, U.y, 0], 0.3, LABEL, dg(U.wrapped))
+        arc([0, 0, 0.03], [1, 0, 0], [U.x, U.y, 0], 0.3, LABEL, radText(U.wrapped))
         dot.position.set(U.x, U.y, 0.04)
 
         const u = (th + UC.span) / (2 * UC.span)
@@ -134,22 +132,22 @@ export const trigonometryUnitCircle: Lesson = {
           s.tr.draw((v) => (s.f((v * 2 - 1) * UC.span * DEG) * UC.h) / 2.3, u)
           s.plot.lo.set('−360°')
           s.plot.hi.set('+360°')
-          s.plot.right.set(`θ ${signed(th, 0)}°: ${f2(s.f(U.th))}`, s.c)
+          s.plot.right.set(`θ ${signed(th, 0)}°: ${fixedText(s.f(U.th))}`, s.c)
         }
-        rows[0].set(`θ = ${th}° = ${rd(U.th)} = ${f2(U.turns)} turns`, HEAT)
-        rows[1].set(`(cos θ, sin θ) = (${f2(U.x)}, ${f2(U.y)}) · cos² + sin² = ${f2(U.check)}`, LABEL)
+        rows[0].set(`θ = ${th}° = ${rd(U.th)} = ${fixedText(U.turns)} turns`, HEAT)
+        rows[1].set(`(cos θ, sin θ) = (${fixedText(U.x)}, ${fixedText(U.y)}) · cos² + sin² = ${fixedText(U.check)}`, LABEL)
         head.status.set(`Unit circle · θ ${signed(th, 0)}° · ${quadName(U.quadrant)}`)
         head.sub.set('face-on · radius 1 · counter-clockwise from the x axis is positive', GREY)
         const wraps = Math.abs(toDeg(U.wrapped) - th) > 1e-6
-        head.event.set(wraps ? `points the same way as ${dg(U.wrapped)}: wrap to ±180°` : 'already inside −180°…+180°', wraps ? HEAT : POWER)
+        head.event.set(wraps ? `points the same way as ${radText(U.wrapped)}: wrap to ±180°` : 'already inside −180°…+180°', wraps ? HEAT : POWER)
       },
       readouts: (p) => {
         const { th, U } = ucRun(p)
         return [
-          { label: 'cos θ (x)', value: f2(U.x) },
-          { label: 'sin θ (y)', value: f2(U.y) },
+          { label: 'cos θ (x)', value: fixedText(U.x) },
+          { label: 'sin θ (y)', value: fixedText(U.y) },
           { label: 'In radians', value: rd(th * DEG) },
-          { label: 'Wrapped to ±180°', value: dg(U.wrapped), tone: Math.abs(toDeg(U.wrapped) - th) > 1e-6 ? 'warn' : 'ok' },
+          { label: 'Wrapped to ±180°', value: radText(U.wrapped), tone: Math.abs(toDeg(U.wrapped) - th) > 1e-6 ? 'warn' : 'ok' },
         ]
       },
     }
@@ -166,7 +164,7 @@ const atRun = memoBy(
     return { tx, ty, heading, V: bearingView(tx, ty, heading * DEG) }
   },
 )
-const naiveText = (v: number | null) => (v === null ? 'undefined (x = 0)' : dg(v))
+const naiveText = (v: number | null) => (v === null ? 'undefined (x = 0)' : radText(v))
 
 export const trigonometryAtan2: Lesson = {
   id: 'trigonometry-atan2',
@@ -174,7 +172,7 @@ export const trigonometryAtan2: Lesson = {
   tagline: 'Which way is the target? atan2 gets all four quadrants right',
   formula: (p) => {
     const { tx, ty, V } = atRun(p)
-    return `bearing = atan2(y, x) = atan2(${f2(ty)}, ${f2(tx)}) = ${dg(V.bearing)} · atan(y/x) = ${naiveText(V.naive)}${V.naiveOff !== null && Math.abs(V.naiveOff) > 1e-6 ? ' (off by 180°)' : ''} · heading error = wrap(bearing − heading) = wrap(${dg(V.raw)}) = ${dg(V.error)} → turn ${V.side}`
+    return `bearing = atan2(y, x) = atan2(${fixedText(ty)}, ${fixedText(tx)}) = ${radText(V.bearing)} · atan(y/x) = ${naiveText(V.naive)}${V.naiveOff !== null && Math.abs(V.naiveOff) > 1e-6 ? ' (off by 180°)' : ''} · heading error = wrap(bearing − heading) = wrap(${radText(V.raw)}) = ${radText(V.error)} → turn ${V.side}`
   },
   legend: [
     { color: POWER, label: 'atan2(y, x): true bearing', shape: 'dot' },
@@ -219,7 +217,7 @@ export const trigonometryAtan2: Lesson = {
     const rows = textRows(scene, 4, 2.4, -3.4, 0.32)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { tx, ty, heading: hd, V } = atRun(p)
         const z = 0.03
@@ -233,7 +231,7 @@ export const trigonometryAtan2: Lesson = {
         naive([0, 0, z + 0.01], V.naive === null ? [0, 0, z + 0.01] : [nr * Math.cos(V.naive), nr * Math.sin(V.naive), z + 0.01], off && V.naive !== null ? 'atan(y/x)' : '', [0, -0.08, 0])
         const h: V3 = [Math.cos(hd * DEG), Math.sin(hd * DEG), 0]
         heading([0, 0, z + 0.02], [h[0] * 0.6, h[1] * 0.6, z + 0.02], 'heading', [h[0] * 0.12, h[1] * 0.12 + 0.05, 0])
-        errArc([0, 0, z], h, [tx, ty, 0], 0.36, HEAT, dg(V.error))
+        errArc([0, 0, z], h, [tx, ty, 0], 0.36, HEAT, radText(V.error))
         thArc([0, 0, z], [1, 0, 0], [tx, ty, 0], 0.2, LABEL)
 
         const r = Math.max(V.dist, 0.3)
@@ -244,13 +242,13 @@ export const trigonometryAtan2: Lesson = {
         trNaive.draw((u) => yOf(Math.atan(Math.tan(angAt(u)))), V.naive === null ? null : toU(V.bearing))
         plot.lo.set('target at −180°')
         plot.hi.set('+180°')
-        plot.right.set(`now ${dg(V.bearing)}`, POWER)
+        plot.right.set(`now ${radText(V.bearing)}`, POWER)
 
-        rows[0].set(`atan2(${f2(ty)}, ${f2(tx)}) = ${dg(V.bearing)} · ${quadName(V.quadrant)}`, POWER)
-        rows[1].set(`atan(y/x) = atan(${V.naive === null ? `${f2(ty)}/0` : f2(ty / tx)}) = ${naiveText(V.naive)}${off && V.naive !== null ? ': off by 180°' : ''}`, off ? HIGH_V : LABEL)
-        rows[2].set(`bearing − heading = ${dg(V.bearing)} − ${hd}° = ${dg(V.raw)}`, V.wrapped ? GREY : LABEL)
-        rows[3].set(`wrapped: ${dg(V.error)} → turn ${V.side}${V.wrapped ? ', the short way' : ''}`, HEAT)
-        head.status.set(`atan2 · target (${f2(tx)}, ${f2(ty)}) m · heading ${signed(hd, 0)}°`)
+        rows[0].set(`atan2(${fixedText(ty)}, ${fixedText(tx)}) = ${radText(V.bearing)} · ${quadName(V.quadrant)}`, POWER)
+        rows[1].set(`atan(y/x) = atan(${V.naive === null ? `${fixedText(ty)}/0` : fixedText(ty / tx)}) = ${naiveText(V.naive)}${off && V.naive !== null ? ': off by 180°' : ''}`, off ? HIGH_V : LABEL)
+        rows[2].set(`bearing − heading = ${radText(V.bearing)} − ${hd}° = ${radText(V.raw)}`, V.wrapped ? GREY : LABEL)
+        rows[3].set(`wrapped: ${radText(V.error)} → turn ${V.side}${V.wrapped ? ', the short way' : ''}`, HEAT)
+        head.status.set(`atan2 · target (${fixedText(tx)}, ${fixedText(ty)}) m · heading ${signed(hd, 0)}°`)
         head.sub.set('top view · x axis = 0°, counter-clockwise + · robot 2.2× size', GREY)
         head.event.set(
           V.naive === null ? 'x = 0: atan(y/x) divides by zero, atan2 is fine' : off ? 'left half: atan(y/x) points the opposite way' : V.wrapped ? 'raw difference past ±180°: wrap it' : 'right half: atan and atan2 agree here',
@@ -261,10 +259,10 @@ export const trigonometryAtan2: Lesson = {
         const { V } = atRun(p)
         const off = V.naive === null || Math.abs(V.naiveOff ?? 0) > 1e-6
         return [
-          { label: 'atan2(y, x)', value: dg(V.bearing), tone: 'ok' },
+          { label: 'atan2(y, x)', value: radText(V.bearing), tone: 'ok' },
           { label: 'atan(y/x)', value: naiveText(V.naive), tone: off ? 'bad' : 'ok' },
-          { label: 'bearing − heading (raw)', value: dg(V.raw), tone: V.wrapped ? 'warn' : 'ok' },
-          { label: 'Heading error (wrapped)', value: `${dg(V.error)} ${V.side}` },
+          { label: 'bearing − heading (raw)', value: radText(V.raw), tone: V.wrapped ? 'warn' : 'ok' },
+          { label: 'Heading error (wrapped)', value: `${radText(V.error)} ${V.side}` },
         ]
       },
     }
@@ -274,7 +272,7 @@ export const trigonometryAtan2: Lesson = {
 // --- Law of cosines: two links and the distance to the target fix the elbow angle; two mirror solutions; out of range, no triangle. ---
 
 const ELBOWS = { up: 'Elbow up', down: 'Elbow down' }
-const LC = { at: [-9.6, -7.2, 0] as V3, k: 36, ring: [-15 * DEG, 180 * DEG] as const, dMax: 0.32, x: 9.6, w: 10, y: 1.4, h: 6.4 }
+const LC = { at: [-9.6, -8, 0] as V3, k: 38, ring: [-15 * DEG, 180 * DEG] as const, dMax: 0.32, x: 9.6, w: 10, y: 1.4, h: 6.4 }
 const lcRun = memoBy(
   (p: Params) => `${p.a} ${p.b} ${p.d} ${p.dir} ${p.elbow}`,
   (p: Params) => {
@@ -290,7 +288,7 @@ export const trigonometryLawOfCosines: Lesson = {
   tagline: 'Three sides fix a triangle: the elbow angle of a two-link arm',
   formula: (p) => {
     const { a, b, d, E } = lcRun(p)
-    return `c² = a² + b² − 2ab·cos C · cos C = (a² + b² − c²)/(2ab) = (${f2(a)}² + ${f2(b)}² − ${f2(d)}²)/(2·${f2(a)}·${f2(b)}) m = ${f2(E.cosC)}${E.reachable ? ` → C = ${dg(E.C)}, elbow joint q2 = ±(180° − C)` : ': |cos C| > 1, no triangle: out of reach'} · reach ${cmText(E.reach[0])} … ${cmText(E.reach[1])}`
+    return `c² = a² + b² − 2ab·cos C · cos C = (a² + b² − c²)/(2ab) = (${fixedText(a)}² + ${fixedText(b)}² − ${fixedText(d)}²)/(2·${fixedText(a)}·${fixedText(b)}) m = ${fixedText(E.cosC)}${E.reachable ? ` → C = ${radText(E.C)}, elbow joint q2 = ±(180° − C)` : ': |cos C| > 1, no triangle: out of reach'} · reach ${cmText(E.reach[0])} … ${cmText(E.reach[1])}`
   },
   legend: [
     { color: B_FIELD, label: 'a: upper arm', shape: 'dot' },
@@ -337,7 +335,7 @@ export const trigonometryLawOfCosines: Lesson = {
     const rows = textRows(scene, 3, 2.4, -3.4, 0.32)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { a, b, d, elbow, E, O } = lcRun(p)
         const z = 0.01
@@ -374,10 +372,10 @@ export const trigonometryLawOfCosines: Lesson = {
         tr.draw((u) => yOf(cOf(u * LC.dMax)), d / LC.dMax)
         plot.lo.set('c = 0')
         plot.hi.set(cmText(LC.dMax))
-        plot.right.set(E.reachable ? `C = ${dg(E.C)}` : 'out of reach', E.reachable ? HEAT : HIGH_V)
+        plot.right.set(E.reachable ? `C = ${radText(E.C)}` : 'out of reach', E.reachable ? HEAT : HIGH_V)
 
-        rows[0].set(`cos C = (a² + b² − c²) / 2ab = ${f2(E.cosC)}`, E.reachable ? HEAT : HIGH_V)
-        rows[1].set(E.reachable ? `C = acos(${f2(E.cosC)}) = ${dg(E.C)} · q2 = ${dg(E.q[1])}` : `|cos C| > 1: acos fails, ${cmText(Math.abs(E.miss))} too ${E.miss > 0 ? 'far' : 'close'}`, E.reachable ? LABEL : HIGH_V)
+        rows[0].set(`cos C = (a² + b² − c²) / 2ab = ${fixedText(E.cosC)}`, E.reachable ? HEAT : HIGH_V)
+        rows[1].set(E.reachable ? `C = acos(${fixedText(E.cosC)}) = ${radText(E.C)} · q2 = ${radText(E.q[1])}` : `|cos C| > 1: acos fails, ${cmText(Math.abs(E.miss))} too ${E.miss > 0 ? 'far' : 'close'}`, E.reachable ? LABEL : HIGH_V)
         rows[2].set(`reach ${cmText(E.reach[0])} … ${cmText(E.reach[1])} · flat = out of reach`, GREY)
         head.status.set(`Law of cosines · a ${cmText(a)} · b ${cmText(b)} · c ${cmText(d)} · ${ELBOWS[elbow].toLowerCase()}`)
         head.sub.set('side view · shoulder at the origin · grey ghost = the mirror solution', GREY)
@@ -386,9 +384,9 @@ export const trigonometryLawOfCosines: Lesson = {
       readouts: (p) => {
         const { E } = lcRun(p)
         return [
-          { label: 'cos C', value: f2(E.cosC), tone: toneOf(E.reachable, false) },
-          { label: 'Elbow angle C', value: E.reachable ? dg(E.C) : 'none' },
-          { label: 'Joint angle q2', value: E.reachable ? dg(E.q[1]) : '—' },
+          { label: 'cos C', value: fixedText(E.cosC), tone: toneOf(E.reachable, false) },
+          { label: 'Elbow angle C', value: E.reachable ? radText(E.C) : 'none' },
+          { label: 'Joint angle q2', value: E.reachable ? radText(E.q[1]) : '—' },
           { label: 'Reach band', value: `${cmText(E.reach[0])} … ${cmText(E.reach[1])}`, tone: toneOf(E.reachable, false) },
         ]
       },

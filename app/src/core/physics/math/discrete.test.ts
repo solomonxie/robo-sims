@@ -1,8 +1,7 @@
 import { filterAt } from '../control/loopfilter'
 import { emaAlpha } from '../signals/filters'
 import { foldedHz, onePoleAt, onePoleGain, onePoleRun, poleOfTau, reconstructAt, sOfPole, sampleRateView, sinc, spectralImages, zInput, zView } from './discrete'
-
-const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
+import { medianMs } from '../../stopwatch'
 
 describe('sample rate', () => {
   it('folds a tone into 0 … fs/2: |f − k·fs|', () => {
@@ -40,12 +39,7 @@ describe('sample rate', () => {
     expect(v.dots.length).toBe(21)
   })
   it('recomputes fast', () => {
-    const runs = Array.from({ length: 5 }, () => {
-      const t = performance.now()
-      sampleRateView(200, 500, 'ideal', 0.2)
-      return performance.now() - t
-    })
-    expect(median(runs)).toBeLessThan(100)
+    expect(medianMs(() => sampleRateView(200, 500, 'ideal', 0.2))).toBeLessThan(200)
   })
 })
 

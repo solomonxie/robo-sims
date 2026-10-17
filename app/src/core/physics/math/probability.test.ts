@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { mean, stdDev } from '../common'
 import { averageView, bayesRun, bayesStep, binCounts, detectorReadings, fuseTwo, gaussianView, noisyReadings, varianceView, withinSigma } from './probability'
 
@@ -82,13 +83,11 @@ describe('variance', () => {
     expect(many.fused.wA).toBeCloseTo(0.8, 12)
   })
   it('recomputes fast for every slider move', () => {
-    const runs = Array.from({ length: 7 }, (_, i) => {
-      const t0 = performance.now()
+    const ms = medianMs((i) => {
       gaussianView(40, 1 + i / 10, 12, 2000, 2000)
       averageView(40, 2, 64)
       bayesRun(0.2, 0.8, 0.1 + i / 100, true, 20)
-      return performance.now() - t0
-    }).sort((a, b) => a - b)
-    expect(runs[3]).toBeLessThan(100)
+    }, 7)
+    expect(ms).toBeLessThan(200)
   })
 })

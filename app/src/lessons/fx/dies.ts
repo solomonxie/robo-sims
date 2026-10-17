@@ -6,7 +6,7 @@ import { ACCEPTOR, DONOR } from './crystal'
 import { heatGlow } from './heat'
 import { partLetter } from './parts'
 import { plusGeometry } from './shapes'
-import { clamp01, rand } from './util'
+import { clamp01, rand, rand01 } from './util'
 
 const tint = (color: string, k: number) => `#${new THREE.Color(color).lerp(new THREE.Color('#1c1e24'), k).getHexString()}`
 const MAX_E = 140
@@ -81,7 +81,7 @@ export function bjtDie(parent: THREE.Object3D, at: V3, { width = 12, height = 3.
         if (spawn < 1) break
         if (e.live) continue
         spawn -= 1
-        const dies = Math.random() < recombine
+        const dies = rand01() < recombine
         Object.assign(e, { live: true, x: x0 + rand(0, 0.6), y: rand(y0, y1), stop: dies ? xb + rand(0.2, 0.85) * bW : Infinity, fade: 1 })
         if (dies) {
           const free = hs.find((h) => !h.live)
@@ -149,7 +149,7 @@ function swarm(parent: THREE.Object3D, count: number, hole: boolean, spawn: () =
   return {
     walk(dt: number, keep: (p: THREE.Vector2, v: THREE.Vector2) => void) {
       p.forEach((q, i) => {
-        if (Math.random() < dt * 3) v[i].rotateAround(new THREE.Vector2(), rand(-2, 2))
+        if (rand01() < dt * 3) v[i].rotateAround(new THREE.Vector2(), rand(-2, 2))
         q.addScaledVector(v[i], dt)
         keep(q, v[i])
         dots.setMatrixAt(i, m.makeTranslation(q.x, q.y, FRONT))

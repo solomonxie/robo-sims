@@ -3,7 +3,7 @@ import { newtonsText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, countBars, dotPen, forceArrow, liveLabel, memoBy, scope, sg90Servo, sideView, statusHeader, sumBars } from '../fx'
-import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
+import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
 const VIEW = sideView(-2.4, 0)
@@ -163,7 +163,7 @@ export const torqueLeversMomentArm: Lesson = {
 // --- Lever types: fulcrum, effort and load in three orders; force traded for distance. ---
 
 const LV = { k: 44, len: 0.3, at: [-14.6, -1.4, 0] as V3, swing: 12 * DEG, period: 4, arrowMax: 4, bars: [3.6, 1.6, 0] as V3 }
-const CLASSES = Object.fromEntries(Object.entries(LEVER_CLASSES).map(([k, v]) => [k, v.name])) as Record<LeverClass, string>
+const CLASSES = namesOf(LEVER_CLASSES)
 const EXAMPLES: Record<LeverClass, [string, string]> = {
   first: ['seesaw, pliers, scissors', 'robot: gripper jaws pivoting on one pin'],
   second: ['wheelbarrow, nutcracker, bottle opener', 'robot: a legged robot rising on its toes'],

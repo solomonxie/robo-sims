@@ -1,4 +1,4 @@
-import { amps, bytesText, dbmText, fitDigits, hoursText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, signed, superscript, volts, watts } from './units'
+import { amps, bytesText, dbmText, factorText, mat2Text, tupleText, fitDigits, hoursText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, signed, superscript, volts, watts } from './units'
 
 describe('units', () => {
   it('always signs fixed-point text', () => {
@@ -63,5 +63,11 @@ describe('units', () => {
     expect(mAText(0.005)).toBe('5.0 mA')
     expect(dbmText(-67.4)).toBe('−67 dBm')
     expect(dbmText(-0.2)).toBe('0 dBm')
+  })
+  test('tuples, factors and 2×2 matrices', () => {
+    expect(tupleText([1, -0.5, 0.001])).toBe('(1.00, −0.50, 0.00)')
+    expect(factorText(-0.5)).toBe('(−0.50)')
+    expect(factorText(0.5)).toBe('0.50')
+    expect(mat2Text([1, 0, -1, 2])).toBe('[1.00 0.00; −1.00 2.00]')
   })
 })

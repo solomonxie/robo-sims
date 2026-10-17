@@ -121,7 +121,7 @@ export function eigenView(M: Mat2, phi: number, steps = 10) {
 
 // --- PCA: covariance of a lidar wall segment; its top eigenvector is the wall direction. ---
 
-export const WALL_SCAN = { len: 1.2, count: 40, sigma: 0.025 }
+const WALL_SCAN = { len: 1.2, count: 40, sigma: 0.025 }
 
 /** Lidar hits along a wall at `angle` (rad) with range noise; covariance, eigen-axes and the fitted wall angle (0…π). */
 export function wallPca(angle: number, sigma = WALL_SCAN.sigma, seed = 3) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { ENCODER_DT, LINE_DRIVES, RULES, Strip, TURN, areaView, diffTradeoff, gyroIntegrate, lineDriveAt, ruleErrors, secantView, turnAngle, turnRate } from '../../core/physics'
 import { cmText, degText, fixedText, mmTenths, mpsText, secsText, signed } from '../../core/units'
-import { V3, add, mesh } from '../../models/kit'
+import { add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -18,7 +18,6 @@ import {
   dotLine,
   floorMat,
   floorView,
-  glowMat,
   lapseClock,
   liveLabel,
   memoBy,
@@ -29,17 +28,17 @@ import {
   plotY,
   textRows,
   meterTrack,
+  WIDE_VIEW,
+  WIDE_LEFT,
+  WIDE_RIGHT,
+  glowDot,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
-const RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
 const leftPair = (scene: THREE.Object3D, titles: [string, string], colors: [string, string], zero: [number, number]) => [
-  titledScope(scene, LEFT.top, LEFT.topH, titles[0], colors[0], zero[0], LEFT.x, LEFT.w),
-  titledScope(scene, LEFT.low, LEFT.lowH, titles[1], colors[1], zero[1], LEFT.x, LEFT.w),
+  titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, titles[0], colors[0], zero[0], WIDE_LEFT.x, WIDE_LEFT.w),
+  titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, titles[1], colors[1], zero[1], WIDE_LEFT.x, WIDE_LEFT.w),
 ]
-const dot = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(c, 1.2)))
 const stripTops = (strips: readonly Strip[], u: (t: number) => number, y: (v: number) => number): [number[], number[]] => [strips.flatMap((s) => [u(s.t0), u(s.t1)]), strips.flatMap((s) => [y(s.y0), y(s.y1)])]
 const ms = (v: number) => mpsText(v, 3).replace('-', '−')
 
@@ -106,14 +105,14 @@ export const calculusDerivativeAsSlope: Lesson = {
     const trX = px.s.trace(POWER, { samples: 301, radius: 0.05 })
     const trTan = px.s.trace(B_FIELD, { samples: 2, radius: 0.05 })
     const trSec = px.s.trace(RING, { samples: 2, radius: 0.07 })
-    const marks = [dot(px.s.group, 0.2, RING), dot(px.s.group, 0.2, RING)]
+    const marks = [glowDot(px.s.group, 0.2, RING), glowDot(px.s.group, 0.2, RING)]
     const runT = dotLine(px.s.group, 0.06, 40)
     const riseX = dotLine(px.s.group, 0.06, 40)
     const tagT = liveLabel(px.s.group, [0, 0, 0.4], { size: 0.32 })
     const tagX = liveLabel(px.s.group, [0, 0, 0.4], { size: 0.32, align: 'left' })
     const trV = pv.s.trace(B_FIELD, { samples: 241, radius: 0.05 })
     const trEst = pv.s.trace(HEAT, { samples: 300, radius: 0.04 })
-    const pe = titledScope(scene, RIGHT.y, RIGHT.h, 'error vs step Δt', LABEL, 0, RIGHT.x, RIGHT.w)
+    const pe = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'error vs step Δt', LABEL, 0, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const ye = plotY(0, DS.eMax, pe.h)
     const trTr = pe.s.trace(B_FIELD, { samples: 61, radius: 0.05 })
     const trNo = pe.s.trace(HEAT, { samples: 61, radius: 0.05 })
@@ -126,7 +125,7 @@ export const calculusDerivativeAsSlope: Lesson = {
     const rows = textRows(scene, 4, 1.6, -2.3, 0.32, 0.75)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { t, sigma, S, D } = dsRun(p)
         const T = 6
@@ -256,7 +255,7 @@ export const calculusIntegralAsArea: Lesson = {
     const bars = countBars(scene, [6.2, -6.6, 0.2], ['forward', 'backing up', 'net ∫v dt', 'distance'], 6.4, { row: 1.8, size: 0.34 })
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { drive, T, N, A, full } = iaRun(p)
         const u = (t: number) => t / IA.T
@@ -357,7 +356,7 @@ export const calculusNumericalIntegration: Lesson = {
     const trTrue = pa.s.trace(POWER, { samples: 201, radius: 0.05 })
     const trInt = pa.s.trace(HEAT, { samples: NI.nMax + 1, radius: 0.06 })
     const trDrift = pa.s.trace(HIGH_V, { samples: 2, radius: 0.04 })
-    const pe = titledScope(scene, RIGHT.y, RIGHT.h, 'rule error vs steps (log)', LABEL, 0, RIGHT.x, RIGHT.w)
+    const pe = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'rule error vs steps (log)', LABEL, 0, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const ye = errY(pe.h)
     const trRef = pe.s.trace(GREY, { samples: N_GRID.length, radius: 0.04 })
     const trErr = pe.s.trace(RING, { samples: N_GRID.length, radius: 0.06 })
@@ -372,7 +371,7 @@ export const calculusNumericalIntegration: Lesson = {
     const rows = textRows(scene, 3, 1.6, -3.6, 0.3, 0.75)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const { rule, N, bias, G, errs, ref } = niRun(p)
         const T = TURN.T

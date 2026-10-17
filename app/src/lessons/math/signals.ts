@@ -26,12 +26,12 @@ import {
   titledScope,
   vecArrow,
   zPlane,
+  WIDE_VIEW,
+  WIDE_LEFT,
+  WIDE_RIGHT,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
-const RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
 
 // --- Sample rate: numbers at fs, the curve rebuilt from them, and the spectrum copied every fs. ---
 
@@ -98,21 +98,21 @@ export const signalsSampleRate: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const pt = titledScope(scene, LEFT.top, LEFT.topH, 'blade tip height: real, samples, rebuilt', LABEL, 0.5, LEFT.x, LEFT.w)
-    const yx = plotY(-1.3, 1.3, LEFT.topH)
+    const pt = titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, 'blade tip height: real, samples, rebuilt', LABEL, 0.5, WIDE_LEFT.x, WIDE_LEFT.w)
+    const yx = plotY(-1.3, 1.3, WIDE_LEFT.topH)
     const trTrue = pt.s.trace(HIGH_V, { samples: 400, radius: 0.04 })
     const trBuilt = pt.s.trace(B_FIELD, { samples: 400, radius: 0.07 })
     const dots = pointCloud(pt.s.group, 110, 0.14)
     const cursor = pt.s.trace(GREY, { samples: 2, radius: 0.03 })
 
-    const ps = titledScope(scene, LEFT.low, LEFT.lowH, 'spectrum after sampling', LABEL, 0.05, LEFT.x, LEFT.w)
+    const ps = titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 'spectrum after sampling', LABEL, 0.05, WIDE_LEFT.x, WIDE_LEFT.w)
     const fx = (hz: number) => ps.s.xAt(hz / SR.specMax)
-    const band = add(ps.s.group, new THREE.Mesh(new THREE.BoxGeometry(1, LEFT.lowH, 0.02), new THREE.MeshBasicMaterial({ color: POWER, transparent: true, opacity: 0.16 })))
+    const band = add(ps.s.group, new THREE.Mesh(new THREE.BoxGeometry(1, WIDE_LEFT.lowH, 0.02), new THREE.MeshBasicMaterial({ color: POWER, transparent: true, opacity: 0.16 })))
     const bars = rodPool(ps.s.group, 64)
     const nyqTag = liveLabel(ps.s.group, [0, 0, 0.4], { size: 0.26, color: POWER })
     const fsTag = liveLabel(ps.s.group, [0, 0, 0.4], { size: 0.26, color: GREY })
 
-    const pf = titledScope(scene, RIGHT.y, RIGHT.h, 'seen frequency vs real f', LABEL, 0, RIGHT.x, RIGHT.w)
+    const pf = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'seen frequency vs real f', LABEL, 0, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const trFold = pf.s.trace(B_FIELD, { samples: 241, radius: 0.05 })
     const trDiag = pf.s.trace(GREY, { samples: 2, radius: 0.025 })
     const nyqLine = pf.s.level(POWER)
@@ -122,7 +122,7 @@ export const signalsSampleRate: Lesson = {
     const rows = textRows(scene, 3, 1.6, -2.6, 0.32, 0.75)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const { V, images } = srRun(p)
         const now = srClock(dt, `${V.f} ${V.fs} ${V.kind}`)
@@ -132,7 +132,7 @@ export const signalsSampleRate: Lesson = {
         const shown = V.dots.filter((d) => d.t <= now + 1e-9)
         shown.forEach((d, i) => dots.set(i, [pt.s.xAt(u(d.t)), yx(d.x), 0.4], RING))
         dots.show(shown.length)
-        cursor.points([u(now), u(now)], [-LEFT.topH / 2, LEFT.topH / 2], null)
+        cursor.points([u(now), u(now)], [-WIDE_LEFT.topH / 2, WIDE_LEFT.topH / 2], null)
         pt.right.set(`${fixedText(V.perCycle, 1)} samples / cycle`, V.perCycle > 2 ? RING : HIGH_V)
         pt.lo.set('0 ms')
         pt.hi.set(msText(SR.T))
@@ -140,24 +140,24 @@ export const signalsSampleRate: Lesson = {
         const ny = V.nyquist
         band.scale.x = Math.max(0.01, fx(Math.min(ny, SR.specMax)) - fx(0))
         band.position.set((fx(0) + fx(Math.min(ny, SR.specMax))) / 2, 0, 0.05)
-        const base = -LEFT.lowH / 2 + 0.05 * LEFT.lowH
+        const base = -WIDE_LEFT.lowH / 2 + 0.05 * WIDE_LEFT.lowH
         images.forEach((im, i) => {
           const h = im.original ? 0.8 : im.seen ? 0.7 : 0.5
-          bars.set(i, [fx(im.hz), base, 0.3], [fx(im.hz), base + h * (LEFT.lowH * 0.9), 0.3], im.original ? 0.12 : 0.09, im.original ? HIGH_V : im.seen ? B_FIELD : GREY)
+          bars.set(i, [fx(im.hz), base, 0.3], [fx(im.hz), base + h * (WIDE_LEFT.lowH * 0.9), 0.3], im.original ? 0.12 : 0.09, im.original ? HIGH_V : im.seen ? B_FIELD : GREY)
         })
         bars.hideFrom(images.length)
         bars.commit()
-        nyqTag.group.position.set(Math.min(fx(ny), ps.s.width / 2 - 0.8), LEFT.lowH / 2 - 0.4, 0.4)
+        nyqTag.group.position.set(Math.min(fx(ny), ps.s.width / 2 - 0.8), WIDE_LEFT.lowH / 2 - 0.4, 0.4)
         nyqTag.set('fs/2', POWER)
         fsTag.group.visible = V.fs <= SR.specMax
-        fsTag.group.position.set(Math.min(fx(V.fs), ps.s.width / 2 - 0.6), LEFT.lowH / 2 - 0.9, 0.4)
+        fsTag.group.position.set(Math.min(fx(V.fs), ps.s.width / 2 - 0.6), WIDE_LEFT.lowH / 2 - 0.9, 0.4)
         fsTag.set('fs', GREY)
         ps.right.set(V.aliased ? `alias at ${hertz(V.seen)}` : `tone kept at ${hertz(V.f)}`, V.aliased ? HIGH_V : POWER)
         ps.lo.set('0 Hz')
         ps.hi.set(hertz(SR.specMax))
 
         const top = 1.15 * Math.min(V.nyquist, SR.fMax)
-        const yf = plotY(0, top, RIGHT.h)
+        const yf = plotY(0, top, WIDE_RIGHT.h)
         trFold.draw((x) => yf(Math.abs(x * SR.fMax - V.fs * Math.round((x * SR.fMax) / V.fs))), V.f / SR.fMax)
         trDiag.points([0, Math.min(1, top / SR.fMax)], [yf(0), yf(Math.min(top, SR.fMax))], null)
         nyqLine.set(yf(ny))
@@ -228,12 +228,12 @@ export const signalsZTransformIntuition: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const pt = titledScope(scene, LEFT.top, LEFT.topH, 'input x[n] and output y[n]', LABEL, 0.4, LEFT.x, LEFT.w)
-    const yv = plotY(-1.1, 1.65, LEFT.topH)
+    const pt = titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, 'input x[n] and output y[n]', LABEL, 0.4, WIDE_LEFT.x, WIDE_LEFT.w)
+    const yv = plotY(-1.1, 1.65, WIDE_LEFT.topH)
     const stems = rodPool(pt.s.group, 2 * ZT.N)
     const heads = pointCloud(pt.s.group, 2 * ZT.N, 0.13)
-    const pb = titledScope(scene, LEFT.low, LEFT.lowH, 'gain |H| (dB) from DC to fs/2', LABEL, 0.5, LEFT.x, LEFT.w)
-    const yd = plotY(ZT.dbLo, ZT.dbHi, LEFT.lowH)
+    const pb = titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 'gain |H| (dB) from DC to fs/2', LABEL, 0.5, WIDE_LEFT.x, WIDE_LEFT.w)
+    const yd = plotY(ZT.dbLo, ZT.dbHi, WIDE_LEFT.lowH)
     const trGain = pb.s.trace(RING, { samples: 121, radius: 0.06 })
     const gAt = pb.s.trace(B_FIELD, { samples: 2, radius: 0.05 })
 
@@ -253,14 +253,14 @@ export const signalsZTransformIntuition: Lesson = {
     const rows = textRows(scene, 4, 1.6, -1.0, 0.32, 0.7)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const Z = ztRun(p)
         const f = n(p, 'f')
         const now = ztClock(dt, `${Z.a} ${p.input}`)
         const k = Math.min(ZT.N - 1, Math.floor(now))
         const xu = (i: number) => pt.s.xAt((i + 0.5) / ZT.N)
-        const cy = (v: number) => Math.max(-LEFT.topH / 2, Math.min(LEFT.topH / 2, yv(v)))
+        const cy = (v: number) => Math.max(-WIDE_LEFT.topH / 2, Math.min(WIDE_LEFT.topH / 2, yv(v)))
         for (let i = 0; i < ZT.N; i++) {
           const on = i <= k
           const xs = Z.xs[i]

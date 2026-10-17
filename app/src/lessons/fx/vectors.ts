@@ -90,7 +90,7 @@ export function parallelogram(parent: THREE.Object3D, color: string, opacity = 0
 
 const box2 = (x0: number, x1: number, y0: number, y1: number): V2[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]
 /** Top-view robot outline in metres, x forward: body with a nose, two wheels. */
-export const ROBOT_OUTLINE: V2[][] = [
+const ROBOT_OUTLINE: V2[][] = [
   [[-0.3, -0.18], [0.18, -0.18], [0.34, 0], [0.18, 0.18], [-0.3, 0.18], [-0.3, -0.18]],
   box2(-0.14, 0.1, 0.2, 0.28),
   box2(-0.14, 0.1, -0.28, -0.2),

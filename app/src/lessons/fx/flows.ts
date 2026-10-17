@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { CONVENTIONAL, ELECTRON, RING, glowMat, potentialColor } from './colors'
 import { plusGeometry } from './shapes'
-import { frac, path, rand, randomDir } from './util'
+import { frac, path, rand, randomDir, rand01 } from './util'
 
 /** Evenly spaced dots sliding along a path; wraps at the ends. */
 export class Flow {
@@ -137,7 +137,7 @@ export function electronGas(parent: THREE.Object3D, length: number, radius: numb
   const wall = Math.max(0.1, radius - 0.3)
   const pos = Array.from({ length: count }, () => {
     const a = rand(0, Math.PI * 2)
-    const r = Math.sqrt(Math.random()) * wall
+    const r = Math.sqrt(rand01()) * wall
     return new THREE.Vector3(rand(-length / 2, length / 2), Math.cos(a) * r, Math.sin(a) * r)
   })
   const vel = pos.map(() => randomDir(thermal))
@@ -155,7 +155,7 @@ export function electronGas(parent: THREE.Object3D, length: number, radius: numb
     for (let i = 0; i < count; i++) {
       const p = pos[i]
       const v = vel[i]
-      if (Math.random() < dt * scatter) v.copy(randomDir(thermal))
+      if (rand01() < dt * scatter) v.copy(randomDir(thermal))
       const before = p.x
       p.x += (v.x - drift) * dt
       p.y += v.y * dt

@@ -1,15 +1,11 @@
 import * as THREE from 'three/webgpu'
 import { averageView, bayesRun, binCounts, gaussPdf, gaussianView, varianceView } from '../../core/physics'
 import { cmText, fixedText, pct, signed } from '../../core/units'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, areaStrips, countBars, diffBot, dotLine, glowMat, lapseClock, liveLabel, memoBy, meterTrack, plotY, pointCloud, setGlow, statusHeader, textRows, titledScope } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, areaStrips, countBars, diffBot, dotLine, lapseClock, liveLabel, memoBy, meterTrack, plotY, pointCloud, setGlow, statusHeader, textRows, titledScope, WIDE_VIEW, WIDE_LEFT, WIDE_RIGHT, glowDot } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const LEFT = { x: -9, w: 15, top: -1.2, low: -10.3, h: 6.6 }
-const RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
-const dot = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(c, 1.2)))
 const cm = (v: number) => `${v.toFixed(1)} cm`
 type Plot = ReturnType<typeof titledScope>
 /** Vertical marker line at u across a plot. */
@@ -76,8 +72,8 @@ export const probabilityGaussianNoise: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const H = LEFT.top - LEFT.low + LEFT.h
-    const ph = titledScope(scene, (LEFT.top + LEFT.low) / 2, H, 'histogram of readings', LABEL, 0, LEFT.x, LEFT.w)
+    const H = WIDE_LEFT.top - WIDE_LEFT.low + WIDE_LEFT.topH
+    const ph = titledScope(scene, (WIDE_LEFT.top + WIDE_LEFT.low) / 2, H, 'histogram of readings', LABEL, 0, WIDE_LEFT.x, WIDE_LEFT.w)
     const fill = areaStrips(ph.s, GN.bins, 0.7)
     const curve = ph.s.trace(HEAT, { samples: 121, radius: 0.06 })
     const muLine = marker(ph, LABEL)
@@ -94,10 +90,10 @@ export const probabilityGaussianNoise: Lesson = {
     const ping = dotLine(g, 0.004, 30)
     const rows = textRows(scene, 3, 1.6, -2.3, 0.32, 0.75)
     const share = countBars(scene, [5, -8.2, 0.2], ['±1σ', '±2σ', '±3σ'], 7.4, { row: 1.6, size: 0.34 })
-    addLabel(scene, 'share inside each band (normal in brackets)', [RIGHT.x - RIGHT.w / 2, -6.2, 0.3], LABEL, 0.3, 'left')
+    addLabel(scene, 'share inside each band (normal in brackets)', [WIDE_RIGHT.x - WIDE_RIGHT.w / 2, -6.2, 0.3], LABEL, 0.3, 'left')
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const now = gnClock(dt, gnKey(p))
         const total = n(p, 'N')
@@ -114,7 +110,7 @@ export const probabilityGaussianNoise: Lesson = {
         lastLine(u(last), -H / 2 + 1.2)
         for (const t of sigTags) {
           t.l.position.x = ph.s.xAt(u(mu + t.z * sigma))
-          t.l.visible = Math.abs(t.z * sigma) < GN.half * 0.95 && (sigma * LEFT.w) / (2 * GN.half) > 1.1
+          t.l.visible = Math.abs(t.z * sigma) < GN.half * 0.95 && (sigma * WIDE_LEFT.w) / (2 * GN.half) > 1.1
         }
         ph.lo.set(cmText(mu - GN.half))
         ph.hi.set(cmText(mu + GN.half))
@@ -204,16 +200,16 @@ export const probabilityBayesRule: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const pb = titledScope(scene, LEFT.top, LEFT.h, 'belief P(door) after each reading', POWER, 0, LEFT.x, LEFT.w)
-    const pl = titledScope(scene, LEFT.low, LEFT.h, 'log-odds ln(P/(1 − P))', B_FIELD, 0.5, LEFT.x, LEFT.w)
-    for (const [v, t] of [[1, '100 %'], [0.5, '50 %'], [0, '0 %']] as const) addLabel(pb.s.group, t, [-LEFT.w / 2 - 0.25, plotY(0, 1, pb.h)(v), 0.4], GREY, 0.24, 'right')
+    const pb = titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, 'belief P(door) after each reading', POWER, 0, WIDE_LEFT.x, WIDE_LEFT.w)
+    const pl = titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 'log-odds ln(P/(1 − P))', B_FIELD, 0.5, WIDE_LEFT.x, WIDE_LEFT.w)
+    for (const [v, t] of [[1, '100 %'], [0.5, '50 %'], [0, '0 %']] as const) addLabel(pb.s.group, t, [-WIDE_LEFT.w / 2 - 0.25, plotY(0, 1, pb.h)(v), 0.4], GREY, 0.24, 'right')
     const yb = plotY(0, 1.08, pb.h)
     const yl = plotY(BR.lo, BR.hi, pl.h)
     const trB = pb.s.trace(POWER, { samples: BR.K + 1, radius: 0.06 })
     const trL = pl.s.trace(B_FIELD, { samples: BR.K + 1, radius: 0.06 })
     const nowB = marker(pb, LABEL)
     const nowL = marker(pl, LABEL)
-    const reads = Array.from({ length: BR.K }, () => dot(pb.s.group, 0.22, RING))
+    const reads = Array.from({ length: BR.K }, () => glowDot(pb.s.group, 0.22, RING))
     const readMats = reads.map((r) => (r as THREE.Mesh).material as THREE.MeshStandardMaterial)
 
     const g = rangeScene(scene)
@@ -221,7 +217,7 @@ export const probabilityBayesRule: Lesson = {
     const sides = [-1, 1].map((s) => box(g, [0.03, 0.05, 0.07], WALL, [0.515, s * 0.075, 0.035]))
     addLabel(g, 'door?', [0.5, 0.15, 0.01], GREY, 0.03)
     g.rotation.x = -0.7
-    const led = dot(g, 0.015, RING)
+    const led = glowDot(g, 0.015, RING)
     led.position.set(0.02, 0, 0.1)
     const ledMat = (led as THREE.Mesh).material as THREE.MeshStandardMaterial
     const ping = dotLine(g, 0.004, 24)
@@ -229,7 +225,7 @@ export const probabilityBayesRule: Lesson = {
     const post = countBars(scene, [7.4, -6.4, 0.2], ['prior: door', 'prior: wall', '× likelihood: door', '× likelihood: wall', 'posterior: door', 'posterior: wall'], 5.6, { row: 1.05, size: 0.3 })
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { prior, fa, truth, R, k, belief, step } = brAt(p)
         const u = (i: number) => i / BR.K
@@ -325,8 +321,8 @@ export const probabilityVariance: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const pa = titledScope(scene, LEFT.top, LEFT.h, `${VA.batches} means of N readings of A`, HEAT, 0, LEFT.x, LEFT.w)
-    const pf = titledScope(scene, LEFT.low, LEFT.h, 'fusing mean of A with one reading of B', POWER, 0, LEFT.x, LEFT.w)
+    const pa = titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, `${VA.batches} means of N readings of A`, HEAT, 0, WIDE_LEFT.x, WIDE_LEFT.w)
+    const pf = titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 'fusing mean of A with one reading of B', POWER, 0, WIDE_LEFT.x, WIDE_LEFT.w)
     const fill = areaStrips(pa.s, VA.bins, 0.6)
     const one = pa.s.trace(GREY, { samples: 121, radius: 0.05 })
     const avg = pa.s.trace(HEAT, { samples: 121, radius: 0.06 })
@@ -335,21 +331,21 @@ export const probabilityVariance: Lesson = {
     const bB = pf.s.trace(B_FIELD, { samples: 121, radius: 0.05 })
     const bF = pf.s.trace(POWER, { samples: 121, radius: 0.07 })
     const [zA, zB, zF] = [marker(pf, HEAT), marker(pf, B_FIELD), marker(pf, POWER)]
-    const pn = titledScope(scene, RIGHT.y, RIGHT.h, 'σ of the mean vs N', HEAT, 0, RIGHT.x, RIGHT.w)
+    const pn = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'σ of the mean vs N', HEAT, 0, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const trN = pn.s.trace(HEAT, { samples: VA.nMax, radius: 0.05 })
     const nowN = marker(pn, LABEL)
-    for (const [v, t] of [[1, 'σ'], [0.5, 'σ/2'], [0.25, 'σ/4']] as const) addLabel(pn.s.group, t, [RIGHT.w / 2 - 0.2, plotY(0, 1.1, RIGHT.h)(v) + 0.25, 0.4], GREY, 0.24, 'right')
+    for (const [v, t] of [[1, 'σ'], [0.5, 'σ/2'], [0.25, 'σ/4']] as const) addLabel(pn.s.group, t, [WIDE_RIGHT.w / 2 - 0.2, plotY(0, 1.1, WIDE_RIGHT.h)(v) + 0.25, 0.4], GREY, 0.24, 'right')
 
     const g = rangeScene(scene)
     wallAt(g).position.x = VA.mu
     const cloud = pointCloud(g, VA.nMax, 0.007)
-    const mA = dot(g, 0.012, HEAT)
-    const mB = dot(g, 0.012, B_FIELD)
-    const mF = dot(g, 0.016, POWER)
+    const mA = glowDot(g, 0.012, HEAT)
+    const mB = glowDot(g, 0.012, B_FIELD)
+    const mF = glowDot(g, 0.016, POWER)
     const rows = textRows(scene, 3, 1.6, -2.3, 0.32, 0.75)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { N, sa, sb, A, counts, V } = vaRun(p)
         const u = (x: number) => (x - (VA.mu - VA.half)) / (2 * VA.half)

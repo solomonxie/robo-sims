@@ -43,6 +43,7 @@ import {
   segmentDisplay,
   signalWire,
   timingDiagram,
+  rand01,
 } from '../fx'
 import { Lesson, Stage, n } from '../types'
 
@@ -352,7 +353,7 @@ export const metastability: Lesson = {
           const e = edgeAt(s.k + 1)
           const q2 = { dv: level(s.q[0], e) - 0.5, at: e }
           const toward = (s.k + 2) % 2 ? 1 : -1
-          const dv = captureImbalance(off, WIN_PS) + (Math.random() - 0.5) * 2 * NOISE
+          const dv = captureImbalance(off, WIN_PS) + (rand01() - 0.5) * 2 * NOISE
           s.q = [{ dv: toward * dv, at: e }, q2]
           s.read = e + READ_PS
         }

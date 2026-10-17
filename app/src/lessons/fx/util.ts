@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { wrapPi } from '../../core/physics/common'
+import { parkMiller, wrapPi } from '../../core/physics/common'
 import { V3 } from '../../models/kit'
 
 export function path(points: V3[], closed = false): THREE.CurvePath<THREE.Vector3> {
@@ -12,11 +12,14 @@ export function path(points: V3[], closed = false): THREE.CurvePath<THREE.Vector
 
 export const UP = new THREE.Vector3(0, 1, 0)
 
+/** Seeded uniform 0…1 for scene jitter, so previews repeat. */
+export const rand01 = parkMiller(1)
+
 export function randomDir(len: number): THREE.Vector3 {
-  return new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(len)
+  return new THREE.Vector3(rand01() - 0.5, rand01() - 0.5, rand01() - 0.5).normalize().multiplyScalar(len)
 }
 
-export const rand = (a: number, b: number) => a + Math.random() * (b - a)
+export const rand = (a: number, b: number) => a + rand01() * (b - a)
 
 export { halton } from '../../core/halton'
 

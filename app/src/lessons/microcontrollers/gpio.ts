@@ -61,6 +61,7 @@ import {
   signalWire,
   timingDiagram,
   wire,
+  rand01,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
@@ -342,7 +343,7 @@ export const pullUps: Lesson = {
         const lvl = logicLevel(s.v, VDD)
         s.flick -= dt
         if (lvl === null && s.flick <= 0) {
-          s.read = Math.random() < 0.5 ? 0 : 1
+          s.read = rand01() < 0.5 ? 0 : 1
           s.flick = 0.15
         }
         if (lvl !== null) s.read = lvl

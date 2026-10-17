@@ -23,7 +23,7 @@ import { hexByte, pct, secs, si, volts } from '../../core/units'
 import { STEEL, V3, add, box, mat, mesh, rod, tube } from '../../models/kit'
 import { buildEsp32 } from '../../models/modules'
 import { createStage } from '../../scene/stage'
-import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, benchScope, cableRun, frac, glowMat, label, lieFlat, liveLabel, memoBy, probe } from '../fx'
+import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, benchScope, cableRun, frac, glowMat, label, lieFlat, liveLabel, memoBy, probe, rand01 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
 const TAU = 2 * Math.PI
@@ -178,7 +178,7 @@ export const triggering: Lesson = {
         const window = 10 * tdiv
         if (st.wait <= 0) {
           st.wait = SWEEP_S
-          const s = sweep(trig, lv, window, st.clock * 1.37 + Math.random() / F_DAC)
+          const s = sweep(trig, lv, window, st.clock * 1.37 + rand01() / F_DAC)
           glow.push((u) => toDivs(dacAt(s.t0 + u * window), vdiv, GROUND) * div)
           bench.lamp(POWER, s.locked)
           const mode = trig === 'free' ? ['FREE RUN', GREY] : s.locked ? [`${trig === 'rise' ? 'RISE' : 'FALL'} ${lv.toFixed(2)}V`, POWER] : ['AUTO', HEAT]

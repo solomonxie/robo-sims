@@ -7,7 +7,7 @@ import { CONVENTIONAL, HIGH_V, POWER, glowMat, potentialColor } from './colors'
 import { plusFlow } from './flows'
 import { lane, R_SCALE, wire } from './layout'
 import { plusGeometry } from './shapes'
-import { UP, clamp01, emptyGroup, rand } from './util'
+import { UP, clamp01, emptyGroup, rand, rand01 } from './util'
 
 export function cell(height = 5, r = 1.6): THREE.Group {
   const g = new THREE.Group()
@@ -362,7 +362,7 @@ export function ledLamp(parent: THREE.Object3D, color: string, at: V3, { scale =
     },
     step(dt: number) {
       fly.forEach((ph, i) => {
-        if (ph.life >= 1 && Math.random() < dt * 30 * Math.min(level, 2)) {
+        if (ph.life >= 1 && rand01() < dt * 30 * Math.min(level, 2)) {
           ph.life = 0
           const a = rand(-0.15, 1.15) * Math.PI
           ph.dir.set(Math.cos(a), Math.sin(a), rand(-0.4, 0.6)).normalize()

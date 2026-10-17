@@ -3,8 +3,8 @@ import { freeAt } from '../mechanics/oscillation'
 import { Mat2 } from './matrices'
 import { eig2 } from './linearalgebra'
 
-export type OdeState = readonly number[]
-export type OdeRate = (t: number, y: OdeState) => number[]
+type OdeState = readonly number[]
+type OdeRate = (t: number, y: OdeState) => number[]
 export const ODE_METHODS = { euler: 'Euler', semi: 'Semi-implicit', rk4: 'RK4' } as const
 export type OdeMethod = keyof typeof ODE_METHODS
 
@@ -51,7 +51,7 @@ export function fieldGrid(x: [number, number], y: [number, number], nx: number, 
 
 /** Motor + wheel: J·dω/dt = τ − b·ω → free speed τ/b = 30 rad/s, time constant J/b = 0.3 s. */
 export const SPIN = { torque: 0.03, b: 0.001, J: 3e-4, T: 1.2 }
-export const spinRate: OdeRate = (_t, [w]) => [(SPIN.torque - SPIN.b * w) / SPIN.J]
+const spinRate: OdeRate = (_t, [w]) => [(SPIN.torque - SPIN.b * w) / SPIN.J]
 /** Exact ω after t, starting from ω0. */
 export const spinFrom = (w0: number, t: number) => SPIN.torque / SPIN.b + (w0 - SPIN.torque / SPIN.b) * Math.exp((-SPIN.b * t) / SPIN.J)
 
@@ -96,7 +96,7 @@ export const MAST = { m: 0.4, zeta: 0.1, x0: 0.02, T: 1.5 }
 const mastRate = (w: number, zeta: number) => springRate(1, w * w, 2 * zeta * w)
 
 /** One-step matrix of a method on the linear oscillator x″ + 2ζω·x′ + ω²·x = 0: [x, v] ← M·[x, v]. */
-export function stepMatrix(method: OdeMethod, w: number, zeta: number, h: number): Mat2 {
+function stepMatrix(method: OdeMethod, w: number, zeta: number, h: number): Mat2 {
   const f = mastRate(w, zeta)
   const [a, c] = odeStep(method, f, 0, [1, 0], h)
   const [b, d] = odeStep(method, f, 0, [0, 1], h)

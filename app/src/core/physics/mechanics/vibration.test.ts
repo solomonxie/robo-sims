@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { rpmToRadS } from '../actuators/stepper'
 import { ampRatio } from './oscillation'
 import { ACC_NOISE_G, ISOLATION_R, MOTOR_PLATE, accelSamples, accelSpectrum, frameShake, mountStiffness, mountTransmit, transmissibility, transmitLag, unbalanceForce } from './vibration'
@@ -28,9 +29,10 @@ describe('motor vibration', () => {
   })
 
   test('slider recompute is fast', () => {
-    const t0 = performance.now()
-    for (let i = 0; i < 20; i++) accelSpectrum(accelSamples(0.3, 50 + i, ACC_NOISE_G, i))
-    expect((performance.now() - t0) / 20).toBeLessThan(20)
+    const ms = medianMs(() => {
+      for (let i = 0; i < 20; i++) accelSpectrum(accelSamples(0.3, 50 + i, ACC_NOISE_G, i))
+    })
+    expect(ms / 20).toBeLessThan(20)
   })
 })
 

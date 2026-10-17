@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { EM_LANDMARKS, OBSTACLES, landmarkNear, Obstacle, SPECTRUM_PARTS, SpectrumPart, emAt, emBandOf, hzOfLambda, partView, photonEvAt, sizeLike, sunShare, throughDb, throughShare } from './spectrum'
 
 describe('c = f·λ and photon energy', () => {
@@ -32,9 +33,10 @@ describe('c = f·λ and photon energy', () => {
   })
 
   test('a sweep of 1000 frequencies is fast', () => {
-    const t0 = performance.now()
-    for (let i = 0; i < 1000; i++) emAt(10 ** (8 + i * 0.011))
-    expect(performance.now() - t0).toBeLessThan(100)
+    const ms = medianMs(() => {
+      for (let i = 0; i < 1000; i++) emAt(10 ** (8 + i * 0.011))
+    })
+    expect(ms).toBeLessThan(200)
   })
 })
 

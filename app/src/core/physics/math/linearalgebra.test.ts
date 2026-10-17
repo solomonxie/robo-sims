@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { DEG } from '../common'
 import { eigenvalues } from '../control/linalg'
 import { Mat2, apply2, rotMat2 } from './matrices'
@@ -109,15 +110,13 @@ describe('PCA of a lidar wall', () => {
     }
   })
   it('recomputes fast enough for a slider', () => {
-    const times = Array.from({ length: 5 }, () => {
-      const t0 = performance.now()
+    const ms = medianMs(() => {
       for (let i = 0; i < 20; i++) {
         leastSquaresView(0.03, 2, i * 0.01)
         eigenView([1.4, 0.4, 0.4, 0.8], i * 0.1)
         wallPca(i * 0.1)
       }
-      return (performance.now() - t0) / 20
-    }).sort((a, b) => a - b)
-    expect(times[2]).toBeLessThan(20)
+    })
+    expect(ms / 20).toBeLessThan(20)
   })
 })

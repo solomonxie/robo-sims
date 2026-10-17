@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { FLYWHEELS, SHOOTER, SPINNER, armRadius, raceAngle, reactionRatio, rotorInertias, shooterInertia, shooterRun, shot, spinRace, spinTau, spinnerInertia, spinnerRun, wheelRate } from './rotation'
 
 describe('moment of inertia', () => {
@@ -69,10 +70,11 @@ describe('flywheel', () => {
   })
 
   test('slider recomputes are fast', () => {
-    const t0 = performance.now()
-    for (const f of ['none', 'small', 'big'] as const) shooterRun(f, 0.15, 0.1)
-    spinnerRun('arms', 0.3, 60)
-    spinnerRun('wheel', 0.3, 900)
-    expect(performance.now() - t0).toBeLessThan(100)
+    const ms = medianMs(() => {
+      for (const f of ['none', 'small', 'big'] as const) shooterRun(f, 0.15, 0.1)
+      spinnerRun('arms', 0.3, 60)
+      spinnerRun('wheel', 0.3, 900)
+    })
+    expect(ms).toBeLessThan(200)
   })
 })

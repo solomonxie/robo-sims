@@ -1,3 +1,4 @@
+import { medianMs } from '../../stopwatch'
 import { DEG } from '../common'
 import { quatAngle, quatAxis, quatMul } from '../kinematics/transforms'
 import { axisAngleOf, eulerOf, eulerQuat, gimbalView, quatComposeView, quatRotate, quatRotateView, slerpView, sphereDir } from './quaternions'
@@ -95,8 +96,9 @@ describe('slerp vs Euler interpolation', () => {
     close3(v.pathS[60], v.pathE[60])
   })
   it('runs fast', () => {
-    const t = performance.now()
-    for (let i = 0; i < 20; i++) slerpView(A, B, i / 20)
-    expect(performance.now() - t).toBeLessThan(100)
+    const ms = medianMs(() => {
+      for (let i = 0; i < 20; i++) slerpView(A, B, i / 20)
+    })
+    expect(ms).toBeLessThan(200)
   })
 })

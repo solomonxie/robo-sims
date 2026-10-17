@@ -16,7 +16,7 @@ export function eulerOf(q: Quat) {
   return { yaw, pitch: -p, roll }
 }
 
-export const quatConj = (q: Quat): Quat => [q[0], -q[1], -q[2], -q[3]]
+const quatConj = (q: Quat): Quat => [q[0], -q[1], -q[2], -q[3]]
 
 /** v' = q·(0, v)·q*. */
 export function quatRotate(q: Quat, v: Vec3): Vec3 {
@@ -82,8 +82,8 @@ export interface Euler {
 
 /** Linear interpolation of the three angles, as a quaternion. */
 const mix = (a: number, b: number, u: number) => a + (b - a) * u
-export const eulerMix = (a: Euler, b: Euler, u: number): Euler => ({ yaw: mix(a.yaw, b.yaw, u), pitch: mix(a.pitch, b.pitch, u), roll: mix(a.roll, b.roll, u) })
-export const eulerLerp = (a: Euler, b: Euler, u: number) => {
+const eulerMix = (a: Euler, b: Euler, u: number): Euler => ({ yaw: mix(a.yaw, b.yaw, u), pitch: mix(a.pitch, b.pitch, u), roll: mix(a.roll, b.roll, u) })
+const eulerLerp = (a: Euler, b: Euler, u: number) => {
   const e = eulerMix(a, b, u)
   return eulerQuat(e.yaw, e.pitch, e.roll)
 }

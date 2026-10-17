@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
-import { DEG, I2, Mat2, apply2, colOf2, composeView, inverseView, mul2, rotMat2, rotationCheck, scaleMat2, shearMat2, toDeg, transpose2 } from '../../core/physics'
-import { degText, fixedText, signed } from '../../core/units'
+import { DEG, I2, apply2, colOf2, composeView, inverseView, mul2, rotMat2, rotationCheck, scaleMat2, shearMat2, transpose2 } from '../../core/physics'
+import { factorText, fixedText, mat2Text, radText, signed, tupleText } from '../../core/units'
 import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -25,16 +25,11 @@ import {
   vecArrow,
   warpGrid,
   textRows,
+  WIDE_VIEW,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 
-const f2 = (v: number) => fixedText(v)
-const fp = (v: number) => (v < -0.005 ? `(${f2(v)})` : f2(v))
-const dg = (rad: number) => degText(toDeg(rad), 0)
-const pair = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
-const mat2Text = (M: Mat2) => `[${f2(M[0])} ${f2(M[1])}; ${f2(M[2])} ${f2(M[3])}]`
 const COLS = [AXIS_RGB[0], AXIS_RGB[1]]
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
 const vec3 = (p: readonly number[], z: number): V3 => [p[0], p[1], z]
 
 // --- Rotation matrix: its columns are where the x and y axes land; unit length, square to each other, det = +1. ---
@@ -63,7 +58,7 @@ export const matricesRotationMatrix: Lesson = {
   tagline: 'Four numbers that turn everything: read them as the new axes',
   formula: (p) => {
     const { th, M, C } = rmRun(p)
-    return `R(θ) = [cos θ  −sin θ; sin θ  cos θ] · θ = ${th}° · M = ${mat2Text(M)} · columns = where x and y land: ${pair(C.x)}, ${pair(C.y)} · |col 1| = ${f2(C.lenX)}, |col 2| = ${f2(C.lenY)}, col 1·col 2 = ${f2(C.dot)}, det = ${f2(C.det)} → ${C.rotation ? 'rotation (RᵀR = I)' : 'not a rotation'}`
+    return `R(θ) = [cos θ  −sin θ; sin θ  cos θ] · θ = ${th}° · M = ${mat2Text(M)} · columns = where x and y land: ${tupleText(C.x)}, ${tupleText(C.y)} · |col 1| = ${fixedText(C.lenX)}, |col 2| = ${fixedText(C.lenY)}, col 1·col 2 = ${fixedText(C.dot)}, det = ${fixedText(C.det)} → ${C.rotation ? 'rotation (RᵀR = I)' : 'not a rotation'}`
   },
   legend: [
     { color: AXIS_RGB[0], label: 'Column 1: where x = (1, 0) lands', shape: 'dot' },
@@ -101,7 +96,7 @@ export const matricesRotationMatrix: Lesson = {
     const rows = textRows(scene, 4, 1.2, -2.6)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { th, mode, M, C } = rmRun(p)
         grid.set(M, LABEL, C.rotation ? RING : HEAT)
@@ -112,28 +107,28 @@ export const matricesRotationMatrix: Lesson = {
         cols[1]([0, 0, 0.03], vec3(C.y, 0.03), 'col 2')
         arc([0, 0, 0.03], [1, 0, 0], vec3(C.x, 0), 0.32, LABEL, 'θ')
 
-        mx.set(M.map(f2), COLS)
-        colTags.forEach((t, j) => t.set(`len ${f2(j ? C.lenY : C.lenX)}`, COLS[j]))
+        mx.set(M.map((x) => fixedText(x)), COLS)
+        colTags.forEach((t, j) => t.set(`len ${fixedText(j ? C.lenY : C.lenX)}`, COLS[j]))
         const u = (th + 180) / 360
         cosTr.draw((v) => (Math.cos((v * 360 - 180) * DEG) * ph) / 2.3, u)
         sinTr.draw((v) => (Math.sin((v * 360 - 180) * DEG) * ph) / 2.3, u)
         plot.lo.set('−180°')
         plot.hi.set('+180°')
         plot.right.set(`now ${signed(th, 0)}°`, LABEL)
-        rows[0].set(`col 1 = M·(1, 0) = ${pair(C.x)}, length ${f2(C.lenX)}`, AXIS_RGB[0])
-        rows[1].set(`col 2 = M·(0, 1) = ${pair(C.y)}, length ${f2(C.lenY)}`, AXIS_RGB[1])
-        rows[2].set(`col 1 · col 2 = ${f2(C.dot)}${Math.abs(C.dot) < 1e-6 ? ': at right angles' : ''}`, LABEL)
-        rows[3].set(`det = ${fp(M[0])}·${fp(M[3])} − ${fp(M[1])}·${fp(M[2])} = ${f2(C.det)} · RᵀR ${C.orthonormal ? '= I' : '≠ I'}`, C.det < 0 ? HIGH_V : HEAT)
-        head.status.set(`Rotation matrix · ${RM_MODES[mode].name} · θ ${dg(th * DEG)}`)
+        rows[0].set(`col 1 = M·(1, 0) = ${tupleText(C.x)}, length ${fixedText(C.lenX)}`, AXIS_RGB[0])
+        rows[1].set(`col 2 = M·(0, 1) = ${tupleText(C.y)}, length ${fixedText(C.lenY)}`, AXIS_RGB[1])
+        rows[2].set(`col 1 · col 2 = ${fixedText(C.dot)}${Math.abs(C.dot) < 1e-6 ? ': at right angles' : ''}`, LABEL)
+        rows[3].set(`det = ${factorText(M[0])}·${factorText(M[3])} − ${factorText(M[1])}·${factorText(M[2])} = ${fixedText(C.det)} · RᵀR ${C.orthonormal ? '= I' : '≠ I'}`, C.det < 0 ? HIGH_V : HEAT)
+        head.status.set(`Rotation matrix · ${RM_MODES[mode].name} · θ ${radText(th * DEG)}`)
         head.sub.set('top view · grid every 0.25 · faint grid = before, bright grid = after M', GREY)
         head.event.set(rmVerdict(C), C.rotation ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const { C } = rmRun(p)
         return [
-          { label: 'Column lengths', value: `${f2(C.lenX)}, ${f2(C.lenY)}`, tone: toneOf(Math.abs(C.lenX - 1) < 1e-6 && Math.abs(C.lenY - 1) < 1e-6, false) },
-          { label: 'col 1 · col 2', value: f2(C.dot), tone: toneOf(Math.abs(C.dot) < 1e-6, false) },
-          { label: 'det (area scale)', value: f2(C.det), tone: toneOf(Math.abs(C.det - 1) < 1e-6, C.det > 0) },
+          { label: 'Column lengths', value: `${fixedText(C.lenX)}, ${fixedText(C.lenY)}`, tone: toneOf(Math.abs(C.lenX - 1) < 1e-6 && Math.abs(C.lenY - 1) < 1e-6, false) },
+          { label: 'col 1 · col 2', value: fixedText(C.dot), tone: toneOf(Math.abs(C.dot) < 1e-6, false) },
+          { label: 'det (area scale)', value: fixedText(C.det), tone: toneOf(Math.abs(C.det - 1) < 1e-6, C.det > 0) },
           { label: 'A rotation?', value: C.rotation ? 'yes' : C.mirror ? 'no: mirror' : 'no: stretch', tone: C.rotation ? 'ok' : 'bad' },
         ]
       },
@@ -149,7 +144,7 @@ const MM_KINDS = {
   turn: { name: 'B = another turn', B: (k: number) => rotMat2(k) },
 }
 const ENTRIES = { '0': 'Entry row 1, col 1', '1': 'Entry row 1, col 2', '2': 'Entry row 2, col 1', '3': 'Entry row 2, col 2' }
-const MM = { left: [-13.4, -3.4, 0] as V3, right: [-5.2, -3.4, 0] as V3, k: 3.3, y: 3.2, x: [2.4, 7.2, 12], cell: 1.8, size: 0.4 }
+const MM = { left: [-13.4, -4.5, 0] as V3, right: [-5.2, -4.5, 0] as V3, k: 3.3, y: 3.2, x: [2.4, 7.2, 12], cell: 1.8, size: 0.4 }
 const mmRun = memoBy(
   (p: Params) => `${p.th} ${p.kind} ${p.k} ${p.entry}`,
   (p: Params) => {
@@ -171,7 +166,7 @@ export const matricesMatrixMultiply: Lesson = {
   tagline: 'Chain two moves into one matrix, and why the order matters',
   formula: (p) => {
     const { A, B, V, i, j, t } = mmRun(p)
-    return `A·B: do B first, then A · (A·B)p = A(Bp) · entry (${i + 1}, ${j + 1}) = row ${i + 1} of A · col ${j + 1} of B = ${fp(t.row[0])}·${fp(t.col[0])} + ${fp(t.row[1])}·${fp(t.col[1])} = ${f2(t.value)} · A = ${mat2Text(A)}, B = ${mat2Text(B)} · A·B = ${mat2Text(V.AB)} ${V.commute ? '=' : '≠'} B·A = ${mat2Text(V.BA)}`
+    return `A·B: do B first, then A · (A·B)p = A(Bp) · entry (${i + 1}, ${j + 1}) = row ${i + 1} of A · col ${j + 1} of B = ${factorText(t.row[0])}·${factorText(t.col[0])} + ${factorText(t.row[1])}·${factorText(t.col[1])} = ${fixedText(t.value)} · A = ${mat2Text(A)}, B = ${mat2Text(B)} · A·B = ${mat2Text(V.AB)} ${V.commute ? '=' : '≠'} B·A = ${mat2Text(V.BA)}`
   },
   legend: [
     { color: HEAT, label: 'Row of A · column of B = one entry', shape: 'dot' },
@@ -206,30 +201,30 @@ export const matricesMatrixMultiply: Lesson = {
     const rows = textRows(scene, 4, 0.4, -0.2, 0.32)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { th, kind, k, A, B, V, i, j, e, t } = mmRun(p)
         panels[0].grid.set(V.AB)
         panels[1].grid.set(V.BA, LABEL, V.commute ? RING : HEAT)
         const hi = (on: boolean) => (on ? HEAT : GREY)
-        grids[0].set(A.map(f2), [0, 1, 2, 3].map((q) => hi(Math.floor(q / 2) === i)))
-        grids[1].set(B.map(f2), [0, 1, 2, 3].map((q) => hi(q % 2 === j)))
-        grids[2].set(V.AB.map(f2), [0, 1, 2, 3].map((q) => (q === e ? HEAT : LABEL)))
-        rows[0].set(`row ${i + 1} of A · col ${j + 1} of B = ${fp(t.row[0])}·${fp(t.col[0])} + ${fp(t.row[1])}·${fp(t.col[1])} = ${f2(t.value)}`, HEAT)
-        rows[1].set(`A·B = ${mat2Text(V.AB)}: x lands at ${pair(colOf2(V.AB, 0))}`, LABEL)
-        rows[2].set(`B·A = ${mat2Text(V.BA)}: x lands at ${pair(colOf2(V.BA, 0))}`, LABEL)
-        rows[3].set(V.commute ? 'A·B = B·A: these two commute' : `A·B ≠ B·A: biggest entry gap ${f2(V.gap)}`, V.commute ? POWER : HIGH_V)
-        head.status.set(`Matrix multiply · A = turn ${dg(th * DEG)} · ${MM_KINDS[kind].name}${kind === 'turn' ? ` ${signed(k * 60, 0)}°` : ` k = ${f2(k)}`}`)
+        grids[0].set(A.map((x) => fixedText(x)), [0, 1, 2, 3].map((q) => hi(Math.floor(q / 2) === i)))
+        grids[1].set(B.map((x) => fixedText(x)), [0, 1, 2, 3].map((q) => hi(q % 2 === j)))
+        grids[2].set(V.AB.map((x) => fixedText(x)), [0, 1, 2, 3].map((q) => (q === e ? HEAT : LABEL)))
+        rows[0].set(`row ${i + 1} of A · col ${j + 1} of B = ${factorText(t.row[0])}·${factorText(t.col[0])} + ${factorText(t.row[1])}·${factorText(t.col[1])} = ${fixedText(t.value)}`, HEAT)
+        rows[1].set(`A·B = ${mat2Text(V.AB)}: x lands at ${tupleText(colOf2(V.AB, 0))}`, LABEL)
+        rows[2].set(`B·A = ${mat2Text(V.BA)}: x lands at ${tupleText(colOf2(V.BA, 0))}`, LABEL)
+        rows[3].set(V.commute ? 'A·B = B·A: these two commute' : `A·B ≠ B·A: biggest entry gap ${fixedText(V.gap)}`, V.commute ? POWER : HIGH_V)
+        head.status.set(`Matrix multiply · A = turn ${radText(th * DEG)} · ${MM_KINDS[kind].name}${kind === 'turn' ? ` ${signed(k * 60, 0)}°` : ` k = ${fixedText(k)}`}`)
         head.sub.set('top views · faint grid = before, bright grid = after both moves · read products right to left', GREY)
         head.event.set(V.commute ? 'same result either way round' : 'same two matrices, different order, different robot', V.commute ? POWER : HIGH_V)
       },
       readouts: (p) => {
         const { V, i, j, t } = mmRun(p)
         return [
-          { label: `(A·B) entry ${i + 1}, ${j + 1}`, value: f2(t.value) },
+          { label: `(A·B) entry ${i + 1}, ${j + 1}`, value: fixedText(t.value) },
           { label: 'A·B', value: mat2Text(V.AB) },
           { label: 'B·A', value: mat2Text(V.BA) },
-          { label: 'Commute?', value: V.commute ? 'yes' : `no (gap ${f2(V.gap)})`, tone: V.commute ? 'ok' : 'warn' },
+          { label: 'Commute?', value: V.commute ? 'yes' : `no (gap ${fixedText(V.gap)})`, tone: V.commute ? 'ok' : 'warn' },
         ]
       },
     }
@@ -238,7 +233,7 @@ export const matricesMatrixMultiply: Lesson = {
 
 // --- Inverse: M⁻¹ undoes M; for a rotation it is the transpose; det = area scale, and det 0 squashes the plane to a line with no way back. ---
 
-const IV = { left: [-13.6, -3, 0] as V3, right: [-4.4, -3, 0] as V3, k: 3.5, y: 3.4, x: [5.2, 12.6], q: [0.5, 0.3] as const }
+const IV = { left: [-13.6, -4.8, 0] as V3, right: [-4.4, -4.8, 0] as V3, k: 3.5, y: 3.4, x: [5.2, 12.6], q: [0.5, 0.3] as const }
 const ivRun = memoBy(
   (p: Params) => `${p.th} ${p.k} ${p.s}`,
   (p: Params) => {
@@ -256,7 +251,7 @@ export const matricesInverse: Lesson = {
   tagline: 'Undo a transform, and the matrices you can\'t undo',
   formula: (p) => {
     const { M, V, pw } = ivRun(p)
-    return `M = R(θ)·[1 k; 0 s] = ${mat2Text(M)} · det = ad − bc = ${f2(V.det)} (area scale) · M⁻¹ = (1/det)·[d −b; −c a] = ${V.inv ? mat2Text(V.inv) : 'none: det = 0'} · p = M·q = ${pair(pw)} → q = M⁻¹·p · rotation: M⁻¹ = Mᵀ`
+    return `M = R(θ)·[1 k; 0 s] = ${mat2Text(M)} · det = ad − bc = ${fixedText(V.det)} (area scale) · M⁻¹ = (1/det)·[d −b; −c a] = ${V.inv ? mat2Text(V.inv) : 'none: det = 0'} · p = M·q = ${tupleText(pw)} → q = M⁻¹·p · rotation: M⁻¹ = Mᵀ`
   },
   legend: [
     { color: RING, label: 'Robot outline and point q / p', shape: 'dot' },
@@ -304,7 +299,7 @@ export const matricesInverse: Lesson = {
     const rows = textRows(scene, 4, 1.4, -0.4)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { th, k, s, M, V, pw, back } = ivRun(p)
         gridR.set(M, LABEL, V.singular ? HIGH_V : RING)
@@ -314,16 +309,16 @@ export const matricesInverse: Lesson = {
         const L = V.singular ? 0.8 : 0
         lost([IV.q[0] - V.lost[0] * L, IV.q[1] - V.lost[1] * L, 0.03], [IV.q[0] + V.lost[0] * L, IV.q[1] + V.lost[1] * L, 0.03], V.singular ? HIGH_V : GREY)
         bwd.set(V.singular ? '← no M⁻¹' : '← M⁻¹', V.singular ? HIGH_V : POWER)
-        area.set(`unit square → area ${f2(V.area)}${V.flips ? ', flipped' : ''}`, V.singular ? HIGH_V : HEAT)
+        area.set(`unit square → area ${fixedText(V.area)}${V.flips ? ', flipped' : ''}`, V.singular ? HIGH_V : HEAT)
 
-        gm.set(M.map(f2), COLS)
-        gi.set(V.inv ? V.inv.map(f2) : ['—', '—', '—', '—'], V.inv ? [POWER] : [HIGH_V])
+        gm.set(M.map((x) => fixedText(x)), COLS)
+        gi.set(V.inv ? V.inv.map((x) => fixedText(x)) : ['—', '—', '—', '—'], V.inv ? [POWER] : [HIGH_V])
         const Mt = transpose2(M)
-        rows[0].set(`det = ${fp(M[0])}·${fp(M[3])} − ${fp(M[1])}·${fp(M[2])} = ${f2(V.det)}`, V.singular ? HIGH_V : HEAT)
-        rows[1].set(back ? `M⁻¹·p = M⁻¹·${pair(pw)} = ${pair(back)} = q` : 'det = 0: the plane squashes onto a line', back ? POWER : HIGH_V)
+        rows[0].set(`det = ${factorText(M[0])}·${factorText(M[3])} − ${factorText(M[1])}·${factorText(M[2])} = ${fixedText(V.det)}`, V.singular ? HIGH_V : HEAT)
+        rows[1].set(back ? `M⁻¹·p = M⁻¹·${tupleText(pw)} = ${tupleText(back)} = q` : 'det = 0: the plane squashes onto a line', back ? POWER : HIGH_V)
         rows[2].set(V.check ? `M·M⁻¹ = ${mat2Text(V.check)} = I` : 'every point on the red line lands on p', V.check ? LABEL : HIGH_V)
         rows[3].set(V.isRotation ? `Mᵀ = ${mat2Text(Mt)} = M⁻¹: a rotation` : `Mᵀ = ${mat2Text(Mt)} ≠ M⁻¹: not a rotation`, V.isRotation ? POWER : GREY)
-        head.status.set(`Inverse · turn ${dg(th * DEG)} · shear ${f2(k)} · stretch y ${f2(s)} · det ${f2(V.det)}`)
+        head.status.set(`Inverse · turn ${radText(th * DEG)} · shear ${fixedText(k)} · stretch y ${fixedText(s)} · det ${fixedText(V.det)}`)
         head.sub.set('top views · q fixed at (0.50, 0.30) · faint grid = before, bright grid = after M', GREY)
         head.event.set(
           V.singular ? 'singular: no inverse, the plane is flattened to a line' : Math.abs(V.det) < 0.2 ? 'nearly singular: the inverse is huge' : V.isRotation ? 'a rotation: undo it with the transpose' : 'M⁻¹ carries p straight back to q',
@@ -334,9 +329,9 @@ export const matricesInverse: Lesson = {
         const { V, back } = ivRun(p)
         const big = V.inv ? Math.max(...V.inv.map(Math.abs)) : Infinity
         return [
-          { label: 'det (area scale)', value: f2(V.det), tone: toneOf(Math.abs(V.det) >= 0.2, !V.singular) },
-          { label: 'Largest entry of M⁻¹', value: V.inv ? f2(big) : '∞', tone: toneOf(big < 5, !V.singular) },
-          { label: 'q back from p', value: back ? pair(back) : 'lost' },
+          { label: 'det (area scale)', value: fixedText(V.det), tone: toneOf(Math.abs(V.det) >= 0.2, !V.singular) },
+          { label: 'Largest entry of M⁻¹', value: V.inv ? fixedText(big) : '∞', tone: toneOf(big < 5, !V.singular) },
+          { label: 'q back from p', value: back ? tupleText(back) : 'lost' },
           { label: 'Inverse = transpose?', value: V.isRotation ? 'yes (rotation)' : 'no' },
         ]
       },

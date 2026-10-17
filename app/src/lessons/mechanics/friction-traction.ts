@@ -3,7 +3,7 @@ import { mpsText, newtonsText, pct } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, coilSpring, countBars, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, scope, scrollTape, sideCar, sideView, statusHeader, stretchArrow, traceRun } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
+import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
 const VIEW = sideView(-2.2, 1.8)
@@ -11,7 +11,7 @@ const VIEW = sideView(-2.2, 1.8)
 // --- Static vs kinetic: a robot drags a parts box through a spring; slow drags stick and slip. ---
 
 const SS = { seconds: 8, dt: 0.002, k: 30, at: [-4.5, -2.6, 0] as V3, rest: 0.12, boxM: 0.12, fMax: 10, vMax: 0.6, plot: { y: -1.2, h: 7.6 } }
-const PAIRS = Object.fromEntries(Object.entries(FRICTION_PAIRS).map(([k, v]) => [k, v.name])) as Record<keyof typeof FRICTION_PAIRS, string>
+const PAIRS = namesOf(FRICTION_PAIRS)
 const ssParams = (p: Params) => ({ pair: pick(PAIRS, p.pair, 'tile'), speed: n(p, 'speed'), k: n(p, 'spring') })
 type SsQ = ReturnType<typeof ssParams>
 const ssKey = (q: SsQ) => `${q.pair}|${q.speed}|${q.k}`
@@ -117,8 +117,8 @@ export const frictionTractionStaticVsKinetic: Lesson = {
 // --- Rolling resistance: tyre and floor squash, hysteresis shifts the floor's push ahead of the axle. ---
 
 const RR = { K: 85, squash: 5, hub: [-9, 0, 0] as V3, floorY: -4.6, depth: 1.4, bars: [4.6, 2.6, 0] as V3, bars2: [4.6, -3.3, 0] as V3, barW: 5.4 }
-const WHEELS = Object.fromEntries(Object.entries(WHEEL_TYPES).map(([k, v]) => [k, v.name])) as Record<WheelType, string>
-const SURFACES = Object.fromEntries(Object.entries(ROLL_SURFACES).map(([k, v]) => [k, v.name])) as Record<RollSurface, string>
+const WHEELS = namesOf(WHEEL_TYPES)
+const SURFACES = namesOf(ROLL_SURFACES)
 const FLOOR_LOOK: Record<RollSurface, string> = { tile: '#c9ced6', wood: '#a8743f', carpet: '#7a4a5a', grass: '#4f7a3a' }
 const TYRE_LOOK: Record<WheelType, string> = { tt: '#5c5c66', hard: '#e8e2d0', foam: '#6a7180', big: '#50505a' }
 const rrParams = (p: Params) => ({ wheel: pick(WHEELS, p.wheel, 'tt'), surface: pick(SURFACES, p.surface, 'carpet'), v: n(p, 'speed'), m: TT_CAR.massKg + n(p, 'load'), load: n(p, 'load') })

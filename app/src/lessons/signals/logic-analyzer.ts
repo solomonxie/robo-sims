@@ -40,6 +40,7 @@ import {
   lieFlat,
   liveLabel,
   usbAnalyzer,
+  rand01,
 } from '../fx'
 import { Lesson, Params, Stage, n, pick } from '../types'
 
@@ -231,8 +232,8 @@ export const sampleRate: Lesson = {
           st.prev = st.cur
           st.prevGAt = st.gAt
           st.prevPhase = st.phase
-          st.gAt = (15 + 70 * Math.random()) * 1e-6
-          st.phase = Math.random() / fs
+          st.gAt = (15 + 70 * rand01()) * 1e-6
+          st.phase = rand01() / fs
           st.cur = capture(fs, st.gAt, st.phase)
           if (highRuns(st.cur[3]).length) st.caught++
         }
@@ -353,7 +354,7 @@ export const patternTrigger: Lesson = {
         const c = clock.tick(dt)
         if (c.fresh) {
           st.prev = st.cap
-          st.cap = armCapture(Math.floor(Math.random() * 16), s.pattern, s.mask)
+          st.cap = armCapture(Math.floor(rand01() * 16), s.pattern, s.mask)
           st.fired = [st.cap.words[PRE], ...st.fired].slice(0, 4)
         }
         st.time += dt

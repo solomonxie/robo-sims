@@ -43,6 +43,7 @@ import {
   signalWire,
   timingDiagram,
   voltScale,
+  rand01,
 } from '../fx'
 import { Lesson, Stage, e12, n, resistorSlider } from '../types'
 
@@ -50,7 +51,7 @@ const WIRES = { color: HIGH_V, label: 'Wire colour: blue 0 V → red 5 V', shape
 const READ_COLOR = LED_RED
 const fixed = (v: number) => v.toFixed(2)
 /** A read for the scope: 0 / 1, or a mid-level flicker in the forbidden band. */
-const shown = (r: 0 | 1 | null) => r ?? 0.35 + 0.3 * Math.random()
+const shown = (r: 0 | 1 | null) => r ?? 0.35 + 0.3 * rand01()
 
 /** LED from `from` to `at`, cathode to ground below; `(dt, on)`. */
 function readLed(parent: THREE.Object3D, from: V3, at: V3) {

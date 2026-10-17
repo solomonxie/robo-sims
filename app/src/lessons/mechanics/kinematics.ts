@@ -3,7 +3,7 @@ import { accelText, mpsText, secsText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, dotPen, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rodPool, sideCar, sideView, statusHeader } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, n, namesOf, opts, pick } from '../types'
 import * as THREE from 'three/webgpu'
 
 const VIEW = sideView(-2.6, -0.6)
@@ -258,7 +258,7 @@ export const kinematicsVelocityTime: Lesson = {
 // --- Projectile motion: a chip-kicker robot lofts a ball; vx stays, vy falls by g each second; air drag optional. ---
 
 const PM = { seconds: 1.4, x0: -15, y0: -6.6, k: 5.2, len: 5, vMax: 7, plot: [6, 2.9, 0] as V3, w: 9, h: 4.5, carK: 10, ballR: 0.3, strobe: 0.1, slow: 0.4 }
-const BALL_NAMES = Object.fromEntries(Object.entries(BALLS).map(([k, v]) => [k, v.name])) as Record<keyof typeof BALLS, string>
+const BALL_NAMES = namesOf(BALLS)
 const pmParams = (p: Params) => ({ u: n(p, 'speed'), deg: n(p, 'angle'), ball: pick(BALL_NAMES, p.ball, 'vacuum') })
 type PmQ = ReturnType<typeof pmParams>
 const pmKey = (q: PmQ) => `${q.u}|${q.deg}|${q.ball}`

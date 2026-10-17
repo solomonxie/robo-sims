@@ -11,7 +11,7 @@ export const apply2 = (M: Mat2, p: readonly number[]): V2 => [M[0] * p[0] + M[1]
 export const det2 = (M: Mat2) => M[0] * M[3] - M[1] * M[2]
 export const transpose2 = (M: Mat2): Mat2 => [M[0], M[2], M[1], M[3]]
 export const colOf2 = (M: Mat2, j: 0 | 1): V2 => [M[j], M[2 + j]]
-export const rowOf2 = (M: Mat2, i: 0 | 1): V2 => [M[2 * i], M[2 * i + 1]]
+const rowOf2 = (M: Mat2, i: 0 | 1): V2 => [M[2 * i], M[2 * i + 1]]
 export const close2 = (A: Mat2, B: Mat2, tol = 1e-9) => A.every((v, i) => Math.abs(v - B[i]) <= tol)
 /** null when det ≈ 0 (singular). */
 export function inv2(M: Mat2, tol = 1e-9): Mat2 | null {

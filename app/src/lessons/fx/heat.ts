@@ -4,7 +4,7 @@ import { celsiusText, thetaText } from '../../core/units'
 import { GREY, HEAT, HIGH_V, LABEL, glowMat, ironbow, setGlow } from './colors'
 import { flatBox } from './shapes'
 import { addLabel, liveLabel } from './text'
-import { clamp01, rand } from './util'
+import { clamp01, rand, rand01 } from './util'
 
 /** Red-hot glow for a material: 0 = off, 1 = bright orange. */
 export function heatGlow(material: THREE.MeshStandardMaterial, f: number) {
@@ -82,7 +82,7 @@ export function smoke(parent: THREE.Object3D, width: number, { count = 24, rise 
     step(dt: number, amount: number) {
       const a = clamp01(amount)
       for (let i = 0; i < count; i++) {
-        if (life[i] >= 1 && Math.random() < dt * 6 * a) {
+        if (life[i] >= 1 && rand01() < dt * 6 * a) {
           life[i] = 0
           x[i] = rand(-width / 2, width / 2)
         }

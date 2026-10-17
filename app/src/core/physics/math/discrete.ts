@@ -4,7 +4,7 @@ import { aliasFrequency, nyquist } from '../signals/fourier'
 import { emaAlpha } from '../signals/filters'
 
 export const RECON = { hold: 'Hold', line: 'Join dots', ideal: 'Ideal (sinc)' } as const
-export type Recon = keyof typeof RECON
+type Recon = keyof typeof RECON
 
 export const foldedHz = (f: number, fs: number) => Math.abs(aliasFrequency(f, fs))
 export const sinc = (x: number) => (Math.abs(x) < 1e-12 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x))
@@ -54,7 +54,7 @@ export function sampleRateView(f: number, fs: number, kind: Recon, T: number, po
 // --- Z-transform intuition: y[n] = a·y[n−1] + b·x[n], H(z) = b·z/(z − a). ---
 
 export const Z_INPUTS = { impulse: 'Impulse', step: 'Step', noisy: 'Noisy step' } as const
-export type ZInput = keyof typeof Z_INPUTS
+type ZInput = keyof typeof Z_INPUTS
 
 /** Input gain b = 1 − a (unity DC gain), kept ≥ 0.05 so a pole at or past 1 still shows its response. */
 export const onePoleGain = (a: number) => Math.max(0.05, 1 - a)

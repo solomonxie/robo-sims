@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { MAST, ODE_METHODS, OdeSystem, SPIN, SWING, SYSTEMS, eulerView, exactFrom, fieldGrid, freeAt, stepSizeView, swingW } from '../../core/physics'
 import { cmText, fixedText, msText, secsText, signed } from '../../core/units'
-import { V3, add, mesh } from '../../models/kit'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -26,16 +26,16 @@ import {
   textRows,
   titledScope,
   vecArrow,
+  WIDE_VIEW,
+  WIDE_LEFT,
+  WIDE_RIGHT,
+  glowDot,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
-const RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
 const RPM = 60 / (2 * Math.PI)
-const dot = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(c, 1.2)))
-const liveTitle = (scene: THREE.Object3D, y: number, h: number, x = LEFT.x, w = LEFT.w) => liveLabel(scene, [x - w / 2, y + h / 2 + 1.1, 0.3], { size: 0.3, align: 'left' })
-const scopeAt = (scene: THREE.Object3D, y: number, h: number, zero: number, x = LEFT.x, w = LEFT.w) => titledScope(scene, y, h, '', LABEL, zero, x, w)
+const liveTitle = (scene: THREE.Object3D, y: number, h: number, x = WIDE_LEFT.x, w = WIDE_LEFT.w) => liveLabel(scene, [x - w / 2, y + h / 2 + 1.1, 0.3], { size: 0.3, align: 'left' })
+const scopeAt = (scene: THREE.Object3D, y: number, h: number, zero: number, x = WIDE_LEFT.x, w = WIDE_LEFT.w) => titledScope(scene, y, h, '', LABEL, zero, x, w)
 const rate = (w: number) => `${fixedText(w, 1)} rad/s`
 
 /** Two hanging masses side by side: exact (left) and stepped (right); `set(xExact, xStep, …)` in metres, 1 cm = 0.6 units. */
@@ -72,10 +72,10 @@ const eiClocks = { motor: lapseClock(SPIN.T, 0.5, 0.6), spring: lapseClock(SWING
 
 /** Main-plot coordinates (scene units from the plot centre) of state y at time t. */
 function plotXY(sys: OdeSystem, t: number, y: readonly number[]): [number, number] {
-  if (sys === 'motor') return [(t / SPIN.T - 0.5) * LEFT.w, plotY(EI.wLo, EI.wHi, LEFT.topH)(y[0])]
-  return [(y[0] / (EI.span * SWING.x0)) * (LEFT.w / 2), (y[1] / (EI.vSpan * SWING.x0 * swingW)) * (LEFT.topH / 2)]
+  if (sys === 'motor') return [(t / SPIN.T - 0.5) * WIDE_LEFT.w, plotY(EI.wLo, EI.wHi, WIDE_LEFT.topH)(y[0])]
+  return [(y[0] / (EI.span * SWING.x0)) * (WIDE_LEFT.w / 2), (y[1] / (EI.vSpan * SWING.x0 * swingW)) * (WIDE_LEFT.topH / 2)]
 }
-const inBox = ([x, y]: [number, number]) => Math.abs(x) <= LEFT.w / 2 && Math.abs(y) <= LEFT.topH / 2
+const inBox = ([x, y]: [number, number]) => Math.abs(x) <= WIDE_LEFT.w / 2 && Math.abs(y) <= WIDE_LEFT.topH / 2
 
 export const differentialEquationsEulerIntegration: Lesson = {
   id: 'differential-equations-euler-integration',
@@ -108,22 +108,22 @@ export const differentialEquationsEulerIntegration: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const pt = scopeAt(scene, LEFT.top, LEFT.topH, 0.5)
-    const ptTitle = liveTitle(scene, LEFT.top, LEFT.topH)
+    const pt = scopeAt(scene, WIDE_LEFT.top, WIDE_LEFT.topH, 0.5)
+    const ptTitle = liveTitle(scene, WIDE_LEFT.top, WIDE_LEFT.topH)
     const field = rodPool(pt.s.group, 84, { heads: true })
     const trExact = pt.s.trace(LABEL, { samples: 161, radius: 0.05 })
     const trEuler = pt.s.trace(RING, { samples: 241, radius: 0.07 })
     const stepArrow = vecArrow(pt.s.group, HEAT, 0.07, 0.3)
     const freeLine = pt.s.level(B_FIELD)
-    const pb = scopeAt(scene, LEFT.low, LEFT.lowH, 0)
-    const pbTitle = liveTitle(scene, LEFT.low, LEFT.lowH)
+    const pb = scopeAt(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 0)
+    const pbTitle = liveTitle(scene, WIDE_LEFT.low, WIDE_LEFT.lowH)
     const trBad = pb.s.trace(HIGH_V, { samples: 241, radius: 0.06 })
     const trFlat = pb.s.trace(LABEL, { samples: 2, radius: 0.04 })
-    const pz = titledScope(scene, RIGHT.y, RIGHT.h, 'one step, zoomed', LABEL, 0.5, RIGHT.x, RIGHT.w)
+    const pz = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'one step, zoomed', LABEL, 0.5, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const trLocal = pz.s.trace(LABEL, { samples: 40, radius: 0.06 })
     const zArrow = vecArrow(pz.s.group, HEAT, 0.08, 0.32)
     const zMiss = dotLine(pz.s.group, 0.07, 30)
-    const zDots = [dot(pz.s.group, 0.2, RING), dot(pz.s.group, 0.2, HEAT), dot(pz.s.group, 0.2, LABEL)]
+    const zDots = [glowDot(pz.s.group, 0.2, RING), glowDot(pz.s.group, 0.2, HEAT), glowDot(pz.s.group, 0.2, LABEL)]
 
     const wheel = speedWheel(scene, [4.2, 2.4, 0], 2.6, 300)
     const rigs = twinRigs(scene, [4.4, 5.6, 0], 6.2)
@@ -131,7 +131,7 @@ export const differentialEquationsEulerIntegration: Lesson = {
     const st = { rev: 0, last: 0 }
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const { sys, V } = eiRun(p)
         const motor = sys === 'motor'
@@ -141,15 +141,15 @@ export const differentialEquationsEulerIntegration: Lesson = {
         const P = V.ys.map((y, i) => plotXY(sys, V.ts[i], y))
         const out = P.findIndex((q) => !inBox(q))
         const kk = out < 0 ? k : Math.min(k, out - 1)
-        const W = LEFT.w
+        const W = WIDE_LEFT.w
         const U = (x: number) => x / W + 0.5
 
         const ax = motor ? [0, SPIN.T] : [-EI.span * SWING.x0, EI.span * SWING.x0]
         const ay = motor ? [0, 34] : [-EI.vSpan * SWING.x0 * swingW, EI.vSpan * SWING.x0 * swingW]
         const cells = fieldGrid(ax as [number, number], ay as [number, number], motor ? 12 : 14, motor ? 6 : 6, (a, b) => {
-          if (motor) return [W / SPIN.T, V.f(0, [b])[0] * (LEFT.topH / (EI.wHi - EI.wLo))]
+          if (motor) return [W / SPIN.T, V.f(0, [b])[0] * (WIDE_LEFT.topH / (EI.wHi - EI.wLo))]
           const r = V.f(0, [a, b])
-          return [r[0] * (W / 2 / (EI.span * SWING.x0)), r[1] * (LEFT.topH / 2 / (EI.vSpan * SWING.x0 * swingW))]
+          return [r[0] * (W / 2 / (EI.span * SWING.x0)), r[1] * (WIDE_LEFT.topH / 2 / (EI.vSpan * SWING.x0 * swingW))]
         })
         cells.forEach((c, i) => {
           const [X, Y] = motor ? plotXY(sys, c.at[0], [c.at[1]]) : plotXY(sys, 0, c.at)
@@ -166,7 +166,7 @@ export const differentialEquationsEulerIntegration: Lesson = {
           trExact.points(ring.map((q) => U(q[0])), ring.map((q) => q[1]), null)
         }
         trEuler.points(P.slice(0, kk + 1).map((q) => U(q[0])), P.slice(0, kk + 1).map((q) => q[1]))
-        freeLine.set(motor ? plotY(EI.wLo, EI.wHi, LEFT.topH)(SPIN.torque / SPIN.b) : 99)
+        freeLine.set(motor ? plotY(EI.wLo, EI.wHi, WIDE_LEFT.topH)(SPIN.torque / SPIN.b) : 99)
         const stepOn = kk < N && kk === k
         const [A, B] = [P[kk], P[Math.min(N, kk + 1)]]
         stepArrow([A[0], A[1], 0.35], stepOn && inBox(B) ? [B[0], B[1], 0.35] : [A[0], A[1], 0.35], '')
@@ -176,7 +176,7 @@ export const differentialEquationsEulerIntegration: Lesson = {
         pt.hi.set(motor ? `${SPIN.T} s` : `${cmText(ax[1])}`)
 
         const T = V.T
-        const yb = motor ? plotY(EI.eLo, EI.eHi, LEFT.lowH) : plotY(0, EI.Ehi, LEFT.lowH)
+        const yb = motor ? plotY(EI.eLo, EI.eHi, WIDE_LEFT.lowH) : plotY(0, EI.Ehi, WIDE_LEFT.lowH)
         const bad = motor ? V.errs : V.energy
         trBad.points(V.ts.slice(0, k + 1).map((t) => t / T), bad.slice(0, k + 1).map(yb))
         trFlat.points([0, 1], [yb(motor ? 0 : 1), yb(motor ? 0 : 1)], null)
@@ -195,10 +195,10 @@ export const differentialEquationsEulerIntegration: Lesson = {
         const all = [...path, b]
         const [x0, x1] = [Math.min(...all.map((q) => q[0])), Math.max(...all.map((q) => q[0]))]
         const [y0s, y1s] = [Math.min(...all.map((q) => q[1])), Math.max(...all.map((q) => q[1]))]
-        const z = 0.8 * Math.min(RIGHT.w / Math.max(x1 - x0, 1e-6), RIGHT.h / Math.max(y1s - y0s, 1e-6))
+        const z = 0.8 * Math.min(WIDE_RIGHT.w / Math.max(x1 - x0, 1e-6), WIDE_RIGHT.h / Math.max(y1s - y0s, 1e-6))
         const [cx, cy] = [(x0 + x1) / 2, (y0s + y1s) / 2]
         const zx = (q: [number, number]): V3 => [(q[0] - cx) * z, (q[1] - cy) * z, 0.35]
-        trLocal.points(path.map((q) => 0.5 + ((q[0] - cx) * z) / RIGHT.w), path.map((q) => (q[1] - cy) * z), null)
+        trLocal.points(path.map((q) => 0.5 + ((q[0] - cx) * z) / WIDE_RIGHT.w), path.map((q) => (q[1] - cy) * z), null)
         zArrow(zx(a), zx(b), 'Δt·f', [0.2, 0, 0])
         zMiss(zx(b), zx(e), HIGH_V)
         zDots.forEach((d, i) => d.position.set(...zx([a, b, e][i])))
@@ -299,12 +299,12 @@ export const differentialEquationsStepSize: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const head = statusHeader(scene)
-    const px = titledScope(scene, LEFT.top, LEFT.topH, 'position x: stepped vs exact', LABEL, 0.5, LEFT.x, LEFT.w)
+    const px = titledScope(scene, WIDE_LEFT.top, WIDE_LEFT.topH, 'position x: stepped vs exact', LABEL, 0.5, WIDE_LEFT.x, WIDE_LEFT.w)
     const yx = plotY(-3 * MAST.x0, 3 * MAST.x0, px.h)
     const trExact = px.s.trace(LABEL, { samples: 301, radius: 0.05 })
-    const pg = titledScope(scene, LEFT.low, LEFT.lowH, 'growth per step |g| vs Δt (log)', LABEL, 0.5, LEFT.x, LEFT.w)
+    const pg = titledScope(scene, WIDE_LEFT.low, WIDE_LEFT.lowH, 'growth per step |g| vs Δt (log)', LABEL, 0.5, WIDE_LEFT.x, WIDE_LEFT.w)
     const yg = plotY(SS.gLo, SS.gHi, pg.h)
-    const pe = titledScope(scene, RIGHT.y, RIGHT.h, 'worst error vs Δt (log)', LABEL, 0, RIGHT.x, RIGHT.w)
+    const pe = titledScope(scene, WIDE_RIGHT.y, WIDE_RIGHT.h, 'worst error vs Δt (log)', LABEL, 0, WIDE_RIGHT.x, WIDE_RIGHT.w)
     const ye = (e: number) => plotY(SS.eLo, SS.eHi, pe.h)(Math.log10(Math.max(e, 10 ** SS.eLo)))
     const methods = Object.keys(ODE_METHODS) as (keyof typeof ODE_METHODS)[]
     const gTr = methods.map((m) => pg.s.trace(M_COLORS[m], { samples: H_GRID.length, radius: 0.05 }))
@@ -322,7 +322,7 @@ export const differentialEquationsStepSize: Lesson = {
     const rows = textRows(scene, 3, 1.6, -3.4, 0.32, 0.75)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(dt, p) {
         const { method, h, k, S } = ssRun(p)
         const color = M_COLORS[method]

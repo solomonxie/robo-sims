@@ -95,6 +95,12 @@ export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)
 /** Fixed digits with a true minus, values that round to zero unsigned. */
 export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -digits ? (0).toFixed(digits) : v.toFixed(digits).replace('-', '−'))
+/** fixedText of each entry: `(x, y, z)`. */
+export const tupleText = (v: readonly number[], digits = 2) => `(${v.map((x) => fixedText(x, digits)).join(', ')})`
+/** fixedText as a factor in a written product: negatives in brackets. */
+export const factorText = (v: number) => (v < -0.005 ? `(${fixedText(v)})` : fixedText(v))
+/** Row-major 2×2 `[a b; c d]`. */
+export const mat2Text = (M: readonly number[]) => `[${fixedText(M[0])} ${fixedText(M[1])}; ${fixedText(M[2])} ${fixedText(M[3])}]`
 /** Two decimals, '—' when missing. */
 export const secsText = (s: number | null) => (s === null || !Number.isFinite(s) ? '—' : `${s.toFixed(2)} s`)
 /** PID gains in duty per degree. */

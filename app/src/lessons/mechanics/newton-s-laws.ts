@@ -3,7 +3,7 @@ import { accelText, kgText, mpsText, newtonsText, secsText } from '../../core/un
 import { V3, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, SIDE_SCOPE, scopeLabels, scrollTape, sideCar, sideScope, sideView, statusHeader, traceRun, trayMat } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, n, namesOf, opts, pick } from '../types'
 import * as THREE from 'three/webgpu'
 
 const VIEW = sideView(-2.2, 1.8)
@@ -235,7 +235,7 @@ export const newtonsLawsFreeBodyDiagrams: Lesson = {
 // --- Friction: push a robot with locked wheels harder and harder; static friction holds, then lets go. ---
 
 const FR = { seconds: 6, rate: 5, hold: 0.5, k: 18, at: [-9.5, -2.6, 0] as V3, nScale: 0.25, fMax: 20, vMax: 1.2 }
-const PAIRS = Object.fromEntries(Object.entries(FRICTION_PAIRS).map(([k, v]) => [k, v.name])) as Record<keyof typeof FRICTION_PAIRS, string>
+const PAIRS = namesOf(FRICTION_PAIRS)
 const frParams = (p: Params) => ({ pair: pick(PAIRS, p.pair, 'tile'), m: n(p, 'mass') })
 type FrQ = ReturnType<typeof frParams>
 const frKey = (q: FrQ) => `${q.pair}|${q.m}`

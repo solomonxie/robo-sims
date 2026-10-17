@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { DEG, Mat2, V2, apply2, eigenView, leastSquaresView, mul2, rotMat2, scaleMat2, toDeg, turnOf, wallPca } from '../../core/physics'
-import { degText, fixedText, mpsText, pct, signed } from '../../core/units'
-import { V3, add, mesh } from '../../models/kit'
+import { fixedText, mat2Text, mpsText, pct, radText, signed, tupleText } from '../../core/units'
+import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -30,16 +30,12 @@ import {
   titledScope,
   vecArrow,
   warpGrid,
+  WIDE_VIEW,
+  glowDot,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, namesOf, opts, pick, toneOf } from '../types'
 
-const f2 = (v: number) => fixedText(v)
 const f3 = (v: number) => fixedText(v, 3)
-const dg = (rad: number) => degText(toDeg(rad), 0)
-const pair = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
-const mat2Text = (M: Mat2) => `[${f2(M[0])} ${f2(M[1])}; ${f2(M[2])} ${f2(M[3])}]`
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
-const dot = (g: THREE.Object3D, r: number, c: string) => add(g, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(c, 1.2)))
 
 // --- Least squares: fit a motor calibration line through noisy readings; residual squares, normal equations, outliers. ---
 
@@ -62,7 +58,7 @@ export const linearAlgebraLeastSquares: Lesson = {
   formula: (p) => {
     const { V } = lsRun(p)
     const { AtA, Atb, m, c } = V.fit
-    return `model v = m·d + c · one row [d 1] per reading: A·[m c]ᵀ ≈ b (9 equations, 2 unknowns) · minimise Σr² = |b − A·x|² · normal equations AᵀA·x = Aᵀb: [Σd² Σd; Σd N] = ${mat2Text(AtA)}, [Σdv; Σv] = ${pair(Atb)} → m = ${f3(m)} m/s, c = ${f3(c)} m/s · your line Σr² = ${f3(V.sse)} vs best ${f3(V.best)}`
+    return `model v = m·d + c · one row [d 1] per reading: A·[m c]ᵀ ≈ b (9 equations, 2 unknowns) · minimise Σr² = |b − A·x|² · normal equations AᵀA·x = Aᵀb: [Σd² Σd; Σd N] = ${mat2Text(AtA)}, [Σdv; Σv] = ${tupleText(Atb)} → m = ${f3(m)} m/s, c = ${f3(c)} m/s · your line Σr² = ${f3(V.sse)} vs best ${f3(V.best)}`
   },
   legend: [
     { color: LABEL, label: 'Readings (red: wheel slipped)', shape: 'dot' },
@@ -94,7 +90,7 @@ export const linearAlgebraLeastSquares: Lesson = {
     const stickM = glowMat(HEAT, 1)
     const sticks = Array.from({ length: 9 }, () => addRod(g, stickM))
     const squares = Array.from({ length: 9 }, () => parallelogram(g, HEAT, 0.28))
-    const centre = dot(g, 0.16, POWER)
+    const centre = glowDot(g, 0.16, POWER)
     const meanTag = liveLabel(g, [0, 0, 0.4], { size: 0.26 })
     ;[0, 0.5, 1].forEach((d) => addLabel(scene, `${d * 100} %`, [LS.x + px(d), LS.y - LS.h / 2 - 0.9, 0.3], GREY, 0.26))
     ;[0, 0.4].forEach((v) => addLabel(scene, `${v} m/s`, [LS.x - LS.w / 2 - 0.5, LS.y + py(v), 0.3], GREY, 0.24, 'right'))
@@ -109,7 +105,7 @@ export const linearAlgebraLeastSquares: Lesson = {
     const curve = sse.s.trace(HEAT, { samples: 81, radius: 0.06 })
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { nudge, sigma, slips, V } = lsRun(p)
         const line = (tr: typeof yours, m: number, c: number) => tr.points([0, 1], [py(c), py(m + c)], null)
@@ -130,10 +126,10 @@ export const linearAlgebraLeastSquares: Lesson = {
         meanTag.set('mean', POWER)
 
         const { AtA, Atb, m, c } = V.fit
-        grids[0].set(AtA.map(f2), [LABEL])
+        grids[0].set(AtA.map((x) => fixedText(x)), [LABEL])
         grids[1].set([f3(m), f3(c)], [POWER])
-        grids[2].set(Atb.map(f2), [LABEL])
-        rows[0].set(`Σd² ${f2(AtA[0])}, Σd ${f2(AtA[1])}, N ${AtA[3]}, Σdv ${f2(Atb[0])}, Σv ${f2(Atb[1])}`, GREY)
+        grids[2].set(Atb.map((x) => fixedText(x)), [LABEL])
+        rows[0].set(`Σd² ${fixedText(AtA[0])}, Σd ${fixedText(AtA[1])}, N ${AtA[3]}, Σdv ${fixedText(Atb[0])}, Σv ${fixedText(Atb[1])}`, GREY)
         rows[1].set(`best v = ${f3(m)}·d ${c < 0 ? '−' : '+'} ${f3(Math.abs(c))} · moves above ${pct(V.deadband)}`, POWER)
         rows[2].set(slips ? `slips pull m by ${signed(V.pull, 3)} (blue: without)` : 'no slips: every reading fair', slips ? HIGH_V : LABEL)
         rows[3].set(`yours Σr² ${f3(V.sse)} = best ${f3(V.best)}${V.sse - V.best < 5e-4 ? '' : ` + ${f3(V.sse - V.best)}`}`, Math.abs(nudge) < 0.005 ? POWER : RING)
@@ -141,8 +137,8 @@ export const linearAlgebraLeastSquares: Lesson = {
         const top = V.sseAt(V.fit.m + LS.span) * 1.05
         const yS = plotY(0, top, sh)
         curve.draw((u) => yS(V.sseAt(V.fit.m + (u * 2 - 1) * LS.span)), (nudge + LS.span) / (2 * LS.span))
-        sse.lo.set(`m ${f2(V.fit.m - LS.span)}`)
-        sse.hi.set(`${f2(V.fit.m + LS.span)} m/s`)
+        sse.lo.set(`m ${fixedText(V.fit.m - LS.span)}`)
+        sse.hi.set(`${fixedText(V.fit.m + LS.span)} m/s`)
         sse.right.set(`now ${f3(V.sse)}`, Math.abs(nudge) < 0.005 ? POWER : RING)
         head.status.set(`Least squares · noise σ ${(sigma * 100).toFixed(1)} cm/s · ${SLIPS[String(slips) as keyof typeof SLIPS]}`)
         head.sub.set('9 calibration runs · x: PWM duty, y: wheel speed · squares drawn to scale', GREY)
@@ -188,7 +184,7 @@ const evRun = memoBy(
     return { phi, mode, s, M, V: eigenView(M, phi, EV.iter) }
   },
 )
-const lamText = (V: ReturnType<typeof eigenView>) => (V.E.real ? V.E.values.map(f2).join(', ') : `${f2(V.E.re)} ± ${f2(V.E.im)}i`)
+const lamText = (V: ReturnType<typeof eigenView>) => (V.E.real ? V.E.values.map((x) => fixedText(x)).join(', ') : `${fixedText(V.E.re)} ± ${fixedText(V.E.im)}i`)
 
 export const linearAlgebraEigenvectors: Lesson = {
   id: 'linear-algebra-eigenvectors',
@@ -196,7 +192,7 @@ export const linearAlgebraEigenvectors: Lesson = {
   tagline: 'The directions a matrix only stretches, and what the stretch λ tells a robot',
   formula: (p) => {
     const { M, V } = evRun(p)
-    return `M·v = λ·v: v keeps its direction, only scaled by λ · det(M − λI) = 0 → λ² − (a + d)λ + (ad − bc) = 0 · M = ${mat2Text(M)} · λ = ${lamText(V)}${V.E.real ? ` · v1 = ${pair(V.E.vectors[0])}, v2 = ${pair(V.E.vectors[1])}` : ''} · x(k+1) = M·x(k) is stable when every |λ| < 1: max |λ| = ${f2(V.growth)}`
+    return `M·v = λ·v: v keeps its direction, only scaled by λ · det(M − λI) = 0 → λ² − (a + d)λ + (ad − bc) = 0 · M = ${mat2Text(M)} · λ = ${lamText(V)}${V.E.real ? ` · v1 = ${tupleText(V.E.vectors[0])}, v2 = ${tupleText(V.E.vectors[1])}` : ''} · x(k+1) = M·x(k) is stable when every |λ| < 1: max |λ| = ${fixedText(V.growth)}`
   },
   legend: [
     { color: RING, label: 'Probe v (orange: M·v)', shape: 'dot' },
@@ -245,7 +241,7 @@ export const linearAlgebraEigenvectors: Lesson = {
     const yT = plotY(-60, 60, ph)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { phi, mode, s, M, V } = evRun(p)
         const z = (q: V2, h: number): V3 => [q[0], q[1], h]
@@ -273,7 +269,7 @@ export const linearAlgebraEigenvectors: Lesson = {
           const L = Math.max(1.2, Math.abs(V.E.values[i]) + 0.25)
           line(z([-v[0] * L, -v[1] * L], 0.04), z([v[0] * L, v[1] * L], 0.04), EIG_COLORS[i])
           eigTags[i].group.position.set(v[0] * (L + 0.22), v[1] * (L + 0.22) + (i ? -0.1 : 0.1), 0.05)
-          eigTags[i].set(`λ${i + 1} ${f2(V.E.values[i])}`, EIG_COLORS[i])
+          eigTags[i].set(`λ${i + 1} ${fixedText(V.E.values[i])}`, EIG_COLORS[i])
         })
         const wall = mode === 'wall'
         cloud.show(wall ? wallScan.pts.length : 0)
@@ -286,14 +282,14 @@ export const linearAlgebraEigenvectors: Lesson = {
         pts.forEach((q, i) => trail.set(i, z(q, 0.08), HEAT, 1 - (0.5 * i) / EV.iter))
         trail.show(pts.length)
 
-        mx.set(M.map(f2), [LABEL])
+        mx.set(M.map((x) => fixedText(x)), [LABEL])
         lam.forEach((l, i) =>
-          V.E.real ? l.set(`λ${i + 1} ${f2(V.E.values[i])}, v${i + 1} ${pair(V.E.vectors[i])}`, EIG_COLORS[i]) : l.set(i ? `|λ| ${f2(V.E.radius)}, ${dg(Math.atan2(V.E.im, V.E.re))} a step` : `λ = ${f2(V.E.re)} ± ${f2(V.E.im)}i`, HIGH_V),
+          V.E.real ? l.set(`λ${i + 1} ${fixedText(V.E.values[i])}, v${i + 1} ${tupleText(V.E.vectors[i])}`, EIG_COLORS[i]) : l.set(i ? `|λ| ${fixedText(V.E.radius)}, ${radText(Math.atan2(V.E.im, V.E.re))} a step` : `λ = ${fixedText(V.E.re)} ± ${fixedText(V.E.im)}i`, HIGH_V),
         )
-        rows[0].set(`λ² − ${f2(V.E.tr)}λ + ${f2(V.E.det)} = 0 (trace, det)`, GREY)
-        rows[1].set(`probe φ ${dg(phi)}: turns ${signed(toDeg(turn), 1)}°, stretch ${f2(stretch)}`, Math.abs(turn) < 1 * DEG ? POWER : RING)
-        rows[2].set(`repeat M: max |λ| ${f2(V.growth)} ${V.stable ? '< 1: stable' : '≥ 1: unstable'}`, V.stable ? POWER : HIGH_V)
-        rows[3].set(wall ? `wall ${WALL_DEG}°: v1 says ${dg(wallScan.fitted)}, σ ${f2(wallScan.along)} / ${f3(wallScan.across)} m` : V.E.real ? (Math.abs(V.E.vectors[0][0] * V.E.vectors[1][0] + V.E.vectors[0][1] * V.E.vectors[1][1]) < 1e-6 ? 'v1, v2 at right angles (symmetric)' : 'v1, v2 slanted (not symmetric)') : 'complex λ: every arrow turns', wall ? POWER : LABEL)
+        rows[0].set(`λ² − ${fixedText(V.E.tr)}λ + ${fixedText(V.E.det)} = 0 (trace, det)`, GREY)
+        rows[1].set(`probe φ ${radText(phi)}: turns ${signed(toDeg(turn), 1)}°, stretch ${fixedText(stretch)}`, Math.abs(turn) < 1 * DEG ? POWER : RING)
+        rows[2].set(`repeat M: max |λ| ${fixedText(V.growth)} ${V.stable ? '< 1: stable' : '≥ 1: unstable'}`, V.stable ? POWER : HIGH_V)
+        rows[3].set(wall ? `wall ${WALL_DEG}°: v1 says ${radText(wallScan.fitted)}, σ ${fixedText(wallScan.along)} / ${f3(wallScan.across)} m` : V.E.real ? (Math.abs(V.E.vectors[0][0] * V.E.vectors[1][0] + V.E.vectors[0][1] * V.E.vectors[1][1]) < 1e-6 ? 'v1, v2 at right angles (symmetric)' : 'v1, v2 slanted (not symmetric)') : 'complex λ: every arrow turns', wall ? POWER : LABEL)
 
         turnTr.draw((u) => yT(toDeg(turnOf(M, u * Math.PI).turn)), toDeg(phi) / 180)
         marks.forEach((mk, i) => {
@@ -304,10 +300,10 @@ export const linearAlgebraEigenvectors: Lesson = {
         plot.lo.set('φ 0°')
         plot.hi.set('180°')
         plot.right.set(`now ${signed(toDeg(turn), 0)}°`, Math.abs(turn) < 1 * DEG ? POWER : RING)
-        head.status.set(`Eigenvectors · ${EV_MODES[mode].name} · s ${f2(s)} · λ ${lamText(V)}`)
+        head.status.set(`Eigenvectors · ${EV_MODES[mode].name} · s ${fixedText(s)} · λ ${lamText(V)}`)
         head.sub.set('top view · grey circle → coloured ellipse = M·(unit circle) · green = no turn', GREY)
         head.event.set(
-          Math.abs(turn) < 1 * DEG ? `on an eigenvector: M·v = ${f2(stretch * Math.sign(Math.cos(turn)))}·v, no turn` : V.E.real ? `off by ${dg(V.nearest)} from an eigen-direction: M turns it ${signed(toDeg(turn), 0)}°` : 'no real eigenvector: every arrow turns',
+          Math.abs(turn) < 1 * DEG ? `on an eigenvector: M·v = ${fixedText(stretch * Math.sign(Math.cos(turn)))}·v, no turn` : V.E.real ? `off by ${radText(V.nearest)} from an eigen-direction: M turns it ${signed(toDeg(turn), 0)}°` : 'no real eigenvector: every arrow turns',
           Math.abs(turn) < 1 * DEG ? POWER : V.E.real ? RING : HIGH_V,
         )
       },
@@ -316,7 +312,7 @@ export const linearAlgebraEigenvectors: Lesson = {
         return [
           { label: 'λ1, λ2', value: lamText(V) },
           { label: 'Probe turn', value: `${signed(toDeg(V.probe.turn), 1)}°`, tone: toneOf(Math.abs(V.probe.turn) < 1 * DEG, Math.abs(V.probe.turn) < 10 * DEG) },
-          { label: 'Max |λ|', value: f2(V.growth), tone: V.stable ? 'ok' : 'bad' },
+          { label: 'Max |λ|', value: fixedText(V.growth), tone: V.stable ? 'ok' : 'bad' },
           { label: 'Repeat M', value: V.stable ? 'stable: dies away' : 'unstable: grows', tone: V.stable ? 'ok' : 'bad' },
         ]
       },

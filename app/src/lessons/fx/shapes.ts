@@ -49,6 +49,9 @@ export const flatBox = (parent: THREE.Object3D, size: V3, m: THREE.Material, at:
   return o
 }
 
+/** Glowing sphere marker of radius `r`. */
+export const glowDot = (parent: THREE.Object3D, r: number, color: string, glow = 1.2) => add(parent, mesh(new THREE.SphereGeometry(r, 16, 12), glowMat(color, glow)))
+
 /** See-through housing material. */
 export const shellMat = (color: string, opacity: number, roughness = 0.1) =>
   new THREE.MeshStandardMaterial({ color, transparent: true, opacity, roughness, depthWrite: false })

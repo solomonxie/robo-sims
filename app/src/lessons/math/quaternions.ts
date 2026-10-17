@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { DEG, Quat, eulerOf, eulerQuat, gimbalView, quatAxis, quatComposeView, quatRotate, quatRotateView, slerpView, sphereDir, sub3, toDeg } from '../../core/physics'
 import { Vec3, cross } from '../../core/fields'
-import { fixedText, radText } from '../../core/units'
+import { fixedText, radText, tupleText } from '../../core/units'
 import { V3, add, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -26,13 +26,10 @@ import {
   vecArrow,
   zUp,
   textRows,
+  WIDE_VIEW,
 } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
 
-const f2 = (v: number) => fixedText(v)
-const dg = (rad: number) => radText(rad, 0)
-const xyz = (v: readonly number[]) => `(${v.map(f2).join(', ')})`
-const VIEW = { center: [-1.2, -1, 0] as V3, radius: 56, polar: 1.45, azimuth: 0 }
 const PLOT = { x: 8.2, w: 11, y: 1.6, h: 6 }
 const at = (v: readonly number[], k = 1): V3 => [v[0] * k, v[1] * k, v[2] * k]
 const turnTo = (o: THREE.Object3D, q: Quat) => o.quaternion.set(q[1], q[2], q[3], q[0])
@@ -65,7 +62,7 @@ export const quaternionsGimbalLock: Lesson = {
   formula: (p) => {
     const { yaw, pitch, roll, G } = glRun(p)
     const e = G.euler
-    return `R = Rz(ψ)·Ry(θ)·Rx(φ) · rings ψ ${dg(yaw)} θ ${dg(pitch)} φ ${dg(roll)} · yaw axis to roll axis ${G.yawRollDeg.toFixed(0)}° · |det[z, y', x'']| = |cos θ| = ${f2(G.freedom)} · read back as Euler: ψ ${dg(e.yaw)} θ ${dg(e.pitch)} φ ${dg(e.roll)} · q = ${xyz(G.q)}`
+    return `R = Rz(ψ)·Ry(θ)·Rx(φ) · rings ψ ${radText(yaw)} θ ${radText(pitch)} φ ${radText(roll)} · yaw axis to roll axis ${G.yawRollDeg.toFixed(0)}° · |det[z, y', x'']| = |cos θ| = ${fixedText(G.freedom)} · read back as Euler: ψ ${radText(e.yaw)} θ ${radText(e.pitch)} φ ${radText(e.roll)} · q = ${tupleText(G.q)}`
   },
   legend: [
     { color: AXIS_RGB[2], label: 'Yaw ring: turns about world z', shape: 'dot' },
@@ -102,7 +99,7 @@ export const quaternionsGimbalLock: Lesson = {
     const rows = textRows(scene, 4)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { yaw, pitch, roll, G, sweep, jumped } = glRun(p)
         gim.set(yaw, pitch, roll)
@@ -120,13 +117,13 @@ export const quaternionsGimbalLock: Lesson = {
         free.draw((s) => Math.abs(Math.cos(s * GL.sweep * DEG)) * (PLOT.h / 2), u)
         plot.lo.set('pitch ring 0°')
         plot.hi.set(`${GL.sweep}°`)
-        plot.right.set(`grey |cos θ| ${f2(G.freedom)}`, locked ? HIGH_V : GREY)
+        plot.right.set(`grey |cos θ| ${fixedText(G.freedom)}`, locked ? HIGH_V : GREY)
         const e = G.euler
-        rows[0].set(`rings: ψ ${dg(yaw)} · θ ${dg(pitch)} · φ ${dg(roll)}`, LABEL)
-        rows[1].set(`read back: ψ ${dg(e.yaw)} · θ ${dg(e.pitch)} · φ ${dg(e.roll)}`, jumped ? HIGH_V : LABEL)
-        rows[2].set(`yaw axis to roll axis ${G.yawRollDeg.toFixed(0)}° · freedom ${f2(G.freedom)}`, locked ? HIGH_V : G.freedom < 0.5 ? HEAT : POWER)
-        rows[3].set(`q = ${xyz(G.q)} (smooth)`, B_FIELD)
-        head.status.set(`Gimbal lock · pitch ${dg(pitch)}`)
+        rows[0].set(`rings: ψ ${radText(yaw)} · θ ${radText(pitch)} · φ ${radText(roll)}`, LABEL)
+        rows[1].set(`read back: ψ ${radText(e.yaw)} · θ ${radText(e.pitch)} · φ ${radText(e.roll)}`, jumped ? HIGH_V : LABEL)
+        rows[2].set(`yaw axis to roll axis ${G.yawRollDeg.toFixed(0)}° · freedom ${fixedText(G.freedom)}`, locked ? HIGH_V : G.freedom < 0.5 ? HEAT : POWER)
+        rows[3].set(`q = ${tupleText(G.q)} (smooth)`, B_FIELD)
+        head.status.set(`Gimbal lock · pitch ${radText(pitch)}`)
         head.sub.set('drone in a 3-ring gimbal · x forward, y left, z up', GREY)
         head.event.set(
           locked ? 'locked: yaw and roll spin the drone the same way' : jumped ? 'past 90°: the Euler angles jumped, q did not' : G.freedom < 0.5 ? 'nearing the lock: the red turn gets hard' : 'three independent turns',
@@ -137,9 +134,9 @@ export const quaternionsGimbalLock: Lesson = {
         const { G, jumped } = glRun(p)
         return [
           { label: 'Yaw axis to roll axis', value: `${G.yawRollDeg.toFixed(0)}°`, tone: toneOf(G.yawRollDeg > 30, G.yawRollDeg > 5) },
-          { label: 'Freedom |cos θ|', value: f2(G.freedom), tone: toneOf(G.freedom > 0.5, G.freedom > 0.1) },
-          { label: 'Euler read back', value: `${dg(G.euler.yaw)}, ${dg(G.euler.pitch)}, ${dg(G.euler.roll)}`, tone: jumped ? 'bad' : 'ok' },
-          { label: 'Quaternion w', value: f2(G.q[0]) },
+          { label: 'Freedom |cos θ|', value: fixedText(G.freedom), tone: toneOf(G.freedom > 0.5, G.freedom > 0.1) },
+          { label: 'Euler read back', value: `${radText(G.euler.yaw)}, ${radText(G.euler.pitch)}, ${radText(G.euler.roll)}`, tone: jumped ? 'bad' : 'ok' },
+          { label: 'Quaternion w', value: fixedText(G.q[0]) },
         ]
       },
     }
@@ -148,7 +145,7 @@ export const quaternionsGimbalLock: Lesson = {
 
 // --- Quaternion rotate: q = (cos θ/2, sin θ/2·n) turns v by θ about n via q·v·q*; −q is the same turn; two turns compose by multiplying. ---
 
-const QR = { at: [-8.4, -1.8, 0] as V3, k: 5.2, nose: [1, 0, 0] as Vec3 }
+const QR = { at: [-8.4, -2.8, 0] as V3, k: 5.8, nose: [1, 0, 0] as Vec3 }
 const QR_MODES = { one: 'One rotation', compose: 'Then yaw 90° (compose)' }
 const YAW90 = quatAxis([0, 0, 1], Math.PI / 2)
 const qrRun = memoBy(
@@ -170,8 +167,8 @@ export const quaternionsQuaternionRotate: Lesson = {
   tagline: 'Four numbers: an axis and half the angle',
   formula: (p) => {
     const { theta, R, C, mode } = qrRun(p)
-    const base = `q = (cos θ/2, sin θ/2·n) = ${xyz(R.q)}, |q| = 1 · v' = q·v·q* = ${xyz(R.v2)} · (−q)·v·(−q)* = ${xyz(R.v2neg)} · θ = ${dg(theta)}`
-    return mode === 'compose' ? `${base} · q2·q1 = ${xyz(C.q21)} = turn ${dg(C.r21.angle)} about ${xyz(C.r21.axis)} · q1·q2 is ${dg(C.gap)} away` : base
+    const base = `q = (cos θ/2, sin θ/2·n) = ${tupleText(R.q)}, |q| = 1 · v' = q·v·q* = ${tupleText(R.v2)} · (−q)·v·(−q)* = ${tupleText(R.v2neg)} · θ = ${radText(theta)}`
+    return mode === 'compose' ? `${base} · q2·q1 = ${tupleText(C.q21)} = turn ${radText(C.r21.angle)} about ${tupleText(C.r21.axis)} · q1·q2 is ${radText(C.gap)} away` : base
   },
   legend: (p) =>
     qrRun(p).mode === 'compose'
@@ -224,7 +221,7 @@ export const quaternionsQuaternionRotate: Lesson = {
     const rows = textRows(scene, 4)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { theta, R, C, sweep, mode } = qrRun(p)
         const compose = mode === 'compose'
@@ -259,17 +256,17 @@ export const quaternionsQuaternionRotate: Lesson = {
         xTr.draw((s) => yOf(sweep[Math.round(s * 180)].x), u)
         plot.lo.set('−360°')
         plot.hi.set('+360°')
-        plot.right.set(`${f2(R.q[0])} · ${f2(R.v2[0])}`, LABEL)
-        rows[0].set(`n = ${xyz(R.axis)} · θ = ${dg(theta)} · θ/2 = ${dg(theta / 2)}`, RING)
-        rows[1].set(`q = (cos θ/2, sin θ/2·n) = ${xyz(R.q)}`, POWER)
+        plot.right.set(`${fixedText(R.q[0])} · ${fixedText(R.v2[0])}`, LABEL)
+        rows[0].set(`n = ${tupleText(R.axis)} · θ = ${radText(theta)} · θ/2 = ${radText(theta / 2)}`, RING)
+        rows[1].set(`q = (cos θ/2, sin θ/2·n) = ${tupleText(R.q)}`, POWER)
         if (compose) {
-          rows[2].set(`q2·q1: turn ${dg(C.r21.angle)} about ${xyz(C.r21.axis)}`, POWER)
-          rows[3].set(C.gap < 1e-6 ? 'q1·q2 is the same here: shared axis' : `q1·q2 ends ${dg(C.gap)} away from q2·q1`, GREY)
+          rows[2].set(`q2·q1: turn ${radText(C.r21.angle)} about ${tupleText(C.r21.axis)}`, POWER)
+          rows[3].set(C.gap < 1e-6 ? 'q1·q2 is the same here: shared axis' : `q1·q2 ends ${radText(C.gap)} away from q2·q1`, GREY)
         } else {
-          rows[2].set(`q·v·q* = ${xyz(R.v2)} · v = (1.00, 0, 0)`, HEAT)
-          rows[3].set(`−q = ${xyz(R.neg)} gives the same`, LABEL)
+          rows[2].set(`q·v·q* = ${tupleText(R.v2)} · v = (1.00, 0, 0)`, HEAT)
+          rows[3].set(`−q = ${tupleText(R.neg)} gives the same`, LABEL)
         }
-        head.status.set(`Quaternion rotate · ${dg(theta)} about n`)
+        head.status.set(`Quaternion rotate · ${radText(theta)} about n`)
         head.sub.set('nose v = x axis · sphere of directions, radius 1', GREY)
         const full = Math.abs(Math.abs(theta) - 2 * Math.PI) < 1e-6
         head.event.set(full ? 'a full turn: q = (−1, 0, 0, 0), same orientation as q = 1' : compose ? 'order matters: q2·q1 is not q1·q2' : 'one axis, one angle, no gimbal', full ? HEAT : POWER)
@@ -277,10 +274,10 @@ export const quaternionsQuaternionRotate: Lesson = {
       readouts: (p) => {
         const { R, C, mode } = qrRun(p)
         return [
-          { label: 'q (w, x, y, z)', value: xyz(R.q) },
-          { label: '|q|', value: f2(R.norm), tone: 'ok' },
-          { label: mode === 'compose' ? 'q2·q1 turn' : 'Nose after', value: mode === 'compose' ? `${dg(C.r21.angle)}` : xyz(R.v2) },
-          { label: mode === 'compose' ? 'q1·q2 differs by' : 'Same from −q', value: mode === 'compose' ? dg(C.gap) : 'yes', tone: mode === 'compose' ? toneOf(C.gap < 1e-6, false) : 'ok' },
+          { label: 'q (w, x, y, z)', value: tupleText(R.q) },
+          { label: '|q|', value: fixedText(R.norm), tone: 'ok' },
+          { label: mode === 'compose' ? 'q2·q1 turn' : 'Nose after', value: mode === 'compose' ? `${radText(C.r21.angle)}` : tupleText(R.v2) },
+          { label: mode === 'compose' ? 'q1·q2 differs by' : 'Same from −q', value: mode === 'compose' ? radText(C.gap) : 'yes', tone: mode === 'compose' ? toneOf(C.gap < 1e-6, false) : 'ok' },
         ]
       },
     }
@@ -295,7 +292,7 @@ const MOVES = {
   mixed: { name: 'Tilt, turn and roll', a: [0, 0, 0], b: [150, 60, 90] },
 } as const
 const eul = (v: readonly number[]) => ({ yaw: v[0] * DEG, pitch: v[1] * DEG, roll: v[2] * DEG })
-const SL = { k: 3.3, xs: [-13.6, -5.2], y: -1.8, size: 2.4 }
+const SL = { k: 3.8, xs: [-13.6, -5.2], y: -4.6, size: 2.4 }
 const slRun = memoBy(
   (p: Params) => `${p.u} ${p.move}`,
   (p: Params) => {
@@ -313,7 +310,7 @@ export const quaternionsSlerp: Lesson = {
   tagline: 'Blend two orientations: one axis, constant speed, the short way',
   formula: (p) => {
     const { u, S } = slRun(p)
-    return `slerp(qA, qB, u) = [sin((1 − u)Ω)·qA + sin(uΩ)·qB] / sin Ω, cos Ω = |qA·qB|, Ω = ${dg(S.direct / 2)} · u = ${f2(u)} → q = ${xyz(S.qs)} · turns ${dg(S.totalS)} in all vs Euler lerp ${dg(S.totalE)}`
+    return `slerp(qA, qB, u) = [sin((1 − u)Ω)·qA + sin(uΩ)·qB] / sin Ω, cos Ω = |qA·qB|, Ω = ${radText(S.direct / 2)} · u = ${fixedText(u)} → q = ${tupleText(S.qs)} · turns ${radText(S.totalS)} in all vs Euler lerp ${radText(S.totalE)}`
   },
   legend: [
     { color: HEAT, label: 'Euler angles lerped: nose path', shape: 'dot' },
@@ -329,7 +326,7 @@ export const quaternionsSlerp: Lesson = {
     'Slerp sets the path, not the timing: feed u through a smooth profile to start and stop gently (Kinematics › Trajectories › Time scaling). For many orientations in a row, chained slerps (or squad) keep the motion smooth. Kinematics › Coordinate frames › Homogeneous transforms uses slerp to animate its turns.',
   ],
   controls: [
-    { kind: 'slider', key: 'u', label: 'Progress u', min: 0, max: 1, step: 0.01, initial: 0.4, format: (v) => f2(v) },
+    { kind: 'slider', key: 'u', label: 'Progress u', min: 0, max: 1, step: 0.01, initial: 0.4, format: (v) => fixedText(v) },
     { kind: 'choice', key: 'move', options: opts(Object.fromEntries(Object.entries(MOVES).map(([k, v]) => [k, v.name]))), initial: 'over' },
   ],
   build(): Stage {
@@ -349,7 +346,7 @@ export const quaternionsSlerp: Lesson = {
     const rows = textRows(scene, 4)
     return {
       scene,
-      view: VIEW,
+      view: WIDE_VIEW,
       frame(_dt, p) {
         const { u, S, M } = slRun(p)
         const pick2 = [
@@ -373,10 +370,10 @@ export const quaternionsSlerp: Lesson = {
         plot.hi.set('u = 1')
         plot.right.set(`${toDeg(S.rateE[k]).toFixed(0)} vs ${toDeg(S.rateS[k]).toFixed(0)}°/s`, LABEL)
         const e = S.euler
-        rows[0].set(`A (${triple(M.a)}) to B (${triple(M.b)}) · u = ${f2(u)}`, LABEL)
-        rows[1].set(`Euler lerp: (${dg(e.yaw)}, ${dg(e.pitch)}, ${dg(e.roll)}) · turns ${dg(S.totalE)}`, HEAT)
-        rows[2].set(`slerp: ${xyz(S.qs)} · turns ${dg(S.totalS)}`, B_FIELD)
-        rows[3].set(`cos Ω = qA·qB · Ω = ${dg(S.direct / 2)}, half the turn`, LABEL)
+        rows[0].set(`A (${triple(M.a)}) to B (${triple(M.b)}) · u = ${fixedText(u)}`, LABEL)
+        rows[1].set(`Euler lerp: (${radText(e.yaw)}, ${radText(e.pitch)}, ${radText(e.roll)}) · turns ${radText(S.totalE)}`, HEAT)
+        rows[2].set(`slerp: ${tupleText(S.qs)} · turns ${radText(S.totalS)}`, B_FIELD)
+        rows[3].set(`cos Ω = qA·qB · Ω = ${radText(S.direct / 2)}, half the turn`, LABEL)
         head.status.set(`SLERP · ${MOVES[slRun(p).move].name.toLowerCase()}`)
         head.sub.set('(yaw, pitch, roll) · nose paths on the sphere of directions', GREY)
         const extra = S.totalE / S.totalS
@@ -386,9 +383,9 @@ export const quaternionsSlerp: Lesson = {
         const { S } = slRun(p)
         const swing = Math.max(...S.rateE) / Math.min(...S.rateE)
         return [
-          { label: 'Shortest turn A to B', value: dg(S.direct) },
-          { label: 'Slerp turns', value: dg(S.totalS), tone: 'ok' },
-          { label: 'Euler lerp turns', value: dg(S.totalE), tone: toneOf(S.totalE < S.totalS * 1.05, S.totalE < S.totalS * 1.5) },
+          { label: 'Shortest turn A to B', value: radText(S.direct) },
+          { label: 'Slerp turns', value: radText(S.totalS), tone: 'ok' },
+          { label: 'Euler lerp turns', value: radText(S.totalE), tone: toneOf(S.totalE < S.totalS * 1.05, S.totalE < S.totalS * 1.5) },
           { label: 'Euler rate max/min', value: `${swing.toFixed(2)}×`, tone: toneOf(swing < 1.05, swing < 1.3) },
         ]
       },

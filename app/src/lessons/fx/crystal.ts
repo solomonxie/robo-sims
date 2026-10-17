@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu'
 import { add, mesh } from '../../models/kit'
 import { ELECTRON, HIGH_V, HOLE, LOW_V, RING, glowMat } from './colors'
 import { plusGeometry } from './shapes'
-import { UP, clamp01, rand } from './util'
+import { UP, clamp01, rand, rand01 } from './util'
 
 const SILICON = '#9aa3ad'
 export const DONOR = '#4cd07d'
@@ -213,7 +213,7 @@ export function siliconCrystal(
   const openSlot = (where: (x: number) => boolean) => {
     const busy = taken()
     const open = slots.map((_, s) => s).filter((s) => where(slots[s].x) && !busy.has(s))
-    return open.length ? open[Math.floor(Math.random() * open.length)] : -1
+    return open.length ? open[Math.floor(rand01() * open.length)] : -1
   }
   const pairAt = (s: number, thermal: number) => {
     holes.push(hole(s))
@@ -375,9 +375,9 @@ export function siliconCrystal(
       const dir = forced || Math.sign(v)
       const bias = forced ? 1 : clamp01(Math.abs(v) / (pitch * 0.5 * rate))
       const next =
-        Math.random() < bias
+        rand01() < bias
           ? options.reduce((best, o) => (dir * dxWrap(here, slots[o]) > dir * dxWrap(here, slots[best]) ? o : best))
-          : options[Math.floor(Math.random() * options.length)]
+          : options[Math.floor(rand01() * options.length)]
       const dx = dxWrap(here, slots[next])
       if (here.x < 0 !== here.x + dx < 0 && Math.abs(here.x) < width / 4) net.holes += Math.sign(dx)
       busy.delete(h.slot)
@@ -409,7 +409,7 @@ export function siliconCrystal(
         e.p.addScaledVector(e.v, dt)
         continue
       }
-      if (Math.random() < dt * 3) e.v.copy(thermalV()).multiplyScalar(thermal)
+      if (rand01() < dt * 3) e.v.copy(thermalV()).multiplyScalar(thermal)
       const before = e.p.x
       let vx = e.v.x - driftAt(e.p.x)
       if (junction) {
