@@ -1,5 +1,5 @@
 // Localisation on a known map: Monte Carlo localisation (particle filter, likelihood field, low-variance resampling) and ICP scan matching.
-import { wrapPi } from '../common'
+import { gaussRng, parkMiller, wrapPi } from '../common'
 import { Pose, Room, castRoom, rayDir } from '../room'
 import { TT_TRACK_M } from '../sensors/encoder'
 import { XY } from '../software/costmap'
@@ -12,19 +12,8 @@ import { filleted, routeOf } from './tracking'
 export const MCL = { v: 0.25, dt: 0.1, every: 2, maxM: 3.5, rangeSd: 0.02, hitSd: 0.08, zRand: 0.1, kOdo: 0.02, kPart: 0.03, cell: 0.02 }
 export const MCL_LOOP = routeOf(filleted([[0.45, 1.2], [0.45, 1.9], [1.3, 1.9], [1.45, 1.55], [3.0, 1.6], [3.0, 0.35], [2.4, 0.4], [1.6, 0.7], [0.7, 0.75], [0.45, 1.0], [0.45, 1.2]], 0.25))
 
-/** Fast seeded uniform (0, 1), Park–Miller: the filter draws ~10⁵ numbers per run, too many for the sine hash. */
-export function parkMiller(seed: number) {
-  let x = (Math.abs(Math.floor(seed)) % 2147483646) + 1
-  return () => (x = (x * 48271) % 2147483647) / 2147483647
-}
-
-/** Standard normal from a uniform rng. */
-export function gaussRng(rng: () => number) {
-  return () => Math.sqrt(-2 * Math.log(Math.max(1e-12, rng()))) * Math.cos(2 * Math.PI * rng())
-}
-
 /** Distance to the nearest solid on a grid (< 0 inside), for O(1) likelihood lookups. */
-export interface LikelihoodField {
+interface LikelihoodField {
   cell: number
   nx: number
   ny: number

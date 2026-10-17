@@ -24,13 +24,13 @@ export const wheelsFor = (v: number, kappa: number, track: number): [number, num
 
 // --- Dead reckoning: a figure-eight then a straight, true robot on exact arcs, estimate from whole ticks at a loop rate. ---
 
-export const FIGURE_EIGHT: Leg[] = [
+const FIGURE_EIGHT: Leg[] = [
   { m: 2 * Math.PI * 0.4, turnDeg: 360 },
   { m: 2 * Math.PI * 0.4, turnDeg: -360 },
   { m: 0.6, turnDeg: 0 },
 ]
 export const DR = { v: 0.3, dt: 0.002, frameS: 0.05 }
-export interface DrFrame {
+interface DrFrame {
   t: number
   truth: Pose
   est: Pose
@@ -71,7 +71,7 @@ export function deadReckonRun(hz: number, cpr: number, method: OdoMethod, legs: 
 
 export type HeadingSource = 'wheels' | 'gyro'
 export const GYRO_ODO = { arwDps: 0.1, biasDps: 0.05, scale: 0.01 }
-export const GROWTH_PATH: Leg[] = [
+const GROWTH_PATH: Leg[] = [
   { m: 1.6, turnDeg: 0 },
   { m: (Math.PI / 2) * 0.3, turnDeg: 90 },
   { m: 1.0, turnDeg: 0 },
@@ -88,7 +88,7 @@ export function stepNoise(dL: number, dR: number, k: number, track: number, sour
   return [[vs, (qR - qL) / (2 * track)], [(qR - qL) / (2 * track), (qL + qR) / track ** 2]]
 }
 
-export interface GrowthFrame {
+interface GrowthFrame {
   t: number
   truth: Pose
   bias: Pose

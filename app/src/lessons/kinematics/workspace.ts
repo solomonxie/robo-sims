@@ -4,8 +4,8 @@ import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { GREY, HIGH_V, LABEL, LOW_V, POWER, RING, SIDE_SCOPE, addLabel, dotPen, floorMat, liveLabel, memoBy, pointCloud, scopeLabels, serialArm, sideScope, statusHeader, stretchArrow, zUp, armPlate, SERVO_ARM_LOOK } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
-const cm = (m: number) => `${Math.round(m * 100)} cm`
 const cm2 = (a: number) => `${Math.round(a * 1e4)} cm²`
 const deg0 = (a: number) => `${Math.round(toDeg(a)).toString().replace('-', '−')}°`
 const cmSlider = (key: string, label: string, min: number, max: number, initial: number) => ({ kind: 'slider' as const, key, label, min, max, step: 1, initial, format: (v: number) => `${v} cm` })
@@ -80,7 +80,7 @@ export const workspaceReach: Lesson = {
   formula: (p) => {
     const q = reParams(p)
     const r = twoLinkRadii(q.l1, outerLink(q), q.lim)
-    return `sample q over the joint limits, x = FK(q), keep every x · outer R = L1 + L2 = ${cm(r.outer)} · hole r = √(L1² + L2² + 2·L1·L2·cos θ2max) = ${cm(r.inner)}${q.table ? ' · table: drop poses with a joint below it' : ''}`
+    return `sample q over the joint limits, x = FK(q), keep every x · outer R = L1 + L2 = ${cmWhole(r.outer)} · hole r = √(L1² + L2² + 2·L1·L2·cos θ2max) = ${cmWhole(r.inner)}${q.table ? ' · table: drop poses with a joint below it' : ''}`
   },
   legend: [
     { color: RING, label: 'Reachable tool point, high manipulability w', shape: 'dot' },
@@ -177,9 +177,9 @@ export const workspaceReach: Lesson = {
         pen.end()
         sCloud.mesh.visible = !isP
 
-        lines[0].set(`R = L1 + L2${isP ? '' : ' + hand'} = ${cm(c.radii.outer)}   (sampled ${cm(c.rMax)})`, LABEL)
-        lines[1].set(`hole r = ${cm(c.radii.inner)}   (sampled ${cm(c.rMin)})`, q.lim < Math.PI - 1e-6 ? HIGH_V : LABEL)
-        lines[2].set(isP ? `area ${cm2(c.area)} = ${Math.round((c.area / c.full) * 100)} % of the free ring` : `tool height ${cm(c.zMin)} … ${cm(c.zMax)}`, isP ? RING : LABEL)
+        lines[0].set(`R = L1 + L2${isP ? '' : ' + hand'} = ${cmWhole(c.radii.outer)}   (sampled ${cmWhole(c.rMax)})`, LABEL)
+        lines[1].set(`hole r = ${cmWhole(c.radii.inner)}   (sampled ${cmWhole(c.rMin)})`, q.lim < Math.PI - 1e-6 ? HIGH_V : LABEL)
+        lines[2].set(isP ? `area ${cm2(c.area)} = ${Math.round((c.area / c.full) * 100)} % of the free ring` : `tool height ${cmWhole(c.zMin)} … ${cmWhole(c.zMax)}`, isP ? RING : LABEL)
         lines[3].set(`${c.cloud.length} sampled poses${q.table ? ' kept above the table' : ''}`, GREY)
 
         const l2 = outerLink(q)
@@ -189,17 +189,17 @@ export const workspaceReach: Lesson = {
         const yv = (c.radii.inner / (q.l1 + l2)) * sh - sh / 2
         mark.points([u, u], [yv, yv])
 
-        status.set(`reach ${cm(c.radii.inner)} … ${cm(c.radii.outer)} · ${c.cloud.length} poses${isP ? ` · area ${cm2(c.area)}` : ''}`, LABEL)
-        sub.set(isP ? `side view · L1 ${cm(q.l1)}, L2 ${cm(q.l2)}, elbow ±${deg0(q.lim)} · shoulder ${q.table ? '0…180°' : 'free'}` : `servo arm: base ±90°, shoulder 0…180°, elbow ±${deg0(q.lim)}, wrist straight · floor tape 0.5 m`, GREY)
+        status.set(`reach ${cmWhole(c.radii.inner)} … ${cmWhole(c.radii.outer)} · ${c.cloud.length} poses${isP ? ` · area ${cm2(c.area)}` : ''}`, LABEL)
+        sub.set(isP ? `side view · L1 ${cmWhole(q.l1)}, L2 ${cmWhole(q.l2)}, elbow ±${deg0(q.lim)} · shoulder ${q.table ? '0…180°' : 'free'}` : `servo arm: base ±90°, shoulder 0…180°, elbow ±${deg0(q.lim)}, wrist straight · floor tape 0.5 m`, GREY)
         event.set(done ? 'sweep done: the whole cloud is the workspace' : elbowAt ? 'elbow at its limit: it cannot fold further, so the hole stays' : `sweeping: ${isP ? 'shoulder' : 'base'} at ${deg0(lead)}, cloud fills behind it`, done ? RING : elbowAt ? HIGH_V : LABEL)
       },
       readouts: (p) => {
         const q = reParams(p)
         const c = reCloud(q)
         return [
-          { label: 'Outer reach R', value: cm(c.radii.outer) },
-          { label: 'Inner hole r', value: cm(c.radii.inner), tone: c.radii.inner > 0.05 ? 'warn' : 'ok' },
-          q.arm === 'planar' ? { label: 'Area', value: `${cm2(c.area)} (${Math.round((c.area / c.full) * 100)} %)` } : { label: 'Height span', value: `${cm(c.zMin)} … ${cm(c.zMax)}` },
+          { label: 'Outer reach R', value: cmWhole(c.radii.outer) },
+          { label: 'Inner hole r', value: cmWhole(c.radii.inner), tone: c.radii.inner > 0.05 ? 'warn' : 'ok' },
+          q.arm === 'planar' ? { label: 'Area', value: `${cm2(c.area)} (${Math.round((c.area / c.full) * 100)} %)` } : { label: 'Height span', value: `${cmWhole(c.zMin)} … ${cmWhole(c.zMax)}` },
           { label: 'Sampled poses', value: `${c.cloud.length}` },
         ]
       },
@@ -238,7 +238,7 @@ export const workspaceDexterity: Lesson = {
   formula: (p) => {
     const q = dxParams(p)
     const b = dexterousBand(DX.L[0], DX.L[1], q.l3)
-    return `dexterity(x) = share of tool headings φ with an IK solution inside the limits · free joints, every φ: |L1 − L2| + L3 ≤ r ≤ L1 + L2 − L3 = ${b.empty ? 'none' : `${cm(b.inner)} … ${cm(b.outer)}`}`
+    return `dexterity(x) = share of tool headings φ with an IK solution inside the limits · free joints, every φ: |L1 − L2| + L3 ≤ r ≤ L1 + L2 − L3 = ${b.empty ? 'none' : `${cmWhole(b.inner)} … ${cmWhole(b.outer)}`}`
   },
   legend: [
     { color: RING, label: 'Dexterous: every heading of the task reaches', shape: 'dot' },
@@ -332,10 +332,10 @@ export const workspaceDexterity: Lesson = {
         probeTag.group.position.set(px, py + DX.spoke + 0.035, 0.05)
 
         const b = dexterousBand(DX.L[0], DX.L[1], q.l3)
-        lines[0].set(`L1 ${cm(DX.L[0])}, L2 ${cm(DX.L[1])}, L3 ${cm(q.l3)} · elbow ±${deg0(DX.elbow)}, wrist ±${deg0(q.wrist)}`, LABEL)
-        lines[1].set(`free joints, every φ: ${b.empty ? 'no dexterous ring' : `${cm(b.inner)} ≤ r ≤ ${cm(b.outer)}`}`, b.empty ? HIGH_V : LABEL)
+        lines[0].set(`L1 ${cmWhole(DX.L[0])}, L2 ${cmWhole(DX.L[1])}, L3 ${cmWhole(q.l3)} · elbow ±${deg0(DX.elbow)}, wrist ±${deg0(q.wrist)}`, LABEL)
+        lines[1].set(`free joints, every φ: ${b.empty ? 'no dexterous ring' : `${cmWhole(b.inner)} ≤ r ≤ ${cmWhole(b.outer)}`}`, b.empty ? HIGH_V : LABEL)
         lines[2].set(`reachable ${cm2(d.reach)} · dexterous ${cm2(d.dex)} (${Math.round((d.dex / Math.max(1e-9, d.reach)) * 100)} %)`, RING)
-        lines[3].set(`probe r = ${cm(r)}: ${ok.length} of ${hs.length} headings`, dex >= 1 ? RING : ok.length ? LABEL : HIGH_V)
+        lines[3].set(`probe r = ${cmWhole(r)}: ${ok.length} of ${hs.length} headings`, dex >= 1 ? RING : ok.length ? LABEL : HIGH_V)
 
         curve.points(d.radial.map((_, i) => i / 80), d.radial.map((v) => v * sh - sh / 2))
         const u = Math.min(1, r / d.R)
@@ -352,7 +352,7 @@ export const workspaceDexterity: Lesson = {
         return [
           { label: 'Reachable area', value: cm2(d.reach) },
           { label: 'Dexterous area', value: `${cm2(d.dex)} (${Math.round((d.dex / Math.max(1e-9, d.reach)) * 100)} %)`, tone: d.dex > 0 ? 'ok' : 'bad' },
-          { label: 'Free-joint ring', value: b.empty ? 'none' : `${cm(b.inner)} … ${cm(b.outer)}` },
+          { label: 'Free-joint ring', value: b.empty ? 'none' : `${cmWhole(b.inner)} … ${cmWhole(b.outer)}` },
           { label: 'Task headings', value: `${TASK_RANGE[q.task][2]} tested` },
         ]
       },

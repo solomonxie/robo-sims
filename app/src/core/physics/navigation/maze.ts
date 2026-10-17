@@ -1,12 +1,12 @@
 // Cell mazes (walls between cells): seeded generator, hand-rule wall follower, Trémaux, flood fill, micromouse search + fast run.
-import { hash01 } from '../common'
+import { seededRng } from '../common'
 import { Pose } from '../room'
 import { TT_TRACK_M } from '../sensors/encoder'
 
 /** 0 N (+y), 1 E (+x), 2 S, 3 W. */
 export type Dir = 0 | 1 | 2 | 3
-export const MAZE_DX = [0, 1, 0, -1]
-export const MAZE_DY = [1, 0, -1, 0]
+const MAZE_DX = [0, 1, 0, -1]
+const MAZE_DY = [1, 0, -1, 0]
 export const DIR_TH = [Math.PI / 2, 0, -Math.PI / 2, Math.PI]
 /** Cells `w` × `h`, index y·w + x; `walls[4c + d]` = 1: wall on side d of cell c. */
 export interface Maze {
@@ -17,8 +17,8 @@ export interface Maze {
 /** 8 × 8 cells of 25 cm (a TT car needs more than micromouse's 18 cm); start bottom-left facing north. */
 export const MAZE = { n: 8, cellM: 0.25, wallM: 0.02, start: 0, startDir: 0 as Dir }
 
-export const turnDir = (d: number, k: number) => (((d + k) % 4) + 4) % 4 as Dir
-export const cellXY = (m: Maze, c: number): [number, number] => [c % m.w, Math.floor(c / m.w)]
+const turnDir = (d: number, k: number) => (((d + k) % 4) + 4) % 4 as Dir
+const cellXY = (m: Maze, c: number): [number, number] => [c % m.w, Math.floor(c / m.w)]
 export const wallAt = (m: Maze, c: number, d: number) => m.walls[4 * c + d] === 1
 export function neighbour(m: Maze, c: number, d: number) {
   const [x, y] = cellXY(m, c)
@@ -38,7 +38,7 @@ export function boxMaze(w: number, h: number, full: boolean): Maze {
   for (let c = 0; c < w * h; c++) for (let d = 0; d < 4; d++) if (full || neighbour(m, c, d) < 0) m.walls[4 * c + d] = 1
   return m
 }
-export const openDirs = (m: Maze, c: number) => ([0, 1, 2, 3] as Dir[]).filter((d) => !wallAt(m, c, d))
+const openDirs = (m: Maze, c: number) => ([0, 1, 2, 3] as Dir[]).filter((d) => !wallAt(m, c, d))
 /** The 2 × 2 centre (one cell when a side is odd). */
 export function centreGoal(m: Maze) {
   const xs = m.w % 2 ? [(m.w - 1) / 2] : [m.w / 2 - 1, m.w / 2]
@@ -50,8 +50,7 @@ export function centreGoal(m: Maze) {
  *  `island` opens a moat round the centre goal (one entrance), so its walls touch nothing else. */
 export function genMaze(w: number, h: number, seed: number, { loops = 0, island = false } = {}): Maze {
   const m = boxMaze(w, h, true)
-  let k = 0
-  const rnd = () => hash01(seed * 7919 + ++k * 31.7)
+  const rnd = seededRng(seed)
   const seen = new Uint8Array(w * h)
   const stack = [0]
   seen[0] = 1
@@ -192,7 +191,7 @@ export function tremaux(m: Maze, start: number, dir: Dir, goals: number[], hand:
   return { cells, reached: goals.includes(c), marks, markOf: key }
 }
 
-export interface MouseStep {
+interface MouseStep {
   cell: number
   dir: Dir
   phase: 'search' | 'return' | 'fast'
@@ -241,17 +240,17 @@ export function mouseRun(m: Maze, goals: number[], returnTrip: boolean, start = 
   const visited = new Set(steps.map((s) => s.cell)).size
   return { steps, search, back, fast: fast.length - 1, best, refloods, visited }
 }
-export function dirBetween(m: Maze, a: number, b: number) {
+function dirBetween(m: Maze, a: number, b: number) {
   for (let d = 0; d < 4; d++) if (neighbour(m, a, d) === b) return d
   return -1
 }
 
 /** Centre of cell c in metres (cell 0's corner at the origin). */
-export const mazeCellCentre = (m: Maze, c: number, cellM = MAZE.cellM): [number, number] => {
+const mazeCellCentre = (m: Maze, c: number, cellM = MAZE.cellM): [number, number] => {
   const [x, y] = cellXY(m, c)
   return [(x + 0.5) * cellM, (y + 0.5) * cellM]
 }
-export interface CellDrive {
+interface CellDrive {
   poses: Pose[]
   dL: number[]
   dR: number[]

@@ -36,3 +36,57 @@ export function gaussAt(k: number) {
   const u = (i: number) => clamp(hash01(i), 1e-12, 1 - 1e-12)
   return Math.sqrt(-2 * Math.log(u(2 * k + 1))) * Math.cos(2 * Math.PI * u(2 * k + 2))
 }
+
+/** Same seed → same numbers in [0, 1) (sine hash). */
+export function seededRng(seed: number) {
+  let k = 0
+  return () => hash01(seed * 7919 + ++k * 31.7)
+}
+/** Fast seeded uniform (0, 1), Park–Miller, for runs drawing ~10⁵ numbers. */
+export function parkMiller(seed: number) {
+  let x = (Math.abs(Math.floor(seed)) % 2147483646) + 1
+  return () => (x = (x * 48271) % 2147483647) / 2147483647
+}
+/** Standard normal from a uniform rng. */
+export function gaussRng(rng: () => number) {
+  return () => Math.sqrt(-2 * Math.log(Math.max(1e-12, rng()))) * Math.cos(2 * Math.PI * rng())
+}
+
+export class MinHeap<T> {
+  private a: T[] = []
+  constructor(private less: (x: T, y: T) => boolean) {}
+  get size() {
+    return this.a.length
+  }
+  peek(): T | undefined {
+    return this.a[0]
+  }
+  push(v: T) {
+    const a = this.a
+    a.push(v)
+    for (let i = a.length - 1; i > 0; ) {
+      const p = Math.floor((i - 1) / 2)
+      if (!this.less(a[i], a[p])) break
+      ;[a[p], a[i]] = [a[i], a[p]]
+      i = p
+    }
+  }
+  pop(): T | undefined {
+    const a = this.a
+    const top = a[0]
+    const last = a.pop()
+    if (a.length && last !== undefined) {
+      a[0] = last
+      for (let i = 0; ; ) {
+        const l = 2 * i + 1
+        let m = i
+        if (l < a.length && this.less(a[l], a[m])) m = l
+        if (l + 1 < a.length && this.less(a[l + 1], a[m])) m = l + 1
+        if (m === i) break
+        ;[a[m], a[i]] = [a[i], a[m]]
+        i = m
+      }
+    }
+    return top
+  }
+}

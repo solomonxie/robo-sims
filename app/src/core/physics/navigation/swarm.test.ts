@@ -1,5 +1,5 @@
 import { assignTotal, auctionAssign, boidRules, costMatrix, driveToGoals, flockRun, greedyAssign, groupsOf, optimalAssign, polarisation, taskLayout, tripCrossings } from './swarm'
-import { parkMiller } from './localization'
+import { parkMiller } from '../common'
 
 describe('boid rules', () => {
   const self = { x: 0, y: 0, vx: 0.2, vy: 0 }

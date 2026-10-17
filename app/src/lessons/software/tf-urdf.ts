@@ -54,12 +54,12 @@ import {
   zUp,
 } from '../fx'
 import { Lesson, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
 const AXES_LEGEND = { color: AXIS_RGB[0], label: 'Axes: x red, y green, z blue', shape: 'dot' } as const
 const MAP_C = '#e8e8e8'
 const xyz = (p: P3) => `(${p.map((v) => v.toFixed(2)).join(', ')})`
 const poseText = (p: Pose) => `x ${p.x.toFixed(2)}, y ${p.y.toFixed(2)}, θ ${Math.round(toDeg(p.th))}°`
-const cm = (m: number) => `${Math.round(m * 100)} cm`
 
 /** Rover materials by link name. */
 const roverLook = (link: string) =>
@@ -101,7 +101,7 @@ export const frameTree: Lesson = {
     const c = tfChain(s, on)
     const est = odomOnly(s)
     const drift = Math.hypot(est.x - c.truth.x, est.y - c.truth.y)
-    return `p_map = T(map←odom) · T(odom←base_link) · T(base_link←lidar_link) · p_lidar · after ${s} m odometry is ${cm(drift)}, ${Math.round(Math.abs(toDeg(wrapPi(est.th - c.truth.th))))}° off · ${on ? 'SLAM moves map → odom to absorb the drift, so the point lands on the post' : `nobody updates map → odom: the point lands ${cm(c.err)} from the post`}`
+    return `p_map = T(map←odom) · T(odom←base_link) · T(base_link←lidar_link) · p_lidar · after ${s} m odometry is ${cmWhole(drift)}, ${Math.round(Math.abs(toDeg(wrapPi(est.th - c.truth.th))))}° off · ${on ? 'SLAM moves map → odom to absorb the drift, so the point lands on the post' : `nobody updates map → odom: the point lands ${cmWhole(c.err)} from the post`}`
   },
   legend: [
     AXES_LEGEND,
@@ -228,7 +228,7 @@ export const frameTree: Lesson = {
           `lidar_link   p = ${xyz(c.p[0])}   measured by the lidar`,
           `base_link   = lidar_joint (0.05, 0, 0.07) · p = ${xyz(c.p[1])}`,
           `odom   = odometry (${poseText(odomP)}) · p = ${xyz(c.p[2])}`,
-          `map   = map→odom (${poseText(c.mapOdom)}) · p = ${xyz(c.p[3])}${c.err > 0.01 ? `   ${cm(c.err)} off the post` : '   on the post'}`,
+          `map   = map→odom (${poseText(c.mapOdom)}) · p = ${xyz(c.p[3])}${c.err > 0.01 ? `   ${cmWhole(c.err)} off the post` : '   on the post'}`,
         ]
         lines.forEach((l, i) => l.set(text[i], i === 3 && c.err > 0.01 && k === 3 ? HIGH_V : i <= k ? CHAIN_C[i] : GREY))
       },
@@ -239,9 +239,9 @@ export const frameTree: Lesson = {
         const est = odomOnly(s)
         const drift = Math.hypot(est.x - c.truth.x, est.y - c.truth.y)
         return [
-          { label: 'Odometry drift', value: `${cm(drift)} · ${Math.round(Math.abs(toDeg(wrapPi(est.th - c.truth.th))))}°`, tone: drift < 0.05 ? 'ok' : drift < 0.2 ? 'warn' : 'bad' },
+          { label: 'Odometry drift', value: `${cmWhole(drift)} · ${Math.round(Math.abs(toDeg(wrapPi(est.th - c.truth.th))))}°`, tone: drift < 0.05 ? 'ok' : drift < 0.2 ? 'warn' : 'bad' },
           { label: 'map → odom', value: `${c.mapOdom.x.toFixed(2)}, ${c.mapOdom.y.toFixed(2)} · ${Math.round(toDeg(c.mapOdom.th))}°` },
-          { label: 'Point error', value: cm(c.err), tone: c.err < 0.02 ? 'ok' : c.err < 0.1 ? 'warn' : 'bad' },
+          { label: 'Point error', value: cmWhole(c.err), tone: c.err < 0.02 ? 'ok' : c.err < 0.1 ? 'warn' : 'bad' },
         ]
       },
     }

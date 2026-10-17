@@ -2,11 +2,10 @@ import * as THREE from 'three/webgpu'
 import { ACKERMANN, CarTrackFrame, Pose, Route, XY, errorStats, filleted, frontAxle, pursuitCarRun, pursuitDiffRun, routeOf, stanleyRun, steerAngles } from '../../core/physics'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, addRod, chordPath, cursorBar, diffBot, floorMat, floorView, glowMat, lapseClock, liveLabel, memoBy, placeAt, pointCloud, rcCar, scope, stretchArrow, stretchRod } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, addRod, chordPath, diffBot, floorMat, floorView, glowMat, lapseClock, liveLabel, memoBy, placeAt, pointCloud, rcCar, scope, stretchArrow, stretchRod, PLAN_SCOPE, PLAN_VIEW, floorPt, planScope, xyPose } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
-const WF = { x: 10.4, y: -0.6, w: 10.5, h: 6.4 }
 const TOP = 7.6
 const DT = 0.02
 const SHOW_S = 20
@@ -18,10 +17,7 @@ const scaled = (k: number): XY[] => COURSE.map(([x, y]) => [x * k, y * k])
 const ERR = [0.03, 0.08, 0.15]
 const errColor = (e: number) => (Math.abs(e) < ERR[0] ? POWER : Math.abs(e) < ERR[1] ? RING : Math.abs(e) < ERR[2] ? HEAT : HIGH_V)
 const ERR_LEGEND = { color: POWER, label: 'Trail coloured by error: < 3 · < 8 · < 15 cm · more', shape: 'dot' as const }
-const cm = (m: number) => `${Math.round(m * 100)} cm`
-const sCm = (m: number) => (Math.round(m * 100) === 0 ? '0 cm' : `${m > 0 ? '+' : '−'}${cm(Math.abs(m))}`)
-const P = (p: XY) => ({ x: p[0], y: p[1] })
-const z3 = (p: XY | Pose, z = 0.02): V3 => ('x' in p ? [p.x, p.y, z] : [p[0], p[1], z])
+const sCm = (m: number) => (Math.round(m * 100) === 0 ? '0 cm' : `${m > 0 ? '+' : '−'}${cmWhole(Math.abs(m))}`)
 
 /** Floor with the route on the left, status lines over it, error scope on the right. */
 function trackStage(scene: THREE.Scene, route: Route, k: number, title: string) {
@@ -35,21 +31,15 @@ function trackStage(scene: THREE.Scene, route: Route, k: number, title: string) 
   const line = chordPath(g, 400, B_FIELD, 0.006 * (5.4 / k), 0.006)
   const drawn = { r: null as Route | null }
   const draw = (r: Route) => {
-    if (r !== drawn.r) line((drawn.r = r).pts.map(P))
+    if (r !== drawn.r) line((drawn.r = r).pts.map(xyPose))
   }
   draw(route)
   addLabel(g, 'start', [route.pts[0][0], route.pts[0][1] - 0.12 * (5.4 / k), 0.01], B_FIELD, 0.07 * (5.4 / k))
   const trail = pointCloud(g, 900, 0.009 * (5.4 / k))
   const status = liveLabel(scene, [-18.6, TOP + 1.2, 0.3], { size: 0.44, align: 'left' })
   const sub = liveLabel(scene, [-18.6, TOP + 0.4, 0.3], { size: 0.3, color: GREY, align: 'left' })
-  const plot = scope(scene, WF.w, WF.h, { divs: [6, 4], zeroAt: 0.5 })
-  plot.group.position.set(WF.x, WF.y, 0)
-  addLabel(scene, title, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 1.7, 0.3], LABEL, 0.34, 'left')
-  const range = liveLabel(scene, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], { size: 0.28, color: GREY, align: 'left' })
-  addLabel(scene, '0 s', [WF.x - WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'left')
-  const tEnd = liveLabel(scene, [WF.x + WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], { size: 0.28, color: GREY, align: 'right' })
-  const lines = [0, 1, 2].map((i) => liveLabel(scene, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 2.0 - i * 0.8, 0.3], { size: 0.32, align: 'left' }))
-  return { g, draw, trail, status, sub, plot, range, tEnd, lines, cursor: cursorBar(plot, LABEL, 0.05) }
+  const { xRight: tEnd, ...sc } = planScope(scene, title, '0 s', { zeroAt: 0.5 })
+  return { g, draw, trail, status, sub, ...sc, tEnd }
 }
 
 /** Dots every `step` m of travel, coloured by |e|, as (frame index, point, colour). */
@@ -72,7 +62,7 @@ function errTrace(tr: ReturnType<ReturnType<typeof scope>['trace']>, run: readon
   const stride = Math.max(1, Math.floor(run.length / samples))
   for (let i = 0; i <= k; i += stride) {
     us.push(i / (run.length - 1))
-    ys.push((Math.max(-span, Math.min(span, run[i].e)) / span) * (WF.h / 2))
+    ys.push((Math.max(-span, Math.min(span, run[i].e)) / span) * (PLAN_SCOPE.h / 2))
   }
   tr.points(us, ys)
 }
@@ -124,7 +114,7 @@ export const pathTrackingPurePursuit: Lesson = {
     'If the robot is further from the route than L, the circle misses it: this version then aims at the closest point. Pure pursuit only ever sees one point, so it ignores the route heading; Line following steers off a sensor instead of a map. The Stanley controller next uses heading error as well.',
   ],
   controls: [
-    { kind: 'slider', key: 'look', label: 'Lookahead L', min: 0.1, max: 1, step: 0.05, initial: 0.35, format: (v: number) => cm(v) },
+    { kind: 'slider', key: 'look', label: 'Lookahead L', min: 0.1, max: 1, step: 0.05, initial: 0.35, format: (v: number) => cmWhole(v) },
     { kind: 'slider', key: 'v', label: 'Speed v', min: 0.1, max: 0.5, step: 0.05, initial: 0.3, format: (v: number) => `${v.toFixed(2)} m/s` },
     { kind: 'slider', key: 'tau', label: 'Wheel lag τ', min: 0, max: 0.4, step: 0.02, initial: 0.1, format: (v: number) => `${Math.round(v * 1000)} ms` },
   ],
@@ -141,7 +131,7 @@ export const pathTrackingPurePursuit: Lesson = {
     const st = { key: '', shown: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = ppParams(p)
         const key = ppKey(q)
@@ -152,33 +142,33 @@ export const pathTrackingPurePursuit: Lesson = {
         const f = R.run[k]
         if (key !== st.key) {
           st.key = key
-          R.dots.forEach((d, i) => s.trail.set(i, z3(d.p, 0.006), d.c))
+          R.dots.forEach((d, i) => s.trail.set(i, floorPt(d.p, 0.006), d.c))
         }
         let shown = 0
         while (shown < R.dots.length && R.dots[shown].i <= k) shown++
         if (shown !== st.shown) s.trail.show((st.shown = shown))
         bot.set(f.pose, R.wheels[k][0], R.wheels[k][1])
         circle(ring(f.pose.x, f.pose.y, q.look))
-        goal.set(0, z3(f.goal, 0.03), f.hit ? RING : HIGH_V)
+        goal.set(0, floorPt(f.goal, 0.03), f.hit ? RING : HIGH_V)
         goal.show(1)
         arc(arcFrom(f.pose, f.kappa, Math.min(2.5, Math.hypot(f.goal[0] - f.pose.x, f.goal[1] - f.pose.y) * 1.05)))
         const c = PP_ROUTE.frame(f.pose.x, f.pose.y).at
-        errArrow(z3(f.pose, 0.03), z3(c, 0.03))
+        errArrow(floorPt(f.pose, 0.03), floorPt(c, 0.03))
         errTrace(tr, R.run, k, 0.3)
         s.cursor(k / (R.run.length - 1))
         s.range.set('± 30 cm · starts 30 cm off the route')
         s.tEnd.set(`${R.seconds.toFixed(0)} s`)
-        s.lines[0].set(`e ${sCm(f.e)} · κ ${f.kappa.toFixed(2)} /m → ${Math.abs(f.kappa) < 0.05 ? 'straight' : `turn radius ${cm(1 / Math.abs(f.kappa))}`}`, errColor(f.e))
+        s.lines[0].set(`e ${sCm(f.e)} · κ ${f.kappa.toFixed(2)} /m → ${Math.abs(f.kappa) < 0.05 ? 'straight' : `turn radius ${cmWhole(1 / Math.abs(f.kappa))}`}`, errColor(f.e))
         s.lines[1].set(`wheels L ${f.vL.toFixed(2)} · R ${f.vR.toFixed(2)} m/s${f.sat ? ' · top speed: both slowed' : ''}`, f.sat ? HEAT : GREY)
         s.lines[2].set(f.hit ? 'goal: where the route leaves the circle' : 'route outside the circle: aiming at the closest point', f.hit ? GREY : HIGH_V)
-        s.status.set(`Pure pursuit · L ${cm(q.look)} · t ${f.t.toFixed(1)} s`, LABEL)
+        s.status.set(`Pure pursuit · L ${cmWhole(q.look)} · t ${f.t.toFixed(1)} s`, LABEL)
         s.sub.set(`TT diff-drive at ${q.v.toFixed(2)} m/s, wheel lag ${Math.round(q.tau * 1000)} ms · one lap at ×${fast.toFixed(1)} speed`)
       },
       readouts: (p) => {
         const R = ppRun(ppParams(p))
         return [
-          { label: 'RMS error (after 1 m)', value: cm(R.stats.rms), tone: R.stats.rms < 0.03 ? 'ok' : R.stats.rms < 0.06 ? 'warn' : 'bad' },
-          { label: 'Worst error (after 1 m)', value: cm(R.stats.peak), tone: R.stats.peak < 0.08 ? 'ok' : R.stats.peak < 0.15 ? 'warn' : 'bad' },
+          { label: 'RMS error (after 1 m)', value: cmWhole(R.stats.rms), tone: R.stats.rms < 0.03 ? 'ok' : R.stats.rms < 0.06 ? 'warn' : 'bad' },
+          { label: 'Worst error (after 1 m)', value: cmWhole(R.stats.peak), tone: R.stats.peak < 0.08 ? 'ok' : R.stats.peak < 0.15 ? 'warn' : 'bad' },
           { label: 'Wheel at top speed', value: `${Math.round(R.sat * 100)} % of the lap`, tone: R.sat > 0.1 ? 'warn' : undefined },
           { label: 'Lap', value: `${PP_ROUTE.length.toFixed(1)} m in ${(PP_ROUTE.length / ppParams(p).v).toFixed(0)} s` },
         ]
@@ -247,7 +237,7 @@ export const pathTrackingStanleyController: Lesson = {
   controls: [
     { kind: 'slider', key: 'k', label: 'Gain k', min: 0.5, max: 10, step: 0.5, initial: 2.5, format: (v: number) => `${v.toFixed(1)} /s` },
     { kind: 'slider', key: 'v', label: 'Speed v', min: 0.3, max: 1.5, step: 0.1, initial: 0.8, format: (v: number) => `${v.toFixed(1)} m/s` },
-    { kind: 'slider', key: 'look', label: 'Ghost lookahead L', min: 0.3, max: 1.5, step: 0.1, initial: 0.6, format: (v: number) => cm(v) },
+    { kind: 'slider', key: 'look', label: 'Ghost lookahead L', min: 0.3, max: 1.5, step: 0.1, initial: 0.6, format: (v: number) => cmWhole(v) },
     { kind: 'choice', key: 'route', options: opts(ROUTES), initial: 'round' },
   ],
   build(): Stage {
@@ -270,7 +260,7 @@ export const pathTrackingStanleyController: Lesson = {
     }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = stParams(p)
         const key = stKey(q)
@@ -282,8 +272,8 @@ export const pathTrackingStanleyController: Lesson = {
         const g = R.pp[k]
         if (key !== st.key) {
           st.key = key
-          R.dots.forEach((d, i) => s.trail.set(i, z3(d.p, 0.006), d.c))
-          R.ghostDots.forEach((d, i) => ghostTrail.set(i, z3(d.p, 0.005), GREY, 0.8))
+          R.dots.forEach((d, i) => s.trail.set(i, floorPt(d.p, 0.006), d.c))
+          R.ghostDots.forEach((d, i) => ghostTrail.set(i, floorPt(d.p, 0.005), GREY, 0.8))
         }
         const a = count(R.dots, k)
         const b = count(R.ghostDots, k)
@@ -293,12 +283,12 @@ export const pathTrackingStanleyController: Lesson = {
         car.set(f.pose, steerAngles(f.delta, 'ackermann'), [travel, travel, travel, travel])
         placeAt(ghost, g.pose)
         const fa = frontAxle(f.pose, WB)
-        errArrow(z3(fa, 0.04), z3(f.target, 0.04))
+        errArrow(floorPt(fa, 0.04), floorPt(f.target, 0.04))
         const dir = R.route.frame(f.target[0], f.target[1]).dir
         const h = 0.3
         stretchRod(tangent, [f.target[0] - h * Math.cos(dir), f.target[1] - h * Math.sin(dir), 0.012], [f.target[0] + h * Math.cos(dir), f.target[1] + h * Math.sin(dir), 0.012], 0.006)
-        marks.set(0, z3(f.target, 0.03), B_FIELD)
-        marks.set(1, z3(g.target, 0.03), GREY, 0.7)
+        marks.set(0, floorPt(f.target, 0.03), B_FIELD)
+        marks.set(1, floorPt(g.target, 0.03), GREY, 0.7)
         marks.show(2)
         errTrace(tSt, R.st, k, 0.5)
         errTrace(tPp, R.pp, k, 0.5)
@@ -308,7 +298,7 @@ export const pathTrackingStanleyController: Lesson = {
         const deg = (r: number) => `${r >= 0 ? '+' : '−'}${Math.abs(Math.round((r * 180) / Math.PI))}°`
         s.lines[0].set(`ψ ${deg(f.head)} + atan(k e / v) ${deg(f.cross)} → δ ${deg(f.delta)}${Math.abs(f.delta) > ACKERMANN.maxSteer * 0.85 ? ' (at lock)' : ''}`, LABEL)
         s.lines[1].set(`Stanley e ${sCm(f.e)}`, errColor(f.e))
-        s.lines[2].set(`pure pursuit e ${sCm(g.e)} (L ${cm(q.look)})`, GREY)
+        s.lines[2].set(`pure pursuit e ${sCm(g.e)} (L ${cmWhole(q.look)})`, GREY)
         s.status.set(`Stanley · k ${q.k.toFixed(1)} · t ${f.t.toFixed(1)} s`, LABEL)
         s.sub.set(`1/10 RC car at ${q.v.toFixed(1)} m/s, servo 80 ms late · ${R.route.length.toFixed(1)} m lap at ×${(R.seconds / SHOW_S).toFixed(1)} speed`)
       },
@@ -316,9 +306,9 @@ export const pathTrackingStanleyController: Lesson = {
         const R = stRun(stParams(p))
         const tone = (e: number) => (e < 0.05 ? 'ok' : e < 0.12 ? 'warn' : 'bad') as 'ok' | 'warn' | 'bad'
         return [
-          { label: 'RMS error: Stanley', value: cm(R.stats.st.rms), tone: tone(R.stats.st.rms) },
-          { label: 'RMS error: pure pursuit', value: cm(R.stats.pp.rms), tone: tone(R.stats.pp.rms) },
-          { label: 'Worst: Stanley vs PP', value: `${cm(R.stats.st.peak)} vs ${cm(R.stats.pp.peak)}` },
+          { label: 'RMS error: Stanley', value: cmWhole(R.stats.st.rms), tone: tone(R.stats.st.rms) },
+          { label: 'RMS error: pure pursuit', value: cmWhole(R.stats.pp.rms), tone: tone(R.stats.pp.rms) },
+          { label: 'Worst: Stanley vs PP', value: `${cmWhole(R.stats.st.peak)} vs ${cmWhole(R.stats.pp.peak)}` },
           { label: 'Steering near lock', value: `${Math.round(R.lock * 100)} % of the lap`, tone: R.lock > 0.15 ? 'warn' : undefined },
         ]
       },

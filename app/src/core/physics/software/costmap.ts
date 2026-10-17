@@ -1,4 +1,5 @@
 // Nav2-style 2D costmap (static, obstacle and inflation layers) and an A* planner over it, in metres on the room floor.
+import { MinHeap } from '../common'
 import { Pose, Room, RoomSolid, castRoom, rayDir, walledRoom } from '../room'
 
 export const LETHAL = 254
@@ -133,39 +134,12 @@ export function planGrid(g: CostGrid, from: XY, to: XY): GridPlan | null {
   const prev = new Int32Array(N).fill(-1)
   const done = new Uint8Array(N)
   const h = (k: number) => Math.hypot((k % g.nx) - b[0], Math.floor(k / g.nx) - b[1]) * NEUTRAL_COST
-  const heap: [number, number][] = []
-  const push = (f: number, k: number) => {
-    heap.push([f, k])
-    for (let i = heap.length - 1; i > 0; ) {
-      const p = Math.floor((i - 1) / 2)
-      if (heap[p][0] <= heap[i][0]) break
-      ;[heap[p], heap[i]] = [heap[i], heap[p]]
-      i = p
-    }
-  }
-  const pop = () => {
-    const top = heap[0]
-    const last = heap.pop()!
-    if (heap.length) {
-      heap[0] = last
-      for (let i = 0; ; ) {
-        const l = 2 * i + 1
-        const r = l + 1
-        let m = i
-        if (l < heap.length && heap[l][0] < heap[m][0]) m = l
-        if (r < heap.length && heap[r][0] < heap[m][0]) m = r
-        if (m === i) break
-        ;[heap[m], heap[i]] = [heap[i], heap[m]]
-        i = m
-      }
-    }
-    return top
-  }
+  const heap = new MinHeap<[number, number]>((x, y) => x[0] < y[0])
   best[start] = 0
-  push(h(start), start)
+  heap.push([h(start), start])
   let expanded = 0
-  while (heap.length) {
-    const [, k] = pop()
+  while (heap.size) {
+    const [, k] = heap.pop()!
     if (done[k]) continue
     done[k] = 1
     expanded++
@@ -183,7 +157,7 @@ export function planGrid(g: CostGrid, from: XY, to: XY): GridPlan | null {
         if (best[k] + step < best[n]) {
           best[n] = best[k] + step
           prev[n] = k
-          push(best[n] + h(n), n)
+          heap.push([best[n] + h(n), n])
         }
       }
   }

@@ -4,10 +4,10 @@ import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, GREY, HEAT, HIGH_V, IR_TINT, LABEL, OCC_COLORS, POWER, RING, addLabel, beamCone, floorView, glowMat, lidarRobot, liveLabel, memoBy, occTiles, pointCloud, rayFan, roomModel, scope, statusHeader } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
 const f2 = (v: number) => v.toFixed(2)
 const sgn = (v: number, d = 2) => (+Math.abs(v).toFixed(d) === 0 ? (0).toFixed(d) : `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(d)}`)
-const cm = (m: number) => `${Math.round(m * 100)} cm`
 const pct = (v: number) => `${Math.round(v * 100)} %`
 const MODEL = occModel(0.7, 0.4, 0.97)
 const GRID_LEGEND = [
@@ -71,7 +71,7 @@ export const occupancyGridsRayCasting: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'sensor', options: opts(SENSOR), initial: 'lidar360' },
-    { kind: 'slider', key: 'res', label: 'Cell size', min: 0.05, max: 0.4, step: 0.05, initial: 0.1, format: (v) => cm(v) },
+    { kind: 'slider', key: 'res', label: 'Cell size', min: 0.05, max: 0.4, step: 0.05, initial: 0.1, format: (v) => cmWhole(v) },
     { kind: 'slider', key: 'x', label: 'Robot x', min: 0.5, max: 2.7, step: 0.1, initial: 1.2, format: (v) => `${v.toFixed(1)} m` },
   ],
   build(): Stage {
@@ -108,7 +108,7 @@ export const occupancyGridsRayCasting: Lesson = {
             r.group.position.set(S.pose.x, S.pose.y, 0)
             r.group.rotation.z = S.pose.th
           }
-          status.set(`one scan from (${S.pose.x.toFixed(1)}, ${S.pose.y.toFixed(1)}) m · ${S.beams.length} ${S.sensor === 'lidar' ? 'beams' : 'sonar cones'} · ${S.g.nx} × ${S.g.ny} = ${S.g.lo.length} cells of ${cm(S.res)}`, LABEL)
+          status.set(`one scan from (${S.pose.x.toFixed(1)}, ${S.pose.y.toFixed(1)}) m · ${S.beams.length} ${S.sensor === 'lidar' ? 'beams' : 'sonar cones'} · ${S.g.nx} × ${S.g.ny} = ${S.g.lo.length} cells of ${cmWhole(S.res)}`, LABEL)
           sub.set(`after the scan: ${S.stats.free} free, ${S.stats.occ} occupied, ${pct(S.stats.unknown / S.stats.cells)} still unknown · ${S.per.toFixed(0)} cells touched per beam`, GREY)
           const wrongShare = S.stats.wrong / Math.max(1, S.stats.free + S.stats.occ)
           event.set(
@@ -306,7 +306,7 @@ export const occupancyGridsLogOddsUpdate: Lesson = {
           const [cx, cy] = occCentre(S.g, pk)
           probe.set(0, [cx, cy, 0.06], RING)
           probe.show(1)
-          sub.set(`final map: ${S.stats.free} free, ${S.stats.occ} occupied, ${S.stats.wrong} cells disagree with the room · odometry off by ${cm(S.finalErr)}, ${sgn((S.finalTh * 180) / Math.PI, 1)}°`, GREY)
+          sub.set(`final map: ${S.stats.free} free, ${S.stats.occ} occupied, ${S.stats.wrong} cells disagree with the room · odometry off by ${cmWhole(S.finalErr)}, ${sgn((S.finalTh * 180) / Math.PI, 1)}°`, GREY)
           event.set(
             S.driftDeg >= 2 ? 'odometry drift: each lap the walls land rotated, the map smears' : S.ghost ? 'no room to change its mind: the person stays on the map as a ghost' : S.stats.wrong > 40 ? 'noisy map: single hits count too much' : `the person's cells clear ${S.clearAt > 0 ? `${((S.clearAt - S.leave) / LO.hz).toFixed(1)} s` : ''} after they leave`,
             S.driftDeg >= 2 || S.ghost ? HIGH_V : S.stats.wrong > 40 ? HEAT : POWER,
@@ -335,7 +335,7 @@ export const occupancyGridsLogOddsUpdate: Lesson = {
         pVal.set(`l = ${sgn(l)} → p = ${f2(probOf(l))}`, RING)
         pNote.set(Math.abs(l) > LG.lim ? `off the scale: ${f2(l)} (no clamp)` : S.model.lMax !== Infinity ? `dashed: clamp at ±${f2(S.model.lMax)}` : '', Math.abs(l) > LG.lim ? HIGH_V : GREY)
         mapTag.set(`occupancy grid · scan ${i + 1}/${S.frames.length}`, LABEL)
-        status.set(`t = ${f.t.toFixed(1)} s of ${LO.T} s · sped up ${LO.speed}× · ${LO.hz} scans/s × ${LO.beams} beams · ${cm(LO.res)} cells`, LABEL)
+        status.set(`t = ${f.t.toFixed(1)} s of ${LO.T} s · sped up ${LO.speed}× · ${LO.hz} scans/s × ${LO.beams} beams · ${cmWhole(LO.res)} cells`, LABEL)
       },
       readouts: (p) => {
         const S = loOf(p)
@@ -345,7 +345,7 @@ export const occupancyGridsLogOddsUpdate: Lesson = {
           { label: 'Probed cell at the end', value: `p = ${f2(probOf(l))}` },
           { label: 'Person cleared after', value: S.clearAt > 0 ? `${((S.clearAt - S.leave) / LO.hz).toFixed(1)} s` : 'never', tone: S.clearAt > 0 && S.clearAt - S.leave < 30 ? 'ok' : S.clearAt > 0 ? 'warn' : 'bad' },
           { label: 'Wrong cells', value: `${S.stats.wrong}`, tone: S.stats.wrong < 20 ? 'ok' : S.stats.wrong < 60 ? 'warn' : 'bad' },
-          { label: 'Odometry error', value: `${cm(S.finalErr)}, ${sgn((S.finalTh * 180) / Math.PI, 1)}°`, tone: S.finalErr < 0.05 ? 'ok' : S.finalErr < 0.2 ? 'warn' : 'bad' },
+          { label: 'Odometry error', value: `${cmWhole(S.finalErr)}, ${sgn((S.finalTh * 180) / Math.PI, 1)}°`, tone: S.finalErr < 0.05 ? 'ok' : S.finalErr < 0.2 ? 'warn' : 'bad' },
         ]
       },
     }

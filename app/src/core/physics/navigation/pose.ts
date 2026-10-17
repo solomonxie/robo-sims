@@ -1,13 +1,15 @@
 // Planar pose uncertainty: 3×3 covariance over (x, y, θ), Jacobian propagation through an odometry step, 2σ ellipses; paths as arc legs.
-import { DEG } from '../common'
+import { DEG, wrapPi } from '../common'
 import { Mat, matAdd, matMul, transpose } from '../control/linalg'
 import { Pose } from '../room'
 
 export type Cov3 = Mat
+/** a → b at u ∈ [0, 1], heading the short way round. */
+export const lerpPose = (a: Pose, b: Pose, u: number): Pose => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, th: a.th + wrapPi(b.th - a.th) * u })
 export const zeroCov = (): Cov3 => [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
 /** ∂pose'/∂pose (F) and ∂pose'/∂(Δs, Δθ) (G) for a mid-heading step. */
-export function stepJacobians(p: Pose, ds: number, dth: number): { F: Mat; G: Mat } {
+function stepJacobians(p: Pose, ds: number, dth: number): { F: Mat; G: Mat } {
   const m = p.th + dth / 2
   const [c, s] = [Math.cos(m), Math.sin(m)]
   return {

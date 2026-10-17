@@ -1,16 +1,14 @@
 import * as THREE from 'three/webgpu'
-import { TASK_FIELD, FLOCK, FLOCK_RULES, FlockRules, SWARM, V2, XY, assignTotal, auctionAssign, costMatrix, driveToGoals, flockRun, greedyAssign, optimalAssign, taskLayout, tripCrossings } from '../../core/physics'
+import { TASK_FIELD, FLOCK, FLOCK_RULES, FlockRules, SWARM, V2, assignTotal, auctionAssign, costMatrix, driveToGoals, flockRun, greedyAssign, optimalAssign, taskLayout, tripCrossings } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, countBars, diffBot, flatBox, floorMat, floorView, glowMat, liveLabel, memoBy, pointCloud, rayFan, ringMarks, rodPool, scope } from '../fx'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, countBars, diffBot, flatBox, floorMat, floorView, glowMat, liveLabel, memoBy, pointCloud, rayFan, ringMarks, rodPool, scope, PLAN_VIEW, floorPt } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
 const WF = { x: 10.4, y: 0.6, w: 10.5, h: 6.4 }
 const TOP = 7.6
 const K = 6.2
-const cm = (m: number) => `${Math.round(m * 100)} cm`
-const z3 = (p: { x: number; y: number } | XY, z = 0.02): V3 => (Array.isArray(p) ? [p[0], p[1], z] : [p.x, p.y, z])
 
 /** Walled arena (centred on 0) on a tilted floor, with status lines above it. */
 function arenaStage(scene: THREE.Scene, w: number, h: number) {
@@ -76,7 +74,7 @@ export const swarmMultiRobotFlocking: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'rules', options: opts(FLOCK_RULES), initial: 'all' },
-    { kind: 'slider', key: 'range', label: 'Radio range', min: 0.3, max: 1.6, step: 0.1, initial: 0.9, format: (v: number) => cm(v) },
+    { kind: 'slider', key: 'range', label: 'Radio range', min: 0.3, max: 1.6, step: 0.1, initial: 0.9, format: (v: number) => cmWhole(v) },
     { kind: 'slider', key: 'loss', label: 'Packet loss', min: 0, max: 90, step: 5, initial: 0, format: (v: number) => `${v} %` },
   ],
   build(): Stage {
@@ -93,7 +91,7 @@ export const swarmMultiRobotFlocking: Lesson = {
     const orderTr = plot.trace(POWER, { samples: 240, radius: 0.08 })
     const gapTr = plot.trace(HEAT, { samples: 240, radius: 0.06 })
     addLabel(scene, 'polarisation (0…1) · closest pair (0…60 cm)', [WF.x - WF.w / 2, WF.y + WF.h / 2 + 1.7, 0.3], LABEL, 0.34, 'left')
-    addLabel(scene, `dashed line: bump (closer than ${cm(2 * SWARM.body)})`, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], GREY, 0.28, 'left')
+    addLabel(scene, `dashed line: bump (closer than ${cmWhole(2 * SWARM.body)})`, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], GREY, 0.28, 'left')
     addLabel(scene, '0 s', [WF.x - WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'left')
     addLabel(scene, `${FLOCK.seconds} s`, [WF.x + WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'right')
     plot.level(HEAT).set(-WF.h / 2 + (2 * SWARM.body / 0.6) * WF.h)
@@ -102,7 +100,7 @@ export const swarmMultiRobotFlocking: Lesson = {
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = flParams(p)
         const key = flKey(q)
@@ -113,7 +111,7 @@ export const swarmMultiRobotFlocking: Lesson = {
         const f = R.run[k]
         f.poses.forEach((pose, i) => {
           bots[i].set(pose, f.wheels[i][0], f.wheels[i][1])
-          const a = z3(pose, 0.1)
+          const a = floorPt(pose, 0.1)
           heads.set(i, a, [a[0] + 0.16 * Math.cos(pose.th), a[1] + 0.16 * Math.sin(pose.th), 0.1], 0.008, i === 0 ? RING : LABEL)
         })
         const me = f.poses[0]
@@ -121,22 +119,22 @@ export const swarmMultiRobotFlocking: Lesson = {
         const arrows: [V2, string][] = [[push.sep, HIGH_V], [push.ali, DATA_COLOR], [push.coh, POWER]]
         arrows.forEach(([v, c], j) => {
           const k1 = Math.min(1.5, 0.45 / Math.max(1e-6, Math.hypot(v[0], v[1])))
-          heads.set(FLOCK.n + j, z3(me, 0.14), [me.x + k1 * v[0], me.y + k1 * v[1], 0.14], 0.01, c)
+          heads.set(FLOCK.n + j, floorPt(me, 0.14), [me.x + k1 * v[0], me.y + k1 * v[1], 0.14], 0.01, c)
         })
         heads.commit()
-        rings.set(0, z3(me, 0.006), q.range, RING)
-        rings.set(1, z3(me, 0.007), FLOCK.sepR, HIGH_V)
-        rings.set(2, z3(me, 0.008), 0.13, RING)
+        rings.set(0, floorPt(me, 0.006), q.range, RING)
+        rings.set(1, floorPt(me, 0.007), FLOCK.sepR, HIGH_V)
+        rings.set(2, floorPt(me, 0.008), 0.13, RING)
         rings.commit()
         const segs: [V3, V3][] = []
-        for (let j = 0; j < f.links.length; j += 2) segs.push([z3(f.poses[f.links[j]], 0.09), z3(f.poses[f.links[j + 1]], 0.09)])
+        for (let j = 0; j < f.links.length; j += 2) segs.push([floorPt(f.poses[f.links[j]], 0.09), floorPt(f.poses[f.links[j + 1]], 0.09)])
         allLinks(segs)
-        myLinks(f.mates0.map((j) => [z3(me, 0.1), z3(f.poses[j], 0.1)] as [V3, V3]))
+        myLinks(f.mates0.map((j) => [floorPt(me, 0.1), floorPt(f.poses[j], 0.1)] as [V3, V3]))
         let dots = 0
         for (let m = 1; m <= TRAIL; m++) {
           const back = k - m * TRAIL_EVERY
           if (back < 0) break
-          R.run[back].poses.forEach((pose, i) => trail.set(dots++, z3(pose, 0.005), i === 0 ? RING : GREY, 1 - m / (TRAIL + 4)))
+          R.run[back].poses.forEach((pose, i) => trail.set(dots++, floorPt(pose, 0.005), i === 0 ? RING : GREY, 1 - m / (TRAIL + 4)))
         }
         trail.show(dots)
         const us: number[] = []
@@ -150,10 +148,10 @@ export const swarmMultiRobotFlocking: Lesson = {
         orderTr.points(us, ys)
         gapTr.points(us, gs)
         lines[0].set(`polarisation ${f.order.toFixed(2)} · ${f.groups} group${f.groups > 1 ? 's' : ''} in radio reach`, f.order > 0.8 ? POWER : f.order > 0.5 ? RING : HIGH_V)
-        lines[1].set(`closest pair ${cm(f.minGap)} · ${f.bumps} bump${f.bumps === 1 ? '' : 's'} so far`, f.minGap < 2 * SWARM.body ? HIGH_V : HEAT)
+        lines[1].set(`closest pair ${cmWhole(f.minGap)} · ${f.bumps} bump${f.bumps === 1 ? '' : 's'} so far`, f.minGap < 2 * SWARM.body ? HIGH_V : HEAT)
         lines[2].set(`robot 1 hears ${f.mates0.length} of ${FLOCK.n - 1}${f.mates0.length ? '' : ': drives straight on'}`, f.mates0.length ? RING : GREY)
         s.status.set(`Boids · ${FLOCK_RULES[q.rules].toLowerCase()} · t ${f.t.toFixed(1)} s`, LABEL)
-        s.sub.set(`${FLOCK.n} TT robots in ${FLOCK.w} × ${FLOCK.h} m · radio ${cm(q.range)}, ${Math.round(q.loss * 100)} % lost · ×${SHOW} speed`)
+        s.sub.set(`${FLOCK.n} TT robots in ${FLOCK.w} × ${FLOCK.h} m · radio ${cmWhole(q.range)}, ${Math.round(q.loss * 100)} % lost · ×${SHOW} speed`)
       },
       readouts: (p) => {
         const R = flRun(flParams(p))
@@ -234,7 +232,7 @@ export const swarmMultiRobotTaskAllocation: Lesson = {
     { kind: 'choice', key: 'method', options: opts(METHODS), initial: 'auction' },
     { kind: 'slider', key: 'n', label: 'Robots and tasks', min: 3, max: 8, step: 1, initial: 6, format: (v: number) => `${v}` },
     { kind: 'slider', key: 'seed', label: 'Layout', min: 1, max: 12, step: 1, initial: 5, format: (v: number) => `#${v}` },
-    { kind: 'slider', key: 'eps', label: 'Bid step ε (auction)', min: 0.01, max: 0.5, step: 0.01, initial: 0.05, format: (v: number) => cm(v) },
+    { kind: 'slider', key: 'eps', label: 'Bid step ε (auction)', min: 0.01, max: 0.5, step: 0.01, initial: 0.05, format: (v: number) => cmWhole(v) },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -252,7 +250,7 @@ export const swarmMultiRobotTaskAllocation: Lesson = {
     const timer = loopTimer(1)
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = taParams(p)
         const R = taRun(q)
@@ -266,10 +264,10 @@ export const swarmMultiRobotTaskAllocation: Lesson = {
           b.group.visible = i < q.n
           if (i < q.n) b.set(d.poses[i], d.wheels[i][0], d.wheels[i][1])
         })
-        R.robots.forEach((r, i) => tags.set(i, z3(d.poses[i], 0.004), 0.12, colorOf(i)))
+        R.robots.forEach((r, i) => tags.set(i, floorPt(d.poses[i], 0.004), 0.12, colorOf(i)))
         R.tasks.forEach((tk, j) => {
-          tags.set(8 + j, z3(tk, 0.004), 0.07, colorOf(owner[j]))
-          marks.set(j, z3(tk, 0.035), colorOf(owner[j]))
+          tags.set(8 + j, floorPt(tk, 0.004), 0.07, colorOf(owner[j]))
+          marks.set(j, floorPt(tk, 0.035), colorOf(owner[j]))
           const pr = R.steps[k].prices
           prices[j].group.position.set(tk[0], tk[1] + 0.12, 0.02)
           prices[j].set(bidding && pr ? `${Math.round(pr[j] * 100)}` : `${j + 1}`, colorOf(owner[j]))
@@ -278,30 +276,30 @@ export const swarmMultiRobotTaskAllocation: Lesson = {
         for (let i = q.n; i < 8; i++) tags.set(i, [0, 0, -1], 0, GREY)
         tags.commit()
         prices.forEach((l, j) => (l.group.visible = j < q.n))
-        R.crossings.forEach((c, i) => marks.set(q.n + i, z3(c, 0.03), HIGH_V, 0.8))
+        R.crossings.forEach((c, i) => marks.set(q.n + i, floorPt(c, 0.03), HIGH_V, 0.8))
         marks.show(q.n + (bidding ? 0 : R.crossings.length))
         const bids = bidding ? R.steps[k].bids : []
         bids.forEach((b, i) => {
-          const [a, e] = [z3(R.robots[b.robot], 0.06), z3(R.tasks[b.task], 0.06)]
+          const [a, e] = [floorPt(R.robots[b.robot], 0.06), floorPt(R.tasks[b.task], 0.06)]
           bidArrows.set(i, a, [a[0] + 0.85 * (e[0] - a[0]), a[1] + 0.85 * (e[1] - a[1]), 0.06], 0.011, colorOf(b.robot))
         })
         bidArrows.hideFrom(bids.length)
         bidArrows.commit()
-        owner.forEach((i, j) => (i >= 0 ? wonLines.set(j, z3(R.robots[i], 0.02), z3(R.tasks[j], 0.02), bidding ? 0.006 : 0.005, colorOf(i)) : wonLines.set(j, [0, 0, 0], [0, 0, 0], 0, GREY)))
+        owner.forEach((i, j) => (i >= 0 ? wonLines.set(j, floorPt(R.robots[i], 0.02), floorPt(R.tasks[j], 0.02), bidding ? 0.006 : 0.005, colorOf(i)) : wonLines.set(j, [0, 0, 0], [0, 0, 0], 0, GREY)))
         wonLines.hideFrom(q.n)
         wonLines.commit()
         let dots = 0
         if (!bidding)
-          for (let m = 0; m < di; m += 4) R.drive[m].poses.forEach((pose, i) => trail.set(dots++, z3(pose, 0.004), colorOf(i), 0.8))
+          for (let m = 0; m < di; m += 4) R.drive[m].poses.forEach((pose, i) => trail.set(dots++, floorPt(pose, 0.004), colorOf(i), 0.8))
         trail.show(Math.min(dots, 8 * 60))
         bars.set(R.totals, R.totals.map((v) => `${v.toFixed(2)} m`), [q.method === 'greedy' ? RING : GREY, q.method === 'auction' ? RING : GREY, POWER])
         const gap = (R.total / R.best - 1) * 100
         lines[0].set(`${SHORT[q.method]}: ${R.total.toFixed(2)} m, ${gap < 0.05 ? 'the best split' : `+${gap.toFixed(1)} % over the best`}`, gap < 0.05 ? POWER : gap < 5 ? RING : HIGH_V)
         lines[1].set(q.method === 'greedy' ? `central: ${q.n * q.n} costs in one place, ${q.n} picks` : `${R.steps.length} rounds, ${R.bids} bids broadcast`, GREY)
-        lines[2].set(`longest trip ${cm(Math.max(...R.trips))} · ${R.crossings.length} crossing${R.crossings.length === 1 ? '' : 's'}`, R.crossings.length ? HIGH_V : GREY)
+        lines[2].set(`longest trip ${cmWhole(Math.max(...R.trips))} · ${R.crossings.length} crossing${R.crossings.length === 1 ? '' : 's'}`, R.crossings.length ? HIGH_V : GREY)
         lines[3].set(bidding ? (q.method === 'greedy' ? `pick ${k + 1} of ${R.steps.length}` : `round ${k + 1} of ${R.steps.length}: ${bids.length} bid${bids.length === 1 ? '' : 's'}`) : `driving · ${Math.min(t - R.bidT, R.driveT).toFixed(1)} of ${R.driveT.toFixed(1)} s`, LABEL)
         s.status.set(`Task allocation · ${q.n} robots, ${q.n} tasks · layout #${q.seed}`, LABEL)
-        s.sub.set(bidding ? 'bidding (slowed down); numbers over tasks: price in cm' : `each robot drives to its task at ${cm(TASK_FIELD.v)}/s, real time`)
+        s.sub.set(bidding ? 'bidding (slowed down); numbers over tasks: price in cm' : `each robot drives to its task at ${cmWhole(TASK_FIELD.v)}/s, real time`)
       },
       readouts: (p) => {
         const q = taParams(p)
@@ -309,7 +307,7 @@ export const swarmMultiRobotTaskAllocation: Lesson = {
         const gap = (R.total / R.best - 1) * 100
         return [
           { label: 'Total distance', value: `${R.total.toFixed(2)} m (best ${R.best.toFixed(2)})`, tone: gap < 0.05 ? 'ok' : gap < 5 ? 'warn' : 'bad' },
-          { label: 'Longest trip', value: cm(Math.max(...R.trips)) },
+          { label: 'Longest trip', value: cmWhole(Math.max(...R.trips)) },
           { label: q.method === 'greedy' ? 'Picks' : 'Rounds · bids', value: q.method === 'greedy' ? `${q.n}` : `${R.steps.length} · ${R.bids}` },
           { label: 'Crossing trips', value: `${R.crossings.length}`, tone: R.crossings.length ? 'warn' : 'ok' },
         ]

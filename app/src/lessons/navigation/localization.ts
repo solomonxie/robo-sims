@@ -1,44 +1,13 @@
 import * as THREE from 'three/webgpu'
-import { CLUTTER, IcpIter, MCL, MCL_LOOP, MclFrame, MclStart, Pose, XY, icpRun, mapPoints, mclRun, scanPoints, scanWorld, wrapPi } from '../../core/physics'
+import { CLUTTER, IcpIter, MCL, MCL_LOOP, MclFrame, MclStart, Pose, icpRun, lerpPose, mapPoints, mclRun, scanPoints, scanWorld, wrapPi } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, covRings, cursorBar, diffBot, floorView, glowMat, liveLabel, memoBy, pointCloud, rayFan, roomModel, scope, simClock } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, PLAN_SCOPE, PLAN_VIEW, POWER, RING, chordPath, covRings, diffBot, glowMat, inClutter, locStage, memoBy, planScope, pointCloud, rayFan, simClock, xyPose } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { cmWhole } from '../../core/units'
 
-const RV = { at: [-18.6, -5.6, 0] as V3, k: 5.6, tilt: -0.5 }
-const TOP = RV.at[1] + 2.5 * RV.k * Math.cos(RV.tilt)
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
-const WF = { x: 10.4, y: -0.6, w: 10.5, h: 6.4 }
-const C = { lo: '#4a68a0', tick: '#7f9cc8', odo: '#9aa3b2', ghost: RING }
-const cm = (m: number) => `${Math.round(m * 100)} cm`
+const C = { lo: '#4a68a0', tick: '#7f9cc8', odo: '#9aa3b2' }
 const deg = (r: number) => `${Math.round((Math.abs(r) * 180) / Math.PI)}°`
-const P = (p: XY) => ({ x: p[0], y: p[1] })
-const lerpPose = (a: Pose, b: Pose, u: number): Pose => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, th: a.th + wrapPi(b.th - a.th) * u })
-
-/** CLUTTER room on a tilted floor, the true robot, a ghost estimate and status lines over it. */
-export function locStage(scene: THREE.Scene, hScale: number, opacity = 1) {
-  const g = floorView(scene, RV.at, RV.k, RV.tilt)
-  roomModel(g, hScale, opacity).draw(CLUTTER)
-  return {
-    g,
-    bot: diffBot(g),
-    ghost: diffBot(g, { ghost: C.ghost }),
-    status: liveLabel(scene, [RV.at[0], TOP + 2.0, 0.3], { size: 0.44, align: 'left' }),
-    sub: liveLabel(scene, [RV.at[0], TOP + 1.2, 0.3], { size: 0.3, color: GREY, align: 'left' }),
-  }
-}
-
-/** Scope on the right: title, range note, x-axis ends and three text lines. */
-export function errScope(scene: THREE.Scene, title: string, xLeft: string) {
-  const plot = scope(scene, WF.w, WF.h, { divs: [6, 4], zeroAt: 0 })
-  plot.group.position.set(WF.x, WF.y, 0)
-  addLabel(scene, title, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 1.7, 0.3], LABEL, 0.34, 'left')
-  const range = liveLabel(scene, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], { size: 0.28, color: GREY, align: 'left' })
-  addLabel(scene, xLeft, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'left')
-  const xRight = liveLabel(scene, [WF.x + WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], { size: 0.28, color: GREY, align: 'right' })
-  const lines = [0, 1, 2].map((k) => liveLabel(scene, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 2.0 - k * 0.8, 0.3], { size: 0.32, align: 'left' }))
-  return { plot, range, xRight, lines, cursor: cursorBar(plot, LABEL, 0.05) }
-}
 
 // --- Particle filter: hundreds of guesses move with the odometry, get scored against the lidar scan and resampled. ---
 
@@ -85,12 +54,12 @@ export const localizationParticleFilter: Lesson = {
     const scene = createStage({ span: 40 })
     const s = locStage(scene, 0.4)
     const odo = diffBot(s.g, { ghost: C.odo })
-    chordPath(s.g, 200, '#4a5266', 0.005, 0.004)(MCL_LOOP.pts.map(P))
+    chordPath(s.g, 200, '#4a5266', 0.005, 0.004)(MCL_LOOP.pts.map(xyPose))
     const dots = pointCloud(s.g, 500, 0.03)
     const ticks = rayFan(s.g, 500, glowMat(C.tick, 0.5), 0.005)
     const beams = rayFan(s.g, 12, glowMat(B_FIELD, 0.9), 0.005)
     const ring = covRings(s.g, 1, RING, { width: 0.008, z: 0.03 })
-    const sc = errScope(scene, 'position error and Neff vs time', '0 s')
+    const sc = planScope(scene, 'position error and Neff vs time', '0 s')
     const tErr = sc.plot.trace(RING, { samples: 160, radius: 0.09 })
     const tOdo = sc.plot.trace(GREY, { samples: 160, radius: 0.06 })
     const tNeff = sc.plot.trace(HIGH_V, { samples: 160, radius: 0.05 })
@@ -100,7 +69,7 @@ export const localizationParticleFilter: Lesson = {
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = pfParams(p)
         const key = pfKey(q)
@@ -131,7 +100,7 @@ export const localizationParticleFilter: Lesson = {
         beams(f.ranges.flatMap((r, i): [V3, V3][] => (r >= MCL.maxM ? [] : [[[f.truth.x, f.truth.y, 0.06], [f.truth.x + r * Math.cos(f.truth.th + R.angles[i]), f.truth.y + r * Math.sin(f.truth.th + R.angles[i]), 0.06]]])))
         ring([[f.est.x, f.est.y, f.P]])
         const us = F.slice(0, k + 1).map((x) => x.t / R.tEnd)
-        const yOf = (v: number) => (Math.min(1, Math.max(0, v)) - 0.5) * WF.h
+        const yOf = (v: number) => (Math.min(1, Math.max(0, v)) - 0.5) * PLAN_SCOPE.h
         tErr.points(us, F.slice(0, k + 1).map((x) => yOf(x.err / ERR_MAX)))
         tOdo.points(us, F.slice(0, k + 1).map((x) => yOf(x.odoErr / ERR_MAX)))
         tNeff.points(us, F.slice(0, k + 1).map((x) => yOf(x.neff / q.count)))
@@ -141,18 +110,18 @@ export const localizationParticleFilter: Lesson = {
         sc.xRight.set(`${R.tEnd.toFixed(0)} s`)
         const kidnapped = R.kidnapT >= 0 && f.t >= R.kidnapT
         sc.lines[0].set(`t = ${f.t.toFixed(1)} s · ${f.resampled ? 'Neff < N/2: resampled' : 'weights kept, no resample'}`, f.resampled ? HEAT : LABEL)
-        sc.lines[1].set(`Neff ${Math.round(f.neff)} of ${q.count} · 2σ ring ${cm(Math.sqrt(Math.max(0, f.P[0][0] + f.P[1][1])) * 2)}`, GREY)
+        sc.lines[1].set(`Neff ${Math.round(f.neff)} of ${q.count} · 2σ ring ${cmWhole(Math.sqrt(Math.max(0, f.P[0][0] + f.P[1][1])) * 2)}`, GREY)
         sc.lines[2].set(R.kidnapT < 0 ? 'green line: 15 cm, counted as found' : kidnapped ? `kidnapped at ${R.kidnapT.toFixed(1)} s: carried half a loop` : `kidnap at ${R.kidnapT.toFixed(1)} s`, kidnapped ? HIGH_V : POWER)
         const ok = f.err < FOUND
-        s.status.set(`Particle filter · ${ok ? 'found' : 'not found'} · error ${cm(f.err)} (odometry ${cm(f.odoErr)})`, ok ? POWER : HIGH_V)
+        s.status.set(`Particle filter · ${ok ? 'found' : 'not found'} · error ${cmWhole(f.err)} (odometry ${cmWhole(f.odoErr)})`, ok ? POWER : HIGH_V)
         s.sub.set(`${STARTS[q.start]} · ${q.count} particles · ${q.beams} beams · ${q.inject} % random · real time`)
       },
       readouts: (p) => {
         const q = pfParams(p)
         const R = pfRun(q)
         return [
-          { label: 'Final error', value: cm(R.last.err), tone: R.last.err < FOUND ? 'ok' : 'bad' },
-          { label: 'Odometry alone', value: cm(R.last.odoErr) },
+          { label: 'Final error', value: cmWhole(R.last.err), tone: R.last.err < FOUND ? 'ok' : 'bad' },
+          { label: 'Odometry alone', value: cmWhole(R.last.odoErr) },
           { label: 'Found for good at', value: R.lockAt < 0 ? 'never' : `${R.frames[R.lockAt].t.toFixed(1)} s`, tone: R.lockAt < 0 ? 'bad' : 'ok' },
           { label: 'Resamples', value: `${R.resamples} of ${R.frames.length - 1} scans` },
         ]
@@ -177,7 +146,6 @@ const smRun = memoBy(smKey, (q: SmQ) => {
   return { scan, guess, its, errs: its.map(errOf), last: its[its.length - 1], lastErr: errOf(its[its.length - 1]) }
 })
 const SM_MAX = 0.6
-const inView = (w: XY) => w[0] > -0.15 && w[1] > -0.15 && w[0] < CLUTTER.w + 0.15 && w[1] < CLUTTER.d + 0.15
 
 export const localizationScanMatching: Lesson = {
   id: 'localization-scan-matching',
@@ -211,7 +179,7 @@ export const localizationScanMatching: Lesson = {
     map.show(MAP_PTS.length)
     const dots = pointCloud(s.g, SM.beams, 0.022)
     const pairs = rayFan(s.g, SM.beams, glowMat(HEAT, 0.9), 0.005)
-    const sc = errScope(scene, 'error vs ICP iteration', 'guess')
+    const sc = planScope(scene, 'error vs ICP iteration', 'guess')
     const tPos = sc.plot.trace(RING, { samples: 60, radius: 0.09 })
     const tRms = sc.plot.trace(B_FIELD, { samples: 60, radius: 0.07 })
     const tTh = sc.plot.trace(HEAT, { samples: 60, radius: 0.06 })
@@ -219,7 +187,7 @@ export const localizationScanMatching: Lesson = {
     const st = { key: '', k: -1, u: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = smParams(p)
         const key = smKey(q)
@@ -240,32 +208,32 @@ export const localizationScanMatching: Lesson = {
         R.scan.forEach((pt, i) => {
           const w = scanWorld(pose, pt)
           const j = it.match[i]
-          if (inView(w)) dots.set(shown++, [w[0], w[1], 0.05], j < 0 ? HIGH_V : POWER)
-          if (j >= 0 && u === 0 && inView(w)) segs.push([[w[0], w[1], 0.045], [MAP_PTS[j][0], MAP_PTS[j][1], 0.045]])
+          if (inClutter(w)) dots.set(shown++, [w[0], w[1], 0.05], j < 0 ? HIGH_V : POWER)
+          if (j >= 0 && u === 0 && inClutter(w)) segs.push([[w[0], w[1], 0.045], [MAP_PTS[j][0], MAP_PTS[j][1], 0.045]])
         })
         dots.show(shown)
         pairs(segs)
         const us = R.its.slice(0, k + 1).map((_, i) => i / N)
-        const yOf = (v: number) => (Math.min(1, Math.max(0, v / SM_MAX)) - 0.5) * WF.h
+        const yOf = (v: number) => (Math.min(1, Math.max(0, v / SM_MAX)) - 0.5) * PLAN_SCOPE.h
         tPos.points(us, R.errs.slice(0, k + 1).map((e) => yOf(e.d)))
         tRms.points(us, R.its.slice(0, k + 1).map((x) => yOf(Number.isFinite(x.rms) ? x.rms : SM_MAX)))
         tTh.points(us, R.errs.slice(0, k + 1).map((e) => yOf((Math.abs(e.th) * 180) / Math.PI / 100)))
         sc.cursor(k / N)
-        sc.range.set(`0 … ${cm(SM_MAX)} · yellow pose · blue RMS · orange θ`)
+        sc.range.set(`0 … ${cmWhole(SM_MAX)} · yellow pose · blue RMS · orange θ`)
         sc.xRight.set(`iteration ${N}`)
         const e = R.errs[k]
         sc.lines[0].set(`iteration ${k} · ${it.inliers} of ${R.scan.length} points paired`, it.inliers < R.scan.length / 3 ? HIGH_V : LABEL)
-        sc.lines[1].set(`RMS residual ${Number.isFinite(it.rms) ? `${(it.rms * 100).toFixed(1)} cm` : '—'} · pose off ${cm(e.d)}, ${deg(e.th)}`, GREY)
+        sc.lines[1].set(`RMS residual ${Number.isFinite(it.rms) ? `${(it.rms * 100).toFixed(1)} cm` : '—'} · pose off ${cmWhole(e.d)}, ${deg(e.th)}`, GREY)
         const good = R.lastErr.d < 0.03 && Math.abs(R.lastErr.th) < 0.05
         sc.lines[2].set(k < N ? 'pairs shown in orange, then the fitted move' : good ? 'converged onto the true pose' : 'stuck in a wrong alignment', k < N ? GREY : good ? POWER : HIGH_V)
-        s.status.set(`Scan matching · ICP iteration ${k} of ${N} · off by ${cm(e.d)}, ${deg(e.th)}`, e.d < 0.03 && Math.abs(e.th) < 0.05 ? POWER : LABEL)
+        s.status.set(`Scan matching · ICP iteration ${k} of ${N} · off by ${cmWhole(e.d)}, ${deg(e.th)}`, e.d < 0.03 && Math.abs(e.th) < 0.05 ? POWER : LABEL)
         s.sub.set(`${R.scan.length}-point scan · map = outlines every 3 cm · guess ${q.shift} cm, ${q.turn}° off · noise ${q.noise} mm`)
       },
       readouts: (p) => {
         const R = smRun(smParams(p))
         const good = R.lastErr.d < 0.03 && Math.abs(R.lastErr.th) < 0.05
         return [
-          { label: 'Final position error', value: cm(R.lastErr.d), tone: good ? 'ok' : 'bad' },
+          { label: 'Final position error', value: cmWhole(R.lastErr.d), tone: good ? 'ok' : 'bad' },
           { label: 'Final heading error', value: deg(R.lastErr.th), tone: good ? 'ok' : 'bad' },
           { label: 'RMS residual', value: Number.isFinite(R.last.rms) ? `${(R.last.rms * 100).toFixed(1)} cm` : '—' },
           { label: 'Points paired', value: `${R.last.inliers} of ${R.scan.length}` },

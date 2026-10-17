@@ -28,15 +28,14 @@ import {
   setGlow,
   simClock,
   stretchRod,
+  PLAN_VIEW,
 } from '../fx'
+import { pct, cmWhole } from '../../core/units'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const cm = (m: number) => `${Math.round(m * 100)} cm`
-const pct = (v: number) => `${Math.round(v * 100)} %`
 const ms = (v: number) => `${v.toFixed(2)} m/s`
 const RV = { at: [-18.6, -5.4, 0] as V3, k: 5.6, tilt: -0.5, speed: 2, hold: 2.5, every: 5 }
 const TOP = RV.at[1] + CLUTTER.d * RV.k * Math.cos(RV.tilt)
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
 const ROOM_LEGEND = [
   { color: RING, label: 'Path so far', shape: 'dot' as const },
   { color: HIGH_V, label: 'Bump: the body touched something', shape: 'dot' as const },
@@ -105,7 +104,7 @@ export const obstacleAvoidanceReactiveRules: Lesson = {
     const q = rrParams(p)
     return q.set === 'bump'
       ? 'if bumper: back up, spin away · else: forward. The robot learns about an obstacle only by hitting it'
-      : `every loop: ${RULE_TEXT[q.set].map((r, i) => `${i + 1}) ${r}`).join(' · ')} · stop = ${cm(q.stop)}`
+      : `every loop: ${RULE_TEXT[q.set].map((r, i) => `${i + 1}) ${r}`).join(' · ')} · stop = ${cmWhole(q.stop)}`
   },
   legend: [
     { color: IR_TINT, label: 'Sonar cone (±15°), length = reading', shape: 'dot' },
@@ -121,7 +120,7 @@ export const obstacleAvoidanceReactiveRules: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'rules', options: opts(RULESETS), initial: 'three' },
-    { kind: 'slider', key: 'stop', label: 'Stop distance', min: 0.1, max: 0.6, step: 0.05, initial: 0.3, format: (v) => cm(v) },
+    { kind: 'slider', key: 'stop', label: 'Stop distance', min: 0.1, max: 0.6, step: 0.05, initial: 0.3, format: (v) => cmWhole(v) },
     { kind: 'slider', key: 'speed', label: 'Cruise speed', min: 0.1, max: 0.4, step: 0.05, initial: 0.25, format: ms },
   ],
   build(): Stage {
@@ -136,7 +135,7 @@ export const obstacleAvoidanceReactiveRules: Lesson = {
     const clock = simClock(AVOID.dt / RV.speed, RV.hold)
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = rrParams(p)
         const run = rrRun(q)
@@ -153,7 +152,7 @@ export const obstacleAvoidanceReactiveRules: Lesson = {
         RULE_TEXT[q.set].forEach((r, k) => rows[k].set(`${k + 1}. ${r}`, k === f.rule ? HEAT : GREY))
         for (let k = RULE_TEXT[q.set].length; k < rows.length; k++) rows[k].set('')
         const names = q.set === 'three' ? ['left', 'front', 'right'] : ['front']
-        reads.set(q.set === 'bump' ? `bumper ${f.hit ? 'PRESSED' : 'open'} · no range sensor` : names.map((nm, k) => `${nm} ${cm(f.ranges[k])}`).join(' · '), GREY)
+        reads.set(q.set === 'bump' ? `bumper ${f.hit ? 'PRESSED' : 'open'} · no range sensor` : names.map((nm, k) => `${nm} ${cmWhole(f.ranges[k])}`).join(' · '), GREY)
         let nb = 0
         for (let j = 1; j <= i; j++) if (run.frames[j].hit && !run.frames[j - 1].hit) nb++
         status.set(`${RULESETS[q.set]} · t ${f.t.toFixed(1)} s · ${nb} bump${nb === 1 ? '' : 's'} so far`, nb === 0 ? POWER : nb < 4 ? HEAT : HIGH_V)
@@ -282,7 +281,7 @@ export const obstacleAvoidanceBraitenbergVehicles: Lesson = {
     const clock = simClock(AVOID.dt / RV.speed, RV.hold)
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = bvParams(p)
         const run = bvRun(q)
@@ -339,7 +338,7 @@ export const obstacleAvoidanceWallFollowing: Lesson = {
     const q = wfParams(p)
     const fit = 'α = atan2(b − a·cos 45°, a·sin 45°) · D = b·cos α'
     const meas = q.ctl === 'p' ? 'd = b' : q.ctl === 'pd' ? `${fit} · d = D` : `${fit} · d = D − ${WALL.lookM}·sin α`
-    return `${meas} · ω = ${q.kp}·(${cm(q.set)} − d) − ${q.ctl === 'p' ? 0 : (q.kp * WALL.kdPerKp).toFixed(1)}·ḋ · v = ${WALL.v} m/s`
+    return `${meas} · ω = ${q.kp}·(${cmWhole(q.set)} − d) − ${q.ctl === 'p' ? 0 : (q.kp * WALL.kdPerKp).toFixed(1)}·ḋ · v = ${WALL.v} m/s`
   },
   legend: [
     { color: IR_TINT, label: 'Rays: b (right), a (45° ahead), front', shape: 'dot' },
@@ -355,7 +354,7 @@ export const obstacleAvoidanceWallFollowing: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'ctl', options: opts(CTLS), initial: 'look' },
-    { kind: 'slider', key: 'set', label: 'Wall gap', min: 0.15, max: 0.4, step: 0.05, initial: 0.25, format: (v) => cm(v) },
+    { kind: 'slider', key: 'set', label: 'Wall gap', min: 0.15, max: 0.4, step: 0.05, initial: 0.25, format: (v) => cmWhole(v) },
     { kind: 'slider', key: 'kp', label: 'Kp', min: 1, max: 20, step: 1, initial: 6, format: (v) => `${v} rad/s per m` },
   ],
   build(): Stage {
@@ -368,7 +367,7 @@ export const obstacleAvoidanceWallFollowing: Lesson = {
     plot.group.position.set(WF.x, WF.y, 0)
     const yOf = (m: number) => (Math.min(1, m / WF.top) - 0.5) * WF.h
     addLabel(scene, 'gap to the nearest surface', [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], POWER, 0.34, 'left')
-    addLabel(scene, `0 … ${cm(WF.top)} · ${AVOID.seconds} s`, [WF.x + WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], GREY, 0.34, 'right')
+    addLabel(scene, `0 … ${cmWhole(WF.top)} · ${AVOID.seconds} s`, [WF.x + WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], GREY, 0.34, 'right')
     const setTrace = plot.trace(RING, { samples: 2, radius: 0.04 })
     const trace = plot.trace(POWER, { samples: WF.n, radius: 0.06 })
     const cur = cursorBar(plot, LABEL, 0.05)
@@ -377,7 +376,7 @@ export const obstacleAvoidanceWallFollowing: Lesson = {
     const st = { key: '', us: [] as number[], ys: [] as number[] }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = wfParams(p)
         const key = wfKey(q)
@@ -413,17 +412,17 @@ export const obstacleAvoidanceWallFollowing: Lesson = {
           stretchRod(wallLine, z(pb[0] - d[0] * 0.25, pb[1] - d[1] * 0.25, o[2]), z(pa[0] + d[0] * 0.25, pa[1] + d[1] * 0.25, o[2]), 0.008)
         }
         const fit = a >= WALL.maxM ? null : wallFit(a, b)
-        rule.set(`${RULE_NAMES[f.rule]}${fit && f.rule === 0 ? ` · α ${Math.round((fit.alpha * 180) / Math.PI) || 0}° · D ${cm(fit.D)}` : ''}`, f.rule === 0 ? LABEL : f.rule === 1 ? HEAT : HIGH_V)
+        rule.set(`${RULE_NAMES[f.rule]}${fit && f.rule === 0 ? ` · α ${Math.round((fit.alpha * 180) / Math.PI) || 0}° · D ${cmWhole(fit.D)}` : ''}`, f.rule === 0 ? LABEL : f.rule === 1 ? HEAT : HIGH_V)
         const gap = run.gaps[i]
         const err = Math.abs(gap - q.set)
-        status.set(`${CTLS[q.ctl]} · gap ${cm(gap)} (want ${cm(q.set)})`, err < 0.04 ? POWER : err < 0.1 ? HEAT : HIGH_V)
+        status.set(`${CTLS[q.ctl]} · gap ${cmWhole(gap)} (want ${cmWhole(q.set)})`, err < 0.04 ? POWER : err < 0.1 ? HEAT : HIGH_V)
         sub.set(`right-hand wall · rays at 25 Hz, 1 m range · t ${f.t.toFixed(1)} s · ${RV.speed}× faster`)
       },
       readouts: (p) => {
         const r = wfRun(wfParams(p))
         return [
-          { label: 'RMS gap error on straights', value: cm(r.rms), tone: r.rms < 0.04 ? 'ok' : r.rms < 0.08 ? 'warn' : 'bad' },
-          { label: 'Worst gap error', value: cm(r.worst), tone: r.worst < 0.1 ? 'ok' : r.worst < 0.2 ? 'warn' : 'bad' },
+          { label: 'RMS gap error on straights', value: cmWhole(r.rms), tone: r.rms < 0.04 ? 'ok' : r.rms < 0.08 ? 'warn' : 'bad' },
+          { label: 'Worst gap error', value: cmWhole(r.worst), tone: r.worst < 0.1 ? 'ok' : r.worst < 0.2 ? 'warn' : 'bad' },
           { label: 'Bumps', value: `${r.bumps}`, tone: r.bumps === 0 ? 'ok' : 'bad' },
           { label: 'Distance along the wall', value: `${r.dist.toFixed(1)} m` },
         ]

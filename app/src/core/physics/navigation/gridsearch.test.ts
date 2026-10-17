@@ -1,4 +1,5 @@
-import { FLAT, GRID_MAP, GRID_ROOMS, GridMap, MinHeap, SURPRISES, TRAP, cellAtM, dstarLiteRun, gridNeighbours, gridSearch, heuristic, roomGridMap, searchAt, withSolids } from './gridsearch'
+import { MinHeap } from '../common'
+import { FLAT, GRID_MAP, GRID_ROOMS, GridMap, SURPRISES, TRAP, cellAtM, dstarLiteRun, gridNeighbours, gridSearch, heuristic, roomGridMap, searchAt, withSolids } from './gridsearch'
 
 const open = (w: number, h: number, walls: number[] = []): GridMap => {
   const blocked = new Uint8Array(w * h)

@@ -118,7 +118,7 @@ export function pursuitCurvature(p: Pose, goal: XY) {
   return (2 * gy) / Math.max(1e-9, gx * gx + gy * gy)
 }
 
-export const STANLEY = { soft: 0.1 }
+const STANLEY = { soft: 0.1 }
 
 /** Stanley steer at the front axle: heading error + atan(k e / (soft + v)), clamped to lock. */
 export function stanleySteer(front: Pose, e: number, dir: number, k: number, v: number, max: number, soft = STANLEY.soft) {
@@ -128,9 +128,9 @@ export function stanleySteer(front: Pose, e: number, dir: number, k: number, v: 
 }
 
 /** TT diff-drive for tracking: track (m), top wheel speed (m/s). */
-export const TRACK_BOT = { track: 0.135, wheelMax: 0.6 }
+const TRACK_BOT = { track: 0.135, wheelMax: 0.6 }
 
-export interface DiffTrackFrame {
+interface DiffTrackFrame {
   t: number
   pose: Pose
   goal: XY
@@ -142,7 +142,7 @@ export interface DiffTrackFrame {
   sat: boolean
 }
 
-export interface DiffTrackOpts {
+interface DiffTrackOpts {
   look: number
   v: number
   /** Wheel speed time constant (s). */

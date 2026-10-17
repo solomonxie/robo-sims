@@ -72,6 +72,7 @@ export const mmTenths = (m: number) => `${(m * 1000).toFixed(Math.abs(m) < 0.01 
 /** m from 1 m, cm (1 decimal) from 1 cm, else mm; ∞ for Infinity. */
 export const lengthText = (m: number) => (m === Infinity ? '∞' : m >= 1 ? `${m.toFixed(2)} m` : m >= 0.01 ? `${(m * 100).toFixed(1)} cm` : `${(m * 1000).toFixed(1)} mm`)
 export const cmText = (m: number) => `${(m * 100).toFixed(1)} cm`
+export const cmWhole = (m: number) => `${Math.round(m * 100)} cm`
 export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
 /** Radians as degrees, values that round to zero shown as 0. */
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)

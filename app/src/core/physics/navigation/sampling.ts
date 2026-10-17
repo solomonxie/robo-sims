@@ -1,17 +1,11 @@
 // Sampling planners in a room: seeded samples, segment collision checks, RRT / RRT* (rewiring), shortcut and corner-cutting smoothing.
-import { hash01, wrapPi } from '../common'
+import { seededRng, wrapPi } from '../common'
 import { Room } from '../room'
 import { XY, pathLength } from '../software/costmap'
 import { clearance } from './avoid'
 
 /** Body radius `r` (m), sample cap `n`, RRT* ball constant `gamma` (m). */
 export const SAMPLING = { r: 0.12, n: 600, gamma: 4 }
-
-/** Same seed → same numbers in [0, 1) (sine hash, like `genMaze`). */
-export function seededRng(seed: number) {
-  let k = 0
-  return () => hash01(seed * 7919 + ++k * 31.7)
-}
 
 const dist = (a: XY, b: XY) => Math.hypot(b[0] - a[0], b[1] - a[1])
 
@@ -22,7 +16,7 @@ export function segmentFree(room: Room, a: XY, b: XY, r = SAMPLING.r) {
   return true
 }
 
-export interface RrtOpts {
+interface RrtOpts {
   step: number
   /** Chance a sample is the goal itself. */
   bias: number
@@ -32,7 +26,7 @@ export interface RrtOpts {
   r?: number
 }
 /** One sample: where it fell, the node it added (-1 = blocked), RRT* re-parentings [node, parent], best cost so far. */
-export interface RrtIter {
+interface RrtIter {
   sample: XY
   node: number
   rewires: [number, number][]
@@ -144,7 +138,7 @@ export function rrtPath(run: RrtRun, par: ArrayLike<number>, node: number): XY[]
   return out.reverse()
 }
 
-export interface ShortcutTry {
+interface ShortcutTry {
   i: number
   j: number
   ok: boolean
@@ -183,7 +177,7 @@ export function cutCorners(room: Room, path: XY[], r = SAMPLING.r): XY[] {
 }
 
 /** Heading change at each interior waypoint, rad (absolute). */
-export function cornerTurns(path: XY[]) {
+function cornerTurns(path: XY[]) {
   const out: number[] = []
   for (let i = 2; i < path.length; i++) {
     const h0 = Math.atan2(path[i - 1][1] - path[i - 2][1], path[i - 1][0] - path[i - 2][0])

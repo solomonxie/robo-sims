@@ -1,17 +1,16 @@
 // Multi-robot: boids flocking over a lossy radio, and task allocation (greedy, auction, brute-force optimum).
-import { clamp, wrapPi } from '../common'
+import { clamp, parkMiller, wrapPi } from '../common'
 import { V2 } from '../kinematics/transforms'
 import { diffInverse, diffStep } from '../mobility/diffdrive'
 import { Pose } from '../room'
 import { TT_TRACK_M } from '../sensors/encoder'
 import { segmentsCross } from '../signals/pcb'
 import { XY } from '../software/costmap'
-import { parkMiller } from './localization'
 
 export const SWARM = { track: TT_TRACK_M, vMax: 0.25, vMin: 0.05, wMax: 3, kTurn: 4, body: 0.09 }
 
 /** Turn toward `heading` (P on the error, clamped) at speed v; wheel speeds from the diff-drive inverse. */
-export function steerStep(p: Pose, heading: number, v: number, dt: number) {
+function steerStep(p: Pose, heading: number, v: number, dt: number) {
   const w = clamp(SWARM.kTurn * wrapPi(heading - p.th), -SWARM.wMax, SWARM.wMax)
   const [vL, vR] = diffInverse(v, w, SWARM.track)
   return { pose: diffStep(p, vL, vR, SWARM.track, dt), vL, vR }
@@ -19,7 +18,7 @@ export function steerStep(p: Pose, heading: number, v: number, dt: number) {
 
 // --- Boids ---
 
-export interface Mate {
+interface Mate {
   x: number
   y: number
   vx: number
@@ -62,7 +61,7 @@ export const FLOCK_RULES = { all: 'All three rules', nosep: 'No separation', noa
 export type FlockRules = keyof typeof FLOCK_RULES
 const WEIGHTS: Record<FlockRules, [number, number, number]> = { all: [0.2, 0.8, 0.1], nosep: [0, 0.8, 0.1], noali: [0.2, 0, 0.1], nocoh: [0.2, 0.8, 0] }
 
-export interface FlockFrame {
+interface FlockFrame {
   t: number
   poses: Pose[]
   wheels: V2[]
@@ -184,7 +183,7 @@ export function greedyAssign(C: readonly number[][]) {
   return { assign, picks }
 }
 
-export interface AuctionRound {
+interface AuctionRound {
   bids: { robot: number; task: number; price: number }[]
   prices: number[]
   owner: number[]

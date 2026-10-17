@@ -1,11 +1,11 @@
 // SLAM: keyframes from lidar odometry (scan-to-scan ICP), loop-closure detection by matching against old keyframes, 2-D pose graph by Gauss–Newton.
-import { wrapPi } from '../common'
+import { gaussRng, parkMiller, wrapPi } from '../common'
 import { cholSolve } from '../control/linalg'
 import { Beam, OccGrid, integrateScan, occModel, roomOccGrid } from '../perception/occupancy'
 import { Pose, Room } from '../room'
 import { XY } from '../software/costmap'
 import { CLUTTER } from './avoid'
-import { MCL_LOOP, beamAngles, gaussRng, icpRun, lidarScan, parkMiller } from './localization'
+import { MCL_LOOP, beamAngles, icpRun, lidarScan } from './localization'
 
 /** Drive step, keyframe gap, beams, lidar range and noise, ICP iterations and pair gate, extra drive past one lap, map cell. */
 export const SLAM = { step: 0.025, kf: 0.3, beams: 120, maxM: 3.5, noise: 0.01, iters: 12, maxD: 0.2, extra: 1.0, res: 0.05, kOdo: 0.02 }
@@ -37,7 +37,7 @@ export function densify(scan: readonly XY[], gap = 0.04, maxJump = 0.2): XY[] {
 }
 
 /** ICP of `scan` onto `ref` (both robot frames): a wide pass from the guess on a coarse target, then a tight one on a fine target; rms of the tight pass. */
-export function matchScans(scan: readonly XY[], ref: readonly XY[], guess: Pose, wide = SLAM.maxD, iters = SLAM.iters) {
+function matchScans(scan: readonly XY[], ref: readonly XY[], guess: Pose, wide = SLAM.maxD, iters = SLAM.iters) {
   const a = icpRun(scan, densify(ref, 0.05), guess, iters, wide)
   const b = icpRun(scan, densify(ref, 0.015), a[a.length - 1].pose, 4, 0.06)
   const last = b[b.length - 1]
@@ -140,7 +140,7 @@ export function findClosures(kfs: readonly Keyframe[], est: readonly Pose[], rad
 }
 
 /** Edge residual: [Rᵢᵀ(tⱼ − tᵢ) − z_t, θⱼ − θᵢ − z_θ]. */
-export function edgeError(x: readonly Pose[], e: PgEdge): [number, number, number] {
+function edgeError(x: readonly Pose[], e: PgEdge): [number, number, number] {
   const r = poseBetween(x[e.i], x[e.j])
   return [r.x - e.z.x, r.y - e.z.y, wrapPi(r.th - e.z.th)]
 }

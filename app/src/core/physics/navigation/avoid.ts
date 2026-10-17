@@ -56,7 +56,7 @@ export function hitSide(room: Room, p: Pose) {
   return clearance(room, lx, ly) <= clearance(room, rx, ry) ? 1 : -1
 }
 
-export interface AvoidFrame {
+interface AvoidFrame {
   t: number
   pose: Pose
   vL: number
@@ -86,7 +86,7 @@ export function heldSensor<T>(every: number, sense: (p: Pose) => T) {
 }
 
 /** Steps a controller for `seconds`; restT = when it settled within 5 cm of its end point (null if it never did); coverage = share of reachable `AVOID.cell` squares the body centre visited. */
-export function avoidRun(room: Room, start: Pose, ctl: Ctl, seconds = AVOID.seconds) {
+function avoidRun(room: Room, start: Pose, ctl: Ctl, seconds = AVOID.seconds) {
   const frames: AvoidFrame[] = []
   const nx = Math.ceil(room.w / AVOID.cell)
   const ny = Math.ceil(room.d / AVOID.cell)
@@ -122,7 +122,7 @@ export const RULE_TEXT: Record<RuleSet, string[]> = {
 export const REACT = { every: 4, backS: 0.5, spinS: 0.7, sideDeg: 40, maxM: 2, clearK: 1.3, veer: 0.3, start: { x: 0.4, y: 1.0, th: 0.35 } as Pose }
 
 /** Sonar readings for a rule set: none, [front], or [left, front, right]. */
-export const ruleSonars = (set: RuleSet, room: Room, p: Pose) =>
+const ruleSonars = (set: RuleSet, room: Room, p: Pose) =>
   set === 'bump' ? [] : set === 'sonar' ? [sonarAt(room, p, 0, REACT.maxM)] : [REACT.sideDeg, 0, -REACT.sideDeg].map((d) => sonarAt(room, p, d * DEG, REACT.maxM))
 
 /** The first rule that fires, as an index into RULE_TEXT[set] and wheel speeds (spin = ±v). */

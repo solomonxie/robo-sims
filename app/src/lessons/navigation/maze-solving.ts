@@ -2,13 +2,12 @@ import * as THREE from 'three/webgpu'
 import { DIR_TH, Dir, Hand, MAZE, Maze, cellDrive, centreGoal, descend, floodFill, genMaze, mouseRun, tremaux, wallAt, wallFollow } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, diffBot, floorView, liveLabel, mazeModel, memoBy, simClock } from '../fx'
+import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, diffBot, floorView, liveLabel, mazeModel, memoBy, simClock, BOARD_VIEW } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const N = MAZE.n
 const MV = { at: [-15.5, -6.4, 0] as V3, k: 7.6, tilt: -0.5, slow: 0.05, hold: 3 }
 const TOP = MV.at[1] + N * MAZE.cellM * MV.k * Math.cos(MV.tilt)
-const VIEW = { center: [-2.2, 2, 0] as V3, radius: 54, polar: Math.PI / 2, azimuth: 0 }
 const RP = { x: 1.2, y: 3, row: 1.05 }
 const C = { wall: '#d9dce3', ghost: '#5d626e', goal: '#6b4322', seen: '#1f3d47', twice: '#4d2630', path: '#1f5a3c', front: '#6b5a1c' }
 const KINDS = { perfect: 'Perfect maze', loops: 'With loops', island: 'Goal on an island' }
@@ -109,7 +108,7 @@ export const mazeSolvingWallFollower: Lesson = {
     const st = { key: '', leg: -1 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = wfParams(p)
         const key = wfKey(q)
@@ -200,7 +199,7 @@ export const mazeSolvingFloodFill: Lesson = {
     const st = { key: '', shown: -2 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = ffParams(p)
         const key = ffKey(q)
@@ -294,7 +293,7 @@ export const mazeSolvingMicromouse: Lesson = {
     const st = { key: '', step: -1 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = mmParams(p)
         const key = mmKey(q)

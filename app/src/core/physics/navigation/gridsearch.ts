@@ -1,46 +1,8 @@
-// Graph search on grid maps: binary heap, BFS / Dijkstra / greedy / A* (heuristics, weight), and D* Lite re-planning.
+// Graph search on grid maps: BFS / Dijkstra / greedy / A* (heuristics, weight), and D* Lite re-planning.
+import { MinHeap } from '../common'
 import { Room, walledRoom } from '../room'
 import { solidGap } from './avoid'
 import { INSCRIBED, LETHAL, cellCentre, inflate, roomGrid } from '../software/costmap'
-
-export class MinHeap<T> {
-  private a: T[] = []
-  constructor(private less: (x: T, y: T) => boolean) {}
-  get size() {
-    return this.a.length
-  }
-  peek(): T | undefined {
-    return this.a[0]
-  }
-  push(v: T) {
-    const a = this.a
-    a.push(v)
-    for (let i = a.length - 1; i > 0; ) {
-      const p = Math.floor((i - 1) / 2)
-      if (!this.less(a[i], a[p])) break
-      ;[a[p], a[i]] = [a[i], a[p]]
-      i = p
-    }
-  }
-  pop(): T | undefined {
-    const a = this.a
-    const top = a[0]
-    const last = a.pop()
-    if (a.length && last !== undefined) {
-      a[0] = last
-      for (let i = 0; ; ) {
-        const l = 2 * i + 1
-        let m = i
-        if (l < a.length && this.less(a[l], a[m])) m = l
-        if (l + 1 < a.length && this.less(a[l + 1], a[m])) m = l + 1
-        if (m === i) break
-        ;[a[m], a[i]] = [a[i], a[m]]
-        i = m
-      }
-    }
-    return top
-  }
-}
 
 /** Cells c = y·w + x; `pen` = extra cost to enter a cell (clearance), steps cost 10 straight, 14 diagonal. */
 export interface GridMap {
@@ -53,9 +15,9 @@ export interface GridMap {
 export type Conn = 4 | 8
 export type Heur = 'zero' | 'manhattan' | 'euclid' | 'octile'
 export type SearchAlgo = 'bfs' | 'dijkstra' | 'greedy' | 'astar'
-export const GRID_STEP = 10
-export const GRID_DIAG = 14
-export const PEN_MAX = 20
+const GRID_STEP = 10
+const GRID_DIAG = 14
+const PEN_MAX = 20
 
 const DX = [0, 1, 0, -1, 1, 1, -1, -1]
 const DY = [1, 0, -1, 0, 1, -1, -1, 1]
@@ -86,20 +48,20 @@ export function heuristic(kind: Heur, m: GridMap, a: number, b: number) {
   return 0
 }
 
-export interface SearchOpts {
+interface SearchOpts {
   algo: SearchAlgo
   conn: Conn
   heur?: Heur
   weight?: number
 }
 /** One open-set change: at expansion `step`, cell `c` got cost-so-far `g` and priority `f`. */
-export interface SearchEvent {
+interface SearchEvent {
   step: number
   c: number
   g: number
   f: number
 }
-export interface SearchRun {
+interface SearchRun {
   path: number[]
   cost: number
   order: number[]
@@ -107,7 +69,7 @@ export interface SearchRun {
   g: Float64Array
 }
 
-export const pathCost = (m: GridMap, path: number[]) =>
+const pathCost = (m: GridMap, path: number[]) =>
   path.slice(1).reduce((s, c, i) => {
     const a = path[i]
     const diag = a % m.w !== c % m.w && Math.floor(a / m.w) !== Math.floor(c / m.w)
@@ -231,7 +193,7 @@ export const cellAtM = (m: GridMap, x: number, y: number) => Math.floor(y / m.re
 
 // --- D* Lite (Koenig & Likhachev 2002): search goal → robot, repair only what a newly seen cell changes ---
 
-export interface DStarFrame {
+interface DStarFrame {
   at: number
   path: number[]
   known: Uint8Array

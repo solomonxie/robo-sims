@@ -1,20 +1,15 @@
 import * as THREE from 'three/webgpu'
-import { CLUTTER, Closure, DEG, Keyframe, MCL_LOOP, PgEdge, Pose, SLAM, XY, findClosures, integrateScan, keyframeMap, occModel, occStats, occTruth, poseCompose, poseDist, poseGraphSolve, roomOccGrid, scanBeams, scanWorld, slamDrive, slamGraph, wrapPi } from '../../core/physics'
+import { CLUTTER, Closure, DEG, Keyframe, MCL_LOOP, PgEdge, Pose, SLAM, XY, findClosures, integrateScan, keyframeMap, lerpPose, occModel, occStats, occTruth, poseCompose, poseDist, poseGraphSolve, roomOccGrid, scanBeams, scanWorld, slamDrive, slamGraph, wrapPi } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, chordPath, glowMat, memoBy, occTiles, pointCloud, rayFan, simClock } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, chordPath, glowMat, memoBy, occTiles, pointCloud, rayFan, simClock, PLAN_SCOPE, PLAN_VIEW, inClutter, locStage, planScope, xyPose } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
-import { errScope, locStage } from './localization'
+import { cmWhole } from '../../core/units'
 
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
-const WF_H = 6.4
 const C = { odo: '#9aa3b2', edge: '#6f9be8', path: '#4a5266', old: B_FIELD }
-const cm = (m: number) => `${Math.round(m * 100)} cm`
 const deg = (r: number) => `${((Math.abs(r) * 180) / Math.PI).toFixed(1)}°`
-const lerpPose = (a: Pose, b: Pose, u: number): Pose => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, th: a.th + wrapPi(b.th - a.th) * u })
-const yOf = (v: number, max: number) => (Math.min(1, Math.max(0, v / max)) - 0.5) * WF_H
+const yOf = (v: number, max: number) => (Math.min(1, Math.max(0, v / max)) - 0.5) * PLAN_SCOPE.h
 const TRUTH = occTruth(CLUTTER, SLAM.res)
-const inView = (w: XY) => w[0] > -0.15 && w[1] > -0.15 && w[0] < CLUTTER.w + 0.15 && w[1] < CLUTTER.d + 0.15
 
 const driftSlider = { kind: 'slider' as const, key: 'drift', label: 'Wheel heading drift', min: 0, max: 6, step: 1, initial: 3, format: (v: number) => `${v}°/m` }
 const seedSlider = { kind: 'slider' as const, key: 'seed', label: 'Noise seed', min: 1, max: 9, step: 1, initial: 1, format: (v: number) => `#${v}` }
@@ -35,7 +30,7 @@ function mapSnaps(kfs: readonly Keyframe[], poses: readonly Pose[]) {
 function slamStage(scene: THREE.Scene) {
   const s = locStage(scene, 0.12, 0.28)
   const tiles = occTiles(s.g, 3800)
-  chordPath(s.g, 200, C.path, 0.005, 0.012)(MCL_LOOP.pts.map((p) => ({ x: p[0], y: p[1] })))
+  chordPath(s.g, 200, C.path, 0.005, 0.012)(MCL_LOOP.pts.map(xyPose))
   const nodes = pointCloud(s.g, 48, 0.03)
   const odoE = rayFan(s.g, 48, glowMat(C.edge, 0.9), 0.008)
   const loopE = rayFan(s.g, 24, glowMat(HEAT, 1), 0.012)
@@ -89,14 +84,14 @@ export const slamTheChickenAndEggProblem: Lesson = {
     const scene = createStage({ span: 40 })
     const s = slamStage(scene)
     const beams = rayFan(s.g, SLAM.beams / 2, glowMat(B_FIELD, 0.35), 0.004)
-    const sc = errScope(scene, 'position error vs keyframe', 'start')
+    const sc = planScope(scene, 'position error vs keyframe', 'start')
     const tWheel = sc.plot.trace(GREY, { samples: 60, radius: 0.07 })
     const tIcp = sc.plot.trace(RING, { samples: 60, radius: 0.09 })
     const clock = simClock(KF_SLOW, 3)
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = ceParams(p)
         const key = `${q.src}|${q.drift}|${q.seed}`
@@ -114,29 +109,29 @@ export const slamTheChickenAndEggProblem: Lesson = {
         const pk = R.poses[k]
         beams(R.kfs[k].scan.flatMap((pt, i): [V3, V3][] => {
           const w = scanWorld(pk, pt)
-          return i % 2 || !inView(w) ? [] : [[[pk.x, pk.y, 0.06], [w[0], w[1], 0.06]]]
+          return i % 2 || !inClutter(w) ? [] : [[[pk.x, pk.y, 0.06], [w[0], w[1], 0.06]]]
         }))
         const us = R.kfs.slice(0, k + 1).map((_, i) => i / N)
         tWheel.points(us, R.wheel.slice(0, k + 1).map((e) => yOf(e, CE_MAX)))
         tIcp.points(us, R.icp.slice(0, k + 1).map((e) => yOf(e, CE_MAX)))
         sc.cursor(k / N)
-        sc.range.set(`0 … ${cm(CE_MAX)} · grey wheels · yellow lidar odometry`)
+        sc.range.set(`0 … ${cmWhole(CE_MAX)} · grey wheels · yellow lidar odometry`)
         sc.xRight.set(`keyframe ${N} (${R.kfs[N].s.toFixed(1)} m)`)
         sc.lines[0].set(`keyframe ${k} of ${N} · ${R.kfs[k].s.toFixed(1)} m driven`, LABEL)
-        sc.lines[1].set(`wheels off ${cm(R.wheel[k])} · lidar odometry off ${cm(R.icp[k])}`, GREY)
+        sc.lines[1].set(`wheels off ${cmWhole(R.wheel[k])} · lidar odometry off ${cmWhole(R.icp[k])}`, GREY)
         sc.lines[2].set(q.src === 'truth' ? 'true pose: the map a perfect estimate gives' : k < N ? 'drift is folded into the map as it is drawn' : 'back at the start: the walls no longer line up', q.src === 'truth' ? POWER : k < N ? GREY : HIGH_V)
         const e = R.err[k]
-        s.status.set(`${SOURCES[q.src]} · off by ${cm(e)}`, e < 0.05 ? POWER : e < 0.2 ? LABEL : HIGH_V)
-        s.sub.set(`${N + 1} keyframes, one every ${cm(SLAM.kf)} · ${SLAM.beams}-beam lidar · wheel drift ${q.drift}°/m · ${KF_SLOW} s per keyframe`)
+        s.status.set(`${SOURCES[q.src]} · off by ${cmWhole(e)}`, e < 0.05 ? POWER : e < 0.2 ? LABEL : HIGH_V)
+        s.sub.set(`${N + 1} keyframes, one every ${cmWhole(SLAM.kf)} · ${SLAM.beams}-beam lidar · wheel drift ${q.drift}°/m · ${KF_SLOW} s per keyframe`)
       },
       readouts: (p) => {
         const q = ceParams(p)
         const R = ceRun(q)
         const N = R.kfs.length - 1
         return [
-          { label: 'Final error, this pose', value: `${cm(R.err[N])}, ${deg(R.thErr)}`, tone: R.err[N] < 0.05 ? 'ok' : 'bad' },
-          { label: 'Wheels alone', value: cm(R.wheel[N]) },
-          { label: 'Lidar odometry', value: cm(R.icp[N]) },
+          { label: 'Final error, this pose', value: `${cmWhole(R.err[N])}, ${deg(R.thErr)}`, tone: R.err[N] < 0.05 ? 'ok' : 'bad' },
+          { label: 'Wheels alone', value: cmWhole(R.wheel[N]) },
+          { label: 'Lidar odometry', value: cmWhole(R.icp[N]) },
           { label: 'Map cells wrong', value: `${R.wrong}` },
         ]
       },
@@ -190,14 +185,14 @@ export const slamLoopClosure: Lesson = {
     const ring = chordPath(s.g, 48, HEAT, 0.006, 0.05)
     const dots = pointCloud(s.g, 3 * SLAM.beams, 0.018)
     const link = rayFan(s.g, 1, glowMat(HIGH_V, 1), 0.01)
-    const sc = errScope(scene, 'drift: true vs measured by the closure', 'start')
+    const sc = planScope(scene, 'drift: true vs measured by the closure', 'start')
     const tErr = sc.plot.trace(RING, { samples: 60, radius: 0.09 })
     const tCorr = sc.plot.trace(HEAT, { samples: 60, radius: 0.08 })
     const clock = simClock(KF_SLOW, 3)
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = lcParams(p)
         const key = lcKey(q)
@@ -219,7 +214,7 @@ export const slamLoopClosure: Lesson = {
         let shown = 0
         const put = (pose: Pose, scan: readonly XY[], color: string) => scan.forEach((pt) => {
           const w = scanWorld(pose, pt)
-          if (inView(w)) dots.set(shown++, [w[0], w[1], 0.07], color)
+          if (inClutter(w)) dots.set(shown++, [w[0], w[1], 0.07], color)
         })
         if (c) {
           put(R.est[c.j], R.kfs[c.j].scan, C.old)
@@ -235,10 +230,10 @@ export const slamLoopClosure: Lesson = {
         sc.cursor(k / N)
         sc.range.set('0 … 50 cm · yellow true · orange found by matching')
         sc.xRight.set(`keyframe ${N}`)
-        sc.lines[0].set(c ? `keyframe ${k} vs old keyframe ${c.j}, ${cm(c.gap)} apart` : `keyframe ${k}: no old keyframe within ${q.radius} cm`, c ? LABEL : GREY)
+        sc.lines[0].set(c ? `keyframe ${k} vs old keyframe ${c.j}, ${cmWhole(c.gap)} apart` : `keyframe ${k}: no old keyframe within ${q.radius} cm`, c ? LABEL : GREY)
         sc.lines[1].set(c ? `ICP RMS ${(c.rms * 100).toFixed(1)} cm (gate ${q.rms} cm) · ${Math.round(c.frac * 100)} % paired` : `${R.closures.filter((x) => x.i <= k).length} of ${R.closures.length} candidates tested so far`, GREY)
-        sc.lines[2].set(c ? (c.accepted ? `accepted: drift measured ${cm(corrOf(R.est, c))}` : 'rejected: fit not tight enough') : `${done.length} loop closures accepted`, c ? (c.accepted ? POWER : HIGH_V) : GREY)
-        s.status.set(`Loop closure · ${c ? (c.accepted ? 'match accepted' : 'match rejected') : 'searching'} · estimate off by ${cm(R.err[k])}`, c ? (c.accepted ? POWER : HIGH_V) : LABEL)
+        sc.lines[2].set(c ? (c.accepted ? `accepted: drift measured ${cmWhole(corrOf(R.est, c))}` : 'rejected: fit not tight enough') : `${done.length} loop closures accepted`, c ? (c.accepted ? POWER : HIGH_V) : GREY)
+        s.status.set(`Loop closure · ${c ? (c.accepted ? 'match accepted' : 'match rejected') : 'searching'} · estimate off by ${cmWhole(R.err[k])}`, c ? (c.accepted ? POWER : HIGH_V) : LABEL)
         s.sub.set(`lidar odometry, ${N + 1} keyframes · search ${q.radius} cm · gate ${q.rms} cm · wheel drift ${q.drift}°/m · ${KF_SLOW} s per keyframe`)
       },
       readouts: (p) => {
@@ -248,7 +243,7 @@ export const slamLoopClosure: Lesson = {
           { label: 'Candidates tested', value: `${R.closures.length}` },
           { label: 'Closures accepted', value: `${R.ok.length}`, tone: R.ok.length ? 'ok' : 'bad' },
           { label: 'First closure', value: first ? `keyframe ${first.i} → ${first.j}` : 'none' },
-          { label: 'Drift measured / true', value: first ? `${cm(corrOf(R.est, first))} / ${cm(R.err[first.i])}` : '—' },
+          { label: 'Drift measured / true', value: first ? `${cmWhole(corrOf(R.est, first))} / ${cmWhole(R.err[first.i])}` : '—' },
         ]
       },
     }
@@ -306,14 +301,14 @@ export const slamPoseGraphs: Lesson = {
     const s = slamStage(scene)
     const before = pointCloud(s.g, 48, 0.022)
     const beforeE = rayFan(s.g, 48, glowMat(GREY, 0.5), 0.004)
-    const sc = errScope(scene, 'error per keyframe', 'keyframe 0')
+    const sc = planScope(scene, 'error per keyframe', 'keyframe 0')
     const tBefore = sc.plot.trace(GREY, { samples: 60, radius: 0.07 })
     const tNow = sc.plot.trace(RING, { samples: 60, radius: 0.09 })
     const clock = simClock(1.1, 3)
     const st = { key: '', k: -1, u: -1 }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = pgParams(p)
         const key = pgKey(q)
@@ -347,8 +342,8 @@ export const slamPoseGraphs: Lesson = {
         sc.lines[0].set(`iteration ${k} of ${PG_ITERS} · χ² ${R.sol.costs[k].toFixed(1)} (start ${R.sol.costs[0].toFixed(1)})`, LABEL)
         sc.lines[1].set(`${R.edges.length - nLoop} odometry edges · ${nLoop} loop edges · ${N + 1} nodes`, GREY)
         const good = R.maxErr[k] < 0.06
-        sc.lines[2].set(`worst keyframe ${cm(R.maxErr[k])}, was ${cm(R.maxErr[0])}`, good ? POWER : k ? HIGH_V : GREY)
-        s.status.set(`Pose graph · ${t < 0 ? 'before optimising' : `Gauss–Newton step ${k}`} · worst keyframe ${cm(R.maxErr[k])}`, good ? POWER : LABEL)
+        sc.lines[2].set(`worst keyframe ${cmWhole(R.maxErr[k])}, was ${cmWhole(R.maxErr[0])}`, good ? POWER : k ? HIGH_V : GREY)
+        s.status.set(`Pose graph · ${t < 0 ? 'before optimising' : `Gauss–Newton step ${k}`} · worst keyframe ${cmWhole(R.maxErr[k])}`, good ? POWER : LABEL)
         s.sub.set(`${MODES[q.mode]} · closure trust ${10 ** q.trust}× · wheel drift ${q.drift}°/m · 1.1 s per step`)
       },
       readouts: (p) => {
@@ -356,7 +351,7 @@ export const slamPoseGraphs: Lesson = {
         const L = PG_ITERS
         return [
           { label: 'χ² before → after', value: `${R.sol.costs[0].toFixed(0)} → ${R.sol.costs[L].toFixed(1)}` },
-          { label: 'Worst keyframe', value: `${cm(R.maxErr[0])} → ${cm(R.maxErr[L])}`, tone: R.maxErr[L] < 0.06 ? 'ok' : 'bad' },
+          { label: 'Worst keyframe', value: `${cmWhole(R.maxErr[0])} → ${cmWhole(R.maxErr[L])}`, tone: R.maxErr[L] < 0.06 ? 'ok' : 'bad' },
           { label: 'Map cells wrong', value: `${R.wrong[0]} → ${R.wrong[L]}` },
           { label: 'Loop edges', value: `${R.loops.length}` },
         ]

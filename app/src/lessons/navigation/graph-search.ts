@@ -22,7 +22,7 @@ import {
 } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, countBars, diffBot, floorView, liveLabel, mazeModel, memoBy, simClock } from '../fx'
+import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, countBars, diffBot, floorView, liveLabel, mazeModel, memoBy, simClock, BOARD_VIEW } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const RES = GRID_MAP.res
@@ -30,7 +30,6 @@ const GV = { at: [-16.6, -6.6, 0] as V3, k: 4.6, tilt: -0.5, slow: 0.07, hold: 3
 const W = 16
 const H = 12
 const TOP = GV.at[1] + H * RES * GV.k * Math.cos(GV.tilt)
-const VIEW = { center: [-2.2, 2, 0] as V3, radius: 54, polar: Math.PI / 2, azimuth: 0 }
 const RP = { x: 6.6, y: 3.4, row: 0.95, left: 2.6 }
 const C = { block: '#aeb3bd', ghost: '#8a5a66', open: '#6b5a1c', closed: '#1f3d47', path: '#1f5a3c', start: '#27477a', goal: '#6b4322', pen: '#3b2a24', floor: '#23262d' }
 const MAPS = { flat: 'Two rooms', trap: 'Cup-shaped trap' }
@@ -182,7 +181,7 @@ export const graphSearchGridMaps: Lesson = {
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = gmParams(p)
         const key = gmKey(q)
@@ -273,7 +272,7 @@ export const graphSearchAHeuristic: Lesson = {
     const st = { key: '', k: -1 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = ahParams(p)
         const key = ahKey(q)
@@ -350,7 +349,7 @@ export const graphSearchDLite: Lesson = {
     const st = { key: '', i: -1 }
     return {
       scene,
-      view: VIEW,
+      view: BOARD_VIEW,
       frame(dt, p) {
         const q = dsParams(p)
         const key = dsKey(q)

@@ -2,13 +2,9 @@ import * as THREE from 'three/webgpu'
 import { GRID_MAP, GRID_ROOMS, GridRoom, RrtRun, SAMPLING, XY, alongPath, cutCorners, pathClearance, pathLength, pathStats, rrtPath, rrtRun, shortcutRun, treeAt } from '../../core/physics'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, cursorBar, diffBot, floorView, glowMat, liveLabel, memoBy, pointCloud, rayFan, roomModel, scope, simClock } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, chordPath, diffBot, floorView, glowMat, liveLabel, memoBy, pointCloud, rayFan, roomModel, simClock, PLAN_SCOPE, PLAN_VIEW, ROOM_RIG, ROOM_TOP, planScope, xyPose } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const RV = { at: [-18.6, -5.6, 0] as V3, k: 5.6, tilt: -0.5 }
-const TOP = RV.at[1] + 2.5 * RV.k * Math.cos(RV.tilt)
-const VIEW = { center: [-0.6, 2.4, 0] as V3, radius: 60, polar: Math.PI / 2, azimuth: 0 }
-const WF = { x: 10.4, y: -0.6, w: 10.5, h: 6.4 }
 const N = SAMPLING.n
 const DRIVE = { stepM: 0.02 }
 const START = GRID_MAP.start
@@ -19,11 +15,10 @@ const SEED = { kind: 'slider' as const, key: 'seed', label: 'Random seed', min: 
 const C = { tree: '#3f6fb0', dimTree: '#2a3550', blocked: '#7a2e2e', sample: '#9aa3b2' }
 const m2 = (v: number) => `${v.toFixed(2)} m`
 const deg = (r: number) => `${Math.round((r * 180) / Math.PI)}°`
-const P = (p: XY) => ({ x: p[0], y: p[1] })
 
 /** Room on a tilted floor, start/goal marks, tree, samples, route and a robot. */
 function planStage(scene: THREE.Scene, treeColor: string) {
-  const g = floorView(scene, RV.at, RV.k, RV.tilt)
+  const g = floorView(scene, ROOM_RIG.at, ROOM_RIG.k, ROOM_RIG.tilt)
   const room = roomModel(g, 0.4)
   const marks = pointCloud(g, 2, 0.05)
   marks.set(0, [START[0], START[1], 0.02], POWER)
@@ -35,8 +30,8 @@ function planStage(scene: THREE.Scene, treeColor: string) {
   const dots = pointCloud(g, 1000, 0.014)
   const route = chordPath(g, 1000, RING, 0.012, 0.016)
   const bot = diffBot(g)
-  const status = liveLabel(scene, [RV.at[0], TOP + 1.7, 0.3], { size: 0.44, align: 'left' })
-  const sub = liveLabel(scene, [RV.at[0], TOP + 0.9, 0.3], { size: 0.3, color: GREY, align: 'left' })
+  const status = liveLabel(scene, [ROOM_RIG.at[0], ROOM_TOP + 1.7, 0.3], { size: 0.44, align: 'left' })
+  const sub = liveLabel(scene, [ROOM_RIG.at[0], ROOM_TOP + 0.9, 0.3], { size: 0.3, color: GREY, align: 'left' })
   const st = { pts: null as XY[] | null, len: 0 }
   return {
     g,
@@ -59,18 +54,6 @@ function planStage(scene: THREE.Scene, treeColor: string) {
       bot.set({ x: a.at[0], y: a.at[1], th: a.dir }, s / 0.033, s / 0.033)
     },
   }
-}
-
-/** Scope on the right with a title, range note and two text lines under it. */
-function costScope(scene: THREE.Scene, title: string, xLeft: string, xRight: string) {
-  const plot = scope(scene, WF.w, WF.h, { divs: [6, 4], zeroAt: 0 })
-  plot.group.position.set(WF.x, WF.y, 0)
-  addLabel(scene, title, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 1.7, 0.3], LABEL, 0.34, 'left')
-  const range = liveLabel(scene, [WF.x - WF.w / 2, WF.y + WF.h / 2 + 0.9, 0.3], { size: 0.28, color: GREY, align: 'left' })
-  addLabel(scene, xLeft, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'left')
-  addLabel(scene, xRight, [WF.x + WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], GREY, 0.28, 'right')
-  const lines = [0, 1, 2].map((k) => liveLabel(scene, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 2.0 - k * 0.8, 0.3], { size: 0.32, align: 'left' }))
-  return { plot, range, lines, cursor: cursorBar(plot, LABEL, 0.05) }
 }
 
 // --- RRT growth: random samples pull a tree across the room; RRT* rewires it so the route keeps getting shorter. ---
@@ -134,7 +117,7 @@ export const samplingPlannersRrtGrowth: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const s = planStage(scene, C.tree)
-    const sc = costScope(scene, 'route cost vs samples', 'sample 0', `${N}`)
+    const sc = planScope(scene, 'route cost vs samples', 'sample 0', { xRight: `${N}` })
     const tRrt = sc.plot.trace(GREY, { samples: 151, radius: 0.07 })
     const tStar = sc.plot.trace(RING, { samples: 151, radius: 0.09 })
     const floor = sc.plot.level(POWER)
@@ -142,7 +125,7 @@ export const samplingPlannersRrtGrowth: Lesson = {
     const st = { key: '', k: -1, driving: false }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = rgParams(p)
         const key = `${q.planner}|${rgKey(q)}`
@@ -166,8 +149,8 @@ export const samplingPlannersRrtGrowth: Lesson = {
         }
         s.dots.show(driving ? 0 : k + 1)
         const it = run.iters[k]
-        s.route(rrtPath(run, par, it.bestNode).map(P))
-        const yOf = (c: number) => ((Math.min(R.hi, c) - R.lo) / (R.hi - R.lo) - 0.5) * WF.h
+        s.route(rrtPath(run, par, it.bestNode).map(xyPose))
+        const yOf = (c: number) => ((Math.min(R.hi, c) - R.lo) / (R.hi - R.lo) - 0.5) * PLAN_SCOPE.h
         for (const [tr, r] of [[tRrt, R.rrt], [tStar, R.star]] as const) {
           const us: number[] = []
           const ys: number[] = []
@@ -257,14 +240,14 @@ export const samplingPlannersSmoothingPaths: Lesson = {
     const rawLine = chordPath(s.g, 200, GREY, 0.007, 0.012)
     const okChord = rayFan(s.g, 1, glowMat(POWER, 1.2), 0.012)
     const badChord = rayFan(s.g, 1, glowMat(HIGH_V, 1.2), 0.012)
-    const sc = costScope(scene, '% of the raw route', 'raw', 'shortcuts → corner passes')
+    const sc = planScope(scene, '% of the raw route', 'raw', { xRight: 'shortcuts → corner passes' })
     const tLen = sc.plot.trace(B_FIELD, { samples: 70, radius: 0.08 })
     const tTurn = sc.plot.trace(HEAT, { samples: 70, radius: 0.08 })
     const clock = simClock(SM.slow, SM.hold)
     const st = { key: '', i: -1, drawn: '', driving: false }
     return {
       scene,
-      view: VIEW,
+      view: PLAN_VIEW,
       frame(dt, p) {
         const q = smParams(p)
         const key = smKey(q)
@@ -285,10 +268,10 @@ export const samplingPlannersSmoothingPaths: Lesson = {
         if (st.drawn !== `${q.map}|${q.seed}`) {
           st.drawn = `${q.map}|${q.seed}`
           s.edges(R.run, R.run.parent, 0.006)
-          rawLine(R.raw.map(P))
+          rawLine(R.raw.map(xyPose))
         }
         const cur = R.stages[at]
-        s.route(cur.map(P))
+        s.route(cur.map(xyPose))
         cur.forEach((c, j) => s.dots.set(j, [c[0], c[1], 0.02], RING, 1.4))
         s.dots.show(cur.length)
         const tr = at >= 1 && at <= nT ? R.tries[at - 1] : null
@@ -298,7 +281,7 @@ export const samplingPlannersSmoothingPaths: Lesson = {
         badChord(tr && !tr.ok ? chord : [])
         const xs = R.stages.map((_, j) => j / Math.max(1, R.stages.length - 1))
         const len = R.stages.map((pp) => pathStats(pp))
-        const yOf = (v: number) => (Math.min(1, v) - 0.5) * WF.h
+        const yOf = (v: number) => (Math.min(1, v) - 0.5) * PLAN_SCOPE.h
         tLen.points(xs.slice(0, at + 1), len.slice(0, at + 1).map((v) => yOf(v.len / R.base.len)))
         tTurn.points(xs.slice(0, at + 1), len.slice(0, at + 1).map((v) => yOf(R.base.sharp ? v.sharp / R.base.sharp : 0)))
         sc.cursor(xs[at])
