@@ -1,17 +1,16 @@
-import { FLYWHEELS, Flywheel, RotorShape, SHOOTER, SPINNER, SpinMode, fixedStepAt, raceAngle, reactionRatio, rotorInertias, shooterRun, spinRace, spinnerRun } from '../../core/physics'
+import { FLYWHEELS, Flywheel, RPM_PER_RADS, RotorShape, SHOOTER, SPINNER, SpinMode, fixedStepAt, raceAngle, reactionRatio, rotorInertias, shooterRun, spinRace, spinnerRun } from '../../core/physics'
+import { energyText, mpsText, secsText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, dotPen, lapseClock, liveLabel, memoBy, plotPanel, statusHeader, tiltRig, traceRun } from '../fx'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, dotPen, lapseClock, liveLabel, memoBy, plotPanel, sideView, statusHeader, tiltRig, traceRun } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
-const VIEW = { center: [-2.4, -0.4, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
-const TAU = 2 * Math.PI
-const rpm = (w: number) => `${Math.round(Math.abs(w) * (60 / TAU))} rpm`
-const secs = (t: number) => `${t.toFixed(2)} s`
-const joules = (e: number) => (e < 1 ? `${(e * 1000).toFixed(0)} mJ` : `${e.toFixed(1)} J`)
+const VIEW = sideView(-2.4, -0.4)
+const rpm = (w: number) => `${Math.round(Math.abs(w) * RPM_PER_RADS)} rpm`
+const joules = (e: number) => energyText(e, 1)
 const inertia = (i: number) => `${(i * 1e4).toFixed(i < 1e-3 ? 2 : 1)} kg·cm²`
-const mps = (v: number) => `${v.toFixed(1)} m/s`
+const mps = (v: number) => mpsText(v, 1)
 const grams = (v: number) => `${v} g`
 
 /** Disk (stripe), thin ring (rim + spokes) or a light arm with two weights, spinning about z. */
@@ -137,10 +136,10 @@ export const rotationMomentOfInertia: Lesson = {
         pen.end()
         const w = race.map((s) => s.alpha * Math.min(t, s.t))
         speeds.set(w, w.map(rpm), race.map((s) => s.color), Math.max(...race.map((s) => s.omega)))
-        times.set(race.map((s) => (t >= s.t ? s.t : t)), race.map((s) => (t >= s.t ? secs(s.t) : '…')), race.map((s) => s.color), end)
+        times.set(race.map((s) => (t >= s.t ? s.t : t)), race.map((s) => (t >= s.t ? secsText(s.t) : '…')), race.map((s) => s.color), end)
         const first = race.reduce((a, b) => (b.t < a.t ? b : a))
         head.status.set(`Same mass, same torque ${(q.tau * 1000).toFixed(0)} mN·m · race to ${MI.turns} turns from rest`, LABEL)
-        head.sub.set(`front view · ${Math.round(q.kg * 1000)} g each · t = ${secs(Math.min(t, end))} · real time`)
+        head.sub.set(`front view · ${Math.round(q.kg * 1000)} g each · t = ${secsText(Math.min(t, end))} · real time`)
         head.event.set(t >= end ? `all done · same energy ${joules(race[0].energy)} each: the slow one turns slower but harder to stop` : `${first.name} leads: least I, most α`, t >= end ? POWER : GREY)
       },
       readouts: (p) => {
@@ -150,7 +149,7 @@ export const rotationMomentOfInertia: Lesson = {
         return [
           { label: 'Ring / disk inertia', value: `${(r.I / d.I).toFixed(1)}×` },
           { label: 'Arm / disk inertia', value: `${(a.I / d.I).toFixed(2)}×`, tone: toneOf(a.I < d.I, a.I < r.I) },
-          { label: `Time to ${MI.turns} turns: disk / ring / arm`, value: `${secs(d.t)} / ${secs(r.t)} / ${secs(a.t)}` },
+          { label: `Time to ${MI.turns} turns: disk / ring / arm`, value: `${secsText(d.t)} / ${secsText(r.t)} / ${secsText(a.t)}` },
           { label: 'Energy at the finish (each) = τθ', value: joules(d.energy) },
         ]
       },
@@ -440,7 +439,7 @@ export const rotationFlywheel: Lesson = {
         head.event.set(
           fired === 0
             ? f.omega < 0.95 * SHOOTER.freeRadS
-              ? `spinning up: ${Math.round((f.omega / SHOOTER.freeRadS) * 100)} % of free speed (95 % takes ${secs(r.spinUp95)})`
+              ? `spinning up: ${Math.round((f.omega / SHOOTER.freeRadS) * 100)} % of free speed (95 % takes ${secsText(r.spinUp95)})`
               : 'up to speed, store full'
             : `ball ${fired}: ${mps(r.balls[fired - 1].v)} · wheel at ${Math.round((f.omega / SHOOTER.freeRadS) * 100)} %`,
           fired && r.balls[fired - 1].v < 0.65 * r.ideal ? HIGH_V : POWER,
@@ -452,7 +451,7 @@ export const rotationFlywheel: Lesson = {
           { label: 'Inertia on the shaft', value: inertia(r.inertia) },
           { label: 'Stored at free speed', value: joules(r.stored) },
           { label: 'First / slowest ball', value: `${mps(r.balls[0].v)} / ${mps(r.worst)}`, tone: toneOf(r.sag < 0.2, r.sag < 0.4) },
-          { label: 'Spin-up to 95 %', value: secs(r.spinUp95), tone: toneOf(r.spinUp95 < 1, r.spinUp95 < SHOOTER.fireAt) },
+          { label: 'Spin-up to 95 %', value: secsText(r.spinUp95), tone: toneOf(r.spinUp95 < 1, r.spinUp95 < SHOOTER.fireAt) },
         ]
       },
     }

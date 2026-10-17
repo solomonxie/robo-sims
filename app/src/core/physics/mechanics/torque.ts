@@ -51,7 +51,7 @@ export const leverTravel = (l: Lever, rad: number) => ({ effort: l.effortArm * M
 /** Shoulder boom of a servo arm: 20 cm link (60 g, centre at 10 cm), payload at the tip, counterweight on a stub behind. */
 export const BOOM = { lenM: 0.2, linkKg: 0.06, linkM: 0.1 }
 
-export interface BoomLoad {
+interface BoomLoad {
   payloadKg: number
   counterKg: number
   counterM: number

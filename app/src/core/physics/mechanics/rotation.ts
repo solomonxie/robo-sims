@@ -1,6 +1,5 @@
 // Rotation: moment of inertia of simple rotors, conservation of angular momentum, a shooter flywheel.
-
-const TAU = 2 * Math.PI
+import { TAU } from '../common'
 
 /** Same mass `kg` as a disk and a ring of radius `r`, and as two equal masses at `armR` on a light arm (kg·m²). */
 export const rotorInertias = (kg: number, r: number, armR: number) => ({ disk: 0.5 * kg * r * r, ring: kg * r * r, arm: kg * armR * armR })
@@ -38,7 +37,7 @@ export function wheelRate(t: number, top: number) {
 }
 
 export type SpinMode = 'arms' | 'wheel'
-export interface SpinFrame { t: number; r: number; inertia: number; omega: number; theta: number; wheel: number; wheelAngle: number; L: number; ke: number }
+interface SpinFrame { t: number; r: number; inertia: number; omega: number; theta: number; wheel: number; wheelAngle: number; L: number; ke: number }
 
 /** One cycle of the turntable. `arms`: L set by `rpm` with the arms out, then ω = L / I as they move. `wheel`: arms in,
  *  a disk of `wheelKg` spun to `rpm` relative to the body; total L stays 0 so the body turns the other way. */
@@ -94,8 +93,8 @@ export function shot(inertia: number, omega0: number, kg: number) {
   return { omega1, v, ballJ: 0.5 * kg * v * v, wheelJ: 0.5 * inertia * (omega0 * omega0 - omega1 * omega1) }
 }
 
-export interface ShooterFrame { t: number; omega: number; energy: number }
-export interface ShotBall { t: number; omega0: number; v: number; ballJ: number; wheelJ: number }
+interface ShooterFrame { t: number; omega: number; energy: number }
+interface ShotBall { t: number; omega0: number; v: number; ballJ: number; wheelJ: number }
 
 /** Spin-up from rest, then a burst of balls `gap` s apart; ω relaxes exactly toward ω_free between shots. */
 export function shooterRun(f: Flywheel, gap: number, ballKg: number) {

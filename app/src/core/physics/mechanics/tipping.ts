@@ -1,7 +1,7 @@
 // Centre of mass: combined CoM of parts, where gravity plus the inertial force through it meets the floor, tip angles and accelerations, a tilting-table tip-over.
 import { G } from '../common'
 
-export interface MassPart {
+interface MassPart {
   kg: number
   x: number
   z: number
@@ -25,7 +25,7 @@ export function tipAccels(x: number, h: number, rear: number, front: number, the
   return { wheelie: c * (x - rear) - G * Math.sin(theta), nose: c * (x - front) - G * Math.sin(theta) }
 }
 
-export interface TableFrame {
+interface TableFrame {
   t: number
   tilt: number
   roll: number

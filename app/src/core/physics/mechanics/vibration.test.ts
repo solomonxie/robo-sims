@@ -1,9 +1,10 @@
+import { rpmToRadS } from '../actuators/stepper'
 import { ampRatio } from './oscillation'
-import { ACC_NOISE_G, ISOLATION_R, MOTOR_PLATE, accelSamples, accelSpectrum, frameShake, mountStiffness, mountTransmit, rpmToRad, transmissibility, transmitLag, unbalanceForce } from './vibration'
+import { ACC_NOISE_G, ISOLATION_R, MOTOR_PLATE, accelSamples, accelSpectrum, frameShake, mountStiffness, mountTransmit, transmissibility, transmitLag, unbalanceForce } from './vibration'
 
 describe('motor vibration', () => {
   test('unbalance force grows with speed²', () => {
-    expect(unbalanceForce(0.001, 0.01, rpmToRad(6000))).toBeCloseTo(0.001 * 0.01 * (200 * Math.PI) ** 2, 9)
+    expect(unbalanceForce(0.001, 0.01, rpmToRadS(6000))).toBeCloseTo(0.001 * 0.01 * (200 * Math.PI) ** 2, 9)
     expect(unbalanceForce(0.001, 0.01, 2) / unbalanceForce(0.001, 0.01, 1)).toBeCloseTo(4, 9)
   })
 

@@ -1,15 +1,14 @@
 import { ACC_HZ, ACC_N, ACC_NOISE_G, ISOLATION_R, MOTOR_PLATE, MOUNTS, MOUNT_FN, Mount, accelG, accelSamples, accelSpectrum, frameShake, gaussAt, mountLag, mountStiffness, mountTransmit } from '../../core/physics'
+import { niceCeil } from '../../core/units'
 import { V3, box, mat, rod } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, LABEL, POWER, RING, SIDE_SCOPE, addLabel, coilSpring, flatBox, forceArrow, i2cBreakout, liveLabel, memoBy, plotPanel, scope, statusHeader, unbalancedMotor } from '../fx'
+import { B_FIELD, GREY, HEAT, LABEL, POWER, RING, SIDE_SCOPE, addLabel, coilSpring, flatBox, forceArrow, i2cBreakout, liveLabel, memoBy, plotPanel, scope, sideView, statusHeader, unbalancedMotor } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
-const VIEW = { center: [-2.2, -0.6, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
+const VIEW = sideView(-2.2, -0.6)
 const rpmText = (rpm: number) => `${Math.round(rpm).toLocaleString('en-US')} rpm`
 const gText = (g: number) => (g < 0.1 ? `${(g * 1000).toFixed(0)} mg` : `${g.toFixed(g < 10 ? 2 : 0)} g`)
 const um = (x: number) => (x < 1e-3 ? `${(x * 1e6).toFixed(0)} µm` : `${(x * 1000).toFixed(2)} mm`)
-const NICE = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]
-const niceRange = (v: number) => NICE.find((s) => s >= v) ?? NICE[NICE.length - 1]
 /** IMU sample i of a ±amp g sine at hz with a phase, plus sensor noise; linear between samples. */
 const imuAt = (amp: number, hz: number, phase: number, seed: number) => (t: number) => {
   const s = (i: number) => amp * Math.sin((2 * Math.PI * hz * i) / ACC_HZ + phase) + ACC_NOISE_G * gaussAt(seed + (((i % 100000) + 100000) % 100000))
@@ -112,7 +111,7 @@ export const vibrationMotorVibration: Lesson = {
         const L = Math.min(4, 0.5 + 0.55 * Math.sqrt(s.force))
         force(c, [c[0] + L * Math.cos(th0), c[1] + L * Math.sin(th0), c[2]], `${s.force.toFixed(2)} N`, [0, 0.6, 0.4])
 
-        const range = niceRange(Math.max(sp.amp * 1.15, 4 * ACC_NOISE_G))
+        const range = Math.min(50, niceCeil(Math.max(sp.amp * 1.15, 4 * ACC_NOISE_G)))
         accRange.set(`±${gText(range)}`, LABEL)
         const sig = imuAt(sp.amp, s.hz, Math.PI - s.lag, 11)
         accTr.scroll((t) => (sig(t) / range) * (th / 2), st.t, WIN)
@@ -244,14 +243,13 @@ export const vibrationDampingMounts: Lesson = {
         }
         const top = fy + 0.25 + vf
         const bottom = fy + 0.25 + DMT.mountH + vb
-        const off: V3 = [0, -99, 0]
         mountXs.forEach((mx, i) => {
           const a: V3 = [fx + mx, top, 0]
           const b: V3 = [fx + mx, bottom, 0]
-          if (q.mount === 'soft') soft[i](a, b)
-          else soft[i](off, off)
-          if (q.mount === 'stiff') stiff[i](a, b)
-          else stiff[i](off, off)
+          soft[i].group.visible = q.mount === 'soft'
+          stiff[i].group.visible = q.mount === 'stiff'
+          soft[i](a, b)
+          stiff[i](a, b)
           posts[i].visible = q.mount === 'none'
           posts[i].position.set(fx + mx, (top + bottom) / 2, 0)
           posts[i].scale.y = bottom - top

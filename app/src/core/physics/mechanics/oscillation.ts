@@ -10,7 +10,7 @@ export const staticSag = (m: number, k: number) => (m * G) / k
 /** Damping ratio from c: ζ = c / (2√(k m)). */
 export const dampingRatio = (m: number, k: number, c: number) => c / (2 * Math.sqrt(k * m))
 
-export type DampRegime = 'none' | 'under' | 'critical' | 'over'
+type DampRegime = 'none' | 'under' | 'critical' | 'over'
 export const dampRegime = (zeta: number): DampRegime => (zeta <= 0 ? 'none' : Math.abs(zeta - 1) < 1e-6 ? 'critical' : zeta < 1 ? 'under' : 'over')
 
 /** Displacement x(t) after releasing from x0 at rest. */
@@ -61,7 +61,7 @@ export function resonancePeak(zeta: number) {
   return { r, ratio: ampRatio(zeta, r) }
 }
 
-export interface DrivenFrame {
+interface DrivenFrame {
   t: number
   x: number
   v: number

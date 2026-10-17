@@ -1,13 +1,13 @@
 import { ARM_BUILD, ARM_SERVOS, ArmServo, BOOM, DEG, G, LEVER_CLASSES, LeverClass, balanceRadius, boomTorques, holdVerdict, hornSag, leverForces, leverLayout, leverTravel, reachLimit, torqueOf } from '../../core/physics'
+import { newtonsText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, countBars, dotPen, forceArrow, liveLabel, memoBy, scope, sg90Servo, statusHeader, sumBars } from '../fx'
+import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, countBars, dotPen, forceArrow, liveLabel, memoBy, scope, sg90Servo, sideView, statusHeader, sumBars } from '../fx'
 import { Lesson, Params, Stage, angleSlider, n, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
-const VIEW = { center: [-2.4, 0, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
+const VIEW = sideView(-2.4, 0)
 const nm = (v: number) => `${Math.abs(v).toFixed(3)} N·m`
-const newtons = (f: number) => `${f.toFixed(2)} N`
 const cm = (m: number) => (Number.isFinite(m) ? `${(m * 100).toFixed(1)} cm` : 'any length')
 const grams = (v: number) => `${v} g`
 const VERDICT_TONE = { ok: 'ok', thin: 'warn', weak: 'bad' } as const
@@ -50,7 +50,7 @@ export const torqueLeversMomentArm: Lesson = {
   controls: [
     { kind: 'slider', key: 'r', label: 'Distance r from the shaft', min: 1, max: 8, step: 0.5, initial: 5, format: (v) => `${v.toFixed(1)} cm` },
     angleSlider('angle', 'Angle θ between horn and force', 0, 180, 90),
-    { kind: 'slider', key: 'force', label: 'Force F', min: 0.5, max: 6, step: 0.5, initial: 2.5, format: (v) => newtons(v) },
+    { kind: 'slider', key: 'force', label: 'Force F', min: 0.5, max: 6, step: 0.5, initial: 2.5, format: (v) => newtonsText(v) },
     { kind: 'choice', key: 'servo', options: opts(SERVOS), initial: 'sg90' },
   ],
   build(): Stage {
@@ -105,7 +105,7 @@ export const torqueLeversMomentArm: Lesson = {
         const th = q.deg * DEG
         const u: V3 = [Math.cos(ang - th), Math.sin(ang - th), 0]
         const F = q.f * MA.fK
-        force(tip, [tip[0] + u[0] * F, tip[1] + u[1] * F, 1.2], `F ${newtons(q.f)}`)
+        force(tip, [tip[0] + u[0] * F, tip[1] + u[1] * F, 1.2], `F ${newtonsText(q.f)}`)
         const a: V3 = [Math.cos(ang), Math.sin(ang), 0]
         const nrm: V3 = [Math.sin(ang), -Math.cos(ang), 0]
         along(tip, [tip[0] + a[0] * t.fPar * MA.fK, tip[1] + a[1] * t.fPar * MA.fK, 1.1], '')
@@ -184,7 +184,7 @@ export const torqueLeversLeverTypes: Lesson = {
   tagline: 'Trade force for distance',
   formula: (p) => {
     const { l, w, f } = lvRun(lvParams(p))
-    return `balance: F_e × ${cm(l.effortArm)} = W × ${cm(l.loadArm)} · MA = effort arm / load arm = ${l.ma.toFixed(2)} · F_e = ${newtons(w)} / ${l.ma.toFixed(2)} = ${newtons(f.effort)} · load moves 1/MA as far`
+    return `balance: F_e × ${cm(l.effortArm)} = W × ${cm(l.loadArm)} · MA = effort arm / load arm = ${l.ma.toFixed(2)} · F_e = ${newtonsText(w)} / ${l.ma.toFixed(2)} = ${newtonsText(f.effort)} · load moves 1/MA as far`
   },
   legend: [
     { color: POWER, label: 'Effort F_e (what you or the motor push)', shape: 'dot' },
@@ -265,21 +265,21 @@ export const torqueLeversLeverTypes: Lesson = {
         const aK = LV.arrowMax / Math.max(f.effort, w, Math.abs(f.fulcrum))
         const eLen = f.effort * aK
         const e = world(l.effort, 0.03)
-        const eLabel = `F_e ${newtons(f.effort)}`
+        const eLabel = `F_e ${newtonsText(f.effort)}`
         if (down) effort([e[0], e[1] + eLen, e[2]], e, eLabel, [0, eLen + 0.9, 0])
         else effort(world(l.effort, -0.006), [e[0], e[1] + eLen, e[2]], eLabel, [0, 0, 0])
         const c = world(l.load, -0.006)
-        weight([c[0], c[1], 2], [c[0], c[1] - w * aK, 2], `W ${newtons(w)}`, [0, -0.1, 0])
+        weight([c[0], c[1], 2], [c[0], c[1] - w * aK, 2], `W ${newtonsText(w)}`, [0, -0.1, 0])
         const fp: V3 = [LV.at[0] + l.fulcrum * LV.k, LV.at[1] - 2.4, 2.2]
         const rLen = Math.abs(f.fulcrum) * aK
-        react(f.fulcrum >= 0 ? [fp[0], fp[1] - rLen, 2.2] : [fp[0], fp[1] + 1.4, 2.2], f.fulcrum >= 0 ? fp : [fp[0], fp[1] + 1.4 - rLen, 2.2], `${newtons(Math.abs(f.fulcrum))}${f.fulcrum < 0 ? ' (pin pulls down)' : ''}`, [0, f.fulcrum >= 0 ? -rLen - 1 : -0.2, 0])
+        react(f.fulcrum >= 0 ? [fp[0], fp[1] - rLen, 2.2] : [fp[0], fp[1] + 1.4, 2.2], f.fulcrum >= 0 ? fp : [fp[0], fp[1] + 1.4 - rLen, 2.2], `${newtonsText(Math.abs(f.fulcrum))}${f.fulcrum < 0 ? ' (pin pulls down)' : ''}`, [0, f.fulcrum >= 0 ? -rLen - 1 : -0.2, 0])
         const eArc = world(l.effort)
         eTrav.group.position.set(eArc[0], LV.at[1] - 3.4, 1.6)
         eTrav.set(`effort ↕ ${cm(travel.effort)}`)
         const lArc = world(l.load)
         lTrav.group.position.set(lArc[0], LV.at[1] + 3.6, 1.6)
         lTrav.set(`load ↕ ${cm(travel.load)}`)
-        forces.set([f.effort, w], [newtons(f.effort), newtons(w)], [POWER, FORCE])
+        forces.set([f.effort, w], [newtonsText(f.effort), newtonsText(w)], [POWER, FORCE])
         dists.set([travel.effort, travel.load], [cm(travel.effort), cm(travel.load)], [POWER, FORCE])
         ex1.set(EXAMPLES[q.cls][0])
         ex2.set(EXAMPLES[q.cls][1])
@@ -295,7 +295,7 @@ export const torqueLeversLeverTypes: Lesson = {
         return [
           { label: 'Effort arm / load arm', value: `${cm(l.effortArm)} / ${cm(l.loadArm)}` },
           { label: 'Mechanical advantage', value: l.ma.toFixed(2), tone: l.ma >= 1 ? 'ok' : 'warn' },
-          { label: 'Effort to hold the load', value: newtons(f.effort), tone: f.effort > w ? 'warn' : 'ok' },
+          { label: 'Effort to hold the load', value: newtonsText(f.effort), tone: f.effort > w ? 'warn' : 'ok' },
           { label: 'Load moves per cm of effort', value: cm(1 / l.ma / 100) },
         ]
       },
@@ -391,12 +391,12 @@ export const torqueLeversStaticBalance: Lesson = {
         const at = (x: number, yOff = 0): V3 => [px + (x * c - yOff * s) * SB.k, py + (x * s + yOff * c) * SB.k, 1.8]
         const K = SB.wK
         const hand = at(BOOM.lenM, -0.027 - side)
-        wP(hand, [hand[0], hand[1] - q.payloadKg * G * K * 2.5, 1.8], `W_p ${newtons(q.payloadKg * G)}`, [0, -0.1, 0])
+        wP(hand, [hand[0], hand[1] - q.payloadKg * G * K * 2.5, 1.8], `W_p ${newtonsText(q.payloadKg * G)}`, [0, -0.1, 0])
         const mid = at(BOOM.linkM)
         wL(mid, [mid[0], mid[1] - BOOM.linkKg * G * K * 2.5, 1.8], 'W_arm', [0, -0.1, 0])
         const cw = at(-q.counterM)
-        wC(cw, [cw[0], cw[1] - q.counterKg * G * K * 2.5, cw[2]], `W_c ${newtons(q.counterKg * G)}`, [0, -0.1, 0])
-        up([px, py - 6.2, 2], [px, py - 6.2 + now.pivotN * K * 1.2, 2], `pivot ${newtons(now.pivotN)}`, [1.6, -0.6 - now.pivotN * K * 1.2, 0])
+        wC(cw, [cw[0], cw[1] - q.counterKg * G * K * 2.5, cw[2]], `W_c ${newtonsText(q.counterKg * G)}`, [0, -0.1, 0])
+        up([px, py - 6.2, 2], [px, py - 6.2 + now.pivotN * K * 1.2, 2], `pivot ${newtonsText(now.pivotN)}`, [1.6, -0.6 - now.pivotN * K * 1.2, 0])
         pen.begin()
         for (const [x, show] of [[BOOM.lenM, q.payloadKg > 0], [BOOM.linkM, true], [-q.counterM, q.counterKg > 0]] as const) {
           if (!show || Math.abs(x) < 1e-3) continue

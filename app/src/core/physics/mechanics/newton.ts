@@ -6,7 +6,7 @@ import { ROLL_FLOORS } from '../control/loop'
 /** TT car on tile: chassis mass and rolling resistance. */
 export const NEWTON_CAR = { massKg: TT_CAR.massKg, crr: ROLL_FLOORS.tile.crr }
 
-export interface PushFrame {
+interface PushFrame {
   t: number
   x: number
   v: number
@@ -45,7 +45,7 @@ export function inclineForces(mass: number, theta: number, drive: number) {
   return { w, wPar, wPerp, n: wPerp, net, a: net / mass }
 }
 
-export interface RampFrame {
+interface RampFrame {
   t: number
   s: number
   v: number
@@ -73,9 +73,8 @@ export const FRICTION_PAIRS = {
   wood: { name: 'PLA skid on wood', mus: 0.4, muk: 0.3 },
   ptfe: { name: 'PTFE skid on steel', mus: 0.06, muk: 0.04 },
 }
-export type FrictionPair = keyof typeof FRICTION_PAIRS
 
-export interface FrictionFrame {
+interface FrictionFrame {
   t: number
   push: number
   fric: number

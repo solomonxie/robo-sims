@@ -28,7 +28,7 @@ export const once = <T>(f: () => T) => {
   return () => (v ??= f())
 }
 
-const TAU = 2 * Math.PI
+export const TAU = 2 * Math.PI
 export const frac = (x: number) => x - Math.floor(x)
 export const wrap2pi = (a: number) => ((a % TAU) + TAU) % TAU
 export const wrapPi = (a: number) => wrap2pi(a + Math.PI) - Math.PI

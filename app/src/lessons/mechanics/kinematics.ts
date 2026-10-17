@@ -1,16 +1,14 @@
 import { BALLS, DEG, G, driveProfile, flightAt, flightRun, profileAt, projectileIdeal, strobeRun, uniformAt } from '../../core/physics'
+import { accelText, mpsText, secsText } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, dotPen, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rodPool, sideCar, statusHeader } from '../fx'
+import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, dotPen, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rodPool, sideCar, sideView, statusHeader } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 import * as THREE from 'three/webgpu'
 
-const VIEW = { center: [-2.6, -0.6, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
+const VIEW = sideView(-2.6, -0.6)
 const SLOW = 0.5
-const mps = (v: number) => `${v.toFixed(2)} m/s`
-const accel = (a: number) => `${a.toFixed(2)} m/s²`
 const metres = (s: number) => `${s.toFixed(2)} m`
-const secs = (t: number) => `${t.toFixed(2)} s`
 
 /** Floor strip from `x0` with a tick every 0.5 m and a label every metre, `k` units per metre. */
 function track(scene: THREE.Object3D, x0: number, y0: number, metresLong: number, k: number) {
@@ -37,7 +35,7 @@ export const kinematicsConstantAcceleration: Lesson = {
   formula: (p) => {
     const q = caParams(p)
     const { end } = caRun(q)
-    return `s = u t + ½ a t² = ${q.u.toFixed(2)}×${CA.seconds} + ½×${q.a.toFixed(2)}×${CA.seconds}² = ${metres(end.s)} · v = u + a t = ${mps(end.v)} · v² = u² + 2 a s`
+    return `s = u t + ½ a t² = ${q.u.toFixed(2)}×${CA.seconds} + ½×${q.a.toFixed(2)}×${CA.seconds}² = ${metres(end.s)} · v = u + a t = ${mpsText(end.v)} · v² = u² + 2 a s`
   },
   legend: [
     { color: RING, label: `Strobe flash every ${CA.tau} s`, shape: 'dot' },
@@ -52,8 +50,8 @@ export const kinematicsConstantAcceleration: Lesson = {
     'Make a negative and the car brakes: the gaps shrink, and once v reaches zero it stops rather than reversing. Real drives never hold a perfectly constant; Velocity vs time plots builds a full accelerate–cruise–brake move from these pieces.',
   ],
   controls: [
-    { kind: 'slider', key: 'u', label: 'Start speed u', min: 0, max: 0.5, step: 0.05, initial: 0.2, format: (v) => mps(v) },
-    { kind: 'slider', key: 'a', label: 'Acceleration a', min: -0.5, max: 0.8, step: 0.05, initial: 0.6, format: (v) => accel(v) },
+    { kind: 'slider', key: 'u', label: 'Start speed u', min: 0, max: 0.5, step: 0.05, initial: 0.2, format: (v) => mpsText(v) },
+    { kind: 'slider', key: 'a', label: 'Acceleration a', min: -0.5, max: 0.8, step: 0.05, initial: 0.6, format: (v) => accelText(v) },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -99,7 +97,7 @@ export const kinematicsConstantAcceleration: Lesson = {
           post.gap.group.visible = seen && i > 0 && roomy
           post.gap.group.position.x = CA.x0 + (f.s - f.ds / 2) * CA.k
           post.gap.set(`${(f.ds * 100).toFixed(0)} cm`)
-          const texts = [`${f.t.toFixed(1)} s`, metres(f.s), i ? `${(f.ds * 100).toFixed(1)} cm` : '—', mps(f.v)]
+          const texts = [`${f.t.toFixed(1)} s`, metres(f.s), i ? `${(f.ds * 100).toFixed(1)} cm` : '—', mpsText(f.v)]
           rows[i].forEach((l, c) => l.set(seen ? texts[c] : '', c === 2 ? HEAT : LABEL))
           if (seen) flashDots.dot([plot.xAt(f.t / CA.seconds), yOf(f.s / CA.sMax), 0.35], RING)
         })
@@ -110,18 +108,18 @@ export const kinematicsConstantAcceleration: Lesson = {
         const st = us.map((u) => uniformAt(q.u, q.a, u * CA.seconds))
         sTr.points(us, st.map((f) => yOf(f.s / CA.sMax)))
         vTr.points(us, st.map((f) => yOf(f.v / CA.vMax)))
-        head.status.set(`Constant acceleration · u ${mps(q.u)} · a ${accel(q.a)}`, LABEL)
+        head.status.set(`Constant acceleration · u ${mpsText(q.u)} · a ${accelText(q.a)}`, LABEL)
         const step = q.a * CA.tau * CA.tau
-        head.event.set(now.stopped ? `stopped: v = 0 after ${metres(now.s)}` : `s ${metres(now.s)} · v ${mps(now.v)} · each gap ${step >= 0 ? '+' : '−'}${Math.abs(step * 100).toFixed(1)} cm`, now.stopped ? GREY : q.a >= 0 ? POWER : HIGH_V)
-        head.sub.set(`${secs(t)} / ${CA.seconds} s · slowed ${1 / SLOW}×`)
+        head.event.set(now.stopped ? `stopped: v = 0 after ${metres(now.s)}` : `s ${metres(now.s)} · v ${mpsText(now.v)} · each gap ${step >= 0 ? '+' : '−'}${Math.abs(step * 100).toFixed(1)} cm`, now.stopped ? GREY : q.a >= 0 ? POWER : HIGH_V)
+        head.sub.set(`${secsText(t)} / ${CA.seconds} s · slowed ${1 / SLOW}×`)
       },
       readouts: (p) => {
         const q = caParams(p)
         const { end, flashes } = caRun(q)
         return [
           { label: `Distance after ${CA.seconds} s`, value: metres(end.s) },
-          { label: `Speed after ${CA.seconds} s`, value: mps(end.v), tone: end.stopped ? 'warn' : 'ok' },
-          { label: 'Average speed s / t', value: mps(end.s / CA.seconds) },
+          { label: `Speed after ${CA.seconds} s`, value: mpsText(end.v), tone: end.stopped ? 'warn' : 'ok' },
+          { label: 'Average speed s / t', value: mpsText(end.s / CA.seconds) },
           { label: 'Gap grows each flash by a τ²', value: `${((flashes[2].ds - flashes[1].ds) * 100).toFixed(1)} cm` },
         ]
       },
@@ -161,9 +159,9 @@ export const kinematicsVelocityTime: Lesson = {
     `Try a harder brake: the right triangle gets thinner, so the car stops sooner and in less distance. Here the cruise always lasts ${VT.cruise} s; a planner moving a fixed distance shortens the cruise instead, or drops it for a triangle when the move is short.`,
   ],
   controls: [
-    { kind: 'slider', key: 'accel', label: 'Acceleration', min: 0.4, max: 1.5, step: 0.1, initial: 0.4, format: (v) => accel(v) },
-    { kind: 'slider', key: 'speed', label: 'Cruise speed', min: 0.3, max: 1, step: 0.05, initial: 0.9, format: (v) => mps(v) },
-    { kind: 'slider', key: 'brake', label: 'Braking', min: 0.4, max: 2, step: 0.1, initial: 0.6, format: (v) => accel(v) },
+    { kind: 'slider', key: 'accel', label: 'Acceleration', min: 0.4, max: 1.5, step: 0.1, initial: 0.4, format: (v) => accelText(v) },
+    { kind: 'slider', key: 'speed', label: 'Cruise speed', min: 0.3, max: 1, step: 0.05, initial: 0.9, format: (v) => mpsText(v) },
+    { kind: 'slider', key: 'brake', label: 'Braking', min: 0.4, max: 2, step: 0.1, initial: 0.6, format: (v) => accelText(v) },
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
@@ -228,7 +226,7 @@ export const kinematicsVelocityTime: Lesson = {
           slope.set(0, [xa, yV(v0), 0.4], [xb, yV(v0), 0.4], 0.04, c)
           slope.set(1, [xb, yV(v0), 0.4], [xb, yV(now.v), 0.4], 0.04, c)
           slopeTag.group.position.set(xb + 0.3, (yV(v0) + yV(now.v)) / 2, 0.4)
-          slopeTag.set(`Δv/Δt = ${accel(ph.a)}`, c)
+          slopeTag.set(`Δv/Δt = ${accelText(ph.a)}`, c)
         } else slope.hideFrom(0)
         slope.commit()
         slopeTag.group.visible = !!ramp
@@ -236,21 +234,21 @@ export const kinematicsVelocityTime: Lesson = {
           const dur = f.t1 - f.t0
           const done = t >= f.t1
           const area = done ? pr.areas[i] : t > f.t0 ? profileAt(pr, t).s - f.s0 : 0
-          rows[i][0].set(`${f.name} ${secs(dur)} · slope ${accel(f.a)}`, PHASE_COLORS[i])
+          rows[i][0].set(`${f.name} ${secsText(dur)} · slope ${accelText(f.a)}`, PHASE_COLORS[i])
           rows[i][1].set(`area ${i === 1 ? 'v·t' : '½·v·t'} = ${metres(area)}${done ? '' : ' …'}`, done ? LABEL : GREY)
         })
-        total.set(`total ${metres(now.s)} of ${metres(pr.distance)} in ${secs(pr.T)}`, B_FIELD)
-        head.status.set(`Velocity vs time · cruise ${mps(q.speed)}`, LABEL)
-        head.event.set(ph ? `${ph.name}: v ${mps(now.v)} · a ${accel(now.a)}` : `stopped after ${metres(pr.distance)}`, ph ? PHASE_COLORS[now.phase] : GREY)
-        head.sub.set(`${secs(t)} / ${VT.seconds} s · slowed ${1 / SLOW}× · shaded strips = v × Δt`)
+        total.set(`total ${metres(now.s)} of ${metres(pr.distance)} in ${secsText(pr.T)}`, B_FIELD)
+        head.status.set(`Velocity vs time · cruise ${mpsText(q.speed)}`, LABEL)
+        head.event.set(ph ? `${ph.name}: v ${mpsText(now.v)} · a ${accelText(now.a)}` : `stopped after ${metres(pr.distance)}`, ph ? PHASE_COLORS[now.phase] : GREY)
+        head.sub.set(`${secsText(t)} / ${VT.seconds} s · slowed ${1 / SLOW}× · shaded strips = v × Δt`)
       },
       readouts: (p) => {
         const pr = vtRun(vtParams(p))
         return [
-          { label: 'Accelerate time v / a', value: secs(pr.phases[0].t1) },
-          { label: 'Brake time v / a', value: secs(pr.phases[2].t1 - pr.phases[2].t0) },
+          { label: 'Accelerate time v / a', value: secsText(pr.phases[0].t1) },
+          { label: 'Brake time v / a', value: secsText(pr.phases[2].t1 - pr.phases[2].t0) },
           { label: 'Distance = area', value: metres(pr.distance) },
-          { label: 'Move time', value: secs(pr.T), tone: pr.T > VT.seconds ? 'warn' : 'ok' },
+          { label: 'Move time', value: secsText(pr.T), tone: pr.T > VT.seconds ? 'warn' : 'ok' },
         ]
       },
     }
@@ -277,7 +275,7 @@ export const kinematicsProjectileMotion: Lesson = {
     const q = pmParams(p)
     const { ideal, real } = pmRun(q)
     const drag = q.ball === 'vacuum' ? '' : ` · with air: ${metres(real.range)} (${((real.range / ideal.range - 1) * 100).toFixed(0)} %)`
-    return `R = u² sin 2θ / g = ${q.u}² × sin ${2 * q.deg}° / ${G} = ${metres(ideal.range)} · H = u² sin²θ / 2g = ${metres(ideal.peak)} · T = 2u sin θ / g = ${secs(ideal.T)}${drag}`
+    return `R = u² sin 2θ / g = ${q.u}² × sin ${2 * q.deg}° / ${G} = ${metres(ideal.range)} · H = u² sin²θ / 2g = ${metres(ideal.peak)} · T = 2u sin θ / g = ${secsText(ideal.T)}${drag}`
   },
   legend: [
     { color: B_FIELD, label: 'Horizontal speed vx (constant without air)', shape: 'arrow-right' },
@@ -292,7 +290,7 @@ export const kinematicsProjectileMotion: Lesson = {
     'Switch on air: drag k v² pulls against the motion, strongest when fast. The ball climbs less, falls more steeply and lands short of the grey vacuum path; a light ping-pong ball loses most and its best angle drops below 45°. Robot drawn larger than scale.',
   ],
   controls: [
-    { kind: 'slider', key: 'speed', label: 'Launch speed u', min: 2, max: 7, step: 0.5, initial: 6, format: (v) => mps(v) },
+    { kind: 'slider', key: 'speed', label: 'Launch speed u', min: 2, max: 7, step: 0.5, initial: 6, format: (v) => mpsText(v) },
     { kind: 'slider', key: 'angle', label: 'Launch angle θ', min: 15, max: 70, step: 5, initial: 50, format: (v) => `${v}°` },
     { kind: 'choice', key: 'ball', options: opts(BALL_NAMES), initial: 'vacuum' },
   ],
@@ -354,8 +352,8 @@ export const kinematicsProjectileMotion: Lesson = {
         const K = 0.55
         const o = P(f.x, f.y, 1)
         const flying = t < r.real.T
-        vx(o, flying ? [o[0] + f.vx * K, o[1], 1] : o, `vx ${mps(f.vx)}`, [0.9, 0, 0])
-        vy(o, flying ? [o[0], o[1] + f.vy * K, 1] : o, `vy ${mps(f.vy)}`, [0, f.vy >= 0 ? 0.1 : -0.1, 0])
+        vx(o, flying ? [o[0] + f.vx * K, o[1], 1] : o, `vx ${mpsText(f.vx)}`, [0.9, 0, 0])
+        vy(o, flying ? [o[0], o[1] + f.vy * K, 1] : o, `vy ${mpsText(f.vy)}`, [0, f.vy >= 0 ? 0.1 : -0.1, 0])
         const pk = r.real.peak
         const showPeak = t >= pk.t
         peakLine.set(0, P(pk.x, 0, 0.2), showPeak ? P(pk.x, pk.y, 0.2) : P(pk.x, 0, 0.2), 0.03, RING)
@@ -366,9 +364,9 @@ export const kinematicsProjectileMotion: Lesson = {
         landTag.group.visible = !flying
         landTag.group.position.x = P(r.real.range, 0)[0]
         landTag.set(`range ${metres(r.real.range)}`)
-        head.status.set(`Projectile · u ${mps(q.u)} at ${q.deg}° · ${BALL_NAMES[q.ball]}`, LABEL)
-        head.event.set(flying ? `x ${metres(f.x)} · y ${metres(f.y)} · vy ${f.vy >= 0 ? 'rising' : 'falling'}` : `landed ${metres(r.real.range)} away after ${secs(r.real.T)}`, flying ? POWER : RING)
-        head.sub.set(`${secs(t)} / ${PM.seconds} s · slowed ${(1 / PM.slow).toFixed(1)}× · ruler 1 m ticks`)
+        head.status.set(`Projectile · u ${mpsText(q.u)} at ${q.deg}° · ${BALL_NAMES[q.ball]}`, LABEL)
+        head.event.set(flying ? `x ${metres(f.x)} · y ${metres(f.y)} · vy ${f.vy >= 0 ? 'rising' : 'falling'}` : `landed ${metres(r.real.range)} away after ${secsText(r.real.T)}`, flying ? POWER : RING)
+        head.sub.set(`${secsText(t)} / ${PM.seconds} s · slowed ${(1 / PM.slow).toFixed(1)}× · ruler 1 m ticks`)
       },
       readouts: (p) => {
         const q = pmParams(p)
@@ -377,8 +375,8 @@ export const kinematicsProjectileMotion: Lesson = {
         return [
           { label: 'Range', value: metres(real.range), tone: real.range > PM.len ? 'warn' : 'ok' },
           { label: 'Peak height', value: metres(real.peak.y) },
-          { label: 'Flight time', value: secs(real.T) },
-          drag ? { label: 'Range lost to drag', value: metres(ideal.range - real.range), tone: 'warn' } : { label: 'Landing speed', value: mps(real.landSpeed) },
+          { label: 'Flight time', value: secsText(real.T) },
+          drag ? { label: 'Range lost to drag', value: metres(ideal.range - real.range), tone: 'warn' } : { label: 'Landing speed', value: mpsText(real.landSpeed) },
         ]
       },
     }

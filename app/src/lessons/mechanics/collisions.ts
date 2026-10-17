@@ -1,15 +1,14 @@
 import { BUMP_BOT, G, brakeOnlyStop, bumpRun, cartsRun, fixedStepAt } from '../../core/physics'
+import { energyText, kgText } from '../../core/units'
 import { V3, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, SIDE_VIEW, addLabel, coilSpring, dotPen, forceArrow, glowMat, lapseClock, liveLabel, lossWaterfall, memoBy, microSwitch, microSwitchReach, plotPanel, setGlow, sideCar, statusHeader, sumBars, traceRun } from '../fx'
 import { Lesson, Params, Stage, n, toneOf } from '../types'
 
-const joules = (e: number) => (e < 1 ? `${(e * 1000).toFixed(0)} mJ` : `${e.toFixed(2)} J`)
 const mps = (v: number) => `${v < -0.005 ? '−' : ''}${Math.abs(v).toFixed(2)} m/s`
 const pText = (p: number) => `${p < -0.0005 ? '−' : ''}${Math.abs(p).toFixed(2)} kg·m/s`
 const mm = (x: number) => `${(x * 1000).toFixed(1)} mm`
 const ms = (t: number) => `${(t * 1000).toFixed(0)} ms`
-const kgText = (v: number) => `${v.toFixed(1)} kg`
 
 // --- Elastic and inelastic: cart A runs into cart B; momentum is always kept, kinetic energy only when e = 1. ---
 
@@ -28,7 +27,7 @@ export const collisionsElasticAndInelastic: Lesson = {
   formula: (p) => {
     const q = eiParams(p)
     const r = eiRun(q)
-    return `p = m·v · mA·vA + mB·vB = ${pText(r.p0)} before = ${pText(r.p1)} after · e = (vB′ − vA′)/(vA − vB) = ${q.e.toFixed(2)} · KE lost = ½·mA·mB/(mA+mB)·(1 − e²)·(vA − vB)² = ${joules(r.lost)}`
+    return `p = m·v · mA·vA + mB·vB = ${pText(r.p0)} before = ${pText(r.p1)} after · e = (vB′ − vA′)/(vA − vB) = ${q.e.toFixed(2)} · KE lost = ½·mA·mB/(mA+mB)·(1 − e²)·(vA − vB)² = ${energyText(r.lost)}`
   },
   legend: [
     { color: B_FIELD, label: 'Cart A: velocity, momentum, strobe every 0.1 s', shape: 'dot' },
@@ -102,7 +101,7 @@ export const collisionsElasticAndInelastic: Lesson = {
         before.set([pA[0], pB[0], r.p0].map((v) => v / full), false, [pA[0], pB[0], r.p0].map(pText))
         const aft = hit ? [pA[1], pB[1], r.p1] : [0, 0, 0]
         after.set(aft.map((v) => v / full), false, hit ? aft.map(pText) : ['', '', ''])
-        ke.set([r.ke0, hit ? r.ke1 : 0], [0, hit ? r.lost : 0], [joules(r.ke0), hit ? `${joules(r.ke1)} + ${joules(r.lost)} lost` : 'not yet'], r.ke0)
+        ke.set([r.ke0, hit ? r.ke1 : 0], [0, hit ? r.lost : 0], [energyText(r.ke0), hit ? `${energyText(r.ke1)} + ${energyText(r.lost)} lost` : 'not yet'], r.ke0)
         head.status.set(`Collision · ${kind(q.e)} · e ${q.e.toFixed(2)}`, LABEL)
         head.sub.set(`side view · t = ${t.toFixed(1)} s · real time`)
         head.event.set(
@@ -117,7 +116,7 @@ export const collisionsElasticAndInelastic: Lesson = {
         return [
           { label: 'Speeds after: A / B', value: `${mps(r.u1)} / ${mps(r.u2)}` },
           { label: 'Total momentum before → after', value: `${pText(r.p0)} → ${pText(r.p1)}`, tone: 'ok' },
-          { label: 'Kinetic energy kept', value: `${Math.round(kept * 100)} % (${joules(r.lost)} lost)`, tone: toneOf(kept > 0.95, kept > 0.6) },
+          { label: 'Kinetic energy kept', value: `${Math.round(kept * 100)} % (${energyText(r.lost)} lost)`, tone: toneOf(kept > 0.95, kept > 0.6) },
           { label: 'Shared (centre-of-mass) speed', value: mps(r.vcm) },
         ]
       },

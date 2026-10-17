@@ -19,7 +19,7 @@ export function strobeRun(u: number, a: number, tau: number, seconds: number) {
   return out
 }
 
-export interface DrivePhase { name: 'accelerate' | 'cruise' | 'brake'; t0: number; t1: number; a: number; v0: number; s0: number }
+interface DrivePhase { name: 'accelerate' | 'cruise' | 'brake'; t0: number; t1: number; a: number; v0: number; s0: number }
 
 /** Accelerate at `accel` to `speed`, cruise `cruise` s, brake at `brake` to rest. */
 export function driveProfile({ accel, speed, cruise, brake }: { accel: number; speed: number; cruise: number; brake: number }) {
@@ -34,7 +34,7 @@ export function driveProfile({ accel, speed, cruise, brake }: { accel: number; s
   ]
   return { phases, T: ta + cruise + tb, areas: [sa, sc, (speed * tb) / 2], distance: sa + sc + (speed * tb) / 2 }
 }
-export type DriveProfile = ReturnType<typeof driveProfile>
+type DriveProfile = ReturnType<typeof driveProfile>
 
 /** State on a `driveProfile` at time `t` (holds at rest after the end). */
 export function profileAt(p: DriveProfile, t: number) {
@@ -58,9 +58,8 @@ export const BALLS = {
   tennis: { name: 'Tennis ball', k: (0.5 * 1.2 * 0.55 * Math.PI * 0.0335 ** 2) / 0.057 },
   pingpong: { name: 'Ping-pong ball', k: (0.5 * 1.2 * 0.5 * Math.PI * 0.02 ** 2) / 0.0027 },
 }
-export type BallKind = keyof typeof BALLS
 
-export interface FlightFrame { t: number; x: number; y: number; vx: number; vy: number }
+interface FlightFrame { t: number; x: number; y: number; vx: number; vy: number }
 
 /** Flight from the ground at `speed`, `theta` rad with quadratic drag `k`; RK4 steps of `dt` until it lands (last frame at y = 0). */
 export function flightRun(speed: number, theta: number, k: number, dt = 0.005) {

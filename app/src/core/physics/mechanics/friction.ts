@@ -5,7 +5,7 @@ import { TT_CAR, TT_GEAR, GEARBOXES, gearEfficiency, shaftTorque } from '../actu
 /** A 1 kg parts box dragged by a robot through a spring; `damp` N·s/m is the box's sliding damping. */
 export const STICK_SLIP = { boxKg: 1, damp: 1.5 }
 
-export interface StickFrame {
+interface StickFrame {
   t: number
   xr: number
   xb: number
@@ -94,7 +94,7 @@ export const tractionMu = (mu: number, kappa: number) => mu * Math.sin(SHAPE * M
 export const slipRatio = (rim: number, v: number, floor = 0.3) => (rim - v) / Math.max(Math.abs(rim), Math.abs(v), floor)
 
 /** TT car side-on: wheelbase, centre-of-mass height, payload height, rotor inertia seen at each wheel. */
-export const TRACTION_CAR = { wheelbase: 0.13, comM: 0.045, loadM: 0.075, wheelJ: 3e-4, crr: 0.015, backstop: 0.3 }
+const TRACTION_CAR = { wheelbase: 0.13, comM: 0.045, loadM: 0.075, wheelJ: 3e-4, crr: 0.015, backstop: 0.3 }
 export type DriveAxles = 'rear' | 'front' | 'all'
 
 /** Axle loads on a slope `theta` while accelerating at `a` (weight shifts to the rear going uphill / speeding up). */
@@ -104,7 +104,7 @@ export function axleLoads(massKg: number, comM: number, theta: number, a: number
   return { rear, front: Math.max(0, massKg * G * Math.cos(theta) - rear) }
 }
 
-export interface TractionFrame {
+interface TractionFrame {
   t: number
   x: number
   v: number

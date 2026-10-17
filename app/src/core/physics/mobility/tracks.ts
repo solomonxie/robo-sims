@@ -173,8 +173,6 @@ export function softPull(t: Terrain, gear: RunGear, grousers: boolean): SoftPull
   return { areaM2, pressureKpa: W / areaM2 / 1000, sink, drag, thrust, pull, slip: stuck ? 1 : slipFor(drag / thrust, L2, t.shearK), bellied, stuck }
 }
 
-/** Backward tip-over when the CoM passes behind the rear contact edge: θ = atan((L/2) / h). */
-export const tipAngle = (L: number, h: number) => Math.atan2(L / 2, h)
 /** Thrust needed and available on a slope θ (tracks): W sin θ + f W cos θ against the peak thrust on W cos θ. */
 export function slopeForces(t: Terrain, theta: number, grousers: boolean, L = TANK.contact) {
   const W = weightN(TANK.massKg)

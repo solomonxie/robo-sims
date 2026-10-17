@@ -1,15 +1,13 @@
 import * as THREE from 'three/webgpu'
-import { BATT_H, DEG, G, TIP_DESIGNS, TipDesign, designCom, fixedStepAt, massCentre, plumbHit, tableTipRun, tipAccels, tipLimits, toDeg } from '../../core/physics'
-import { degText } from '../../core/units'
+import { BATT_H, DEG, G, TIP_DESIGNS, TipDesign, designCom, fixedStepAt, massCentre, plumbHit, rotate2, tableTipRun, tipAccels, tipLimits, toDeg } from '../../core/physics'
+import { cmText, degText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_VIEW, addLabel, comMarker, countBars, dotPen, ease, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, setGlow, statusHeader } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const cm = (m: number) => `${(m * 100).toFixed(1)} cm`
 const deg = (rad: number) => degText(toDeg(rad), 0)
 const accel = (a: number) => `${a < -0.005 ? '−' : ''}${Math.abs(a).toFixed(1)} m/s²`
-const rot = (x: number, y: number, a: number): [number, number] => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)]
 const footColor = (ok: boolean) => (ok ? POWER : HIGH_V)
 
 /** Box robot, metres, origin on the floor at the left wheel contact: round (side-on) or flat (end-on) wheels, body, a load block, optional mast. */
@@ -69,7 +67,7 @@ export const centreOfMassTippingAngle: Lesson = {
   formula: (p) => {
     const q = taParams(p)
     const { c, half } = taRun(q)
-    return `CoM = Σ mᵢ·rᵢ / Σ mᵢ · h = ${cm(c.z)}, ${cm(c.x)} uphill · tips when tan θ > (w/2 + x)/h = (${cm(half)} + ${cm(c.x)}) / ${cm(c.z)} → θ_tip = ${deg(tipLimits(c.x, c.z, -half, half).back)}`
+    return `CoM = Σ mᵢ·rᵢ / Σ mᵢ · h = ${cmText(c.z)}, ${cmText(c.x)} uphill · tips when tan θ > (w/2 + x)/h = (${cmText(half)} + ${cmText(c.x)}) / ${cmText(c.z)} → θ_tip = ${deg(tipLimits(c.x, c.z, -half, half).back)}`
   },
   legend: [
     { color: LABEL, label: 'Centre of mass (chequered disk)', shape: 'dot' },
@@ -123,8 +121,8 @@ export const centreOfMassTippingAngle: Lesson = {
         const w = 2 * half
         const lx = half + q.offset
         bot.set(w, [0.012, w - 0.012], TA.clear, TA.bodyH, [lx, q.height], [TA.load, TA.load], true, { x: half + c.x, z: c.z })
-        const [ox, oy] = rot(...rot((half + c.x) * k, c.z * k, f.roll), f.tilt)
-        const cw: [number, number] = [hinge[0] + rot(d0, 0, f.tilt)[0] + ox, hinge[1] + rot(d0, 0, f.tilt)[1] + oy]
+        const [ox, oy] = rotate2(f.tilt, rotate2(f.roll, [(half + c.x) * k, c.z * k]))
+        const cw: [number, number] = [hinge[0] + rotate2(f.tilt, [d0, 0])[0] + ox, hinge[1] + rotate2(f.tilt, [d0, 0])[1] + oy]
         const along = (cw[0] - hinge[0]) / Math.cos(f.tilt)
         const hitY = hinge[1] + (cw[0] - hinge[0]) * Math.tan(f.tilt)
         const inside = f.roll === 0 && along >= d0 - 0.01 && along <= d0 + w * k + 0.01
@@ -135,7 +133,7 @@ export const centreOfMassTippingAngle: Lesson = {
         pen.begin()
         pen.line([cw[0], cw[1], 1.6], [cw[0], hitY, 1.6], 0.35, footColor(inside))
         pen.dot([cw[0], hitY, 1.9], footColor(inside), 2.2)
-        const edge = rot(d0, 0, f.tilt)
+        const edge = rotate2(f.tilt, [d0, 0])
         pen.line([hinge[0] + edge[0], hinge[1] + edge[1], 1.6], [cw[0], cw[1], 1.6], 0.3, GREY, 0.6)
         for (let i = 0; i <= 14; i++) pen.dot([hinge[0] + 3.2 * Math.cos((f.tilt * i) / 14), hinge[1] + 3.2 * Math.sin((f.tilt * i) / 14), 1], B_FIELD, 0.8)
         pen.end()
@@ -152,7 +150,7 @@ export const centreOfMassTippingAngle: Lesson = {
         tiltTr.points(us, fs.map((g) => yDeg(g.tilt)))
         leanTr.points(us, fs.map((g) => yDeg(g.tilt + g.roll)))
         const tipped = t >= run.tipAt
-        head.status.set(`Tilting table · CoM ${cm(c.z)} high · track ${cm(w)}`, LABEL)
+        head.status.set(`Tilting table · CoM ${cmText(c.z)} high · track ${cmText(w)}`, LABEL)
         head.sub.set(`end-on view · table at ${deg(TA.rate)}/s · t = ${t.toFixed(1)} s · real time`)
         head.event.set(
           tipped ? (f.roll >= Math.PI / 2 - 1e-3 ? 'tipped over onto its side' : `plumb line passed the downhill wheel at ${deg(run.beta)}: tipping`) : q.tilt > run.beta ? 'tilting… plumb line moving towards the downhill wheel' : `stable: tip angle ${deg(run.beta)} is beyond the ${deg(q.tilt)} table`,
@@ -164,7 +162,7 @@ export const centreOfMassTippingAngle: Lesson = {
         const { c, half, run } = taRun(q)
         const lim = tipLimits(c.x, c.z, -half, half)
         return [
-          { label: 'CoM height / offset', value: `${cm(c.z)} / ${cm(c.x)}` },
+          { label: 'CoM height / offset', value: `${cmText(c.z)} / ${cmText(c.x)}` },
           { label: 'Tip angle (this way / other way)', value: `${deg(lim.back)} / ${deg(lim.forward)}`, tone: toneOf(lim.back > 40 * DEG, lim.back > 25 * DEG) },
           { label: 'Table tilt', value: `${deg(q.tilt)}${q.tilt > run.beta ? ' · tips' : ''}`, tone: q.tilt > run.beta ? 'bad' : 'ok' },
           { label: 'Without the payload', value: `tips at ${deg(Math.atan2(half, TA.clear + TA.bodyH / 2))}` },
@@ -262,8 +260,8 @@ export const centreOfMassLowAndWide: Lesson = {
           r.bot.set(L, [-0.02, L + 0.02], r.s.clear, r.s.bodyH, [L / 2, battZ], [0.09, BATT_H], false, { x: L / 2 + s.c.x, z: s.c.z })
           setGlow(r.footM, footColor(!s.tips), 0.8)
           const toWorld = (bx: number, bz: number): V3 => {
-            const [lx, lz] = rot(bx - edge, bz, turn)
-            const [wx, wy] = rot((lx + edge) * k, lz * k, q.slope)
+            const [lx, lz] = rotate2(turn, [bx - edge, bz])
+            const [wx, wy] = rotate2(q.slope, [(lx + edge) * k, lz * k])
             return [LW.xs[r.d] + wx, y + wy, 2.2]
           }
           const c = toWorld(s.c.x, s.c.z)
@@ -295,7 +293,7 @@ export const centreOfMassLowAndWide: Lesson = {
       readouts: (p) => {
         const q = lwParams(p)
         const s = lwState(q)
-        const row = (d: TipDesign) => ({ label: `${d === 'tall' ? 'Tall' : 'Low'}: CoM h / tip slope`, value: `${cm(s[d].c.z)} / ${deg(s[d].lim.back)}`, tone: s[d].tips ? ('bad' as const) : ('ok' as const) })
+        const row = (d: TipDesign) => ({ label: `${d === 'tall' ? 'Tall' : 'Low'}: CoM h / tip slope`, value: `${cmText(s[d].c.z)} / ${deg(s[d].lim.back)}`, tone: s[d].tips ? ('bad' as const) : ('ok' as const) })
         return [
           row('tall'),
           row('wide'),

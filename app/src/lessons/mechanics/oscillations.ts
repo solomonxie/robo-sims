@@ -1,11 +1,10 @@
 import { ampRatio, dampRegime, decayEnvelope, drivenRun, fixedStepAt, freeAt, naturalW, phaseLag, releaseStats, resonancePeak, springPeriod, staticSag, toDeg } from '../../core/physics'
-import { V3 } from '../../models/kit'
+import { cmText } from '../../core/units'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, DATA_COLOR, GREY, HEAT, LABEL, POWER, RING, SIDE_SCOPE, addLabel, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rigBlockH, scope, springRig, statusHeader } from '../fx'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, LABEL, POWER, RING, SIDE_SCOPE, addLabel, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rigBlockH, scope, sideView, springRig, statusHeader } from '../fx'
 import { Lesson, Params, Stage, n } from '../types'
 
-const VIEW = { center: [-2.2, -0.6, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
-const cm = (x: number) => `${(x * 100).toFixed(1)} cm`
+const VIEW = sideView(-2.2, -0.6)
 const mm = (x: number) => `${(x * 1000).toFixed(1)} mm`
 const sec = (t: number) => (t === Infinity ? 'never' : t < 1 ? `${(t * 1000).toFixed(0)} ms` : `${t.toFixed(2)} s`)
 const hz = (f: number) => `${f.toFixed(2)} Hz`
@@ -30,7 +29,7 @@ export const oscillationsSpringMass: Lesson = {
   formula: (p) => {
     const q = smParams(p)
     const T = springPeriod(q.m, q.k)
-    return `F = −k·x · ωn = √(k/m) = ${naturalW(q.m, q.k).toFixed(1)} rad/s · T = 2π√(m/k) = ${sec(T)} · f = 1/T = ${hz(1 / T)} · sag = m·g/k = ${cm(staticSag(q.m, q.k))} → f = √(g/sag)/2π`
+    return `F = −k·x · ωn = √(k/m) = ${naturalW(q.m, q.k).toFixed(1)} rad/s · T = 2π√(m/k) = ${sec(T)} · f = 1/T = ${hz(1 / T)} · sag = m·g/k = ${cmText(staticSag(q.m, q.k))} → f = √(g/sag)/2π`
   },
   legend: [
     { color: B_FIELD, label: `Displacement x from rest (scope ±${(SM.plot.h / 2 / SM.scale * 100).toFixed(1)} cm, level with the block)`, shape: 'dot' },
@@ -83,7 +82,7 @@ export const oscillationsSpringMass: Lesson = {
         const F = -q.k * xs
         force([RIG_X + 2.2, fy, 1.6], [RIG_X + 2.2, fy + F * 0.6, 1.6], `${F.toFixed(1)} N`, [0.9, 0, 0])
         head.status.set(`Spring-mass · m ${q.m.toFixed(2)} kg · k ${q.k} N/m`, LABEL)
-        head.event.set(`x ${xs >= 0 ? '+' : '−'}${cm(Math.abs(xs))} · swings every ${sec(T)}`, B_FIELD)
+        head.event.set(`x ${xs >= 0 ? '+' : '−'}${cmText(Math.abs(xs))} · swings every ${sec(T)}`, B_FIELD)
         head.sub.set(`${t.toFixed(2)} / ${SM.seconds} s · ¼× slow motion`)
       },
       readouts: (p) => {
@@ -92,7 +91,7 @@ export const oscillationsSpringMass: Lesson = {
         return [
           { label: 'Period T = 2π√(m/k)', value: sec(T) },
           { label: 'Frequency f', value: hz(1 / T) },
-          { label: 'Static sag m·g/k', value: cm(staticSag(q.m, q.k)) },
+          { label: 'Static sag m·g/k', value: cmText(staticSag(q.m, q.k)) },
           { label: 'Peak pull-back k·x₀', value: `${(q.k * q.x0).toFixed(1)} N` },
         ]
       },

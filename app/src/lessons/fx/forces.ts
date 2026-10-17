@@ -67,15 +67,16 @@ export function scrollTape(parent: THREE.Object3D, at: V3, len: number, step: nu
   return (x: number) => marks.forEach((m, i) => (m.position.x = ((((i * step - x) % (n * step)) + n * step) % (n * step)) - len / 2 + step / 2))
 }
 
-/** Coil spring of radius `r` drawn from a to b in the screen plane. */
+/** Coil spring of radius `r` drawn from a to b in the screen plane; `.group` to hide it. */
 export function coilSpring(parent: THREE.Object3D, r: number, turns: number, thickness = 0.06) {
   const g = add(parent, new THREE.Group())
   add(g, mesh(new THREE.TubeGeometry(new Helix(r, 1, turns), turns * 16, thickness, 6), STEEL())).castShadow = false
-  return (a: V3, b: V3) => {
+  const set = (a: V3, b: V3) => {
     g.position.set(...a)
     g.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0])
     g.scale.x = Math.max(1e-3, Math.hypot(b[0] - a[0], b[1] - a[1]))
   }
+  return Object.assign(set, { group: g })
 }
 
 export const rigBlockH = (kg: number) => 0.5 + 1.4 * Math.min(1, kg)

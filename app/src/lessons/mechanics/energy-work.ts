@@ -1,16 +1,14 @@
 import { CHAIN_PACK, ChainGear, DRIVERS, DriverChip, G, NEWTON_CAR, TRACK_FLOORS, TT_CAR, TrackFloor, U_TRACK, driveChain, fixedStepAt, trackAt, trackLength, trackTop, uTrackRun, winchFreeSpeed, winchLift, winchPull } from '../../core/physics'
+import { energyText, kgText, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_VIEW, addLabel, addRod, countBars, dotPen, lapseClock, liveLabel, lossWaterfall, memoBy, plotPanel, scope, scrollTape, sideCar, statusHeader, stretchRod, traceRun } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
-const joules = (e: number) => (e < 1 ? `${(e * 1000).toFixed(0)} mJ` : `${e.toFixed(2)} J`)
 const watts = (w: number) => (w < 1 ? `${(w * 1000).toFixed(0)} mW` : `${w.toFixed(2)} W`)
 const cmS = (v: number) => `${(v * 100).toFixed(1)} cm/s`
 const secs = (t: number) => `${t.toFixed(1)} s`
-const pctOf = (x: number) => `${(x * 100).toFixed(0)} %`
-const kgText = (v: number) => `${v.toFixed(1)} kg`
 
 // --- Kinetic and potential: a TT car released on a U-track trades PE for KE; rolling resistance turns some into heat. ---
 
@@ -31,7 +29,7 @@ export const energyWorkKineticAndPotential: Lesson = {
   formula: (p) => {
     const q = kpParams(p)
     const r = kpRun(q)
-    return `PE = m g h = ${r.kg.toFixed(1)} × ${G} × ${q.h.toFixed(2)} = ${joules(r.e0)} · KE = ½ m v² · PE + KE + heat = constant · ideal v at the bottom = √(2 g h) = ${r.idealV.toFixed(2)} m/s`
+    return `PE = m g h = ${r.kg.toFixed(1)} × ${G} × ${q.h.toFixed(2)} = ${energyText(r.e0)} · KE = ½ m v² · PE + KE + heat = constant · ideal v at the bottom = √(2 g h) = ${r.idealV.toFixed(2)} m/s`
   },
   legend: [
     { color: B_FIELD, label: 'Potential energy m g h', shape: 'dot' },
@@ -99,7 +97,7 @@ export const energyWorkKineticAndPotential: Lesson = {
           startTag.set(`start h ${Math.round(q.h * 100)} cm`)
         }
         const vals = [f.pe, f.ke, f.loss, f.pe + f.ke + f.loss]
-        bars.set(vals, vals.map(joules), [B_FIELD, POWER, HEAT, RING], r.e0)
+        bars.set(vals, vals.map((v) => energyText(v)), [B_FIELD, POWER, HEAT, RING], r.e0)
         const y = (v: number) => (v / r.e0 - 0.5) * KP.h * 0.96
         traceRun(tr[0], r.frames, U_TRACK.dt, U_TRACK.seconds, t, (x) => y(x.pe), 240)
         traceRun(tr[1], r.frames, U_TRACK.dt, U_TRACK.seconds, t, (x) => y(x.ke), 240)
@@ -108,7 +106,7 @@ export const energyWorkKineticAndPotential: Lesson = {
         head.sub.set(`side view · t = ${secs(t)} of ${U_TRACK.seconds} s · real time`)
         const still = f.v === 0 && t > 0.5
         head.event.set(
-          still ? `stopped: all ${joules(r.e0)} is now heat` : `h ${Math.round(f.h * 100)} cm · v ${Math.abs(f.v).toFixed(2)} m/s · ${pctOf(f.ke / r.e0)} of the energy is motion`,
+          still ? `stopped: all ${energyText(r.e0)} is now heat` : `h ${Math.round(f.h * 100)} cm · v ${Math.abs(f.v).toFixed(2)} m/s · ${pct(f.ke / r.e0)} of the energy is motion`,
           still ? HEAT : f.ke > f.pe ? POWER : B_FIELD,
         )
       },
@@ -118,10 +116,10 @@ export const energyWorkKineticAndPotential: Lesson = {
         const swing = r.frames.filter((f) => f.s > U_TRACK.slope + U_TRACK.flat)
         const reach = swing.length ? Math.max(...swing.map((f) => f.h)) : 0
         return [
-          { label: 'Start energy m g h', value: joules(r.e0) },
+          { label: 'Start energy m g h', value: energyText(r.e0) },
           { label: 'Speed at the bottom: ideal / real', value: `${r.idealV.toFixed(2)} / ${r.bottomV.toFixed(2)} m/s` },
           { label: 'Climbs back on the far side', value: `${Math.round(reach * 100)} of ${Math.round(Math.min(q.h, trackTop()) * 100)} cm`, tone: toneOf(reach > 0.95 * q.h, reach > 0.7 * q.h) },
-          { label: `Lost as heat after ${U_TRACK.seconds} s`, value: pctOf(r.frames[r.frames.length - 1].loss / r.e0) },
+          { label: `Lost as heat after ${U_TRACK.seconds} s`, value: pct(r.frames[r.frames.length - 1].loss / r.e0) },
         ]
       },
     }
@@ -148,7 +146,7 @@ export const energyWorkWorkAndPower: Lesson = {
   formula: (p) => {
     const q = wpParams(p)
     const { lift } = wpRun(q)
-    return `W = F · d = ${lift.force.toFixed(2)} N × ${q.d.toFixed(2)} m = ${joules(lift.work)} · P = W / t = F · v = ${lift.force.toFixed(2)} × ${(lift.v).toFixed(3)} = ${watts(lift.power)} · t = ${secs(lift.time)}`
+    return `W = F · d = ${lift.force.toFixed(2)} N × ${q.d.toFixed(2)} m = ${energyText(lift.work)} · P = W / t = F · v = ${lift.force.toFixed(2)} × ${(lift.v).toFixed(3)} = ${watts(lift.power)} · t = ${secs(lift.time)}`
   },
   legend: [
     { color: POWER, label: 'Most power the motor can give', shape: 'dot' },
@@ -234,21 +232,21 @@ export const energyWorkWorkAndPower: Lesson = {
           pen.end()
         }
         const vals = [L.force * y, L.powerIn * t, L.holdW * t]
-        bars.set(vals, vals.map(joules), [B_FIELD, HEAT, HIGH_V], L.energyIn)
+        bars.set(vals, vals.map((v) => energyText(v)), [B_FIELD, HEAT, HIGH_V], L.energyIn)
         head.status.set(`Winch lifts ${Math.round(q.kg * 1000)} g by ${Math.round(q.d * 100)} cm at ${cmS(L.v)}${L.limited ? ' (motor limit)' : ''}`, LABEL)
         head.sub.set(`side view · t = ${secs(t)} of ${secs(L.time)} · ${fast > 1.01 ? `${fast.toFixed(1)}× real time` : 'real time'}`)
         head.event.set(
-          t >= L.time ? `at the top: ${joules(L.work)} of work · holding it still burns ${watts(L.holdW)} in the coil` : L.limited ? `asked ${cmS(q.v)}, the motor tops out at ${cmS(L.topV)} with this load` : `P = F v = ${watts(L.power)} of the motor’s ${watts(winchPull(L.v).power)} at this speed`,
+          t >= L.time ? `at the top: ${energyText(L.work)} of work · holding it still burns ${watts(L.holdW)} in the coil` : L.limited ? `asked ${cmS(q.v)}, the motor tops out at ${cmS(L.topV)} with this load` : `P = F v = ${watts(L.power)} of the motor’s ${watts(winchPull(L.v).power)} at this speed`,
           t >= L.time ? HEAT : L.limited ? HIGH_V : POWER,
         )
       },
       readouts: (p) => {
         const L = wpRun(wpParams(p)).lift
         return [
-          { label: 'Work W = m g d', value: joules(L.work) },
+          { label: 'Work W = m g d', value: energyText(L.work) },
           { label: 'Power P = F v · time', value: `${watts(L.power)} · ${secs(L.time)}` },
           { label: 'Top speed with this load', value: cmS(L.topV), tone: L.limited ? 'warn' : 'ok' },
-          { label: 'Electrical energy in (work / in)', value: `${joules(L.energyIn)} (${pctOf(L.work / L.energyIn)})`, tone: toneOf(L.work / L.energyIn > 0.4, L.work / L.energyIn > 0.2) },
+          { label: 'Electrical energy in (work / in)', value: `${energyText(L.energyIn)} (${pct(L.work / L.energyIn)})`, tone: toneOf(L.work / L.energyIn > 0.4, L.work / L.energyIn > 0.2) },
         ]
       },
     }
@@ -278,9 +276,9 @@ export const energyWorkEfficiency: Lesson = {
     const eta = [pack, driver, copper + friction, gears].map((l) => {
       const e = (w - l) / w
       w -= l
-      return pctOf(e)
+      return pct(e)
     })
-    return `η = P_out / P_in = η_pack × η_driver × η_motor × η_gear = ${eta.join(' × ')} = ${pctOf(c.toWheel)} battery → wheel · ${watts(c.chemW)} in, ${watts(c.wheelW)} at the wheels`
+    return `η = P_out / P_in = η_pack × η_driver × η_motor × η_gear = ${eta.join(' × ')} = ${pct(c.toWheel)} battery → wheel · ${watts(c.chemW)} in, ${watts(c.wheelW)} at the wheels`
   },
   legend: [
     { color: POWER, label: 'Power still flowing on to the next stage', shape: 'dot' },
@@ -331,16 +329,16 @@ export const energyWorkEfficiency: Lesson = {
         const texts = loss.map((l, j) => (j === 0 ? watts(c.chemW) : j === loss.length - 1 ? `lift ${watts(c.liftW)}` : `−${watts(l)}`))
         const colors = STAGES.map((_, j) => (j === 0 ? [POWER, LABEL] : j === STAGES.length - 1 ? [HEAT, B_FIELD] : [POWER, HIGH_V]) as [string, string])
         fall.set(kept, loss, texts, c.chemW, colors)
-        head.status.set(`TT car up ${q.deg}° · ${CHIPS[q.chip]} · ${GEARS[q.gear]} · battery → wheel ${pctOf(c.toWheel)}`, LABEL)
+        head.status.set(`TT car up ${q.deg}° · ${CHIPS[q.chip]} · ${GEARS[q.gear]} · battery → wheel ${pct(c.toWheel)}`, LABEL)
         head.sub.set(`side view · ${(c.amps * 1000).toFixed(0)} mA per motor at ${c.motorV.toFixed(2)} V · steady climb, real time`)
         const big = (Object.entries(L) as [keyof typeof L, number][]).filter(([key]) => key !== 'rolling').reduce((a, b) => (b[1] > a[1] ? b : a))
-        head.event.set(`biggest loss: ${LOSS_NAMES[big[0]]} ${watts(big[1])} (${pctOf(big[1] / c.chemW)})`, HIGH_V)
+        head.event.set(`biggest loss: ${LOSS_NAMES[big[0]]} ${watts(big[1])} (${pct(big[1] / c.chemW)})`, HIGH_V)
       },
       readouts: (p) => {
         const c = efRun(efParams(p))
         const climb = (c.liftW * c.hours * 3600) / (TT_CAR.massKg * G)
         return [
-          { label: 'Battery → wheel', value: pctOf(c.toWheel), tone: toneOf(c.toWheel > 0.3, c.toWheel > 0.15) },
+          { label: 'Battery → wheel', value: pct(c.toWheel), tone: toneOf(c.toWheel > 0.3, c.toWheel > 0.15) },
           { label: 'Drawn from the pack', value: watts(c.chemW) },
           { label: 'Runtime on the pack', value: `${c.hours.toFixed(1)} h (${c.wh.toFixed(0)} Wh)` },
           { label: 'Height climbed per charge', value: climb > 0 ? `${Math.round(climb)} m` : 'none on the flat' },

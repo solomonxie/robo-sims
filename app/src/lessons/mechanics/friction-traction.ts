@@ -1,14 +1,12 @@
 import { DEG, DriveAxles, FLOORS, FRICTION_PAIRS, FloorKind, G, ROLL_SURFACES, RollSurface, SLIP_PEAK, STICK_SLIP, TT_CAR, WHEEL_TYPES, WheelType, fixedStepAt, rollingCost, slipAngle, stickSlipRun, tractionLimit, tractionMu, tractionRun } from '../../core/physics'
+import { mpsText, newtonsText, pct } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, coilSpring, countBars, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, scope, scrollTape, sideCar, statusHeader, stretchArrow, traceRun } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, SIDE_SCOPE, addLabel, coilSpring, countBars, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, scope, scrollTape, sideCar, sideView, statusHeader, stretchArrow, traceRun } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 import * as THREE from 'three/webgpu'
 
-const VIEW = { center: [-2.2, 1.8, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
-const newtons = (f: number) => `${f.toFixed(2)} N`
-const mps = (v: number) => `${v.toFixed(2)} m/s`
-const pctOf = (u: number) => `${Math.round(u * 100)} %`
+const VIEW = sideView(-2.2, 1.8)
 
 // --- Static vs kinetic: a robot drags a parts box through a spring; slow drags stick and slip. ---
 
@@ -27,7 +25,7 @@ export const frictionTractionStaticVsKinetic: Lesson = {
     const q = ssParams(p)
     const r = ssRun(q)
     const jump = (2 * (r.staticN - r.kineticN)) / q.k
-    return `holds until k·stretch = μs·N = ${newtons(r.staticN)} · slides at μk·N = ${newtons(r.kineticN)} · force drop ≈ 2(μs − μk)·N = ${newtons(2 * (r.staticN - r.kineticN))} · jump ≈ 2(μs − μk)·N / k = ${(jump * 100).toFixed(1)} cm`
+    return `holds until k·stretch = μs·N = ${newtonsText(r.staticN)} · slides at μk·N = ${newtonsText(r.kineticN)} · force drop ≈ 2(μs − μk)·N = ${newtonsText(2 * (r.staticN - r.kineticN))} · jump ≈ 2(μs − μk)·N / k = ${(jump * 100).toFixed(1)} cm`
   },
   legend: [
     { color: POWER, label: `Spring pull on the box (scope 0…${SS.fMax} N)`, shape: 'arrow-right' },
@@ -43,7 +41,7 @@ export const frictionTractionStaticVsKinetic: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'pair', options: opts(PAIRS), initial: 'tile' },
-    { kind: 'slider', key: 'speed', label: 'Towing speed', min: 0.02, max: 0.3, step: 0.02, initial: 0.06, format: (v) => mps(v) },
+    { kind: 'slider', key: 'speed', label: 'Towing speed', min: 0.02, max: 0.3, step: 0.02, initial: 0.06, format: (v) => mpsText(v) },
     { kind: 'slider', key: 'spring', label: 'Spring stiffness k', min: 50, max: 400, step: 25, initial: 150, format: (v) => `${v} N/m` },
   ],
   build(): Stage {
@@ -93,22 +91,22 @@ export const frictionTractionStaticVsKinetic: Lesson = {
         const sy = y0 + bs * 0.45
         spring([front, sy, 0], [tail, sy, 0])
         const K = 0.35
-        pull([front, sy + 1.4, 1.8], [front + f.spring * K, sy + 1.4, 1.8], `${newtons(f.spring)}`, [0, 0.45, 0])
+        pull([front, sy + 1.4, 1.8], [front + f.spring * K, sy + 1.4, 1.8], `${newtonsText(f.spring)}`, [0, 0.45, 0])
         const fr = f.stuck ? f.spring : r.kineticN + STICK_SLIP.damp * f.vb
-        fric([boxX, y0 + 0.2, 2.2], [boxX - fr * K, y0 + 0.2, 2.2], `${newtons(fr)}`, [-0.3, -0.5, 0])
+        fric([boxX, y0 + 0.2, 2.2], [boxX - fr * K, y0 + 0.2, 2.2], `${newtonsText(fr)}`, [-0.3, -0.5, 0])
         const { mus, muk } = FRICTION_PAIRS[q.pair]
         head.status.set(`Stick-slip · ${PAIRS[q.pair]} · μs ${mus} · μk ${muk} · k ${q.k} N/m`, LABEL)
-        if (f.stuck) head.event.set(`stuck: static friction holds ${newtons(f.spring)} of ${newtons(r.staticN)} max`, HEAT)
-        else head.event.set(`slipping: box ${mps(f.vb)} vs robot ${mps(q.speed)}, spring ${newtons(f.spring)}`, POWER)
+        if (f.stuck) head.event.set(`stuck: static friction holds ${newtonsText(f.spring)} of ${newtonsText(r.staticN)} max`, HEAT)
+        else head.event.set(`slipping: box ${mpsText(f.vb)} vs robot ${mpsText(q.speed)}, spring ${newtonsText(f.spring)}`, POWER)
         head.sub.set(`${t.toFixed(2)} / ${SS.seconds} s · real time · box ${STICK_SLIP.boxKg} kg · ${r.slips} breakaway${r.slips === 1 ? '' : 's'} in ${SS.seconds} s`)
       },
       readouts: (p) => {
         const q = ssParams(p)
         const r = ssRun(q)
         return [
-          { label: 'Static limit μs·N', value: newtons(r.staticN) },
-          { label: 'Sliding friction μk·N', value: newtons(r.kineticN) },
-          { label: 'Motion', value: r.sticking ? `stick-slip, ${newtons(r.swing)} swing` : 'smooth sliding', tone: r.sticking ? 'warn' : 'ok' },
+          { label: 'Static limit μs·N', value: newtonsText(r.staticN) },
+          { label: 'Sliding friction μk·N', value: newtonsText(r.kineticN) },
+          { label: 'Motion', value: r.sticking ? `stick-slip, ${newtonsText(r.swing)} swing` : 'smooth sliding', tone: r.sticking ? 'warn' : 'ok' },
           { label: 'Tilt test: slips at θ = atan μs', value: `${(slipAngle(FRICTION_PAIRS[q.pair].mus) / DEG).toFixed(0)}°` },
         ]
       },
@@ -167,7 +165,7 @@ export const frictionTractionRollingResistance: Lesson = {
   formula: (p) => {
     const q = rrParams(p)
     const { c } = rrCalc(q)
-    return `C_rr = e / r = ${(c.e * 1000).toFixed(2)} mm / ${(WHEEL_TYPES[q.wheel].r * 1000).toFixed(1)} mm = ${c.crr.toFixed(3)} · F = C_rr·m·g = ${newtons(c.total)} · P = F·v = ${c.power.toFixed(2)} W`
+    return `C_rr = e / r = ${(c.e * 1000).toFixed(2)} mm / ${(WHEEL_TYPES[q.wheel].r * 1000).toFixed(1)} mm = ${c.crr.toFixed(3)} · F = C_rr·m·g = ${newtonsText(c.total)} · P = F·v = ${c.power.toFixed(2)} W`
   },
   legend: [
     { color: B_FIELD, label: 'Floor push N, shifted ahead of the axle by e', shape: 'dot' },
@@ -184,7 +182,7 @@ export const frictionTractionRollingResistance: Lesson = {
   controls: [
     { kind: 'choice', key: 'wheel', options: opts(WHEELS), initial: 'tt' },
     { kind: 'choice', key: 'surface', options: opts(SURFACES), initial: 'carpet' },
-    { kind: 'slider', key: 'speed', label: 'Speed v', min: 0.1, max: 1, step: 0.1, initial: 0.5, format: (v) => mps(v) },
+    { kind: 'slider', key: 'speed', label: 'Speed v', min: 0.1, max: 1, step: 0.1, initial: 0.5, format: (v) => mpsText(v) },
     { kind: 'slider', key: 'load', label: 'Payload', min: 0, max: 3, step: 0.5, initial: 1, format: (v) => `${v.toFixed(1)} kg` },
   ],
   build(): Stage {
@@ -264,10 +262,10 @@ export const frictionTractionRollingResistance: Lesson = {
         })
         const N = (q.m * G) / 4
         const hubY = wheel.position.y
-        nArrow([cx + geo.e, yc - 0.1, 2], [cx + geo.e, hubY - 0.6, 2], `N ${newtons(N)}`, [1.3, -0.6, 0])
-        wArrow([cx, hubY + geo.R + 2.2, 2], [cx, hubY + geo.R + 0.3, 2], `${newtons(N)}`, [0.9, 0.6, 0])
+        nArrow([cx + geo.e, yc - 0.1, 2], [cx + geo.e, hubY - 0.6, 2], `N ${newtonsText(N)}`, [1.3, -0.6, 0])
+        wArrow([cx, hubY + geo.R + 2.2, 2], [cx, hubY + geo.R + 0.3, 2], `${newtonsText(N)}`, [0.9, 0.6, 0])
         const F = r.c.force
-        fArrow([cx, hubY, 2.4], [cx - Math.max(0.2, F * 4), hubY, 2.4], `F ${newtons(F)}`, [-0.6, 0.4, 0])
+        fArrow([cx, hubY, 2.4], [cx - Math.max(0.2, F * 4), hubY, 2.4], `F ${newtonsText(F)}`, [-0.6, 0.4, 0])
         eTag.group.position.set(cx + geo.a + 1.6, RR.floorY - 0.9, 1.8)
         eTag.set(`e ${(r.c.e * 1000).toFixed(2)} mm`)
         const sk = Object.keys(ROLL_SURFACES) as RollSurface[]
@@ -283,7 +281,7 @@ export const frictionTractionRollingResistance: Lesson = {
         const { c } = rrCalc(q)
         return [
           { label: 'C_rr = e / r', value: c.crr.toFixed(3), tone: toneOf(c.crr < 0.03, c.crr < 0.1) },
-          { label: 'Rolling force C_rr·m·g', value: newtons(c.total) },
+          { label: 'Rolling force C_rr·m·g', value: newtonsText(c.total) },
           { label: 'Power at this speed', value: `${c.power.toFixed(2)} W` },
           { label: 'Energy per 100 m', value: `${(c.perMetre * 100).toFixed(0)} J` },
         ]
@@ -317,7 +315,7 @@ export const frictionTractionWheelSlip: Lesson = {
   formula: (p) => {
     const q = wsParams(p)
     const r = wsRun(q)
-    return `κ = (ω r − v) / ω r · grip ≤ μ·N_driven = ${r.mu} × ${(r.lim.grip / r.mu).toFixed(2)} N = ${newtons(r.lim.grip)} vs needed m g (sin θ + C_rr cos θ) = ${newtons(r.lim.need)} · N_rear = m g cos θ / 2 + m g sin θ · h / L`
+    return `κ = (ω r − v) / ω r · grip ≤ μ·N_driven = ${r.mu} × ${(r.lim.grip / r.mu).toFixed(2)} N = ${newtonsText(r.lim.grip)} vs needed m g (sin θ + C_rr cos θ) = ${newtonsText(r.lim.need)} · N_rear = m g cos θ / 2 + m g sin θ · h / L`
   },
   legend: [
     { color: HEAT, label: 'Rear axle: load N, slip, rim speed', shape: 'dot' },
@@ -356,7 +354,7 @@ export const frictionTractionWheelSlip: Lesson = {
     addLabel(scene, 'grip μ(κ) vs slip ratio κ', [x - w / 2, WS.curve.y + ch / 2 + 1.1, 0.3], LABEL, 0.3, 'left')
     addLabel(scene, 'κ 0', [x - w / 2, WS.curve.y - ch / 2 - 0.9, 0.3], GREY, 0.26, 'left')
     addLabel(scene, '100 %', [x + w / 2, WS.curve.y - ch / 2 - 0.9, 0.3], GREY, 0.26, 'right')
-    addLabel(scene, `peak ${pctOf(SLIP_PEAK)}`, [x - w / 2 + SLIP_PEAK * w, WS.curve.y + ch / 2 + 0.35, 0.3], GREY, 0.24)
+    addLabel(scene, `peak ${pct(SLIP_PEAK)}`, [x - w / 2 + SLIP_PEAK * w, WS.curve.y + ch / 2 + 0.35, 0.3], GREY, 0.24)
     const muTr = curve.trace(GREY, { samples: 80, radius: 0.05 })
     const dots = AXLE.map((_, i) => curve.trace(AXLE_COLORS[i], { samples: 2, radius: 0.06 }))
     const yMu = (m: number) => -ch / 2 + (Math.max(0, m) / 1) * ch * 0.95
@@ -399,20 +397,20 @@ export const frictionTractionWheelSlip: Lesson = {
           const ax = len / 2 + (i === 0 ? -0.065 : 0.065) * WS.k
           const nN = f.load[i]
           const z = i === 0 ? 2.4 : 2.8
-          nArr[i](at(ax, -0.1, z), at(ax, -0.1 + nN * K, z), `N ${newtons(nN)}`, [i === 0 ? -1.4 : 1.4, -0.3, 0])
+          nArr[i](at(ax, -0.1, z), at(ax, -0.1 + nN * K, z), `N ${newtonsText(nN)}`, [i === 0 ? -1.4 : 1.4, -0.3, 0])
           const pN = f.push[i]
           const over = Math.abs(f.kappa[i]) > SLIP_PEAK * 1.5
           const tip = at(ax + pN * K * 1.4, 0.15, z + 0.4)
           const base = at(ax, 0.15, z + 0.4)
-          pushArr[i](base, over ? base : tip, newtons(pN), [0, -0.6, 0])
-          spinArr[i](base, over ? tip : base, `spin ${newtons(pN)}`, [0, -0.6, 0])
+          pushArr[i](base, over ? base : tip, newtonsText(pN), [0, -0.6, 0])
+          spinArr[i](base, over ? tip : base, `spin ${newtonsText(pN)}`, [0, -0.6, 0])
         })
         head.status.set(`Wheel slip · ${DRIVES[q.drive]} · ${FLOORS[q.floor].name} μ ${r.mu} · ${q.deg}° · ${q.volts.toFixed(1)} V`, LABEL)
         const kd = Math.max(...f.kappa.map((k, i) => (r.driven[i] ? k : 0)))
         if (f.x <= -0.299 && f.v <= 0) head.event.set('slid back to the bottom: grip on the driven wheels < pull down the slope', HIGH_V)
-        else if (f.v < -0.01) head.event.set(`sliding back: wheels spin forward at κ ${pctOf(kd)} while the car rolls down`, HIGH_V)
-        else if (kd > SLIP_PEAK * 1.5) head.event.set(`wheelspin: torque beats grip, κ ${pctOf(kd)}, past the ${pctOf(SLIP_PEAK)} peak`, HIGH_V)
-        else head.event.set(`gripping: κ ${pctOf(kd)}, ${newtons(f.push[0] + f.push[1])} of ${newtons(r.lim.grip)} max · ${mps(f.v)}`, POWER)
+        else if (f.v < -0.01) head.event.set(`sliding back: wheels spin forward at κ ${pct(kd)} while the car rolls down`, HIGH_V)
+        else if (kd > SLIP_PEAK * 1.5) head.event.set(`wheelspin: torque beats grip, κ ${pct(kd)}, past the ${pct(SLIP_PEAK)} peak`, HIGH_V)
+        else head.event.set(`gripping: κ ${pct(kd)}, ${newtonsText(f.push[0] + f.push[1])} of ${newtonsText(r.lim.grip)} max · ${mpsText(f.v)}`, POWER)
         const enc = Math.max(...f.turn.map((d, i) => (r.driven[i] ? d : -Infinity)))
         head.sub.set(`${t.toFixed(2)} / ${WS.seconds} s · slowed ${1 / WS.slow}× · encoder ${(enc * 100).toFixed(0)} cm, car ${(f.x * 100).toFixed(0)} cm`)
       },
@@ -421,8 +419,8 @@ export const frictionTractionWheelSlip: Lesson = {
         const r = wsRun(q)
         return [
           { label: `Axle loads rear / front (${r.driven[0] && r.driven[1] ? 'both' : r.driven[0] ? 'rear' : 'front'} driven)`, value: `${r.lim.rear.toFixed(1)} / ${r.lim.front.toFixed(1)} N` },
-          { label: 'Grip μ·N vs pull needed', value: `${newtons(r.lim.grip)} vs ${newtons(r.lim.need)}`, tone: toneOf(r.lim.grip > r.lim.need * 1.3, r.lim.grip > r.lim.need) },
-          { label: 'Peak slip ratio', value: pctOf(Math.min(2, r.peak)), tone: toneOf(r.peak < SLIP_PEAK, r.peak < 0.5) },
+          { label: 'Grip μ·N vs pull needed', value: `${newtonsText(r.lim.grip)} vs ${newtonsText(r.lim.need)}`, tone: toneOf(r.lim.grip > r.lim.need * 1.3, r.lim.grip > r.lim.need) },
+          { label: 'Peak slip ratio', value: pct(Math.min(2, r.peak)), tone: toneOf(r.peak < SLIP_PEAK, r.peak < 0.5) },
           { label: 'Steepest climb, this drive', value: `${(r.lim.maxSlope / DEG).toFixed(0)}°` },
         ]
       },

@@ -13,7 +13,7 @@ export function collide1d(m1: number, v1: number, m2: number, v2: number, e: num
   return { u1, u2, vcm, p0: m1 * v1 + m2 * v2, p1: m1 * u1 + m2 * u2, ke0: ke(v1, v2), ke1: ke(u1, u2), lost: 0.5 * ((m1 * m2) / M) * (1 - e * e) * rel * rel }
 }
 
-export interface CartFrame {
+interface CartFrame {
   t: number
   x1: number
   x2: number
@@ -44,7 +44,7 @@ export function cartsRun({ m1, m2, v1, v2, e, x1 = -0.4, x2 = 0.05, len = 0.21, 
 /** TT robot with a sprung front bumper: switch trips after `trip`, chassis hits the wall past `travel`; braking μ·m·g. */
 export const BUMP_BOT = { massKg: TT_CAR.massKg, trip: 0.002, mu: 0.7, kHard: 2e5, cHard: 60, lead: 0.06 }
 
-export interface BumpFrame {
+interface BumpFrame {
   t: number
   x: number
   v: number

@@ -14,7 +14,6 @@ import {
   slopeForces,
   softPull,
   steerLimit,
-  tipAngle,
   trackForces,
   turnMoment,
   wheelSink,
@@ -82,8 +81,7 @@ describe('traction', () => {
     expect(t.stuck).toBe(false)
     expect(t.pull).toBeGreaterThan(0)
   })
-  it('slopes: traction limit and tip-over angle', () => {
-    expect(tipAngle(0.2, 0.1)).toBeCloseTo(Math.PI / 4)
+  it('slopes: traction limit', () => {
     const c = climbLimit(concrete, true)
     expect(slopeForces(concrete, c - 0.01, true).holds).toBe(true)
     expect(slopeForces(concrete, c + 0.01, true).holds).toBe(false)

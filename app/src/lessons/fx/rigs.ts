@@ -6,7 +6,9 @@ import { GREY, LABEL } from './colors'
 import { scope } from './screens'
 import { addLabel, liveLabel } from './text'
 
-export const SIDE_VIEW = { center: [-2.2, -0.4, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 }
+/** Straight side-on camera centred at (x, y). */
+export const sideView = (x: number, y: number) => ({ center: [x, y, 0] as V3, radius: 52, polar: 1.45, azimuth: 0 })
+export const SIDE_VIEW = sideView(-2.2, -0.4)
 export const SIDE_SCOPE = { x: 6.4, w: 10.5 }
 
 export function statusHeader(scene: THREE.Object3D) {

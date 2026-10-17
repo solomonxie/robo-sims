@@ -14,7 +14,7 @@ import {
   slopeForces,
   softPull,
   steerLimit,
-  tipAngle,
+  tipLimits,
   toDeg,
   toRoom,
   turnMoment,
@@ -31,6 +31,7 @@ import {
   LABEL,
   POWER,
   RING,
+  SIDE_VIEW,
   addLabel,
   addRod,
   emptyGroup,
@@ -135,7 +136,7 @@ export const skidSteer: Lesson = {
     const st = { key: '', ratio: 0, t: 0, prev: { x: 0, y: 0, th: 0 } as Pose, travel: [0, 0], ends: [] as Pose[], aMax: 1, lap: -1 }
     return {
       scene,
-      view: { center: [-2.2, -0.4, 0], radius: 52, polar: 1.45, azimuth: 0 },
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = ssParams(p)
         const run = skidFrames(q)
@@ -278,9 +279,10 @@ const trParams = (p: Params) => {
   }
 }
 type TrQ = ReturnType<typeof trParams>
+const tankTip = (comH: number) => tipLimits(0, comH, -TANK.contact / 2, TANK.contact / 2).back
 function slopeState(q: TrQ) {
   const f = slopeForces(q.t, q.slope, q.grousers)
-  const tip = tipAngle(TANK.contact, q.comH)
+  const tip = tankTip(q.comH)
   return { ...f, tip, tips: q.slope > tip, limit: climbLimit(q.t, q.grousers), slip: f.holds ? slipFor(f.need / f.have, TANK.contact, q.t.shearK) : 1 }
 }
 
@@ -292,7 +294,7 @@ export const tractionLesson: Lesson = {
     const q = trParams(p)
     return q.soft
       ? `F ≤ μ·N (smooth) or A·c + N·tan φ (grousers) · p = W/A · sinkage z = (p / (kc/b + kφ))^(1/n) · pull = F − rut drag`
-      : `need W·sin θ + f·W·cos θ ≤ thrust on W·cos θ · tips when θ > atan((L/2)/h) = atan(${mmText(TANK.contact / 2)} / ${mmText(q.comH)}) = ${deg(tipAngle(TANK.contact, q.comH))}`
+      : `need W·sin θ + f·W·cos θ ≤ thrust on W·cos θ · tips when θ > atan((L/2)/h) = atan(${mmText(TANK.contact / 2)} / ${mmText(q.comH)}) = ${deg(tankTip(q.comH))}`
   },
   legend: (p) =>
     trParams(p).soft
@@ -366,7 +368,7 @@ export const tractionLesson: Lesson = {
     const st = { key: '', t: 0, x: 0, fall: 0, fallV: 0, travel: 0, word: '' }
     return {
       scene,
-      view: { center: [-2.2, -0.4, 0], radius: 52, polar: 1.45, azimuth: 0 },
+      view: SIDE_VIEW,
       frame(dt, p) {
         const q = trParams(p)
         const key = `${q.soft}|${q.terrain}|${q.grousers}|${q.slope}|${q.comH}`

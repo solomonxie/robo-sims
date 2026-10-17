@@ -25,7 +25,7 @@ export function trackAt(s: number) {
   return { x: slope * COS + flat + u * COS, y: u * SIN, pitch }
 }
 
-export interface UTrackFrame { t: number; s: number; v: number; h: number; ke: number; pe: number; loss: number }
+interface UTrackFrame { t: number; s: number; v: number; h: number; ke: number; pe: number; loss: number }
 
 /** Released from rest at height `h` m on the left ramp; gravity along the track and rolling resistance crr·m·g·cos θ. */
 export function uTrackRun(kg: number, h: number, crr: number, seconds = U_TRACK.seconds, dt = U_TRACK.dt) {
@@ -59,7 +59,7 @@ export function uTrackRun(kg: number, h: number, crr: number, seconds = U_TRACK.
 }
 
 /** Winch: TT motor at 6 V on the 1:120 box winding a 1.5 cm spool. */
-export const WINCH = { volts: 6, gear: GEARBOXES.tt120 as Gearbox, spoolM: 0.015 }
+const WINCH = { volts: 6, gear: GEARBOXES.tt120 as Gearbox, spoolM: 0.015 }
 const winchRatio = () => gearRatio(WINCH.gear)
 const winchEff = () => gearEfficiency(WINCH.gear)
 

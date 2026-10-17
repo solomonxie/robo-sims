@@ -1,13 +1,13 @@
 // Vibration: rotating unbalance shaking a sprung frame, an accelerometer on it, and isolating mounts.
 import { G, gaussAt } from '../common'
+import { rpmToRadS } from '../actuators/stepper'
 import { dftAmplitudes } from '../signals/fourier'
 import { ampRatio, phaseLag } from './oscillation'
 
-export const rpmToRad = (rpm: number) => (rpm * 2 * Math.PI) / 60
 /** Rotating force of mass `kg` at radius `m` spinning at ω: m·e·ω² (N). */
 export const unbalanceForce = (kg: number, m: number, w: number) => kg * m * w * w
 
-export interface ShakeRig {
+interface ShakeRig {
   M: number
   fn: number
   zeta: number
@@ -17,7 +17,7 @@ export const MOTOR_PLATE: ShakeRig = { M: 0.3, fn: 25, zeta: 0.1 }
 
 /** Steady whirl of a frame of mass M shaken by an unbalance m·e at ω: X = (m·e/M)·r²·H(r), lag behind the force. */
 export function frameShake(rig: ShakeRig, kg: number, m: number, rpm: number) {
-  const w = rpmToRad(rpm)
+  const w = rpmToRadS(rpm)
   const r = w / (2 * Math.PI * rig.fn)
   const x = ((kg * m) / rig.M) * r * r * ampRatio(rig.zeta, r)
   return { w, hz: rpm / 60, r, force: unbalanceForce(kg, m, w), x, accel: w * w * x, lag: phaseLag(rig.zeta, r) }

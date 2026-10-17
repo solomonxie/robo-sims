@@ -64,6 +64,12 @@ export const msText = (s: number, digits = 1) => `${+(s * 1000).toFixed(s < 0.01
 export const mAText = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 export const dbmText = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 export const pct = (f: number) => `${Math.round(f * 100)} %`
+export const mpsText = (v: number, digits = 2) => `${v.toFixed(digits)} m/s`
+export const accelText = (a: number) => `${a.toFixed(2)} m/s²`
+export const newtonsText = (f: number, digits = 2) => `${f.toFixed(digits)} N`
+export const kgText = (kg: number) => `${kg.toFixed(1)} kg`
+/** mJ below 1 J. */
+export const energyText = (e: number, digits = 2) => (e < 1 ? `${(e * 1000).toFixed(0)} mJ` : `${e.toFixed(digits)} J`)
 /** Always-signed fixed-point text: +1.0, −0.5. */
 export const signed = (v: number, digits = 1) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(digits)}`
 export const mmText = (m: number) => `${Math.round(m * 1000)} mm`
