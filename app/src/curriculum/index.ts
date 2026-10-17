@@ -166,6 +166,7 @@ import { centreOfMassLowAndWide, centreOfMassTippingAngle } from '../lessons/mec
 import { vibrationDampingMounts, vibrationMotorVibration } from '../lessons/mechanics/vibration'
 import { soundUltrasoundDoppler, soundUltrasoundEchoRanging, soundUltrasoundSpeedOfSound } from '../lessons/waves/sound-ultrasound'
 import { lightOpticsLensesAndFocus, lightOpticsReflection, lightOpticsRefraction } from '../lessons/waves/light-optics'
+import { infraredThermalBlackBodyRadiation, infraredThermalThermalCamera } from '../lessons/waves/infrared-thermal'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -668,6 +669,8 @@ const READY: Record<string, Lesson> = {
   'waves/light-optics/reflection': lightOpticsReflection,
   'waves/light-optics/refraction': lightOpticsRefraction,
   'waves/light-optics/lenses-and-focus': lightOpticsLensesAndFocus,
+  'waves/infrared-thermal/black-body-radiation': infraredThermalBlackBodyRadiation,
+  'waves/infrared-thermal/thermal-camera': infraredThermalThermalCamera,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

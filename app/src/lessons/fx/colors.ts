@@ -42,3 +42,11 @@ export function setGlow(m: THREE.MeshStandardMaterial, color: string, k: number)
 /** Readout tone → colour for 3D text. */
 export const toneColor = { ok: POWER, warn: HEAT, bad: HIGH_V }
 export const lit = (c: string) => new THREE.Color(c)
+
+const IRONBOW = ['#000010', '#2a0a6e', '#8c0e8c', '#d6334a', '#f57a16', '#fcc232', '#ffffd8'].map(lit)
+/** Thermal-camera false colour (ironbow): 0 = cold black-blue … 1 = hot white. */
+export function ironbow(f: number, out = new THREE.Color()): THREE.Color {
+  const x = clamp01(f) * (IRONBOW.length - 1)
+  const i = Math.min(IRONBOW.length - 2, Math.floor(x))
+  return out.copy(IRONBOW[i]).lerp(IRONBOW[i + 1], x - i)
+}
