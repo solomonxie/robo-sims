@@ -180,6 +180,7 @@ import { probabilityBayesRule, probabilityGaussianNoise, probabilityVariance } f
 import { linearAlgebraEigenvectors, linearAlgebraLeastSquares } from '../lessons/math/linear-algebra'
 import { differentialEquationsEulerIntegration, differentialEquationsStepSize } from '../lessons/math/differential-equations'
 import { signalsSampleRate, signalsZTransformIntuition } from '../lessons/math/signals'
+import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -716,6 +717,9 @@ const READY: Record<string, Lesson> = {
   'math/differential-equations/step-size': differentialEquationsStepSize,
   'math/signals/sample-rate': signalsSampleRate,
   'math/signals/z-transform-intuition': signalsZTransformIntuition,
+  'materials/stress-strain/hooke-s-law': stressStrainHookesLaw,
+  'materials/stress-strain/yield-strength': stressStrainYieldStrength,
+  'materials/stress-strain/safety-factor': stressStrainSafetyFactor,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

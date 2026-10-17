@@ -60,6 +60,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `spectrum` — `spectrumStrip` (log-λ EM strip, `cursor`, `span`), `BAND_TINT`.
 - `fields` — field lines, `emWave` (travelling E/B arrows, `set(λ, phase, amp)`).
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `thermalLadder` (°C/W chain as a circuit), `boxFan`.
+- `beams` — `cantileverBeam` (clamped link, `set(depth, drop(u), color(u))`, `tip`), `sectionSketch` (end view + neutral axis), `tensileSpecimen` (dog-bone in grips; `set(stretch, neck, gap, color)`), `stressColor`/`stressScale` (σ/strength → blue, green SF 3, yellow SF 2, red), `MATERIAL_TINT` [`physics/materials`].
 - `vectors` — `vecArrow`, `angleArc`, `dotLine`, `parallelogram`, `warpGrid` (plane under a 2×2), `dirSphere` (direction sphere + dot trails).
 - `crystal`, `dies`, `plots`, `story` (stepped lessons).
 
@@ -79,6 +80,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `waves/` — sound (`soundSpeedIn`, `fixedSpeedRead`, `blindRange`, `echoRanging`/`echoEnvelope`, `dopplerHz`/`echoDopplerHz`, `sourceFronts`/`echoFronts`), optics (`scatterAt`/`detectorReturn`, `snellDeg`/`criticalDeg`/`fresnelR`, `thinLensV`, `blurCircle`, `dofLimits`), thermal (`planckExitance`, `wienPeakM`, `netRadiatedW`, `bandShare`, `apparentC`, `thermalImage`), spectrum (`emAt`, `EM_BANDS`, `throughDb`, `partView`), heat (`conductionR`/`convectionR`/`radiationG`, `plateChain`/`plateRun`, `cooledReg`, `regHeatRun`), fluids (`venturi`, `pitotSpeedError`, `airPressureAt`/`baroAltitude`, `bmp280Mode`/`baroNoise`, `baroHoldRun`), gravity (`dropRun`, `detectFall`, `specificForce`/`accelReading`).
 - `math/` — vectors (`dot3`/`sub3`/`scale3`/`unit3`, `vecAngle`, `polar3`, `dotView`, `crossView`, `faceNormal`, `splitAlong`, `projectionView`), matrices (`Mat2` row-major, `mul2`/`apply2`/`det2`/`inv2`, `rotationCheck`, `composeView`, `inverseView`), trig (`unitCircleView`, `bearingView` atan2 vs atan(y/x), `triangleAngles`, `elbowView`), quaternions (`eulerQuat`/`eulerOf`, `quatRotate`, `axisAngleOf`, `gimbalView`, `sphereDir`, `slerpView`), calculus (`secantView`, `diffTradeoff`, `RULES`/`ruleStrips`/`integrateRule`, `areaView`, `gyroIntegrate`, `ruleErrors`), probability (`withinSigma`, `binCounts`, `gaussianView`, `bayesStep`/`bayesRun`, `averageView`, `fuseTwo`, `varianceView`), linearalgebra (`lineNormalEq`, `leastSquaresView`, `eig2`, `eigenView`, `wallPca`), diffeq (`odeStep`/`odeRun` Euler/semi-implicit/RK4, `fieldGrid`, `eulerView`, `stepGain`, `criticalStep`, `stepSizeView`), discrete (`foldedHz`, `spectralImages`, `reconstructAt`, `sampleRateView`, `onePoleRun`/`onePoleAt`, `poleOfTau`/`sOfPole`, `zView`).
 - `ai/` — net (`Mlp`, `mlpInit`, `mlpForward`/`mlpOut`, `lossOf`, `mlpGrads`/`mlpBatchGrads`, `mlpTrain` full/mini-batch + snapshots, `mlpAccuracy`, `mlpField`, `classTarget`, `argmax`, `confusion`), data (`gateSet`, `toySet`, `TOY_SPAN`), perceptron, tinyml (`quantParams`/`fakeQuant`, `intDot`, `quantizeMlp`, `mlpOutQ`, `mlpMacs`/`mlpArena`, `TINY_MODELS`, `deployCost`), gesture (`gestureWindow`, `gestureFeatures`, `gestureNet`), rl (`parseGrid`, `gwOutcomes`, `valueIteration`, `qLearn`, `gwRollout`, `evalPolicy`), imitation (`peanutTrack`, `laneState`, `laneFeatures`, `expertCurv`, `laneDrive`, `clonePolicy`, `laneScore`, `collectRounds` more/noisy/DAgger), vlm (`seeDesk`, `embedText`, `groundRef`, `planTask`, `runPlan`), speech (`sayWord`, `mixAudio`, `spectrogram`, `windowFeatures`, `kwsNet`/`cmdNet` baked in speechNets.ts (`tools/bake-speech-nets.mjs`; a test retrains and compares), `kwsStream`, `kwsDetect`, `hearWords`, `parseCommand`), anomaly (`vibWindow`, `vibSpectrum`, `learnBaseline`, `zScores`, `vibModel`, `shiftRun`, `alarmStats`).
+- `materials/` — stress (`MATERIALS` E/yield/UTS/ductile, `stressAt` curve, `strengthOf`, `permanentSet`, `pullPath`, `regimeOf`; `SECTIONS` equal-area links, `sectionProps` (A, I, c), `cantileverDeflection`, `beamStiffness`, `hookeView`; `impactFactor`, `LOAD_CASES`, `bracketLoad`, `thicknessFor`, `sfVerdict`).
 - `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `TAU`, `stdDev`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise), `mean`, `once` (lazy value), rngs `seededRng` (sine hash)/`parkMiller` (fast)/`gaussRng`, `MinHeap`.
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
@@ -116,7 +118,7 @@ Much of this is taught elsewhere already (Kinematics, Signals, Perception, Actua
 - Waves, light & heat ✓ 7/7
 - Maths for robots ✓ 9/9
 - Materials & mechanical design
-  - [ ] Stress & strain
+  - [x] Stress & strain
   - [ ] Laser & CNC
   - [ ] Fasteners
   - [ ] Bearings
