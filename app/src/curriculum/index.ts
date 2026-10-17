@@ -178,6 +178,7 @@ import { quaternionsGimbalLock, quaternionsQuaternionRotate, quaternionsSlerp } 
 import { calculusDerivativeAsSlope, calculusIntegralAsArea, calculusNumericalIntegration } from '../lessons/math/calculus'
 import { probabilityBayesRule, probabilityGaussianNoise, probabilityVariance } from '../lessons/math/probability'
 import { linearAlgebraEigenvectors, linearAlgebraLeastSquares } from '../lessons/math/linear-algebra'
+import { differentialEquationsEulerIntegration, differentialEquationsStepSize } from '../lessons/math/differential-equations'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -710,6 +711,8 @@ const READY: Record<string, Lesson> = {
   'math/probability/variance': probabilityVariance,
   'math/linear-algebra/least-squares': linearAlgebraLeastSquares,
   'math/linear-algebra/eigenvectors': linearAlgebraEigenvectors,
+  'math/differential-equations/euler-integration': differentialEquationsEulerIntegration,
+  'math/differential-equations/step-size': differentialEquationsStepSize,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
