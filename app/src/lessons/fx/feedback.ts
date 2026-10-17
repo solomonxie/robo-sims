@@ -106,7 +106,7 @@ const pathLen = (pts: V3[]) => pts.slice(1).reduce((s, b, i) => s + Math.hypot(b
 export const PID_COLORS = { p: HEAT, i: DATA_COLOR, d: FORCE, u: POWER }
 export const MEAS_COLOR = LABEL
 
-/** Signed terms and their sum (last row) as bars from a centre zero, ±100 % across `w`; the sum turns red when clipped. */
+/** Signed terms and their sum (last row) as bars from a centre zero, ±100 % across `w`; the sum turns red when clipped; `texts` replace the % labels. */
 export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: string; color: string }[], w = 7, satText = ' clipped') {
   const last = rows.length - 1
   const bars = rows.map(({ label, color }, j) => {
@@ -120,7 +120,7 @@ export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: 
   })
   flatBox(parent, [0.06, last * 0.62 + 0.74, 0.06], glowMat(GREY, 0.4), [at[0], at[1] - last * 0.31, 0.12])
   return {
-    set(values: readonly number[], sat = false) {
+    set(values: readonly number[], sat = false, texts?: readonly string[]) {
       bars.forEach((r, j) => {
         const v = values[j] ?? 0
         const len = Math.max(1e-3, (Math.min(1, Math.abs(v)) * w) / 2)
@@ -129,7 +129,7 @@ export function sumBars(parent: THREE.Object3D, at: V3, rows: readonly { label: 
         const sum = j === last
         const hot = sum ? sat : Math.abs(v) > 1
         setGlow(r.m, hot && sum ? HIGH_V : r.color, 0.9)
-        r.value.set(`${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && sum ? satText : ''}`, hot ? HIGH_V : r.color)
+        r.value.set(texts?.[j] ?? `${Math.round(v * 100) < 0 ? '−' : ''}${Math.round(Math.abs(v) * 100)} %${hot && sum ? satText : ''}`, hot ? HIGH_V : r.color)
       })
     },
   }

@@ -161,6 +161,7 @@ import { rotationAngularMomentum, rotationFlywheel, rotationMomentOfInertia } fr
 import { energyWorkEfficiency, energyWorkKineticAndPotential, energyWorkWorkAndPower } from '../lessons/mechanics/energy-work'
 import { frictionTractionRollingResistance, frictionTractionStaticVsKinetic, frictionTractionWheelSlip } from '../lessons/mechanics/friction-traction'
 import { oscillationsDamping, oscillationsResonance, oscillationsSpringMass } from '../lessons/mechanics/oscillations'
+import { collisionsBumpSensors, collisionsElasticAndInelastic } from '../lessons/mechanics/collisions'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -651,6 +652,8 @@ const READY: Record<string, Lesson> = {
   'mechanics/oscillations/spring-mass': oscillationsSpringMass,
   'mechanics/oscillations/damping': oscillationsDamping,
   'mechanics/oscillations/resonance': oscillationsResonance,
+  'mechanics/collisions/elastic-and-inelastic': collisionsElasticAndInelastic,
+  'mechanics/collisions/bump-sensors': collisionsBumpSensors,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
