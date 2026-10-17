@@ -67,3 +67,14 @@ export function lapseClock(seconds: number, slow: number, rest: number) {
     return Math.min(st.t, seconds)
   }
 }
+
+/** Scope `w` × `h` at (x, y) with zero at the bottom, titles above and a 0…`seconds` axis below. */
+export function plotPanel(scene: THREE.Object3D, at: V3, w: number, h: number, seconds: number, left: string, right: string, zeroAt = 0, xDivs = seconds * 2) {
+  const plot = scope(scene, w, h, { divs: [xDivs, 4], zeroAt })
+  plot.group.position.set(...at)
+  addLabel(scene, left, [at[0] - w / 2, at[1] + h / 2 + 1.1, 0.3], LABEL, 0.3, 'left')
+  addLabel(scene, right, [at[0] + w / 2, at[1] + h / 2 + 1.1, 0.3], LABEL, 0.3, 'right')
+  addLabel(scene, '0', [at[0] - w / 2, at[1] - h / 2 - 1.1, 0.3], GREY, 0.26, 'left')
+  addLabel(scene, `${seconds} s`, [at[0] + w / 2, at[1] - h / 2 - 1.1, 0.3], GREY, 0.26, 'right')
+  return plot
+}

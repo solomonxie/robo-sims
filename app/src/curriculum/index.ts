@@ -157,6 +157,7 @@ import { anomalyDetectionThresholdsVsModels, anomalyDetectionVibrationBaselines 
 import { newtonsLawsFMA, newtonsLawsFreeBodyDiagrams, newtonsLawsFriction } from '../lessons/mechanics/newton-s-laws'
 import { kinematicsConstantAcceleration, kinematicsProjectileMotion, kinematicsVelocityTime } from '../lessons/mechanics/kinematics'
 import { torqueLeversLeverTypes, torqueLeversMomentArm, torqueLeversStaticBalance } from '../lessons/mechanics/torque-levers'
+import { rotationAngularMomentum, rotationFlywheel, rotationMomentOfInertia } from '../lessons/mechanics/rotation'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -635,6 +636,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/torque-levers/moment-arm': torqueLeversMomentArm,
   'mechanics/torque-levers/lever-types': torqueLeversLeverTypes,
   'mechanics/torque-levers/static-balance': torqueLeversStaticBalance,
+  'mechanics/rotation/moment-of-inertia': rotationMomentOfInertia,
+  'mechanics/rotation/angular-momentum': rotationAngularMomentum,
+  'mechanics/rotation/flywheel': rotationFlywheel,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

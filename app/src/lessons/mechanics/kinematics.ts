@@ -1,7 +1,7 @@
 import { BALLS, DEG, G, driveProfile, flightAt, flightRun, profileAt, projectileIdeal, strobeRun, uniformAt } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, dotPen, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, rodPool, scope, sideCar, statusHeader } from '../fx'
+import { B_FIELD, FORCE, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, dotPen, flatBox, forceArrow, glowMat, lapseClock, liveLabel, memoBy, plotPanel, rodPool, sideCar, statusHeader } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 import * as THREE from 'three/webgpu'
 
@@ -20,17 +20,6 @@ function track(scene: THREE.Object3D, x0: number, y0: number, metresLong: number
     flatBox(scene, [0.06, 0.04, i % 2 ? 1.2 : 2.6], tick, [x0 + i * 0.5 * k, y0 + 0.01, 0.6])
     if (i % 2 === 0) addLabel(scene, `${i / 2} m`, [x0 + i * 0.5 * k, y0 - 0.75, 1.6], GREY, 0.26)
   }
-}
-
-/** Scope `w` × `h` at (x, y) with zero at the bottom, titles above and a 0…`seconds` axis below. */
-function plotPanel(scene: THREE.Object3D, at: V3, w: number, h: number, seconds: number, left: string, right: string, zeroAt = 0, xDivs = seconds * 2) {
-  const plot = scope(scene, w, h, { divs: [xDivs, 4], zeroAt })
-  plot.group.position.set(...at)
-  addLabel(scene, left, [at[0] - w / 2, at[1] + h / 2 + 1.1, 0.3], LABEL, 0.3, 'left')
-  addLabel(scene, right, [at[0] + w / 2, at[1] + h / 2 + 1.1, 0.3], LABEL, 0.3, 'right')
-  addLabel(scene, '0', [at[0] - w / 2, at[1] - h / 2 - 1.1, 0.3], GREY, 0.26, 'left')
-  addLabel(scene, `${seconds} s`, [at[0] + w / 2, at[1] - h / 2 - 1.1, 0.3], GREY, 0.26, 'right')
-  return plot
 }
 
 // --- Constant acceleration: strobe flashes every τ show the gaps growing by a τ² each time. ---
