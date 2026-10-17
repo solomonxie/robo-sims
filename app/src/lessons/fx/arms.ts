@@ -114,8 +114,10 @@ export function serialArm(parent: THREE.Object3D, arm: SerialArm, look: ArmLook 
     if (j) setGlow(j.ringMat, j.c, 0.5 + k * 1.2)
   }
   const face = () => tri.forEach((tr) => tr.face())
+  /** Finger gap: 1 open … 0 shut. */
+  const jaw = (open: number) => fingers.forEach((f, i) => (f.position.y = (i ? 1 : -1) * w * (0.3 + 0.5 * open)))
   set(arm.rows.map(() => 0))
-  return { group: g, set, glow, face, triads: tri, joints, colors: joints.map((j) => j.c) }
+  return { group: g, set, glow, face, jaw, triads: tri, joints, colors: joints.map((j) => j.c) }
 }
 
 /** Turns a rig see-through in one flat colour (other IK solutions, past iterations); recolour via the returned material. */

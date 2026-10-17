@@ -154,6 +154,7 @@ import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Pe
 import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
+import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -614,6 +615,8 @@ const READY: Record<string, Lesson> = {
   'ai/reinforcement-learning/sim-to-real': reinforcementLearningSimToReal,
   'ai/imitation-learning/behaviour-cloning': imitationLearningBehaviourCloning,
   'ai/imitation-learning/data-collection': imitationLearningDataCollection,
+  'ai/vision-language-models/grounding-objects': visionLanguageModelsGroundingObjects,
+  'ai/vision-language-models/task-planning': visionLanguageModelsTaskPlanning,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
