@@ -164,6 +164,7 @@ import { oscillationsDamping, oscillationsResonance, oscillationsSpringMass } fr
 import { collisionsBumpSensors, collisionsElasticAndInelastic } from '../lessons/mechanics/collisions'
 import { centreOfMassLowAndWide, centreOfMassTippingAngle } from '../lessons/mechanics/centre-of-mass'
 import { vibrationDampingMounts, vibrationMotorVibration } from '../lessons/mechanics/vibration'
+import { soundUltrasoundDoppler, soundUltrasoundEchoRanging, soundUltrasoundSpeedOfSound } from '../lessons/waves/sound-ultrasound'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -660,6 +661,9 @@ const READY: Record<string, Lesson> = {
   'mechanics/centre-of-mass/low-and-wide': centreOfMassLowAndWide,
   'mechanics/vibration/motor-vibration': vibrationMotorVibration,
   'mechanics/vibration/damping-mounts': vibrationDampingMounts,
+  'waves/sound-ultrasound/speed-of-sound': soundUltrasoundSpeedOfSound,
+  'waves/sound-ultrasound/echo-ranging': soundUltrasoundEchoRanging,
+  'waves/sound-ultrasound/doppler': soundUltrasoundDoppler,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

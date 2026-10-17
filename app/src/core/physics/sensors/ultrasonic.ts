@@ -129,6 +129,8 @@ const TARGETS: Record<Target, { refl: number; width?: number }> = {
   chairLeg: { refl: 1, width: 0.025 },
 }
 
+export const targetRefl = (t: Target) => TARGETS[t].refl
+
 /** On-axis echo strength from `target` at `m`, as a multiple of the threshold. */
 export function targetEcho(target: Target, m: number) {
   const t = TARGETS[target]
