@@ -1,7 +1,7 @@
 // Rosenblatt perceptron: step output, w ← w + lr·(t − y)·x on every mistake.
 import { Sample } from './net'
 
-export interface PerceptronStep { w: [number, number]; b: number; i: number; y: number; wrong: boolean }
+interface PerceptronStep { w: [number, number]; b: number; i: number; y: number; wrong: boolean }
 
 export const perceptronOut = (w: readonly number[], b: number, x: readonly number[]) => (w[0] * x[0] + w[1] * x[1] + b > 0 ? 1 : 0)
 

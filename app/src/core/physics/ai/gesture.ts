@@ -1,9 +1,9 @@
 // Gesture recognition from an accelerometer: synthetic 1 s windows (x forward, y left, z up, in g), 12 features per
 // window (per axis: mean, spread, peak-to-peak, dominant frequency) and a small classifier trained once, seeded.
-import { gaussRng, seededRng, stdDev } from '../common'
+import { gaussRng, mean, seededRng, stdDev } from '../common'
 import { dominantHz } from '../sensors/microphone'
 import { dftAmplitudes } from '../signals/fourier'
-import { Mlp, Sample, mlpInit, mlpOut, mlpTrain } from './net'
+import { Mlp, Sample, classTarget, mlpInit, mlpTrain } from './net'
 
 export const GESTURES = { idle: 'Idle', shake: 'Shake', circle: 'Circle', punch: 'Punch' }
 export type Gesture = keyof typeof GESTURES
@@ -12,7 +12,7 @@ export const IMU_HZ = 50
 export const WINDOW_N = 50
 export const FEATURE_NAMES = ['x mean', 'x σ', 'x p-p', 'x f', 'y mean', 'y σ', 'y p-p', 'y f', 'z mean', 'z σ', 'z p-p', 'z f']
 
-export interface ImuWindow { ax: number[]; ay: number[]; az: number[] }
+interface ImuWindow { ax: number[]; ay: number[]; az: number[] }
 
 const bump = (t: number, at: number, w: number) => Math.exp(-0.5 * ((t - at) / w) ** 2)
 const hann = (t: number, a: number, b: number) => (t < a || t > b ? 0 : 0.5 - 0.5 * Math.cos((2 * Math.PI * (t - a)) / (b - a)))
@@ -57,36 +57,16 @@ export function gestureWindow(kind: Gesture, seed: number, noiseG = 0.05): ImuWi
 
 /** 12 features, about −1…1: mean (g), σ (g), peak-to-peak ÷ 4 g, dominant frequency ÷ Nyquist. */
 export function gestureFeatures(w: ImuWindow) {
-  return [w.ax, w.ay, w.az].flatMap((xs) => {
-    const mean = xs.reduce((s, v) => s + v, 0) / xs.length
-    return [mean, stdDev(xs), (Math.max(...xs) - Math.min(...xs)) / 4, dominantHz(dftAmplitudes(xs, true), IMU_HZ, xs.length) / (IMU_HZ / 2)]
-  })
+  return [w.ax, w.ay, w.az].flatMap((xs) => [mean(xs), stdDev(xs), (Math.max(...xs) - Math.min(...xs)) / 4, dominantHz(dftAmplitudes(xs, true), IMU_HZ, xs.length) / (IMU_HZ / 2)])
 }
 
 /** Multiply-adds to turn one window into features: a DFT per axis (2 per sample per bin) plus ~4 per sample for the stats. */
 export const FEATURE_MACS = 3 * WINDOW_N * ((WINDOW_N / 2 + 1) * 2 + 4)
 
-export const classTarget = (k: number, n: number) => Array.from({ length: n }, (_, i) => (i === k ? 1 : 0))
-
 /** `per` windows of every gesture, seeds from `seed`. */
 export function gestureSet(per: number, noiseG: number, seed = 1): Sample[] {
   return GESTURE_KEYS.flatMap((g, k) => Array.from({ length: per }, (_, i) => ({ x: gestureFeatures(gestureWindow(g, seed + i, noiseG)), t: classTarget(k, GESTURE_KEYS.length) })))
 }
-
-export function argmax(xs: ArrayLike<number>) {
-  let k = 0
-  for (let i = 1; i < xs.length; i++) if (xs[i] > xs[k]) k = i
-  return k
-}
-
-/** Rows = true class, columns = predicted (by `predict`, default the float forward pass). */
-export function confusion(net: Mlp, data: readonly Sample[], predict: (x: number[]) => ArrayLike<number> = (x) => mlpOut(net, x)) {
-  const n = data[0].t.length
-  const m = Array.from({ length: n }, () => new Array<number>(n).fill(0))
-  for (const d of data) m[argmax(d.t)][argmax(predict(d.x))]++
-  return m
-}
-export const confusionAccuracy = (m: number[][]) => m.reduce((s, r, i) => s + r[i], 0) / Math.max(1, m.flat().reduce((s, v) => s + v, 0))
 
 const trained = new Map<number, { net: Mlp; train: Sample[] }>()
 /** The 12-8-4 classifier, trained once per `noiseG` on 40 windows per gesture (mini-batch gradient descent, cross-entropy). */

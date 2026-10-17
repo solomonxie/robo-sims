@@ -1,6 +1,6 @@
 // Anomaly detection on a gearmotor's vibration: synthetic accelerometer windows (g), 8 log band levels, a per-band
 // healthy baseline (z-scores), a fixed RMS threshold and a small net that predicts the healthy spectrum from speed and load.
-import { gaussRng, parkMiller, stdDev } from '../common'
+import { gaussRng, mean, once, parkMiller, stdDev } from '../common'
 import { dftAmplitudes } from '../signals/fourier'
 import { Mlp, mlpInit, mlpOut, mlpTrain } from './net'
 
@@ -8,14 +8,14 @@ export const VIB_HZ = 1024
 export const VIB_N = 256
 export const VIB_WINDOW_S = VIB_N / VIB_HZ
 export const PINION_TEETH = 12
-export const BEARING_ORDER = 3.6
+const BEARING_ORDER = 3.6
 export const VIB_EDGES = [5, 45, 90, 140, 200, 270, 350, 430, 512]
 export const VIB_BANDS = VIB_EDGES.length - 1
 export const VIB_FAULTS = { healthy: 'Healthy', imbalance: 'Imbalance', bearing: 'Bearing wear', loose: 'Loose mount' }
 export type VibFault = keyof typeof VIB_FAULTS
 export const NOMINAL = { rpm: 1500, load: 0.6 }
 
-export interface VibState { rpm: number; load: number; fault: VibFault; severity: number; drift?: number }
+interface VibState { rpm: number; load: number; fault: VibFault; severity: number; drift?: number }
 
 /** One window (VIB_N samples at VIB_HZ, g, gravity removed): 1× shaft, 2×, gear mesh at 12×, white noise, plus the fault. */
 export function vibWindow(s: VibState, seed: number) {
@@ -48,10 +48,8 @@ export function vibWindow(s: VibState, seed: number) {
   return out
 }
 
-export const vibRms = (xs: readonly number[]) => {
-  const m = xs.reduce((s, v) => s + v, 0) / xs.length
-  return Math.sqrt(xs.reduce((s, v) => s + (v - m) ** 2, 0) / xs.length)
-}
+/** RMS about the mean (gravity and offset removed). */
+export const vibRms = stdDev
 
 /** Amplitude per DFT bin (Hann) and log10 rms level per band. */
 export function vibSpectrum(xs: readonly number[]) {
@@ -76,9 +74,9 @@ export function learnBaseline(s: Omit<VibState, 'fault' | 'severity'>, n: number
   const lv = rows.map((r) => vibSpectrum(r).levels)
   const rms = rows.map(vibRms)
   return {
-    mean: Array.from({ length: VIB_BANDS }, (_, b) => lv.reduce((t, r) => t + r[b], 0) / n),
+    mean: Array.from({ length: VIB_BANDS }, (_, b) => mean(lv.map((r) => r[b]))),
     std: Array.from({ length: VIB_BANDS }, (_, b) => Math.max(0.02, stdDev(lv.map((r) => r[b])))),
-    rms: { mean: rms.reduce((t, v) => t + v, 0) / n, std: stdDev(rms) },
+    rms: { mean: mean(rms), std: stdDev(rms) },
   }
 }
 
@@ -86,15 +84,12 @@ export const zScores = (levels: readonly number[], b: Baseline) => levels.map((v
 /** Anomaly score: the largest |z| over the bands. */
 export const zScore = (z: readonly number[]) => Math.max(...z.map(Math.abs))
 
-/** Which band each fault lifts most, for a hint. */
-export const FAULT_BAND: Record<Exclude<VibFault, 'healthy'>, string> = { imbalance: '1× shaft', bearing: 'high band', loose: '½×, 2×, 3× harmonics' }
-
 // --- Model of normal: a small net predicts the healthy band levels from speed and load (motor current). ---
 
-export const VIB_SPEEDS = [900, 2100]
-export const VIB_LOADS = [0.2, 1]
+const VIB_SPEEDS = [900, 2100]
+const VIB_LOADS = [0.2, 1]
 
-export interface VibModel { net: Mlp; sd: number[]; scale: number }
+interface VibModel { net: Mlp; sd: number[]; scale: number }
 const condIn = (rpm: number, load: number) => [(rpm - NOMINAL.rpm) / 600, (load - NOMINAL.load) / 0.4]
 const LEVEL_MID = -2
 const residuals = (m: Pick<VibModel, 'net'>, s: Pick<VibState, 'rpm' | 'load'>, lv: readonly number[]) => {
@@ -102,10 +97,8 @@ const residuals = (m: Pick<VibModel, 'net'>, s: Pick<VibState, 'rpm' | 'load'>, 
   return lv.map((v, i) => v - LEVEL_MID - y[i])
 }
 
-let cached: VibModel | null = null
 /** 2-10-8 net (tanh, linear), MSE, trained once on 160 healthy windows across speeds and loads; score = mean (residual ÷ healthy σ)² ÷ its healthy 95th percentile. */
-export function vibModel(): VibModel {
-  if (cached) return cached
+export const vibModel = once((): VibModel => {
   const rng = parkMiller(77)
   const data = Array.from({ length: 160 }, (_, i) => {
     const rpm = VIB_SPEEDS[0] + (VIB_SPEEDS[1] - VIB_SPEEDS[0]) * rng()
@@ -116,9 +109,8 @@ export function vibModel(): VibModel {
   const res = data.map((d) => residuals({ net }, d, d.lv))
   const sd = Array.from({ length: VIB_BANDS }, (_, b) => Math.max(0.02, stdDev(res.map((r) => r[b]))))
   const raw = res.map((r) => r.reduce((t, v, i) => t + (v / sd[i]) ** 2, 0) / VIB_BANDS).sort((a, b) => a - b)
-  cached = { net, sd, scale: raw[Math.floor(0.95 * raw.length)] }
-  return cached
-}
+  return { net, sd, scale: raw[Math.floor(0.95 * raw.length)] }
+})
 
 /** Expected healthy band levels at this speed and load. */
 export const expectedLevels = (m: VibModel, s: Pick<VibState, 'rpm' | 'load'>) => mlpOut(m.net, condIn(s.rpm, s.load)).map((v) => v + LEVEL_MID)
@@ -130,7 +122,7 @@ export const modelScore = (m: VibModel, s: Pick<VibState, 'rpm' | 'load'>, level
 export const SHIFT_N = 160
 export const SHIFT_ONSET = 100
 export const SHIFT_SCENES = { steady: 'Steady speed', speeds: 'Speed and load change', drift: 'Warm-up drift' }
-export type ShiftScene = keyof typeof SHIFT_SCENES
+type ShiftScene = keyof typeof SHIFT_SCENES
 
 export function shiftState(scene: ShiftScene, fault: VibFault, i: number): VibState {
   const step = [1500, 1800, 1200, 2100, 1500, 1050, 1900, 1350][Math.floor(i / 20) % 8]

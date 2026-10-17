@@ -1,15 +1,15 @@
 // Speech, toy version: words synthesised from formant phones at 8 kHz, a log-band spectrogram (10 ms frames, 8 mel-like
 // bands), a 1 s wake-word net run every 100 ms on a stream, and a command-word net + parser for spoken robot commands.
-import { clamp, parkMiller } from '../common'
+import { clamp, mean, parkMiller } from '../common'
 import { dftAmplitudes } from '../signals/fourier'
-import { argmax, classTarget } from './gesture'
-import { Mlp, Sample, mlpInit, mlpOut, mlpTrain } from './net'
+import { Mlp, Sample, argmax, classTarget, mlpInit, mlpOut, mlpTrain } from './net'
+import { SPEECH_NETS } from './speechNets'
 
 export const SPEECH_HZ = 8000
-export const FRAME_N = 80
+const FRAME_N = 80
 export const FRAME_S = FRAME_N / SPEECH_HZ
 /** Band edges in DFT bins of 100 Hz: 200 … 4000 Hz, narrow low, wide high (like mel). */
-export const BAND_EDGES = [2, 4, 6, 8, 11, 15, 21, 29, 41]
+const BAND_EDGES = [2, 4, 6, 8, 11, 15, 21, 29, 41]
 export const BANDS = BAND_EDGES.length - 1
 export const SLICES = 8
 export const SPEECH_FEATURES = BANDS * SLICES
@@ -91,7 +91,7 @@ export function sayWord(word: string, v: Voice, seed = 1) {
 }
 
 /** Unit-variance uniform noise, cheap enough for every audio sample (low-passing makes it near-Gaussian). */
-export function fastNoise(seed: number) {
+function fastNoise(seed: number) {
   const r = parkMiller(seed)
   return () => Math.sqrt(12) * (r() - 0.5)
 }
@@ -111,7 +111,7 @@ export function roomNoise(n: number, seed: number) {
 
 /** Typical speech rms; noise at `snrDb` below it. */
 export const SPEECH_RMS = 0.14
-export interface Spoken { word: string; at: number; end: number }
+interface Spoken { word: string; at: number; end: number }
 
 /** `seconds` of audio: each word at its start time, room noise `snrDb` below speech. */
 export function mixAudio(words: readonly { word: string; at: number }[], seconds: number, snrDb: number, voice: Voice, seed: number) {
@@ -160,29 +160,24 @@ export function windowFeatures(bands: readonly number[][], from: number, count: 
       f.push(sum / Math.max(1, b - a))
     }
   }
-  const mean = f.reduce((s, v) => s + v, 0) / f.length
-  return f.map((v) => (v - mean) / 1.5)
+  const m = mean(f)
+  return f.map((v) => (v - m) / 1.5)
 }
 
 function trainNet(data: Sample[], hidden: number, seed: number): Mlp {
   const sizes = [SPEECH_FEATURES, hidden, data[0].t.length]
   return mlpTrain(mlpInit(sizes, ['tanh', 'sigmoid'], seed), data, { lr: 0.5, epochs: 60, loss: 'bce', batch: 16, seed: seed + 1, snaps: 2 }).net
 }
-const once = <T>(f: () => T) => {
-  let v: T | undefined
-  return () => (v ??= f())
-}
 
 // --- Keyword spotting ---
 
 export const WAKE_WORD = 'hey robo'
-export const KWS_CLASSES = ['Hey robo', 'Other word', 'Silence']
-export const OTHER_WORDS = ['hello', 'robot', 'rainbow', 'hey', 'yellow', 'go', 'stop', 'now']
-export const KWS_FRAMES = 100
-export const KWS_HOP = 10
+const OTHER_WORDS = ['hello', 'robot', 'rainbow', 'hey', 'yellow', 'go', 'stop', 'now']
+const KWS_FRAMES = 100
+const KWS_HOP = 10
 
 /** A 12 s stream: ten 1.2 s slots, four hold the wake word, the rest other words, shuffled by `seed`. */
-export function kwsScript(seed: number) {
+function kwsScript(seed: number) {
   const r = parkMiller(seed * 101 + 9)
   const kinds = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
   for (let i = kinds.length - 1; i > 0; i--) {
@@ -200,7 +195,7 @@ export function kwsLabel(spoken: readonly Spoken[], t0: number, t1: number) {
 }
 
 /** Training windows cut from `streams` random streams (own speakers, SNR 5…30 dB): every wake window, every third other. */
-export function kwsTrainSet(streams: number, seed: number): Sample[] {
+function kwsTrainSet(streams: number, seed: number): Sample[] {
   const out: Sample[] = []
   for (let s = 0; s < streams; s++) {
     const r = parkMiller(seed * 59 + s)
@@ -213,8 +208,9 @@ export function kwsTrainSet(streams: number, seed: number): Sample[] {
   }
   return out
 }
-/** 64-12-3 net, trained once on windows from 8 streams. */
-export const kwsNet = once(() => trainNet(kwsTrainSet(8, 1000), 12, 5))
+/** 64-12-3 net trained on windows from 8 streams; the app uses the baked copy (speech.test checks it matches). */
+export const trainKwsNet = () => trainNet(kwsTrainSet(8, 1000), 12, 5)
+export const kwsNet = () => SPEECH_NETS.kws
 
 /** The stream, its spectrogram, and the wake probability of every 1 s window, one per 100 ms (time = window end). */
 export function kwsStream(seed: number, snrDb: number) {
@@ -262,10 +258,10 @@ export const kwsTradeoff = (times: readonly number[], wake: readonly number[], s
 
 // --- Voice commands ---
 
-export const CMD_WORDS = ['forward', 'back', 'left', 'right', 'stop', 'one', 'two', 'three']
+const CMD_WORDS = ['forward', 'back', 'left', 'right', 'stop', 'one', 'two', 'three']
 export const CMD_CLASSES = [...CMD_WORDS, 'other']
-export const FILLERS = ['um', 'please', 'go', 'now', 'hello']
-export const CMD_FRAMES = 60
+const FILLERS = ['um', 'please', 'go', 'now', 'hello']
+const CMD_FRAMES = 60
 
 /** Voice activity: frames whose total log energy is `rise` above the quietest 10 %; gaps under 150 ms merged, blips under 80 ms dropped. */
 export function findWords(bands: readonly number[][], rise = 0.6) {
@@ -298,7 +294,7 @@ export function sayCommand(text: string, seed: number, snrDb: number, gap = 0.3)
 const segFeatures = (bands: readonly number[][], [a, b]: [number, number]) => windowFeatures(bands, Math.round((a + b) / 2) - CMD_FRAMES / 2, CMD_FRAMES)
 
 /** Found words from `count` random three-word utterances (SNR 5…30 dB), labelled by the spoken word they overlap most; fillers = 'other'. */
-export function cmdTrainSet(count: number, seed: number): Sample[] {
+function cmdTrainSet(count: number, seed: number): Sample[] {
   const pool = [...CMD_WORDS, ...FILLERS, ...FILLERS.slice(0, 3)]
   return Array.from({ length: count }, (_, u) => {
     const r = parkMiller(seed * 41 + u)
@@ -312,8 +308,9 @@ export function cmdTrainSet(count: number, seed: number): Sample[] {
     })
   }).flat()
 }
-/** 64-14-9 net, trained once on the words of 100 utterances. */
-export const cmdNet = once(() => trainNet(cmdTrainSet(100, 1000), 14, 8))
+/** 64-14-9 net trained on the words of 100 utterances; baked like `kwsNet`. */
+export const trainCmdNet = () => trainNet(cmdTrainSet(100, 1000), 14, 8)
+export const cmdNet = () => SPEECH_NETS.cmd
 
 /** Each found word: a 0.6 s window centred on it through the command net. */
 export function hearWords(samples: readonly number[]) {

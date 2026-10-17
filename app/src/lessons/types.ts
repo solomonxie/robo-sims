@@ -67,6 +67,9 @@ export const legendOf = (l: Lesson, p: Params) => (typeof l.legend === 'function
 export const initialParams = (l: Lesson): Params =>
   Object.fromEntries(l.controls.map((c) => [c.key, c.initial]))
 
+/** Readout tone: ok if `good`, warn if only `ok`, else bad. */
+export const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
+
 export const n = (p: Params, k: string) => Number(p[k])
 /** `v` if it is a key of `rec`, else the default `d`. */
 export const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)

@@ -3,7 +3,7 @@ import { clamp, gaussRng, parkMiller, wrapPi } from '../common'
 import { Pose } from '../room'
 import { Mlp, Sample, mlpInit, mlpLoss, mlpOut, mlpTrain } from './net'
 
-export interface TrackPt { x: number; y: number; th: number; s: number; k: number }
+interface TrackPt { x: number; y: number; th: number; s: number; k: number }
 export interface Track { pts: TrackPt[]; length: number; half: number }
 
 /** Peanut loop: r = R (1 + e cos 2φ), driven anticlockwise; its waist bends right. */
@@ -58,7 +58,7 @@ export const FEATURES = IL.rows.length * IL.cells
 export const expertCurv = (s: LaneState) => clamp(s.k - IL.k1 * s.d - IL.k2 * s.psi, -IL.uMax, IL.uMax)
 export const netCurv = (net: Mlp, s: LaneState) => clamp(mlpOut(net, laneFeatures(s))[0] * IL.uMax, -IL.uMax, IL.uMax)
 
-export interface DriveCfg {
+interface DriveCfg {
   /** Floor slip: turn-rate noise σ (rad/s). */
   slip: number
   seed: number

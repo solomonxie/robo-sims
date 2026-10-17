@@ -6,7 +6,7 @@ import { Accel } from '../perception/inference'
 import { ACTIVATIONS, Mlp, Sample, mlpOut } from './net'
 
 /** real ≈ scale · (q − zero), q an integer in qmin…qmax. */
-export interface QParams { scale: number; zero: number; qmin: number; qmax: number }
+interface QParams { scale: number; zero: number; qmin: number; qmax: number }
 
 /** Symmetric: zero = 0, ±max|v| ↦ ±(2^(b−1) − 1). Asymmetric: lo…hi ↦ the full −2^(b−1)…2^(b−1) − 1 (0 stays exact). */
 export function quantParams(lo: number, hi: number, bits: number, symmetric = true): QParams {
@@ -92,7 +92,7 @@ export const mlpMacs = (net: Mlp) => net.reduce((s, L) => s + L.W.length * L.W[0
 export const mlpArena = (net: Mlp, bytes = 1) => bytes * Math.max(...net.map((L) => L.W[0].length + L.W.length))
 
 /** A deployable model: weights, multiply-adds per inference, peak activation memory at int8. */
-export interface TinyModel { name: string; params: number; macs: number; arena: number }
+interface TinyModel { name: string; params: number; macs: number; arena: number }
 /** Rough published sizes. */
 export const TINY_MODELS: Record<string, TinyModel> = {
   kws: { name: 'Keyword spotter (DS-CNN S)', params: 38e3, macs: 5.4e6, arena: 22 * KB },

@@ -1,8 +1,9 @@
 import * as THREE from 'three/webgpu'
 import { Activation, GATES, Mlp, Sample, TOYS, TOY_SPAN, gateSet, mlpAccuracy, mlpField, mlpForward, mlpInit, mlpParams, mlpTrain, perceptronOut, perceptronRun, seededRng, toySet } from '../../core/physics'
+import { pct } from '../../core/units'
 import { createStage } from '../../scene/stage'
-import { CLASS_COLORS, GREY, HIGH_V, LABEL, PLAN_VIEW, POWER, RING, WEIGHT_COLORS, addLabel, classField, cursorBar, liveLabel, memoBy, netDiagram, rodPool, scope } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { CLASS_COLORS, GREY, HIGH_V, LABEL, PLAN_VIEW, POWER, RING, WEIGHT_COLORS, addLabel, classField, cursorBar, lapseClock, liveLabel, memoBy, netDiagram, rodPool, scope } from '../fx'
+import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const NET = { x: -13.8, y: -0.6, w: 6.4, h: 8.5 }
 const FIELD = { x: -1.6, y: -0.4, size: 11 }
@@ -42,17 +43,6 @@ function nnStage(scene: THREE.Scene, lo: number, hi: number, axes: [string, stri
   return { status, sub, field, plot, lines, diagram }
 }
 
-/** Looping replay clock (play, then hold) that restarts when the key changes. */
-function replay(total: number) {
-  const st = { key: '', t: 0 }
-  return (dt: number, key: string) => {
-    if (key !== st.key) [st.key, st.t] = [key, 0]
-    st.t += dt
-    if (st.t > total) st.t = 0
-    return st.t
-  }
-}
-
 const shown = (act: Activation, a: number) => (act === 'sigmoid' ? 2 * a - 1 : act === 'relu' ? Math.min(1, a) : a)
 /** Activations scaled to −1…1 for the diagram (inputs ÷ span). */
 function litActs(net: Mlp, x: readonly number[], span: number) {
@@ -77,8 +67,6 @@ const plotFrame = (scene: THREE.Scene, title: string, left: string, right: strin
   addLabel(scene, top, [WF.x + WF.w / 2 + 0.3, WF.y + WF.h / 2 - 0.2, 0.3], GREY, 0.26, 'left')
 }
 
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
-const pctText = (v: number) => `${Math.round(v * 100)} %`
 
 // --- Perceptron: one neuron with a step output learns AND/OR/NAND by nudging its line; XOR needs a hidden layer. ---
 
@@ -146,7 +134,7 @@ export const neuralNets101Perceptron: Lesson = {
     const topL = liveLabel(scene, [WF.x + WF.w / 2 + 0.3, WF.y + WF.h / 2 - 0.2, 0.3], { size: 0.26, color: GREY, align: 'left' })
     const leftL = liveLabel(scene, [WF.x - WF.w / 2, WF.y - WF.h / 2 - 0.9, 0.3], { size: 0.28, color: GREY, align: 'left' })
     const bias = liveLabel(scene, [NET.x, NET.y - NET.h / 2 - 0.9, 0.3], { size: 0.3, color: GREY })
-    const timer = replay(PLAY + HOLD)
+    const timer = lapseClock(PLAY + HOLD, 1, 0)
     const vals = new Float32Array(TILES * TILES)
     const st = { sig: '' }
     return {
@@ -219,7 +207,7 @@ export const neuralNets101Perceptron: Lesson = {
         topL.set('0.8', GREY)
         const acc = mlpAccuracy(net, R.data)
         const y = mlpForward(net, smp.x).a[2][0]
-        s.lines[0].set(`epoch ${M.nets[k].epoch}: loss ${M.curve[k].train.toFixed(3)}, ${pctText(acc)} right`, acc === 1 ? POWER : RING)
+        s.lines[0].set(`epoch ${M.nets[k].epoch}: loss ${M.curve[k].train.toFixed(3)}, ${pct(acc)} right`, acc === 1 ? POWER : RING)
         s.lines[1].set(`input (${smp.x[0].toFixed(0)}, ${smp.x[1].toFixed(0)}) → y = ${y.toFixed(2)} (target ${smp.t[0]})`, GREY)
         s.lines[2].set(acc === 1 ? 'two lines make a band: solved' : k === M.nets.length - 1 ? 'stuck: try another start' : 'training', acc === 1 ? POWER : k === M.nets.length - 1 ? HIGH_V : RING)
         s.status.set(`2-2-1 net · ${GATES[q.gate]} · start #${q.seed}`, LABEL)
@@ -232,7 +220,7 @@ export const neuralNets101Perceptron: Lesson = {
           const M = R.mlp!
           const acc = mlpAccuracy(M.net, R.data)
           return [
-            { label: 'Accuracy after 400 epochs', value: pctText(acc), tone: toneOf(acc === 1, acc >= 0.75) },
+            { label: 'Accuracy after 400 epochs', value: pct(acc), tone: toneOf(acc === 1, acc >= 0.75) },
             { label: 'Final loss', value: M.curve[M.curve.length - 1].train.toFixed(3) },
             { label: 'Weights + biases', value: `${mlpParams(M.net)}` },
             { label: 'Perceptron on the same data', value: R.run.converged === null ? 'never settles' : `${R.run.converged + 1} passes` },
@@ -302,7 +290,7 @@ export const neuralNets101GradientDescent: Lesson = {
     plotFrame(scene, 'training loss (log: 0.001 … 10)', 'epoch 0', `${GD_EPOCHS}`, '10')
     s.plot.level(GREY).set(-WF.h / 2 + logY(Math.LN2) * WF.h)
     addLabel(scene, 'guessing (0.69)', [WF.x + WF.w / 2 + 0.3, WF.y - WF.h / 2 + logY(Math.LN2) * WF.h, 0.3], GREY, 0.24, 'left')
-    const timer = replay(PLAY + HOLD)
+    const timer = lapseClock(PLAY + HOLD, 1, 0)
     const st = { key: '', k: -1, probe: -1 }
     return {
       scene,
@@ -327,7 +315,7 @@ export const neuralNets101GradientDescent: Lesson = {
         s.diagram([2, q.hidden, 1]).set(net, litActs(net, smp.x, TOY_SPAN))
         const c = R.curve[k]
         const acc = mlpAccuracy(net, R.data)
-        s.lines[0].set(`epoch ${c.epoch}: loss ${Number.isFinite(c.train) ? c.train.toFixed(3) : '∞'}, ${pctText(acc)} right`, acc > 0.97 ? POWER : acc > 0.8 ? RING : HIGH_V)
+        s.lines[0].set(`epoch ${c.epoch}: loss ${Number.isFinite(c.train) ? c.train.toFixed(3) : '∞'}, ${pct(acc)} right`, acc > 0.97 ? POWER : acc > 0.8 ? RING : HIGH_V)
         s.lines[1].set(`slope size |∂L/∂w| = ${Number.isFinite(c.grad) ? c.grad.toFixed(3) : '∞'} · step η = ${q.lr.toPrecision(2)}`, GREY)
         s.lines[2].set(VERDICTS[R.verdict], R.verdict === 'converged' ? POWER : R.verdict === 'diverged' ? HIGH_V : RING)
         s.status.set(`Gradient descent · ${TOYS[q.toy].toLowerCase()} · 2-${q.hidden}-1, ${q.act}`, LABEL)
@@ -337,7 +325,7 @@ export const neuralNets101GradientDescent: Lesson = {
         const R = gdRun(gdParams(p))
         return [
           { label: 'Final loss', value: Number.isFinite(R.last.train) ? R.last.train.toFixed(3) : '∞', tone: toneOf(R.last.train < 0.1, R.last.train < 0.4) },
-          { label: 'Accuracy', value: pctText(R.acc), tone: toneOf(R.acc > 0.97, R.acc > 0.8) },
+          { label: 'Accuracy', value: pct(R.acc), tone: toneOf(R.acc > 0.97, R.acc > 0.8) },
           { label: 'Training', value: R.verdict, tone: R.verdict === 'converged' ? 'ok' : R.verdict === 'diverged' ? 'bad' : 'warn' },
           { label: 'Weights + biases', value: `${mlpParams(R.net)}` },
         ]
@@ -393,7 +381,7 @@ export const neuralNets101Overfitting: Lesson = {
     const heldTr = s.plot.trace(HIGH_V, { samples: 100, radius: 0.08 })
     const bestBar = cursorBar(s.plot, POWER, 0.08)
     plotFrame(scene, 'cross-entropy: training · held-out', 'epoch 0', `${OF_EPOCHS}`, `${OF_TOP}`)
-    const timer = replay(PLAY + HOLD)
+    const timer = lapseClock(PLAY + HOLD, 1, 0)
     const st = { key: '', k: -1, probe: -1 }
     return {
       scene,
@@ -423,7 +411,7 @@ export const neuralNets101Overfitting: Lesson = {
         const accH = mlpAccuracy(net, OF_HELD)
         const gap = c.val - c.train
         s.lines[0].set(`epoch ${c.epoch}: training loss ${c.train.toFixed(3)}, held-out ${c.val.toFixed(3)}`, gap > 0.25 ? HIGH_V : gap > 0.1 ? RING : POWER)
-        s.lines[1].set(`right: ${pctText(accT)} of training, ${pctText(accH)} of held-out`, GREY)
+        s.lines[1].set(`right: ${pct(accT)} of training, ${pct(accH)} of held-out`, GREY)
         s.lines[2].set(k > R.best && c.val > R.curve[R.best].val + 0.05 ? `past the best (epoch ${R.curve[R.best].epoch}): now fitting noise` : 'held-out loss still falling: learning the shape', k > R.best && c.val > R.curve[R.best].val + 0.05 ? HIGH_V : POWER)
         s.status.set(`Overfitting · ${q.pts} training points · 2-${q.hidden}-1 (${mlpParams(net)} weights)${q.l2 ? ` · λ ${q.l2}` : ''}`, LABEL)
         s.sub.set(`noisy two moons · ${OF_VAL} held-out points never trained on · ${OF_EPOCHS} epochs in ${PLAY} s`)
@@ -432,10 +420,10 @@ export const neuralNets101Overfitting: Lesson = {
         const R = ofRun(ofParams(p))
         const gap = R.last.val - R.last.train
         return [
-          { label: 'Right on training / held-out', value: `${pctText(R.accTrain)} / ${pctText(R.accHeld)}`, tone: toneOf(R.accTrain - R.accHeld < 0.05, R.accTrain - R.accHeld < 0.12) },
+          { label: 'Right on training / held-out', value: `${pct(R.accTrain)} / ${pct(R.accHeld)}`, tone: toneOf(R.accTrain - R.accHeld < 0.05, R.accTrain - R.accHeld < 0.12) },
           { label: 'Loss gap at the end', value: gap.toFixed(2), tone: toneOf(gap < 0.1, gap < 0.3) },
           { label: 'Best held-out epoch', value: `${R.curve[R.best].epoch}` },
-          { label: 'Held-out if stopped there', value: pctText(R.accBest) },
+          { label: 'Held-out if stopped there', value: pct(R.accBest) },
         ]
       },
     }

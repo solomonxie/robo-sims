@@ -9,9 +9,10 @@ export const G = 9.81
 export const weightN = (kg: number) => kg * G
 export const DEG = Math.PI / 180
 export const toDeg = (rad: number) => rad / DEG
+export const mean = (xs: readonly number[]) => xs.reduce((a, x) => a + x, 0) / xs.length
 /** Population standard deviation. */
 export const stdDev = (xs: readonly number[]) => {
-  const m = xs.reduce((a, x) => a + x, 0) / xs.length
+  const m = mean(xs)
   return Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / xs.length)
 }
 
@@ -20,6 +21,12 @@ export const clamp01 = (x: number) => clamp(x, 0, 1)
 
 /** Sample of a fixed-step run (`dt` apart) at time `t`, held at the ends. */
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]
+
+/** Computes `f` on first call, then returns the cached value. */
+export const once = <T>(f: () => T) => {
+  let v: T | undefined
+  return () => (v ??= f())
+}
 
 const TAU = 2 * Math.PI
 export const frac = (x: number) => x - Math.floor(x)

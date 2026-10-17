@@ -4,14 +4,13 @@ import { pct } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { GREY, GW_COLORS, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, floorView, gridWorldBoard, liveLabel, memoBy, scope, statusHeader, valueTint } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-0.6, 1.2, 0] as V3, radius: 62, polar: Math.PI / 2, azimuth: 0 }
 const STEP_S = 0.45
 const HOLD_S = 1.4
 const SHOW_STEPS = 40
 const ARROWS = ['↑', '→', '↓', '←']
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
 const signed = (v: number, d = 1) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(d)}`
 
 function board(scene: THREE.Scene, world: GridWorld, numberSize = 0) {

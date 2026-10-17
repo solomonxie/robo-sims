@@ -1,17 +1,16 @@
 import * as THREE from 'three/webgpu'
 import {
   ACCELERATORS, FEATURE_MACS, FEATURE_NAMES, FIRMWARE_FLASH, FLASH_BUDGET, GESTURES, GESTURE_KEYS, IMU_HZ, Mlp, QGrain, SRAM_BUDGET, SYSTEM_SRAM, TINY_MODELS, WINDOW_N,
-  actRanges, argmax, confusion, confusionAccuracy, deployCost, gestureFeatures, gestureNet, gestureSet, gestureWindow, mlpArena, mlpForward, mlpInit, mlpMacs, mlpOut, mlpOutQ, mlpParams, mlpTrain,
-  quantizeMlp, spanHistogram, toySet,
+  actRanges, argmax, confusion, confusionAccuracy, deployCost, gestureFeatures, gestureNet, gestureSet, gestureWindow, mlpAccuracy, mlpArena, mlpForward, mlpInit, mlpMacs, mlpOut, mlpOutQ, mlpParams, mlpTrain,
+  once, quantizeMlp, spanHistogram, TOY_SPAN, toySet,
 } from '../../core/physics'
 import { bytesText, msText, pct } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { CLASS_COLORS, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, WEIGHT_COLORS, addLabel, classField, countBars, esp32Board, histChart, liveLabel, memoBy, memoryMap, netDiagram, scope, statusHeader } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-0.6, 1.4, 0] as V3, radius: 64, polar: Math.PI / 2, azimuth: 0 }
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
 const usText = (s: number) => (s < 1e-3 ? `${+(s * 1e6).toFixed(s < 1e-5 ? 1 : 0)} µs` : s < 1 ? msText(s) : `${+s.toFixed(1)} s`)
 const SIGN_RGB = { pos: [0.3, 0.65, 1] as [number, number, number], neg: [1, 0.42, 0.35] as [number, number, number] }
 const CHIPS = { esp32: ACCELERATORS.esp32, esp32s3: ACCELERATORS.esp32s3 }
@@ -30,19 +29,14 @@ function deployPanel(scene: THREE.Scene, memRows: string[], timeRows: string[], 
 const QZ_GRAINS = { channel: 'One scale per neuron', tensor: 'One scale per layer' }
 const QZ_MODELS = { kws: 'Keyword spotter', person: 'Person detector 96 × 96', mobilenet: 'MobileNet v2 224' }
 const QZ_DATA = toySet('moons', 200, 0.12, 3)
-const QZ_SPAN = 1.7
 const QZ_BINS = 48
 const QZ_TILES = 30
-const lazy = <T>(f: () => T) => {
-  let v: T | undefined
-  return () => (v ??= f())
-}
-const qzBase = lazy(() => {
+const qzBase = once(() => {
     const net = mlpTrain(mlpInit([2, 10, 10, 1], ['tanh', 'tanh', 'sigmoid'], 4), QZ_DATA, { lr: 0.3, epochs: 150, batch: 20, loss: 'bce', l2: 0.002, snaps: 2 }).net
     const weights = net.flatMap((L) => L.W.flat())
     const wm = Math.max(...weights.map(Math.abs))
     const acc = (f: (x: number[]) => number) => QZ_DATA.filter((d) => f(d.x) > 0.5 === d.t[0] > 0.5).length / QZ_DATA.length
-    return { net, weights, wm, ranges: actRanges(net, QZ_DATA), hist: spanHistogram(weights, -wm, wm, QZ_BINS), accF: acc((x) => mlpOut(net, x)[0]), acc }
+    return { net, weights, wm, ranges: actRanges(net, QZ_DATA), hist: spanHistogram(weights, -wm, wm, QZ_BINS), accF: mlpAccuracy(net, QZ_DATA), acc }
 })
 const qzParams = (p: Params) => ({ bits: n(p, 'bits'), grain: pick(QZ_GRAINS, p.grain, 'channel') as QGrain, model: pick(QZ_MODELS, p.model, 'person') })
 type QzQ = ReturnType<typeof qzParams>
@@ -53,7 +47,7 @@ const qzRun = memoBy(
     const Q = quantizeMlp(B.net, q.bits, q.grain)
     const out = (x: number[]) => mlpOutQ(Q.net, x, B.ranges, 8)[0]
     const field = new Float32Array(QZ_TILES * QZ_TILES)
-    for (let r = 0; r < QZ_TILES; r++) for (let c = 0; c < QZ_TILES; c++) field[r * QZ_TILES + c] = out([-QZ_SPAN + ((c + 0.5) / QZ_TILES) * 2 * QZ_SPAN, QZ_SPAN - ((r + 0.5) / QZ_TILES) * 2 * QZ_SPAN])
+    for (let r = 0; r < QZ_TILES; r++) for (let c = 0; c < QZ_TILES; c++) field[r * QZ_TILES + c] = out([-TOY_SPAN + ((c + 0.5) / QZ_TILES) * 2 * TOY_SPAN, TOY_SPAN - ((r + 0.5) / QZ_TILES) * 2 * TOY_SPAN])
     const qw = Q.net.flatMap((L) => L.W.flat())
     const levels = new Set(qw.map((v) => v.toFixed(6))).size
     const flips = QZ_DATA.filter((d) => out(d.x) > 0.5 !== mlpOut(B.net, d.x)[0] > 0.5).length
@@ -99,7 +93,7 @@ export const tinymlQuantization: Lesson = {
     addLabel(net.group, 'x2', [net.pos(0, 1)[0] - 0.7, net.pos(0, 1)[1], 0], LABEL, 0.3)
     addLabel(net.group, 'y', [net.pos(3, 0)[0] + 0.6, net.pos(3, 0)[1], 0], LABEL, 0.3)
     addLabel(scene, 'weights of the quantized net', [-13.4, -4.4, 0.3], GREY, 0.26)
-    const field = classField(scene, [-2.4, -0.2, 0], QZ_TILES, 7.4, -QZ_SPAN, QZ_SPAN, 220)
+    const field = classField(scene, [-2.4, -0.2, 0], QZ_TILES, 7.4, -TOY_SPAN, TOY_SPAN, 220)
     const fieldTag = liveLabel(scene, [-2.4, 4.0, 0.3], { size: 0.28 })
     const H = { x: 5.4, w: 10.4, h: 2.0 }
     const B = qzBase()
@@ -192,7 +186,7 @@ const grWindow = memoBy(
     return { w, x, a, out: a[a.length - 1], k: argmax(a[a.length - 1]) }
   },
 )
-const grCost = lazy(() => {
+const grCost = once(() => {
   const net: Mlp = gestureNet(0.05).net
   const macs = mlpMacs(net)
   const params = mlpParams(net)

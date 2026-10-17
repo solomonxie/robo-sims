@@ -11,11 +11,11 @@ export const ACTIVATIONS: Record<Activation, { f: (z: number) => number; df: (z:
 }
 
 /** W[j][i]: input i → neuron j. */
-export interface Dense { W: number[][]; b: number[]; act: Activation }
+interface Dense { W: number[][]; b: number[]; act: Activation }
 export type Mlp = Dense[]
 export type LossKind = 'mse' | 'bce'
 export interface Sample { x: number[]; t: number[] }
-export interface MlpGrads { gW: number[][][]; gb: number[][] }
+interface MlpGrads { gW: number[][][]; gb: number[][] }
 
 /** Gaussian weights, std √(1/fan-in) (√(2/fan-in) for ReLU), zero biases. */
 export function mlpInit(sizes: readonly number[], acts: readonly Activation[], seed = 1): Mlp {
@@ -26,8 +26,8 @@ export function mlpInit(sizes: readonly number[], acts: readonly Activation[], s
   })
 }
 
-export const mlpClone = (net: Mlp): Mlp => net.map((L) => ({ act: L.act, W: L.W.map((r) => r.slice()), b: L.b.slice() }))
-export const mlpSizes = (net: Mlp) => [net[0].W[0].length, ...net.map((L) => L.b.length)]
+const mlpClone = (net: Mlp): Mlp => net.map((L) => ({ act: L.act, W: L.W.map((r) => r.slice()), b: L.b.slice() }))
+const mlpSizes = (net: Mlp) => [net[0].W[0].length, ...net.map((L) => L.b.length)]
 export const mlpParams = (net: Mlp) => net.reduce((s, L) => s + L.b.length * (L.W[0].length + 1), 0)
 
 /** Pre-activations z[l] and activations a[l] (a[0] = input). */
@@ -124,7 +124,10 @@ export function mlpLoss(net: Mlp, data: readonly Sample[], kind: LossKind, l2 = 
 const weightSq = (net: Mlp) => net.reduce((s, L) => s + L.W.reduce((q, r) => q + r.reduce((u, w) => u + w * w, 0), 0), 0)
 
 /** Mean gradient over a batch (+ l2·W) and the mean loss; same maths as `mlpGrads`, on flat buffers for speed. */
-export function mlpBatchGrads(net: Mlp, batch: readonly Sample[], kind: LossKind, l2 = 0) {
+export const mlpBatchGrads = (net: Mlp, batch: readonly Sample[], kind: LossKind, l2 = 0) => batchPass(net, batch, kind, l2, true)
+
+/** Forward (and with `grads`, backward) pass over a batch; without `grads` only the loss is filled in. */
+function batchPass(net: Mlp, batch: readonly Sample[], kind: LossKind, l2: number, grads: boolean): MlpGrads & { loss: number } {
   const sizes = mlpSizes(net)
   const nL = net.length
   const Wf = net.map((L) => Float64Array.from(L.W.flat()))
@@ -159,8 +162,9 @@ export function mlpBatchGrads(net: Mlp, batch: readonly Sample[], kind: LossKind
       const yk = y[k]
       const tk = d.t[k]
       loss += kind === 'mse' ? 0.5 * (yk - tk) ** 2 : -(tk * Math.log(Math.max(EPS, yk)) + (1 - tk) * Math.log(Math.max(EPS, 1 - yk)))
-      dOut[k] = fast ? yk - tk : (kind === 'mse' ? yk - tk : (yk - tk) / Math.max(EPS, yk * (1 - yk))) * ACTIVATIONS[net[nL - 1].act].df(z[nL][k], yk)
+      if (grads) dOut[k] = fast ? yk - tk : (kind === 'mse' ? yk - tk : (yk - tk) / Math.max(EPS, yk * (1 - yk))) * ACTIVATIONS[net[nL - 1].act].df(z[nL][k], yk)
     }
+    if (!grads) continue
     for (let l = nL - 1; l >= 0; l--) {
       const inp = a[l]
       const dd = dl[l + 1]
@@ -184,9 +188,11 @@ export function mlpBatchGrads(net: Mlp, batch: readonly Sample[], kind: LossKind
     }
   }
   const k = 1 / Math.max(1, batch.length)
+  const reg = l2 ? 0.5 * l2 * weightSq(net) : 0
+  if (!grads) return { gW: [], gb: [], loss: loss * k + reg }
   const gW = net.map((L, l) => L.W.map((r, j) => r.map((w, i) => gWf[l][j * r.length + i] * k + l2 * w)))
   const gb = gbf.map((g) => Array.from(g, (v) => v * k))
-  return { gW, gb, loss: loss * k + (l2 ? 0.5 * l2 * weightSq(net) : 0) }
+  return { gW, gb, loss: loss * k + reg }
 }
 
 function activate(act: Activation, z: Float64Array, a: Float64Array) {
@@ -200,13 +206,13 @@ function slope(act: Activation, z: Float64Array, a: Float64Array, d: Float64Arra
 }
 
 /** w ← w − lr·g (new net). */
-export const mlpStep = (net: Mlp, g: MlpGrads, lr: number): Mlp =>
+const mlpStep = (net: Mlp, g: MlpGrads, lr: number): Mlp =>
   net.map((L, l) => ({ act: L.act, W: L.W.map((r, j) => r.map((w, i) => w - lr * g.gW[l][j][i])), b: L.b.map((b, j) => b - lr * g.gb[l][j]) }))
 
-export const gradNorm = (g: MlpGrads) => Math.sqrt(g.gW.reduce((s, m) => s + m.reduce((q, r) => q + r.reduce((u, v) => u + v * v, 0), 0), 0) + g.gb.reduce((s, r) => s + r.reduce((u, v) => u + v * v, 0), 0))
+const gradNorm = (g: MlpGrads) => Math.sqrt(g.gW.reduce((s, m) => s + m.reduce((q, r) => q + r.reduce((u, v) => u + v * v, 0), 0), 0) + g.gb.reduce((s, r) => s + r.reduce((u, v) => u + v * v, 0), 0))
 
-export interface TrainOpts { lr: number; epochs: number; loss: LossKind; l2?: number; batch?: number; seed?: number; val?: readonly Sample[]; snaps?: number }
-export interface TrainPoint { epoch: number; train: number; val: number; grad: number }
+interface TrainOpts { lr: number; epochs: number; loss: LossKind; l2?: number; batch?: number; seed?: number; val?: readonly Sample[]; snaps?: number }
+interface TrainPoint { epoch: number; train: number; val: number; grad: number }
 
 /** Gradient descent: full batch, or shuffled mini-batches of `batch`. Records the curve and `snaps` evenly spaced nets (epoch 0 first). */
 export function mlpTrain(net0: Mlp, data: readonly Sample[], o: TrainOpts) {
@@ -218,8 +224,9 @@ export function mlpTrain(net0: Mlp, data: readonly Sample[], o: TrainOpts) {
   const curve: TrainPoint[] = []
   const nets: { epoch: number; net: Mlp }[] = []
   for (let e = 0; e <= epochs; e++) {
-    const full = mlpBatchGrads(net, data, loss, l2)
-    if (e % every === 0 || e === epochs) {
+    const record = e % every === 0 || e === epochs
+    const full = batchPass(net, data, loss, l2, record || batch >= data.length)
+    if (record) {
       curve.push({ epoch: e, train: full.loss, val: val ? mlpLoss(net, val, loss) : NaN, grad: gradNorm(full) })
       nets.push({ epoch: e, net })
     }
@@ -247,3 +254,20 @@ export function mlpField(net: Mlp, n: number, lo: number, hi: number) {
     for (let c = 0; c < n; c++) out[r * n + c] = mlpOut(net, [lo + ((c + 0.5) / n) * (hi - lo), hi - ((r + 0.5) / n) * (hi - lo)])[0]
   return out
 }
+
+export const classTarget = (k: number, n: number) => Array.from({ length: n }, (_, i) => (i === k ? 1 : 0))
+
+export function argmax(xs: ArrayLike<number>) {
+  let k = 0
+  for (let i = 1; i < xs.length; i++) if (xs[i] > xs[k]) k = i
+  return k
+}
+
+/** Rows = true class, columns = predicted (by `predict`, default the float forward pass). */
+export function confusion(net: Mlp, data: readonly Sample[], predict: (x: number[]) => ArrayLike<number> = (x) => mlpOut(net, x)) {
+  const n = data[0].t.length
+  const m = Array.from({ length: n }, () => new Array<number>(n).fill(0))
+  for (const d of data) m[argmax(d.t)][argmax(predict(d.x))]++
+  return m
+}
+export const confusionAccuracy = (m: number[][]) => m.reduce((s, r, i) => s + r[i], 0) / Math.max(1, m.flat().reduce((s, v) => s + v, 0))

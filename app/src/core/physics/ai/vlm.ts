@@ -3,10 +3,10 @@ import { DEG, clamp, hash01 } from '../common'
 import { servoArmIk } from '../kinematics/ik'
 import { P3 } from '../room'
 
-export const VLM_COLORS = ['red', 'yellow', 'green', 'blue'] as const
-export const VLM_KINDS = ['cup', 'block', 'ball'] as const
-export type VlmColor = (typeof VLM_COLORS)[number]
-export type VlmKind = (typeof VLM_KINDS)[number]
+const VLM_COLORS = ['red', 'yellow', 'green', 'blue'] as const
+const VLM_KINDS = ['cup', 'block', 'ball'] as const
+type VlmColor = (typeof VLM_COLORS)[number]
+type VlmKind = (typeof VLM_KINDS)[number]
 export const VLM_CONCEPTS = [...VLM_COLORS, ...VLM_KINDS]
 const HUE: Record<VlmColor, number> = { red: 0, yellow: 55, green: 125, blue: 220 }
 const KIND_H: Record<VlmKind, number> = { cup: 0.045, block: 0.032, ball: 0.036 }
@@ -24,7 +24,7 @@ export const VLM_OBJS: DeskObj[] = [
   obj(6, 'blue', 'ball', 0.3, -0.09),
 ]
 export const VLM_PLACES = { tray: { x: 0.03, y: 0.205, half: 0.035 }, bin: { x: 0.03, y: -0.205, half: 0.035 } }
-export type VlmPlace = keyof typeof VLM_PLACES
+type VlmPlace = keyof typeof VLM_PLACES
 export const objName = (o: DeskObj) => `${o.color} ${o.kind}`
 
 const angDiff = (a: number, b: number) => ((((a - b) % 360) + 540) % 360) - 180
@@ -51,7 +51,7 @@ export function seeDesk(objs: readonly DeskObj[], lamp: number, seed = 1): Sight
 
 const WORDS: Record<string, number> = { red: 0, yellow: 1, green: 2, blue: 3, cup: 4, mug: 4, cups: 4, block: 5, cube: 5, blocks: 5, ball: 6, balls: 6 }
 const STOP = new Set(['the', 'a', 'an', 'one', 'of', 'to', 'both', 'all'])
-export interface TextEmb { words: string[]; known: string[]; unknown: string[]; vec: number[] }
+interface TextEmb { words: string[]; known: string[]; unknown: string[]; vec: number[] }
 /** Toy text encoder: bag of known words → unit 7-vector; unknown words are dropped. */
 export function embedText(phrase: string): TextEmb {
   const words = phrase.toLowerCase().split(/\s+/).filter((w) => w && !STOP.has(w))
@@ -67,9 +67,9 @@ export function embedText(phrase: string): TextEmb {
   return { words, known, unknown, vec: unit(v) }
 }
 
-export type VlmRel = 'left' | 'right'
-export interface RefPhrase { target: TextEmb; rel: VlmRel | null; anchor: TextEmb | null }
-export function parseRef(text: string): RefPhrase {
+type VlmRel = 'left' | 'right'
+interface RefPhrase { target: TextEmb; rel: VlmRel | null; anchor: TextEmb | null }
+function parseRef(text: string): RefPhrase {
   const m = text.toLowerCase().match(/^(.*?)\s+(left|right)\s+of\s+(.*)$/)
   return m ? { target: embedText(m[1]), rel: m[2] as VlmRel, anchor: embedText(m[3]) } : { target: embedText(text), rel: null, anchor: null }
 }
@@ -101,9 +101,9 @@ export function groundRef(text: string, sights: readonly Sighting[], speaker: Sp
 
 // --- Task planning: template parse → step list → checks on a symbolic desk → execution with verification and replanning. ---
 
-export type StepOp = 'find' | 'pick' | 'place'
-export interface PlanStep { op: StepOp; obj: number; dest: VlmPlace | number; text: string }
-export interface PlanIssue { step: number; why: string }
+type StepOp = 'find' | 'pick' | 'place'
+interface PlanStep { op: StepOp; obj: number; dest: VlmPlace | number; text: string }
+interface PlanIssue { step: number; why: string }
 export interface Plan { steps: PlanStep[]; issues: PlanIssue[]; groundings: Grounding[]; goal: { obj: number; dest: VlmPlace | number }[] }
 
 export const ARM_HOME: P3 = [0.12, 0, 0.11]
@@ -161,7 +161,7 @@ export function planTask(command: string, objs: readonly DeskObj[], sights: read
 }
 
 /** Resting spot for an object placed at `dest`, given how many are already there. */
-export function placeSpot(dest: VlmPlace | number, objs: readonly DeskObj[], slot: number, pos: readonly P3[]): P3 {
+function placeSpot(dest: VlmPlace | number, objs: readonly DeskObj[], slot: number, pos: readonly P3[]): P3 {
   if (typeof dest === 'number') {
     const b = pos[dest]
     return [b[0], b[1], b[2] + objs[dest].h]
@@ -171,7 +171,7 @@ export function placeSpot(dest: VlmPlace | number, objs: readonly DeskObj[], slo
 }
 
 /** Preconditions on the symbolic desk: reach (top-down IK within servo limits), hand empty/full, stack base is a free block. */
-export function checkPlan(steps: readonly PlanStep[], objs: readonly DeskObj[]): PlanIssue[] {
+function checkPlan(steps: readonly PlanStep[], objs: readonly DeskObj[]): PlanIssue[] {
   const out: PlanIssue[] = []
   let held: number | null = null
   const used = new Set<number>()
@@ -194,8 +194,8 @@ export function checkPlan(steps: readonly PlanStep[], objs: readonly DeskObj[]):
 }
 
 export type PlanSurprise = 'none' | 'slip' | 'moved'
-export interface RunFrame { t: number; hand: P3; grip: number; q: number[]; pos: P3[]; step: number }
-export interface StepLog { step: number; text: string; status: 'done' | 'failed' | 'redo'; note: string; t: number }
+interface RunFrame { t: number; hand: P3; grip: number; q: number[]; pos: P3[]; step: number }
+interface StepLog { step: number; text: string; status: 'done' | 'failed' | 'redo'; note: string; t: number }
 export interface PlanRun { frames: RunFrame[]; log: StepLog[]; ok: boolean; replans: number; duration: number }
 export const RUN = { dt: 0.05, speed: 0.12, grip: 0.5, lift: 0.04 }
 
@@ -301,7 +301,7 @@ export function runPlan(plan: Plan, objs: readonly DeskObj[], surprise: PlanSurp
 }
 
 /** Goal check from object positions. */
-export function inPlace(p: P3, dest: VlmPlace | number, pos: readonly P3[]) {
+function inPlace(p: P3, dest: VlmPlace | number, pos: readonly P3[]) {
   if (typeof dest === 'number') return Math.hypot(p[0] - pos[dest][0], p[1] - pos[dest][1]) < 0.01 && p[2] > 0.01
   const d = VLM_PLACES[dest]
   return Math.abs(p[0] - d.x) < d.half && Math.abs(p[1] - d.y) < d.half

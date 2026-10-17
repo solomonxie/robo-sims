@@ -10,10 +10,9 @@ import { createStage } from '../../scene/stage'
 import {
   DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, cursorBar, diffBot, flatBox, floorMat, floorView, glideAngle, glowMat, liveLabel, memoBy, pixelGrid, scope, setGlow, statusHeader,
 } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-0.6, -0.4, 0] as V3, radius: 62, polar: Math.PI / 2, azimuth: 0 }
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
 const WAVE_C = DATA_COLOR
 const ESP = ACCELERATORS.esp32
 const dbText = (v: number) => `${v} dB`

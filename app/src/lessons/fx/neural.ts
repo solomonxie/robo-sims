@@ -67,7 +67,7 @@ export function netDiagram(parent: THREE.Object3D, sizes: readonly number[], at:
 }
 
 /** Tile colour for a class probability p: purple (0) ↔ yellow (1), dark near 0.5, a pale seam on the boundary. */
-export function classTint(p: number, out: [number, number, number] = [0, 0, 0]) {
+function classTint(p: number, out: [number, number, number] = [0, 0, 0]) {
   const c = p >= 0.5 ? [1, 0.85, 0.3] : [0.7, 0.55, 1]
   const k = 0.08 + 0.3 * Math.min(1, Math.abs(p - 0.5) * 2.4)
   const seam = Math.abs(p - 0.5) < 0.04 ? 0.3 : 0

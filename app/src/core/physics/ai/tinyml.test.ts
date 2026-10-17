@@ -1,9 +1,9 @@
 import { ACCELERATORS } from '../perception/inference'
 import { KB } from '../mcu/memory'
-import { Mlp, mlpInit, mlpOut } from './net'
+import { Mlp, argmax, confusion, confusionAccuracy, mlpInit, mlpOut } from './net'
 import { toySet } from './data'
 import { FIRMWARE_FLASH, SYSTEM_SRAM, TINY_MODELS, actRanges, deployCost, dequantizeQ, fakeQuant, intDot, mlpArena, mlpMacs, mlpOutQ, quantParams, quantizeMlp, quantizeQ, spanHistogram } from './tinyml'
-import { FEATURE_MACS, GESTURE_KEYS, argmax, confusion, confusionAccuracy, gestureFeatures, gestureNet, gestureSet, gestureWindow } from './gesture'
+import { FEATURE_MACS, GESTURE_KEYS, gestureFeatures, gestureNet, gestureSet, gestureWindow } from './gesture'
 
 describe('quantization', () => {
   it('symmetric int8: scale = max|v| / 127, zero 0', () => {

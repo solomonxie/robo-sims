@@ -1,7 +1,8 @@
 import {
   BANDS, FRAME_S, SPEECH_FEATURES, SPEECH_HZ, SPEECH_RMS, STEP_M, TURN_RAD, WAKE_WORD, findWords, hearWords, intentMotion, kwsDetect, kwsLabel, kwsStream, kwsTradeoff,
-  mixAudio, parseCommand, roomNoise, sayCommand, sayWord, spectrogram, voiceOf, windowFeatures, wordSeconds,
+  mixAudio, parseCommand, roomNoise, sayCommand, sayWord, spectrogram, trainCmdNet, trainKwsNet, voiceOf, windowFeatures, wordSeconds,
 } from './speech'
+import { SPEECH_NETS } from './speechNets'
 
 const rms = (xs: number[]) => Math.sqrt(xs.reduce((s, x) => s + x * x, 0) / xs.length)
 const bandMeans = (xs: number[]) => {
@@ -102,5 +103,11 @@ describe('voice commands', () => {
     expect(intentMotion({ action: 'right', amount: 1 })).toEqual({ dist: 0, turn: -TURN_RAD })
     expect(intentMotion({ action: 'stop', amount: 1 })).toEqual({ dist: 0, turn: 0 })
     expect(intentMotion(null)).toEqual({ dist: 0, turn: 0 })
+  })
+})
+
+describe('baked speech nets', () => {
+  it('equal a fresh training run (else run tools/bake-speech-nets.mjs)', () => {
+    expect(SPEECH_NETS).toEqual({ kws: trainKwsNet(), cmd: trainCmdNet() })
   })
 })

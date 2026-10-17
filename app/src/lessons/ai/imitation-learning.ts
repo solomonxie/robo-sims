@@ -1,16 +1,15 @@
 import * as THREE from 'three/webgpu'
 import {
-  Collect, CollectRound, DEMO_SLIP, DriveStep, IL, LaneState, Track, demoLaps, expertCurv, firstRound, imitationGap, laneDrive, laneFeatures, laneScore, lineAt, netCurv, nextRound,
-  peanutTrack, toSamples, clonePolicy, Pose,
+  Collect, DEMO_SLIP, DriveStep, IL, LaneState, Track, demoLaps, expertCurv, firstRound, imitationGap, laneDrive, laneFeatures, laneScore, lineAt, netCurv, nextRound,
+  once, peanutTrack, toSamples, clonePolicy, Pose,
 } from '../../core/physics'
 import { pct } from '../../core/units'
 import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { DATA_COLOR, ELECTRON, GREY, HEAT, HIGH_V, LABEL, POWER, addLabel, chordPath, countBars, diffBot, flatBox, floorView, glowMat, liveLabel, memoBy, pointCloud, setGlow, statusHeader } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { DATA_COLOR, ELECTRON, GREY, HEAT, HIGH_V, LABEL, POWER, addLabel, chordPath, countBars, diffBot, flatBox, floorView, glowMat, liveLabel, memoBy, pointCloud, setGlow, simClock, statusHeader } from '../fx'
+import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-0.6, 1.0, 0] as V3, radius: 62, polar: Math.PI / 2, azimuth: 0 }
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
 const TRACK = peanutTrack()
 const TESTS = 4
 const SPEEDUP = 2
@@ -53,18 +52,6 @@ function trackStage(scene: THREE.Scene, pathColor = DEMO_C) {
   const crash = add(g, mesh(new THREE.TorusGeometry(0.14, 0.014, 8, 24), glowMat(HIGH_V, 1.2)))
   const tag = liveLabel(scene, [-8.0, -6.6, 3], { size: 0.3 })
   return { demoPath, clonePath, ghost, bot, crash, tag }
-}
-
-/** Plays a test drive at SPEEDUP× with a hold at the end; returns the step index. */
-function playClock() {
-  const s = { key: '', t: 0 }
-  return (dt: number, key: string, steps: number) => {
-    if (key !== s.key) Object.assign(s, { key, t: 0 })
-    s.t += dt
-    const dur = (steps * IL.dt) / SPEEDUP
-    if (s.t > dur + HOLD_S) s.t = 0
-    return Math.min(steps - 1, Math.floor((s.t * SPEEDUP) / IL.dt))
-  }
 }
 
 const SC = { x: 10.8, y: 0.8, half: 2.8, m: 0.13 }
@@ -174,7 +161,7 @@ export const imitationLearningBehaviourCloning: Lesson = {
     const T = trackStage(scene)
     const sc = stateScatter(scene, 1400)
     const cam = cameraPanel(scene, [10.8, -4.4, 0])
-    const clock = playClock()
+    const clock = simClock(IL.dt / SPEEDUP, HOLD_S)
     const st = { key: '', k: -1 }
     return {
       scene,
@@ -184,7 +171,7 @@ export const imitationLearningBehaviourCloning: Lesson = {
         const key = `${q.laps}|${q.slip}`
         const B = bcTrain(q)
         const R = bcTest(q)
-        const k = clock(dt, key, R.run.steps.length)
+        const k = Math.min(R.run.steps.length - 1, Math.floor(clock(dt, key, R.run.steps.length)))
         if (key !== st.key) {
           st.key = key
           st.k = -1
@@ -234,8 +221,7 @@ const DC_HOW: Record<Collect, string> = { more: 'More clean demos', noisy: 'Demo
 const DC_ROUNDS = 6
 const dcParams = (p: Params) => ({ how: pick(DC_HOW, p.how, 'dagger') as Collect, round: n(p, 'round'), slip: n(p, 'slip') })
 type DcQ = ReturnType<typeof dcParams>
-let base: CollectRound | undefined
-const dcBase = () => (base ??= firstRound(TRACK))
+const dcBase = once(() => firstRound(TRACK))
 const dcChain = memoBy(
   (q: DcQ) => `${q.how}|${q.slip}`,
   () => [dcBase()],
@@ -290,7 +276,7 @@ export const imitationLearningDataCollection: Lesson = {
     const sc = stateScatter(scene, 2600)
     const bars = countBars(scene, [9.4, -4.3, 0], Array.from({ length: DC_ROUNDS + 1 }, (_, r) => `round ${r}`), 3.8, { row: 0.48, size: 0.26 })
     addLabel(scene, `clone finishes (${TESTS} test laps)`, [8.2, -3.6, 0.3], GREY, 0.26, 'left')
-    const clock = playClock()
+    const clock = simClock(IL.dt / SPEEDUP, HOLD_S)
     const st = { key: '', k: -1 }
     return {
       scene,
@@ -299,7 +285,7 @@ export const imitationLearningDataCollection: Lesson = {
         const q = dcParams(p)
         const key = `${q.how}|${q.round}|${q.slip}`
         const E = dcEval(q)
-        const k = clock(dt, key, E.run.steps.length)
+        const k = Math.min(E.run.steps.length - 1, Math.floor(clock(dt, key, E.run.steps.length)))
         if (key !== st.key) {
           st.key = key
           st.k = -1

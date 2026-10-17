@@ -3,16 +3,15 @@ import {
   ACCELERATORS, NOMINAL, PINION_TEETH, SHIFT_N, SHIFT_ONSET, SHIFT_SCENES, VIB_BANDS, VIB_EDGES, VIB_FAULTS, VIB_HZ, VIB_N, VIB_WINDOW_S, VibFault, alarmStats,
   learnBaseline, mlpMacs, shiftRun, vibModel, vibRms, vibSpectrum, vibWindow, zScore, zScores,
 } from '../../core/physics'
-import { msText } from '../../core/units'
+import { msText, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, POWER, RING, addLabel, countBars, cursorBar, flatBox, glowMat, i2cBreakout, liveLabel, memoBy, scope, setGlow, statusHeader,
 } from '../fx'
-import { Lesson, Params, Readout, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Readout, Stage, n, opts, pick, toneOf } from '../types'
 
 const VIEW = { center: [-0.6, -0.4, 0] as V3, radius: 62, polar: Math.PI / 2, azimuth: 0 }
-const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? 'ok' : ok ? 'warn' : 'bad')
 const WAVE_C = DATA_COLOR
 const ESP = ACCELERATORS.esp32
 const DFT_MACS = VIB_N * (VIB_N / 2 + 1) * 2
@@ -96,7 +95,7 @@ export const anomalyDetectionVibrationBaselines: Lesson = {
   ],
   controls: [
     { kind: 'choice', key: 'fault', options: opts(VIB_FAULTS), initial: 'healthy' },
-    { kind: 'slider', key: 'sev', label: 'Fault size', min: 0.1, max: 1, step: 0.1, initial: 0.4, format: (v: number) => `${Math.round(v * 100)} %` },
+    { kind: 'slider', key: 'sev', label: 'Fault size', min: 0.1, max: 1, step: 0.1, initial: 0.4, format: pct },
     { kind: 'slider', key: 'rpm', label: 'Motor speed', min: 900, max: 2100, step: 150, initial: 1500, format: rpmText },
     { kind: 'slider', key: 'take', label: 'Window', min: 1, max: 9, step: 1, initial: 1, format: (v: number) => `#${v}` },
   ],

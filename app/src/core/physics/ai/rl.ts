@@ -4,7 +4,7 @@ import { hash01, parkMiller } from '../common'
 const rngOf = (seed: number) => parkMiller(1 + Math.floor(hash01(seed) * 2147483645))
 
 /** '.' floor, '#' wall, 'S' start, 'G' goal, 'P' pit (a drop), 'N' near, small prize; G/P/N end the episode. Rows top first; cell index y·w + x, y up. */
-export type GwCell = '.' | '#' | 'S' | 'G' | 'P' | 'N'
+type GwCell = '.' | '#' | 'S' | 'G' | 'P' | 'N'
 export interface GridWorld {
   w: number
   h: number
@@ -13,7 +13,6 @@ export interface GridWorld {
   reward: { step: number; goal: number; pit: number; near?: number }
 }
 /** Actions 0 N (+y), 1 E (+x), 2 S, 3 W, as navigation/maze `Dir`. */
-export const GW_ACTIONS = [0, 1, 2, 3] as const
 const GDX = [0, 1, 0, -1]
 const GDY = [1, 0, -1, 0]
 
@@ -38,7 +37,7 @@ const arrival = (g: GridWorld, s2: number) => {
   const k = PRIZE[g.cells[s2] as keyof typeof PRIZE]
   return g.reward.step + (k ? (g.reward[k] ?? 0) : 0)
 }
-export type GwEnd = 'goal' | 'pit' | 'near' | 'timeout'
+type GwEnd = 'goal' | 'pit' | 'near' | 'timeout'
 const endOf = (g: GridWorld, s: number): GwEnd => PRIZE[g.cells[s] as keyof typeof PRIZE] ?? 'timeout'
 /** With probability `slip` the wheels skid sideways: half to each perpendicular of the chosen action. */
 export function gwOutcomes(g: GridWorld, s: number, a: number, slip: number) {
@@ -53,7 +52,7 @@ export function gwOutcomes(g: GridWorld, s: number, a: number, slip: number) {
       return { p: o.p, moved: o.a, s2, r: arrival(g, s2), done: isTerminal(g, s2) }
     })
 }
-export function gwStep(g: GridWorld, s: number, a: number, slip: number, rnd: () => number) {
+function gwStep(g: GridWorld, s: number, a: number, slip: number, rnd: () => number) {
   const u = rnd()
   const moved = u < 1 - slip ? a : u < 1 - slip / 2 ? (a + 1) % 4 : (a + 3) % 4
   const s2 = gwMove(g, s, moved)
@@ -94,7 +93,7 @@ export function valueIteration(g: GridWorld, gamma: number, slip: number, tol = 
   return { Q, V: Array.from(V), policy: greedyPolicy(Q), sweeps: sweeps + 1 }
 }
 
-export interface QLearnOpts {
+interface QLearnOpts {
   episodes: number
   alpha: number
   eps: number
