@@ -188,6 +188,7 @@ import { fastenersHeatSetInserts, fastenersMetricSizes, fastenersThreadLocker } 
 import { laserCncAcrylicVsPlywood, laserCncKerf } from '../lessons/materials/laser-cnc'
 import { stressStrainHookesLaw, stressStrainSafetyFactor, stressStrainYieldStrength } from '../lessons/materials/stress-strain'
 import { thermalDesignHeatsinks, thermalDesignMotorHeating } from '../lessons/materials/thermal-design'
+import { howFdmWorksAnatomyOfAPrinter, howFdmWorksCartesianCorexyDelta, howFdmWorksHotendAndExtruder, howFdmWorksLayerByLayer } from '../lessons/printing/how-fdm-works'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -743,6 +744,10 @@ const READY: Record<string, Lesson> = {
   'materials/chassis-design/cable-routing': chassisDesignCableRouting,
   'materials/thermal-design/heatsinks': thermalDesignHeatsinks,
   'materials/thermal-design/motor-heating': thermalDesignMotorHeating,
+  'printing/how-fdm-works/anatomy-of-a-printer': howFdmWorksAnatomyOfAPrinter,
+  'printing/how-fdm-works/hotend-and-extruder': howFdmWorksHotendAndExtruder,
+  'printing/how-fdm-works/layer-by-layer': howFdmWorksLayerByLayer,
+  'printing/how-fdm-works/cartesian-corexy-delta': howFdmWorksCartesianCorexyDelta,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
