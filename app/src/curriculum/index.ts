@@ -192,6 +192,7 @@ import { howFdmWorksAnatomyOfAPrinter, howFdmWorksCartesianCorexyDelta, howFdmWo
 import { otherProcessesChoosingAProcess, otherProcessesSlaAndMslaResin, otherProcessesSlsNylonPowder } from '../lessons/printing/other-processes'
 import { printerMotionAxesAndEndstops, printerMotionBeltsVsLeadScrews, printerMotionInputShaping, printerMotionStepsPerMm } from '../lessons/printing/printer-motion'
 import { filamentsCarbonFibreBlends, filamentsDryingWetFilament, filamentsFlexibleTpu, filamentsGlassTransitionTemp, filamentsMaterialProperties } from '../lessons/printing/filaments'
+import { slicingInfillPatterns, slicingLayerHeight, slicingSeams, slicingStlAnd3mf, slicingSupports, slicingWallsAndPerimeters } from '../lessons/printing/slicing'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -763,6 +764,12 @@ const READY: Record<string, Lesson> = {
   'printing/filaments/flexible-tpu': filamentsFlexibleTpu,
   'printing/filaments/carbon-fibre-blends': filamentsCarbonFibreBlends,
   'printing/filaments/drying-wet-filament': filamentsDryingWetFilament,
+  'printing/slicing/stl-and-3mf': slicingStlAnd3mf,
+  'printing/slicing/layer-height': slicingLayerHeight,
+  'printing/slicing/walls-and-perimeters': slicingWallsAndPerimeters,
+  'printing/slicing/infill-patterns': slicingInfillPatterns,
+  'printing/slicing/supports': slicingSupports,
+  'printing/slicing/seams': slicingSeams,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
