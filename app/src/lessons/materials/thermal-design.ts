@@ -64,7 +64,7 @@ const minText = (s: number) => `${Math.round(s / 60)} min`
 
 // --- Heatsinks: a TO-220 MOSFET on a 40 mm plate-fin sink; fin count, orientation, airflow, mounting, enclosure. ---
 
-const HS = { at: [-10.4, -3.6, 0] as V3, k: 0.2, ladder: [3.2, -3.6, 0] as V3, box: [10.5, 10.5, 7] as V3, plot: { y: -10.2, h: 5 } }
+const HS = { at: [-10.4, -3.6, 0] as V3, k: 0.2, ladder: [3.2, -3.6, 0] as V3, box: [10.5, 10.5, 7] as V3, plot: { y: -9.1, h: 3.6 } }
 const hsParams = (p: Params) => ({
   watts: n(p, 'watts'),
   fins: n(p, 'fins'),
@@ -282,7 +282,7 @@ export const thermalDesignMotorHeating: Lesson = {
     addLabel(scene, 'torque at the joint', [MH.bars[0] - 5, MH.bars[1] + 0.95, 0.3], LABEL, 0.28, 'left')
     const bars = countBars(scene, MH.bars, ['gravity needs', 'continuous', 'peak', 'idle hold'], 6.4, { row: 0.75, size: 0.26 })
 
-    const P = WIDE_RIGHT
+    const P = { ...WIDE_RIGHT, y: WIDE_RIGHT.y + 3 }
     const plot = titledScope(scene, P.y, P.h, `winding, 0 … ${MH.maxC} °C`, RING, 0, P.x, P.w)
     const yOf = plotY(0, MH.maxC, P.h)
     const limit = plot.s.level(HIGH_V)

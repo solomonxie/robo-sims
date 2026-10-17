@@ -139,7 +139,7 @@ export const chassisDesignLayoutAndBalance: Lesson = {
 
     addLabel(scene, 'limits before it slips or tips', [LB.bars[0] - 3.6, LB.bars[1] + 0.9, 0.3], LABEL, 0.28, 'left')
     const bars = countBars(scene, LB.bars, ['pull away', 'brake', 'turn: tips at', 'turn: slides at'], 5.2, { row: 0.62, size: 0.26 })
-    const P = PLOT
+    const P = { ...PLOT, y: -8, h: 4 }
     const plot = titledScope(scene, P.y, P.h, 'limits vs battery position', LABEL, 0, P.x, P.w)
     const py = plotY(0, LB.aMax, P.h)
     const accelC = plot.s.trace(POWER, { samples: 41, radius: 0.06 })
