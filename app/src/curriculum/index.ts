@@ -150,6 +150,7 @@ import { pathTrackingPurePursuit, pathTrackingStanleyController } from '../lesso
 import { localizationParticleFilter, localizationScanMatching } from '../lessons/navigation/localization'
 import { slamLoopClosure, slamPoseGraphs, slamTheChickenAndEggProblem } from '../lessons/navigation/slam'
 import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from '../lessons/navigation/swarm-multi-robot'
+import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from '../lessons/ai/neural-nets-101'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -600,6 +601,9 @@ const READY: Record<string, Lesson> = {
   'navigation/slam/pose-graphs': slamPoseGraphs,
   'navigation/swarm-multi-robot/flocking': swarmMultiRobotFlocking,
   'navigation/swarm-multi-robot/task-allocation': swarmMultiRobotTaskAllocation,
+  'ai/neural-nets-101/perceptron': neuralNets101Perceptron,
+  'ai/neural-nets-101/gradient-descent': neuralNets101GradientDescent,
+  'ai/neural-nets-101/overfitting': neuralNets101Overfitting,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
