@@ -162,6 +162,7 @@ import { energyWorkEfficiency, energyWorkKineticAndPotential, energyWorkWorkAndP
 import { frictionTractionRollingResistance, frictionTractionStaticVsKinetic, frictionTractionWheelSlip } from '../lessons/mechanics/friction-traction'
 import { oscillationsDamping, oscillationsResonance, oscillationsSpringMass } from '../lessons/mechanics/oscillations'
 import { collisionsBumpSensors, collisionsElasticAndInelastic } from '../lessons/mechanics/collisions'
+import { centreOfMassLowAndWide, centreOfMassTippingAngle } from '../lessons/mechanics/centre-of-mass'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -654,6 +655,8 @@ const READY: Record<string, Lesson> = {
   'mechanics/oscillations/resonance': oscillationsResonance,
   'mechanics/collisions/elastic-and-inelastic': collisionsElasticAndInelastic,
   'mechanics/collisions/bump-sensors': collisionsBumpSensors,
+  'mechanics/centre-of-mass/tipping-angle': centreOfMassTippingAngle,
+  'mechanics/centre-of-mass/low-and-wide': centreOfMassLowAndWide,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

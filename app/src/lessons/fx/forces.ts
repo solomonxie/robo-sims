@@ -1,10 +1,10 @@
-// Mechanics side views: a TT car with payload blocks, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig.
+// Mechanics side views: a TT car with payload blocks, a centre-of-mass marker, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig.
 import * as THREE from 'three/webgpu'
 import { TT_CAR } from '../../core/physics'
 import { STEEL, V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { Helix } from '../../models/power'
 import { GREY, glowMat } from './colors'
-import { flatBox, stretchArrow } from './shapes'
+import { flatBox, sectorGeometry, stretchArrow } from './shapes'
 import { liveLabel } from './text'
 
 const BLOCK_KG = 0.5
@@ -112,4 +112,12 @@ export function springRig(parent: THREE.Object3D, top: V3, { damper = false, w =
       arm.position.set(w / 2 + (dx - w / 2) / 2 - 0.15, y - 0.1, 0)
     },
   }
+}
+
+/** Centre-of-mass symbol: a disk of radius `r` in quarters, alternately dark and light, facing +z. */
+export function comMarker(parent: THREE.Object3D, r: number, at: V3 = [0, 0, 0]) {
+  const g = add(parent, new THREE.Group(), at)
+  const tones = [mat('#f2f2f2', { rough: 0.5 }), mat('#16181d', { rough: 0.5 })]
+  for (let i = 0; i < 4; i++) add(g, mesh(sectorGeometry(0, r, Math.PI / 4 + (i * Math.PI) / 2, Math.PI / 2, r * 0.3), tones[i % 2])).castShadow = false
+  return g
 }

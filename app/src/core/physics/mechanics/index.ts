@@ -1,4 +1,4 @@
-// Mechanics: Newton's laws, linear kinematics, torque and levers, rotation, energy and work, friction and traction, oscillations, collisions.
+// Mechanics: Newton's laws, linear kinematics, torque and levers, rotation, energy and work, friction and traction, oscillations, collisions, centre of mass.
 export * from './newton'
 export * from './motion'
 export * from './torque'
@@ -7,3 +7,4 @@ export * from './energy'
 export * from './friction'
 export * from './oscillation'
 export * from './collision'
+export * from './tipping'
