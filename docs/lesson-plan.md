@@ -102,6 +102,64 @@ Order follows the drafts backlog, then the home sections. Tick when committed.
 - Navigation ✓ 9/9
 - AI ✓ 16/16
 
-### Later waves (file order within each)
-- Wave 6: Mechanics, Waves, Math, Materials, Printing
-- Wave 7: Practice (projects, challenges, debugging, workshop)
+### Wave 6 — Mechanics, Waves, Math, Materials, Printing
+Much of this is taught elsewhere already (Kinematics, Signals, Perception, Actuators): link there, build only what's new.
+- Mechanics
+  - [ ] Newton’s laws
+  - [ ] Kinematics
+  - [ ] Torque & levers
+  - [ ] Rotation
+  - [ ] Energy & work
+  - [ ] Friction & traction
+  - [ ] Oscillations
+  - [ ] Collisions
+  - [ ] Centre of mass
+  - [ ] Vibration
+- Waves, light & heat
+  - [ ] Sound & ultrasound
+  - [ ] Light & optics
+  - [ ] Infrared & thermal
+  - [ ] Electromagnetic spectrum
+  - [ ] Heat transfer
+  - [ ] Pressure & fluids
+  - [ ] Gravity & inertia
+- Maths for robots
+  - [ ] Vectors
+  - [ ] Matrices
+  - [ ] Trigonometry
+  - [ ] Quaternions
+  - [ ] Calculus
+  - [ ] Probability
+  - [ ] Linear algebra
+  - [ ] Differential equations
+  - [ ] Signals
+- Materials & mechanical design
+  - [ ] Stress & strain
+  - [ ] Laser & CNC
+  - [ ] Fasteners
+  - [ ] Bearings
+  - [ ] Belts, chains, couplers
+  - [ ] CAD basics
+  - [ ] Chassis design
+  - [ ] Thermal design
+- 3D printing
+  - [ ] How FDM works
+  - [ ] Other processes
+  - [ ] Printer motion
+  - [ ] Filaments
+  - [ ] Slicing
+  - [ ] G-code
+  - [ ] Temperature & cooling
+  - [ ] Bed adhesion
+  - [ ] Calibration
+  - [ ] Print problems
+  - [ ] Design for printing
+  - [ ] Functional parts
+  - [ ] Strength
+  - [ ] Multi-material
+  - [ ] Post-processing
+  - [ ] Printer electronics
+  - [ ] Print a robot
+
+### Wave 7 — Practice (projects, challenges, debugging, workshop)
+Checklist added once Wave 6 is done.
