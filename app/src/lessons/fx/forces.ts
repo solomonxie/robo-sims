@@ -1,4 +1,4 @@
-// Mechanics side views: a TT car with payload blocks, a centre-of-mass marker, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig.
+// Mechanics side views: a TT car with payload blocks, a centre-of-mass marker, labelled force arrows, a scrolling floor tape, a coil spring, a hanging spring-mass rig, an unbalanced motor.
 import * as THREE from 'three/webgpu'
 import { TT_CAR } from '../../core/physics'
 import { STEEL, V3, add, box, cylinder, mat, mesh } from '../../models/kit'
@@ -120,4 +120,23 @@ export function comMarker(parent: THREE.Object3D, r: number, at: V3 = [0, 0, 0])
   const tones = [mat('#f2f2f2', { rough: 0.5 }), mat('#16181d', { rough: 0.5 })]
   for (let i = 0; i < 4; i++) add(g, mesh(sectorGeometry(0, r, Math.PI / 4 + (i * Math.PI) / 2, Math.PI / 2, r * 0.3), tones[i % 2])).castShadow = false
   return g
+}
+
+/** Motor can facing +z (radius `r`) with a rotor disc in front and a red bolt off-centre; `set(angle, e)`: disc turned
+ *  anticlockwise, bolt at `e` × disc radius (0…1). */
+export function unbalancedMotor(parent: THREE.Object3D, at: V3, r = 1.5) {
+  const group = add(parent, new THREE.Group(), at)
+  cylinder(group, r, 1.4 * r, mat('#9aa0a8', { metal: 0.4, rough: 0.4 }), [0, 0, -0.7 * r], 'z', 40)
+  box(group, [2.2 * r, 0.3 * r, 1.2 * r], mat('#3a3d44', { rough: 0.6 }), [0, -r * 0.95, -0.7 * r])
+  const rotor = add(group, new THREE.Group(), [0, 0, 0.15 * r])
+  cylinder(rotor, 0.85 * r, 0.2 * r, mat('#c9ccd1', { metal: 0.5, rough: 0.35 }), [0, 0, 0], 'z', 40)
+  cylinder(rotor, 0.12 * r, 0.4 * r, STEEL(), [0, 0, 0.1 * r], 'z', 16)
+  const bolt = add(rotor, mesh(new THREE.SphereGeometry(0.18 * r, 16, 12), glowMat('#ff4d4d', 0.5)), [0.6 * r, 0, 0.2 * r])
+  return {
+    group,
+    set(angle: number, e: number) {
+      rotor.rotation.z = angle
+      bolt.position.x = 0.8 * r * Math.max(0.15, Math.min(1, e))
+    },
+  }
 }

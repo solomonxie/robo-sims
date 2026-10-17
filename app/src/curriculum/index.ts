@@ -163,6 +163,7 @@ import { frictionTractionRollingResistance, frictionTractionStaticVsKinetic, fri
 import { oscillationsDamping, oscillationsResonance, oscillationsSpringMass } from '../lessons/mechanics/oscillations'
 import { collisionsBumpSensors, collisionsElasticAndInelastic } from '../lessons/mechanics/collisions'
 import { centreOfMassLowAndWide, centreOfMassTippingAngle } from '../lessons/mechanics/centre-of-mass'
+import { vibrationDampingMounts, vibrationMotorVibration } from '../lessons/mechanics/vibration'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -657,6 +658,8 @@ const READY: Record<string, Lesson> = {
   'mechanics/collisions/bump-sensors': collisionsBumpSensors,
   'mechanics/centre-of-mass/tipping-angle': centreOfMassTippingAngle,
   'mechanics/centre-of-mass/low-and-wide': centreOfMassLowAndWide,
+  'mechanics/vibration/motor-vibration': vibrationMotorVibration,
+  'mechanics/vibration/damping-mounts': vibrationDampingMounts,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
