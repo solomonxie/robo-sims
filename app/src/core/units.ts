@@ -61,6 +61,8 @@ export const joules = (j: number) => si(j, 'J', 3)
 export const mA = (a: number) => a * 1000
 export const secs = (s: number) => si(s, 's', 3)
 export const hertz = (f: number) => si(f, 'Hz', 3)
+export const paText = (pa: number) => si(pa, 'Pa', 3)
+export const hpaText = (pa: number, digits = 1) => `${(pa / 100).toFixed(digits)} hPa`
 export const hexByte = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 /** Whole ms from 10 ms up, `digits` decimals below. */
 export const msText = (s: number, digits = 1) => `${+(s * 1000).toFixed(s < 0.01 ? digits : 0)} ms`

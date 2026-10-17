@@ -168,6 +168,7 @@ import { soundUltrasoundDoppler, soundUltrasoundEchoRanging, soundUltrasoundSpee
 import { lightOpticsLensesAndFocus, lightOpticsReflection, lightOpticsRefraction } from '../lessons/waves/light-optics'
 import { infraredThermalBlackBodyRadiation, infraredThermalThermalCamera } from '../lessons/waves/infrared-thermal'
 import { electromagneticSpectrumWavelengthAndFrequency, electromagneticSpectrumWhereSensorsLive } from '../lessons/waves/electromagnetic-spectrum'
+import { pressureFluidsBarometerAltitude, pressureFluidsBernoulli } from '../lessons/waves/pressure-fluids'
 import { heatTransferCoolingARegulator, heatTransferThermalResistance } from '../lessons/waves/heat-transfer'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
@@ -677,6 +678,8 @@ const READY: Record<string, Lesson> = {
   'waves/electromagnetic-spectrum/where-sensors-live': electromagneticSpectrumWhereSensorsLive,
   'waves/heat-transfer/thermal-resistance': heatTransferThermalResistance,
   'waves/heat-transfer/cooling-a-regulator': heatTransferCoolingARegulator,
+  'waves/pressure-fluids/bernoulli': pressureFluidsBernoulli,
+  'waves/pressure-fluids/barometer-altitude': pressureFluidsBarometerAltitude,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
