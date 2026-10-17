@@ -1,11 +1,11 @@
 import * as THREE from 'three/webgpu'
 import { Mat2, V2, apply2 } from '../../core/physics'
 import { V3, mesh } from '../../models/kit'
-import { LABEL, RING, glowMat, setGlow } from './colors'
+import { GREY, LABEL, RING, glowMat, setGlow } from './colors'
 import { AXIS_RGB, faceFront } from './frames'
 import { addRod, stretchRod } from './layout'
 import { pointCloud } from './rooms'
-import { stretchArrow } from './shapes'
+import { shellMat, stretchArrow } from './shapes'
 import { liveLabel } from './text'
 
 /** Labelled arrow a→b in any (turned) group; the name sits past the tip, turned to the viewer. */
@@ -122,6 +122,30 @@ export function warpGrid(parent: THREE.Object3D, { half = 1, step = 0.25, r = 0.
       setGlow(outM, outlineColor, 0.9)
       for (const l of lines) stretchRod(l.rod, at(M, l.a, 0.004 * l.w), at(M, l.b, 0.004 * l.w), r * l.w)
       for (const s of segs) stretchRod(s.rod, at(M, s.a, 0.01), at(M, s.b, 0.01), r * 1.8)
+    },
+  }
+}
+
+/** See-through sphere of radius `r` (directions) with equator and meridian rings; `trail(k)` makes a dotted path on it, `set(unitPoints, color)`. */
+export function dirSphere(parent: THREE.Object3D, r: number) {
+  const ball = mesh(new THREE.SphereGeometry(r, 36, 24), shellMat('#9aa6b8', 0.07))
+  ball.castShadow = false
+  parent.add(ball)
+  const ringM = glowMat(GREY, 0.25)
+  for (const turn of [0, 1, 2]) {
+    const t = mesh(new THREE.TorusGeometry(r, r * 0.006, 6, 96), ringM)
+    t.castShadow = false
+    if (turn === 1) t.rotation.x = Math.PI / 2
+    if (turn === 2) t.rotation.y = Math.PI / 2
+    parent.add(t)
+  }
+  return {
+    trail(k: number, dot = r * 0.025) {
+      const dots = pointCloud(parent, k, dot)
+      return (pts: readonly (readonly number[])[], color: string) => {
+        pts.slice(0, k).forEach((p, i) => dots.set(i, [p[0] * r, p[1] * r, p[2] * r], color))
+        dots.show(Math.min(k, pts.length))
+      }
     },
   }
 }

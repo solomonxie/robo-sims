@@ -114,3 +114,34 @@ export function matrixGrid(parent: THREE.Object3D, at: V3, rows: number, cols: n
   )
   return { group: g, w: w + size * 1.6, h, set: (texts: string[], colors: string[]) => cells.forEach((c, i) => c.set(texts[i], colors[i % colors.length])) }
 }
+
+/** 3-ring gimbal in a z-up group: outer ring turns about z (yaw), middle about its y (pitch, nose up), inner about the nose x (roll), on a stand; the payload goes in `inner`. Rings are coloured by axis (`AXIS_RGB`). */
+export function gimbalRings(parent: THREE.Object3D, r = 1, tube = r * 0.028) {
+  const yawG = add(parent, new THREE.Group())
+  const pitchG = add(yawG, new THREE.Group())
+  const rollG = add(pitchG, new THREE.Group())
+  const inner = add(rollG, new THREE.Group())
+  const radii = [r, r * 0.86, r * 0.72]
+  const mats = [AXIS_RGB[2], AXIS_RGB[1], AXIS_RGB[0]].map((c) => glowMat(c, 0.45))
+  ;[yawG, pitchG, rollG].forEach((g, i) => {
+    const ring = add(g, mesh(new THREE.TorusGeometry(radii[i], tube, 10, 72), mats[i]))
+    if (i === 0) ring.rotation.y = Math.PI / 2
+    if (i === 2) ring.rotation.x = Math.PI / 2
+  })
+  const pin = glowMat(GREY, 0.3)
+  for (const s of [-1, 1]) {
+    rodBetween(yawG, [0, s * radii[1], 0], [0, s * r, 0], pin, tube * 0.8)
+    rodBetween(pitchG, [s * radii[2], 0, 0], [s * radii[1], 0, 0], pin, tube * 0.8)
+  }
+  rodBetween(parent, [0, 0, -r * 1.45], [0, 0, -r], pin, tube * 1.4)
+  add(parent, mesh(new THREE.CylinderGeometry(r * 0.35, r * 0.4, r * 0.06, 32).rotateX(Math.PI / 2), pin), [0, 0, -r * 1.45])
+  return {
+    inner,
+    mats,
+    set(yaw: number, pitch: number, roll: number) {
+      yawG.rotation.z = yaw
+      pitchG.rotation.y = -pitch
+      rollG.rotation.x = roll
+    },
+  }
+}
