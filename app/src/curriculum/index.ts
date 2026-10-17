@@ -175,6 +175,7 @@ import { vectorsCrossProduct, vectorsDotProduct, vectorsProjection } from '../le
 import { matricesInverse, matricesMatrixMultiply, matricesRotationMatrix } from '../lessons/math/matrices'
 import { trigonometryAtan2, trigonometryLawOfCosines, trigonometryUnitCircle } from '../lessons/math/trigonometry'
 import { quaternionsGimbalLock, quaternionsQuaternionRotate, quaternionsSlerp } from '../lessons/math/quaternions'
+import { calculusDerivativeAsSlope, calculusIntegralAsArea, calculusNumericalIntegration } from '../lessons/math/calculus'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -699,6 +700,9 @@ const READY: Record<string, Lesson> = {
   'math/quaternions/gimbal-lock': quaternionsGimbalLock,
   'math/quaternions/quaternion-rotate': quaternionsQuaternionRotate,
   'math/quaternions/slerp': quaternionsSlerp,
+  'math/calculus/derivative-as-slope': calculusDerivativeAsSlope,
+  'math/calculus/integral-as-area': calculusIntegralAsArea,
+  'math/calculus/numerical-integration': calculusNumericalIntegration,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

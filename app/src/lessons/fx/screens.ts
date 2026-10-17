@@ -128,6 +128,40 @@ export function ticks(plot: Plot, x: [number, string][], y: [number, string][], 
   for (const [v, s] of y) tick(s, [plot.width / 2 + 0.7 + size, v * plot.height - plot.height / 2, 0])
 }
 
+/** Up to `max` see-through strips on a plot, each from the line y = `base` up to a straight top edge (rectangles, trapezoids: area under a curve).
+ *  `set(strips, base)`: `u0`/`u1` 0…1 across, `y0`/`y1` scene units from the centre (clipped), per-strip colour. */
+export function areaStrips(plot: Plot, max: number, opacity = 0.45) {
+  const pos = new Float32Array(max * 18)
+  const col = new Float32Array(max * 18)
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3))
+  const m = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false })
+  const face = add(plot.group, mesh(geo, m))
+  face.castShadow = false
+  face.frustumCulled = false
+  const c = new THREE.Color()
+  const clip = (y: number) => Math.min(plot.height / 2, Math.max(-plot.height / 2, y))
+  return {
+    face,
+    set(strips: readonly { u0: number; u1: number; y0: number; y1: number; color: string }[], base: number) {
+      const k = Math.min(max, strips.length)
+      for (let i = 0; i < k; i++) {
+        const s = strips[i]
+        const [xa, xb, ya, yb, b] = [plot.xAt(s.u0), plot.xAt(s.u1), clip(s.y0), clip(s.y1), clip(base)]
+        const v = [xa, b, xa, ya, xb, yb, xa, b, xb, yb, xb, b]
+        c.set(s.color)
+        for (let j = 0; j < 6; j++) {
+          pos.set([v[2 * j], v[2 * j + 1], SCREEN_Z - 0.08], i * 18 + j * 3)
+          col.set([c.r, c.g, c.b], i * 18 + j * 3)
+        }
+      }
+      geo.setDrawRange(0, k * 6)
+      geo.attributes.position.needsUpdate = geo.attributes.color.needsUpdate = true
+    },
+  }
+}
+
 /** A plot screen at `at` with zero at the bottom and a glowing operating-point dot; `y(f)` maps 0..1 of full scale. */
 export function ivScreen(scene: THREE.Object3D, at: V3, w: number, h: number, divs: [number, number]) {
   const plot = scope(scene, w, h, { divs, zeroAt: 0 })
