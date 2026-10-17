@@ -153,6 +153,7 @@ import { swarmMultiRobotFlocking, swarmMultiRobotTaskAllocation } from '../lesso
 import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Perceptron } from '../lessons/ai/neural-nets-101'
 import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
 import { speechWakeWordsKeywordSpotting, speechWakeWordsVoiceCommands } from '../lessons/ai/speech-wake-words'
+import { anomalyDetectionThresholdsVsModels, anomalyDetectionVibrationBaselines } from '../lessons/ai/anomaly-detection'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -620,6 +621,8 @@ const READY: Record<string, Lesson> = {
   'ai/vision-language-models/task-planning': visionLanguageModelsTaskPlanning,
   'ai/speech-wake-words/keyword-spotting': speechWakeWordsKeywordSpotting,
   'ai/speech-wake-words/voice-commands': speechWakeWordsVoiceCommands,
+  'ai/anomaly-detection/vibration-baselines': anomalyDetectionVibrationBaselines,
+  'ai/anomaly-detection/thresholds-vs-models': anomalyDetectionThresholdsVsModels,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
