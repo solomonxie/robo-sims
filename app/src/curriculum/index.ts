@@ -154,6 +154,7 @@ import { neuralNets101GradientDescent, neuralNets101Overfitting, neuralNets101Pe
 import { tinymlGestureRecognition, tinymlQuantization } from '../lessons/ai/tinyml'
 import { speechWakeWordsKeywordSpotting, speechWakeWordsVoiceCommands } from '../lessons/ai/speech-wake-words'
 import { anomalyDetectionThresholdsVsModels, anomalyDetectionVibrationBaselines } from '../lessons/ai/anomaly-detection'
+import { newtonsLawsFMA, newtonsLawsFreeBodyDiagrams, newtonsLawsFriction } from '../lessons/mechanics/newton-s-laws'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -623,6 +624,9 @@ const READY: Record<string, Lesson> = {
   'ai/speech-wake-words/voice-commands': speechWakeWordsVoiceCommands,
   'ai/anomaly-detection/vibration-baselines': anomalyDetectionVibrationBaselines,
   'ai/anomaly-detection/thresholds-vs-models': anomalyDetectionThresholdsVsModels,
+  'mechanics/newton-s-laws/f-m-a': newtonsLawsFMA,
+  'mechanics/newton-s-laws/free-body-diagrams': newtonsLawsFreeBodyDiagrams,
+  'mechanics/newton-s-laws/friction': newtonsLawsFriction,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
