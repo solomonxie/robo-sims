@@ -50,15 +50,20 @@ export function seriesRmsError(shape: Periodic, terms: Harmonic[], samples = 204
 
 /** Single-sided amplitude spectrum, bins 0 … N/2 (bin m = m · fs / N): a sine of amplitude A on a bin reads A.
  *  `hann` tapers the window so off-bin tones leak less. */
-export function dftAmplitudes(samples: number[], hann = false) {
+const TWIDDLES = new Map<number, { cos: number[]; sin: number[] }>()
+const twiddles = (N: number) => {
+  let t = TWIDDLES.get(N)
+  if (!t) TWIDDLES.set(N, (t = { cos: Array.from({ length: N }, (_, i) => Math.cos((2 * Math.PI * i) / N)), sin: Array.from({ length: N }, (_, i) => Math.sin((2 * Math.PI * i) / N)) }))
+  return t
+}
+export function dftAmplitudes(samples: readonly number[], hann = false) {
   const N = samples.length
-  const cos = Array.from({ length: N }, (_, i) => Math.cos((2 * Math.PI * i) / N))
-  const sin = Array.from({ length: N }, (_, i) => Math.sin((2 * Math.PI * i) / N))
+  const { cos, sin } = twiddles(N)
   const w = samples.map((x, i) => (hann ? x * (1 - cos[i]) : x))
   return Array.from({ length: Math.floor(N / 2) + 1 }, (_, m) => {
     let re = 0
     let im = 0
-    for (let i = 0, k = 0; i < N; i++, k = (k + m) % N) {
+    for (let i = 0, k = 0; i < N; i++, k = k + m >= N ? k + m - N : k + m) {
       re += w[i] * cos[k]
       im -= w[i] * sin[k]
     }

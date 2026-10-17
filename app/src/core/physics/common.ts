@@ -45,7 +45,11 @@ export function seededRng(seed: number) {
 /** Fast seeded uniform (0, 1), Park–Miller, for runs drawing ~10⁵ numbers. */
 export function parkMiller(seed: number) {
   let x = (Math.abs(Math.floor(seed)) % 2147483646) + 1
-  return () => (x = (x * 48271) % 2147483647) / 2147483647
+  return () => {
+    x = 48271 * (x % 44488) - 3399 * Math.floor(x / 44488)
+    if (x <= 0) x += 2147483647
+    return x / 2147483647
+  }
 }
 /** Standard normal from a uniform rng. */
 export function gaussRng(rng: () => number) {
