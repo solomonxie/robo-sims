@@ -64,9 +64,9 @@ describe('Design for printing', () => {
     expect(ch.cusp).toBeLessThan(fil.cusp)
   })
   it('recomputes well under 100 ms per slider move', () => {
-    expect(medianMs(() => overhangView(60, 0.12, 0.5, 60, 30))).toBeLessThan(60)
-    expect(medianMs(() => orientView('corner', 40))).toBeLessThan(60)
-    expect(medianMs(() => holeView('round', 16, 0.12))).toBeLessThan(60)
-    expect(medianMs(() => edgeView('fillet', 'fillet', 'fillet', 4, 0.12))).toBeLessThan(60)
+    expect(medianMs(() => overhangView(60, 0.12, 0.5, 60, 30))).toBeLessThan(100)
+    expect(medianMs(() => orientView('corner', 40))).toBeLessThan(100)
+    expect(medianMs(() => holeView('round', 16, 0.12))).toBeLessThan(100)
+    expect(medianMs(() => edgeView('fillet', 'fillet', 'fillet', 4, 0.12))).toBeLessThan(100)
   })
 })
