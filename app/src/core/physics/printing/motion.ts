@@ -145,6 +145,9 @@ export const CAL_MM = 100
 /** Detent torque pulls the rotor off each microstep by about (detent / holding) electrical rad ÷ 50 teeth: the real accuracy limit. */
 export const detentErrMm = (mmRev: number) => (mmRev * (NEMA_DETENT_NM / NEMA17.holdNm)) / NEMA17.teeth / TAU
 
+/** Measure-and-correct: a setting that produced `measured` where `target` was asked becomes old × target / measured. */
+export const measureFix = (old: number, target: number, measured: number) => (old * target) / measured
+
 /** Steps/mm from the drive and microsteps; firmware set `errPct` off; a 100 mm move measured and corrected. */
 export function stepsView(drive: StepDriveKey, micro: number, errPct: number) {
   const mmRev = STEP_DRIVES[drive].mmRev
@@ -152,7 +155,7 @@ export function stepsView(drive: StepDriveKey, micro: number, errPct: number) {
   const fwSpm = trueSpm * (1 + errPct / 100)
   const steps = Math.round(CAL_MM * fwSpm)
   const actualMm = steps / trueSpm
-  const fixedSpm = (fwSpm * CAL_MM) / actualMm
+  const fixedSpm = measureFix(fwSpm, CAL_MM, actualMm)
   return { mmRev, micro, trueSpm, fwSpm, steps, actualMm, fixedSpm, fullMm: mmRev / NEMA17.steps, microMm: mmRev / stepsPerRev(micro), accMm: detentErrMm(mmRev) }
 }
 

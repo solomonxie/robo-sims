@@ -196,6 +196,7 @@ import { slicingInfillPatterns, slicingLayerHeight, slicingSeams, slicingStlAnd3
 import { gCodeG0G1Moves, gCodeStartAndEndScripts, gCodeTemperaturesAndFans } from '../lessons/printing/g-code'
 import { temperatureCoolingHeatedBed, temperatureCoolingHotendPidTuning, temperatureCoolingPartCoolingFan, temperatureCoolingThermalRunawayProtection } from '../lessons/printing/temperature-cooling'
 import { bedAdhesionBedLevelling, bedAdhesionBrimAndRaft, bedAdhesionBuildSurfaces, bedAdhesionZOffset } from '../lessons/printing/bed-adhesion'
+import { calibrationESteps, calibrationFlowRate, calibrationPressureAdvance, calibrationRetraction, calibrationTemperatureTower } from '../lessons/printing/calibration'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -784,6 +785,11 @@ const READY: Record<string, Lesson> = {
   'printing/bed-adhesion/z-offset': bedAdhesionZOffset,
   'printing/bed-adhesion/build-surfaces': bedAdhesionBuildSurfaces,
   'printing/bed-adhesion/brim-and-raft': bedAdhesionBrimAndRaft,
+  'printing/calibration/e-steps': calibrationESteps,
+  'printing/calibration/flow-rate': calibrationFlowRate,
+  'printing/calibration/pressure-advance': calibrationPressureAdvance,
+  'printing/calibration/retraction': calibrationRetraction,
+  'printing/calibration/temperature-tower': calibrationTemperatureTower,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
