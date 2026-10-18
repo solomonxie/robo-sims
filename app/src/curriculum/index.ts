@@ -204,6 +204,7 @@ import { strengthLayerAdhesion, strengthWallCountVsInfill, strengthAnnealing } f
 import { multiMaterialToolChangersAndAms, multiMaterialSolubleSupports } from '../lessons/printing/multi-material'
 import { postProcessingSandingAndFilling, postProcessingVapourSmoothing, postProcessingPainting } from '../lessons/printing/post-processing'
 import { printerElectronicsMainboardAndDrivers, printerElectronicsMarlinAndKlipper, printerElectronicsThermistorsAndHeaters } from '../lessons/printing/printer-electronics'
+import { printARobotAssembleWithInserts, printARobotModelTheChassis, printARobotSliceAndPrint } from '../lessons/printing/print-a-robot'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -824,6 +825,9 @@ const READY: Record<string, Lesson> = {
   'printing/printer-electronics/mainboard-and-drivers': printerElectronicsMainboardAndDrivers,
   'printing/printer-electronics/marlin-and-klipper': printerElectronicsMarlinAndKlipper,
   'printing/printer-electronics/thermistors-and-heaters': printerElectronicsThermistorsAndHeaters,
+  'printing/print-a-robot/model-the-chassis': printARobotModelTheChassis,
+  'printing/print-a-robot/slice-and-print': printARobotSliceAndPrint,
+  'printing/print-a-robot/assemble-with-inserts': printARobotAssembleWithInserts,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
