@@ -1,0 +1,63 @@
+import { medianMs } from '../../stopwatch'
+import { annealPart, annealView, crystalDone, layerWeld, shellBar, shellView, weldView } from './strength'
+
+describe('Strength', () => {
+  it('layer weld: hotter nozzle, less fan and shorter layers weld better; Z stays under XY', () => {
+    const base = layerWeld('pla', 210, 1, 10)
+    expect(base.zFrac).toBeGreaterThan(0.35)
+    expect(base.zFrac).toBeLessThan(0.55)
+    expect(layerWeld('pla', 230, 1, 10).zFrac).toBeGreaterThan(base.zFrac)
+    expect(layerWeld('pla', 210, 0, 10).zFrac).toBeGreaterThan(0.85)
+    expect(layerWeld('pla', 210, 1, 3).zFrac).toBeGreaterThan(base.zFrac)
+    expect(layerWeld('pla', 210, 1, 30).zFrac).toBeLessThan(base.zFrac)
+    expect(layerWeld('pla', 210, 0, 10).zFrac).toBeLessThanOrEqual(0.9)
+    expect(base.below).toBeLessThan(base.t0)
+    expect(base.above).toBeGreaterThan(0)
+    const v = weldView('pla', 210, 1, 10)
+    expect(v.uprightN).toBeCloseTo(v.flatN * base.zFrac)
+    expect(v.curve[0]).toBeGreaterThan(v.curve[v.curve.length - 1])
+    expect(v.mats[2]).toBeLessThan(v.mats[0])
+  })
+  it('walls vs infill: walls add bending strength per gram, infill dilutes it; solid = 1', () => {
+    const two = shellBar(2, 0.2, 'grid')
+    const four = shellBar(4, 0.2, 'grid')
+    const dense = shellBar(2, 0.6, 'grid')
+    expect(four.perGram).toBeGreaterThan(two.perGram)
+    expect(dense.perGram).toBeLessThan(two.perGram)
+    expect((four.bend - two.bend) / (four.mass - two.mass)).toBeGreaterThan(3 * ((dense.bend - two.bend) / (dense.mass - two.mass)))
+    const solid = shellBar(13, 1, 'grid')
+    expect(solid.bend).toBeCloseTo(1)
+    expect(solid.mass).toBeCloseTo(1)
+    expect(solid.twist).toBeCloseTo(1)
+    expect(four.twist).toBeGreaterThan(two.twist)
+    const v = shellView(2, 0.2, 'grid', 200)
+    expect(v.sf).toBeGreaterThan(1)
+    expect(shellView(4, 0.2, 'grid', 200).sf).toBeGreaterThan(v.sf)
+    expect(v.byWalls.length).toBeGreaterThan(5)
+  })
+  it('annealing: PLA crystallises at 80–100 °C in under an hour, not at 60 °C; HDT rises, XY shrinks, Z grows; PETG only slumps', () => {
+    expect(crystalDone('pla', 60, 120)).toBe(0)
+    expect(crystalDone('pla', 90, 60)).toBeGreaterThan(0.9)
+    const a = annealPart('pla', 90, 45)
+    expect(a.hdt).toBeGreaterThan(90)
+    expect(a.xy).toBeLessThan(-0.02)
+    expect(a.z).toBeGreaterThan(0.01)
+    expect(a.scaleXY).toBeGreaterThan(1)
+    expect(a.stiff).toBeGreaterThan(1.1)
+    const p = annealPart('petg', 100, 45)
+    expect(p.hdt).toBe(70)
+    expect(p.warp).toBeGreaterThan(a.warp)
+    expect(annealPart('nylon', 100, 45).hdt).toBeGreaterThan(120)
+    const v = annealView('pla', 90, 45)
+    expect(v.hdtCurve[0]).toBeLessThan(v.hdtCurve[v.hdtCurve.length - 1])
+  })
+  it('recomputes fast', () => {
+    expect(
+      medianMs(() => {
+        weldView('petg', 250, 0.3, 12)
+        shellView(3, 0.35, 'gyroid', 150)
+        annealView('pla', 85, 40)
+      }),
+    ).toBeLessThan(50)
+  })
+})

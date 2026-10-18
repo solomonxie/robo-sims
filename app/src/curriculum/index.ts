@@ -200,6 +200,7 @@ import { calibrationESteps, calibrationFlowRate, calibrationPressureAdvance, cal
 import { printProblemsStringing, printProblemsWarping, printProblemsLayerShift, printProblemsUnderExtrusion, printProblemsElephantFoot, printProblemsCloggedNozzle } from '../lessons/printing/print-problems'
 import { designForPrintingOverhangsAndBridges, designForPrintingOrientationAndStrength, designForPrintingTolerancesAndFits, designForPrintingHolesAndTeardrops, designForPrintingChamfersVsFillets } from '../lessons/printing/design-for-printing'
 import { functionalPartsHeatSetInserts, functionalPartsCaptiveNuts, functionalPartsSnapFits, functionalPartsLivingHinges, functionalPartsPrintedGears } from '../lessons/printing/functional-parts'
+import { strengthLayerAdhesion, strengthWallCountVsInfill, strengthAnnealing } from '../lessons/printing/strength'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -809,6 +810,9 @@ const READY: Record<string, Lesson> = {
   'printing/functional-parts/snap-fits': functionalPartsSnapFits,
   'printing/functional-parts/living-hinges': functionalPartsLivingHinges,
   'printing/functional-parts/printed-gears': functionalPartsPrintedGears,
+  'printing/strength/layer-adhesion': strengthLayerAdhesion,
+  'printing/strength/wall-count-vs-infill': strengthWallCountVsInfill,
+  'printing/strength/annealing': strengthAnnealing,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
