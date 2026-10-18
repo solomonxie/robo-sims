@@ -1,13 +1,12 @@
 import * as THREE from 'three/webgpu'
 import {
-  ARM_BUILD, ARM_CAL, ARM_SERVOS, ARM_SUPPLIES, ArmServo, ArmSupply, DEG, HORN_TEETH, Mat4, P3, SERVO_ARM, TOOTH_DEG, actualJoints, armBudget, armFk, armMasses, clamp, driveAt, handGap,
-  holdTorques, hornShift, logicMinVolts, originOf, pcaTicks, pulseUs, reversed, sagJoints, servoArmIk, syncScale, toDeg, toolOf, wrapPi,
+  ARM_BUILD, ARM_CAL, ARM_HORN_DEG, ARM_SERVOS, ARM_SUPPLIES, ArmServo, ArmSupply, DEG, HORN_TEETH, P3, SERVO_ARM, TOOTH_DEG, actualJoints, armBudget, armFk, armMasses, clamp, driveAt, handGap,
+  holdTorques, hornShift, logicMinVolts, pcaTicks, pulseUs, reversed, sagJoints, servoArmIk, syncScale, toDeg, toolOf, wrapPi,
 } from '../../core/physics'
 import { mmTenths, pct, radText } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, cableRun, dotPen, floorMat, ghostRig, glide, liveLabel, meterBar, pca9685Board, serialArm, servoArmBuild, statusHeader, toneColor, zUp, SERVO_ARM_LOOK, SERVO_JOINT_NAMES } from '../fx'
-import { buildEsp32 } from '../../models/modules'
+import { B_FIELD, GREY, HEAT, HIGH_V, JOINT_COLORS, LABEL, POWER, RING, addLabel, armDesk, ARM_LEAD, dotPen, ghostRig, glide, liveLabel, meterBar, serialArm, statusHeader, toneColor, SERVO_ARM_LOOK, SERVO_JOINT_NAMES } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const deg = (a: number) => radText(a, 1)
@@ -15,55 +14,10 @@ const nm = (v: number) => `${Math.abs(v).toFixed(2)} N·m`
 const amps = (a: number) => `${a.toFixed(a < 10 ? 2 : 1)} A`
 const volts = (v: number) => `${v.toFixed(2)} V`
 const gSlider = { kind: 'slider' as const, key: 'payload', label: 'Payload in the gripper', min: 0, max: 250, step: 10, initial: 100, format: (v: number) => `${v} g` }
-const LEAD = '#d9822b'
 const short = (k: ArmServo) => ARM_SERVOS[k].name.split(' ')[0]
 const BASE_H = 0.05
 const toneOf = (share: number) => (share <= 0.5 ? 'ok' : share <= 1 ? 'warn' : 'bad') as 'ok' | 'warn' | 'bad'
 const clampLimits = (q: readonly number[]) => q.map((v, i) => clamp(v, SERVO_ARM.limits[i][0], SERVO_ARM.limits[i][1]))
-
-/** Desk scene shared by both lessons: arm build on a stand, PCA9685 + ESP32 on the desk, leads from every servo to its channel. */
-function deskBuild(scene: THREE.Scene, at: V3, k: number, kinds: readonly ArmServo[]) {
-  const g = zUp(scene, at, k, 0.55, -0.5)
-  floorMat(g, [-0.22, 0.34], [-0.22, 0.12])
-  const lifted = add(g, new THREE.Group(), [0, 0, BASE_H])
-  const arm = servoArmBuild(lifted, kinds, BASE_H)
-  const B: V3 = [-0.03, -0.12, 0]
-  const board = pca9685Board(g, B, 0.001)
-  board.group.rotation.z = Math.PI
-  const turned = (p: V3): V3 => [2 * B[0] - p[0], 2 * B[1] - p[1], p[2]]
-  const esp = add(g, buildEsp32(), [0.065, -0.135, 0])
-  esp.rotation.x = Math.PI / 2
-  esp.scale.setScalar(0.00254)
-  const exit: V3 = [-0.01, -0.038, 0.012]
-  ;[0, 1, 2, 3, 4].forEach((i) => {
-    const c = turned(board.ch(i))
-    const y = exit[1] - 0.004 * i
-    cableRun(g, [[exit[0] - 0.003 * i, exit[1], exit[2]], [exit[0] - 0.003 * i, y - 0.01, 0.004], [c[0], y - 0.03, 0.004], [c[0], c[1] + 0.008, 0.006], c], LEAD, 0.0013)
-  })
-  const i2cAt = turned(board.i2c)
-  ;['#d8322c', '#1a1a1a', '#f2c230', '#4d7dff'].forEach((c, j) => {
-    const y = i2cAt[1] + (j - 1.5) * 0.0025
-    cableRun(g, [[i2cAt[0], y, i2cAt[2]], [i2cAt[0] + 0.01, y, 0.01], [0.044 + j * 0.0025, -0.122, 0.012]], c, 0.001)
-  })
-  const vplus = turned(board.vplus)
-  const pack = add(g, new THREE.Group())
-  box(pack, [0.077, 0.042, 0.02], mat('#1a1a1a', { rough: 0.6 }), [-0.13, -0.17, 0.01])
-  for (const y of [-0.18, -0.16]) add(pack, new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.065, 16), mat('#2f6fd8', { rough: 0.4 })), [-0.13, y, 0.021]).rotation.z = Math.PI / 2
-  cableRun(pack, [[-0.09, -0.165, 0.012], [-0.07, -0.16, 0.012], [vplus[0] - 0.002, vplus[1] - 0.006, 0.012], vplus], '#d8322c', 0.0015)
-  cableRun(pack, [[-0.09, -0.175, 0.012], [-0.065, -0.17, 0.012], [vplus[0] + 0.004, vplus[1] - 0.008, 0.012], [vplus[0] + 0.005, vplus[1], vplus[2]]], '#1a1a1a', 0.0015)
-  const usb = add(g, new THREE.Group())
-  cableRun(usb, [[0.044, -0.148, 0.012], [0.03, -0.16, 0.012], [vplus[0] + 0.006, vplus[1] - 0.012, 0.012], vplus], '#d8322c', 0.0013)
-  const pen = dotPen(lifted, 900, 0.0018)
-  const leads = (f: Mat4[]) => {
-    const o = f.map(originOf) as V3[]
-    const ports = arm.ports(f)
-    ports.forEach((p, i) => {
-      const route: V3[] = [p, ...o.slice(0, Math.max(1, i)).reverse(), [exit[0], exit[1], exit[2] - BASE_H]]
-      route.slice(1).forEach((b, j) => pen.line(route[j], b, 0.006, LEAD, 0.8))
-    })
-  }
-  return { g, lifted, arm, board, pen, leads, pack, usb }
-}
 
 // --- Assemble the arm: servo per joint vs the gravity torque it must hold, and the current they all draw. ---
 
@@ -111,7 +65,7 @@ export const armBuildAssemble: Lesson = {
     { color: POWER, label: 'Hold torque ≤ ½ stall: holds cool', shape: 'dot' },
     { color: HEAT, label: '½ … 1 × stall: holds, heats, droops', shape: 'dot' },
     { color: HIGH_V, label: 'Past stall: cannot hold', shape: 'dot' },
-    { color: LEAD, label: 'Servo leads to the PCA9685 (I²C from the ESP32)', shape: 'dot' },
+    { color: ARM_LEAD, label: 'Servo leads to the PCA9685 (I²C from the ESP32)', shape: 'dot' },
   ],
   points: [
     'The arm from Forward kinematics, built for real: an MG996R metal-gear servo turns the base, shoulder and elbow, an SG90 the wrist and another SG90 the gripper. Aluminium brackets join them; each servo body rides on the link before its joint, so every servo also carries the servos beyond it.',
@@ -128,7 +82,7 @@ export const armBuildAssemble: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
-    const d = deskBuild(scene, [-11, -7.6, 0], 28, buildOf('mg996r').servos.concat(ARM_BUILD.gripper))
+    const d = armDesk(scene, [-11, -7.6, 0], 28, buildOf('mg996r').servos.concat(ARM_BUILD.gripper))
     const X = 1.6
     const bars = add(scene, new THREE.Group(), [X + 2.6, 2.6, 0.2])
     bars.scale.setScalar(0.42)
@@ -207,7 +161,7 @@ const flatPaper = (g: THREE.Object3D) => box(g, [0.15, 0.13, 0.001], mat('#e9e6d
 
 const CALS = { raw: 'Horns by eye', trimmed: 'Trimmed in code', flipped: 'Elbow sign wrong' }
 /** How far each horn actually sits from where the code assumes (a horn goes on in 14.4° teeth, so by eye ≤ half a tooth). */
-const HORNS_DEG = [5, -6, 4, -3]
+const HORNS_DEG = ARM_HORN_DEG
 const TRUTH = ARM_CAL.map((c, i) => hornShift(c, HORNS_DEG[i]))
 const CODE = { raw: ARM_CAL, trimmed: TRUTH, flipped: TRUTH.map((c, i) => (i === 2 ? reversed(c) : c)) }
 const DRAW = { z: 0.04 - BASE_H, r: 0.04, periodS: 8, pitch: -90 * DEG, samples: 96 }
@@ -261,7 +215,7 @@ export const armBuildDriveIk: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
-    const d = deskBuild(scene, [-11, -7.6, 0], 28, [...ARM_BUILD.servos, ARM_BUILD.gripper])
+    const d = armDesk(scene, [-11, -7.6, 0], 28, [...ARM_BUILD.servos, ARM_BUILD.gripper])
     const ghost = serialArm(d.lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, axes: false })
     ghostRig(ghost.group, B_FIELD, 0.18)
     const paper = flatPaper(d.g)

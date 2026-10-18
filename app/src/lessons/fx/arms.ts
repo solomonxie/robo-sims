@@ -1,10 +1,13 @@
 // Serial arm rig driven by `armFk`: bar links, joint housings with turning rotor rings, joint-axis markers, optional frame triads and a gripper (z-up metres; caller scales).
 import * as THREE from 'three/webgpu'
-import { ArmServo, Mat4, SERVO_ARM, SerialArm, apply4, armFk, dhRowAt, mul4, rotAbout4, trans4 } from '../../core/physics'
+import { ArmServo, Mat4, SERVO_ARM, SerialArm, apply4, armFk, dhRowAt, mul4, originOf, rotAbout4, trans4 } from '../../core/physics'
 import { V3, add, box, mat, mesh } from '../../models/kit'
+import { buildEsp32 } from '../../models/modules'
 import { glowMat, setGlow } from './colors'
-import { frameTriad, setTf } from './frames'
-import { pointCloud } from './rooms'
+import { frameTriad, setTf, zUp } from './frames'
+import { cableRun } from './layout'
+import { pca9685Board } from './modules'
+import { floorMat, pointCloud } from './rooms'
 
 /** Slim links for `SERVO_ARM` at desk scale, on a plinth this tall. */
 export const SERVO_ARM_LOOK = { w: 0.022, t: 0.017 }
@@ -209,4 +212,53 @@ export function servoArmBuild(parent: THREE.Object3D, kinds: readonly ArmServo[]
     heat: (i: number, k: number) => (bodies[i].m.emissiveIntensity = 0.9 * Math.max(0, Math.min(1, k))),
     ports: (f: Mat4[]): V3[] => bodies.map((b, i) => apply4(mount(f, i), b.back) as V3),
   }
+}
+
+/** Height of `armDesk`'s base box: the desk is this far below frame 0. */
+export const ARM_DESK_H = 0.05
+/** Servo lead colour. */
+export const ARM_LEAD = '#d9822b'
+
+/** Servo arm build on a `baseH` stand (`lifted` = arm space), PCA9685 + ESP32 on a desk mat, leads to every channel; `pack`/`usb` supply leads; `leads(f)` redraws arm cables in `pen` (between `pen.begin`/`end`). */
+export function armDesk(scene: THREE.Object3D, at: V3, k: number, kinds: readonly ArmServo[], baseH = ARM_DESK_H) {
+  const g = zUp(scene, at, k, 0.55, -0.5)
+  floorMat(g, [-0.22, 0.34], [-0.22, 0.12])
+  const lifted = add(g, new THREE.Group(), [0, 0, baseH])
+  const arm = servoArmBuild(lifted, kinds, baseH)
+  const B: V3 = [-0.03, -0.12, 0]
+  const board = pca9685Board(g, B, 0.001)
+  board.group.rotation.z = Math.PI
+  const turned = (p: V3): V3 => [2 * B[0] - p[0], 2 * B[1] - p[1], p[2]]
+  const esp = add(g, buildEsp32(), [0.065, -0.135, 0])
+  esp.rotation.x = Math.PI / 2
+  esp.scale.setScalar(0.00254)
+  const exit: V3 = [-0.01, -0.038, 0.012]
+  ;[0, 1, 2, 3, 4].forEach((i) => {
+    const c = turned(board.ch(i))
+    const y = exit[1] - 0.004 * i
+    cableRun(g, [[exit[0] - 0.003 * i, exit[1], exit[2]], [exit[0] - 0.003 * i, y - 0.01, 0.004], [c[0], y - 0.03, 0.004], [c[0], c[1] + 0.008, 0.006], c], ARM_LEAD, 0.0013)
+  })
+  const i2cAt = turned(board.i2c)
+  ;['#d8322c', '#1a1a1a', '#f2c230', '#4d7dff'].forEach((c, j) => {
+    const y = i2cAt[1] + (j - 1.5) * 0.0025
+    cableRun(g, [[i2cAt[0], y, i2cAt[2]], [i2cAt[0] + 0.01, y, 0.01], [0.044 + j * 0.0025, -0.122, 0.012]], c, 0.001)
+  })
+  const vplus = turned(board.vplus)
+  const pack = add(g, new THREE.Group())
+  box(pack, [0.077, 0.042, 0.02], mat('#1a1a1a', { rough: 0.6 }), [-0.13, -0.17, 0.01])
+  for (const y of [-0.18, -0.16]) add(pack, new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.065, 16), mat('#2f6fd8', { rough: 0.4 })), [-0.13, y, 0.021]).rotation.z = Math.PI / 2
+  cableRun(pack, [[-0.09, -0.165, 0.012], [-0.07, -0.16, 0.012], [vplus[0] - 0.002, vplus[1] - 0.006, 0.012], vplus], '#d8322c', 0.0015)
+  cableRun(pack, [[-0.09, -0.175, 0.012], [-0.065, -0.17, 0.012], [vplus[0] + 0.004, vplus[1] - 0.008, 0.012], [vplus[0] + 0.005, vplus[1], vplus[2]]], '#1a1a1a', 0.0015)
+  const usb = add(g, new THREE.Group())
+  cableRun(usb, [[0.044, -0.148, 0.012], [0.03, -0.16, 0.012], [vplus[0] + 0.006, vplus[1] - 0.012, 0.012], vplus], '#d8322c', 0.0013)
+  const pen = dotPen(lifted, 900, 0.0018)
+  const leads = (f: Mat4[]) => {
+    const o = f.map(originOf) as V3[]
+    const ports = arm.ports(f)
+    ports.forEach((p, i) => {
+      const route: V3[] = [p, ...o.slice(0, Math.max(1, i)).reverse(), [exit[0], exit[1], exit[2] - baseH]]
+      route.slice(1).forEach((b, j) => pen.line(route[j], b, 0.006, ARM_LEAD, 0.8))
+    })
+  }
+  return { g, lifted, arm, board, pen, leads, pack, usb }
 }
