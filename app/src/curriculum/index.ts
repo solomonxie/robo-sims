@@ -214,6 +214,7 @@ import { lineFollowingCarIntersections, lineFollowingCarPdController, lineFollow
 import { selfBalancingRobotBuildTheBase, selfBalancingRobotReadTheTilt, selfBalancingRobotTuneTheLoop } from '../lessons/projects/self-balancing-robot'
 import { robotArmAssemble, robotArmCalibrateServos, robotArmIkControl } from '../lessons/projects/robot-arm'
 import { quadrupedGaitGenerator, quadrupedLegGeometry } from '../lessons/projects/quadruped'
+import { mazeSolverFloodFill, mazeSolverWallSensing } from '../lessons/projects/maze-solver'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -852,6 +853,8 @@ const READY: Record<string, Lesson> = {
   'projects/robot-arm/ik-control': robotArmIkControl,
   'projects/quadruped/leg-geometry': quadrupedLegGeometry,
   'projects/quadruped/gait-generator': quadrupedGaitGenerator,
+  'projects/maze-solver/wall-sensing': mazeSolverWallSensing,
+  'projects/maze-solver/flood-fill': mazeSolverFloodFill,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

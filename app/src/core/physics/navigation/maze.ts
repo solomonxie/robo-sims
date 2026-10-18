@@ -14,8 +14,8 @@ export interface Maze {
   h: number
   walls: Uint8Array
 }
-/** 8 × 8 cells of 25 cm (a TT car needs more than micromouse's 18 cm); start bottom-left facing north. */
-export const MAZE = { n: 8, cellM: 0.25, wallM: 0.02, start: 0, startDir: 0 as Dir }
+/** 8 × 8 cells of 25 cm (a TT car needs more than micromouse's 18 cm), walls 5 cm high; start bottom-left facing north. */
+export const MAZE = { n: 8, cellM: 0.25, wallM: 0.02, wallH: 0.05, start: 0, startDir: 0 as Dir }
 
 const turnDir = (d: number, k: number) => (((d + k) % 4) + 4) % 4 as Dir
 const cellXY = (m: Maze, c: number): [number, number] => [c % m.w, Math.floor(c / m.w)]

@@ -5,7 +5,7 @@ import { V3, add, box, mat } from '../../models/kit'
 import { flatBox } from './shapes'
 import { liveLabel } from './text'
 
-const WALL_H = 0.05
+const WALL_H = MAZE.wallH
 
 function instanced(parent: THREE.Object3D, geo: THREE.BufferGeometry, m: THREE.Material, max: number) {
   const im = new THREE.InstancedMesh(geo, m, max)
