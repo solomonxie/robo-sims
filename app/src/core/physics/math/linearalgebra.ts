@@ -1,4 +1,5 @@
-// Linear algebra: least-squares line fit via the normal equations; 2×2 eigenvectors, repeated maps and PCA of a lidar wall.
+// Linear algebra: least-squares line and plane fit via the normal equations; 2×2 eigenvectors, repeated maps and PCA of a lidar wall.
+import { gaussSolve } from '../../nodal'
 import { V2 } from '../kinematics/transforms'
 import { gaussRng, parkMiller } from '../common'
 import { symEig } from '../control/linalg'
@@ -34,6 +35,21 @@ export function lineNormalEq(xs: readonly number[], ys: readonly number[]) {
   const inv = inv2(AtA)
   const sol = inv ? apply2(inv, Atb) : null
   return { AtA, Atb, inv, m: sol ? sol[0] : NaN, c: sol ? sol[1] : NaN }
+}
+
+/** Least-squares plane z = a + b·x + c·y through points [x, y, z] (normal equations, 3 × 3); null when degenerate. */
+export function planeFit(pts: readonly (readonly number[])[]) {
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+  const r = [0, 0, 0]
+  for (const [x, y, z] of pts) {
+    const row = [1, x, y]
+    for (let i = 0; i < 3; i++) {
+      r[i] += row[i] * z
+      for (let j = 0; j < 3; j++) A[i][j] += row[i] * row[j]
+    }
+  }
+  const s = gaussSolve(A, r)
+  return s ? { a: s[0], b: s[1], c: s[2], at: (x: number, y: number) => s[0] + s[1] * x + s[2] * y } : null
 }
 
 export const sumSquares = (xs: readonly number[], ys: readonly number[], m: number, c: number) => xs.reduce((s, x, i) => s + (ys[i] - (m * x + c)) ** 2, 0)

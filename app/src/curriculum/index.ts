@@ -195,6 +195,7 @@ import { filamentsCarbonFibreBlends, filamentsDryingWetFilament, filamentsFlexib
 import { slicingInfillPatterns, slicingLayerHeight, slicingSeams, slicingStlAnd3mf, slicingSupports, slicingWallsAndPerimeters } from '../lessons/printing/slicing'
 import { gCodeG0G1Moves, gCodeStartAndEndScripts, gCodeTemperaturesAndFans } from '../lessons/printing/g-code'
 import { temperatureCoolingHeatedBed, temperatureCoolingHotendPidTuning, temperatureCoolingPartCoolingFan, temperatureCoolingThermalRunawayProtection } from '../lessons/printing/temperature-cooling'
+import { bedAdhesionBedLevelling, bedAdhesionBrimAndRaft, bedAdhesionBuildSurfaces, bedAdhesionZOffset } from '../lessons/printing/bed-adhesion'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -779,6 +780,10 @@ const READY: Record<string, Lesson> = {
   'printing/temperature-cooling/heated-bed': temperatureCoolingHeatedBed,
   'printing/temperature-cooling/part-cooling-fan': temperatureCoolingPartCoolingFan,
   'printing/temperature-cooling/thermal-runaway-protection': temperatureCoolingThermalRunawayProtection,
+  'printing/bed-adhesion/bed-levelling': bedAdhesionBedLevelling,
+  'printing/bed-adhesion/z-offset': bedAdhesionZOffset,
+  'printing/bed-adhesion/build-surfaces': bedAdhesionBuildSurfaces,
+  'printing/bed-adhesion/brim-and-raft': bedAdhesionBrimAndRaft,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

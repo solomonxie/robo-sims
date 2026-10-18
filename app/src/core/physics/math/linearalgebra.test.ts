@@ -2,7 +2,7 @@ import { medianMs } from '../../stopwatch'
 import { DEG } from '../common'
 import { eigenvalues } from '../control/linalg'
 import { Mat2, apply2, rotMat2 } from './matrices'
-import { MOTOR_CAL, eig2, eigenView, leastSquaresView, lineNormalEq, motorCalPoints, repeatMap, sumSquares, turnOf, wallPca } from './linearalgebra'
+import { MOTOR_CAL, eig2, eigenView, leastSquaresView, lineNormalEq, motorCalPoints, planeFit, repeatMap, sumSquares, turnOf, wallPca } from './linearalgebra'
 
 describe('least squares', () => {
   it('normal equations recover an exact line', () => {
@@ -118,5 +118,15 @@ describe('PCA of a lidar wall', () => {
       }
     })
     expect(ms / 20).toBeLessThan(20)
+  })
+})
+
+describe('planeFit', () => {
+  it('recovers an exact plane and returns null for collinear points', () => {
+    const p = planeFit([[0, 0, 1], [10, 0, 2], [0, 10, 0.5], [10, 10, 1.5]])!
+    expect(p.a).toBeCloseTo(1, 9)
+    expect(p.b).toBeCloseTo(0.1, 9)
+    expect(p.c).toBeCloseTo(-0.05, 9)
+    expect(planeFit([[0, 0, 0], [1, 1, 1], [2, 2, 2]])).toBeNull()
   })
 })

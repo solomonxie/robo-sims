@@ -213,7 +213,7 @@ export function bedRun(c: BedCfg, ctrl: BedCtrl, setC: number, seconds = 900) {
 
 export const TOWER = { mm: 20, layerMm: 0.2, layers: 30, dt: 0.05, layerWPerM2K: 1000, stillH: 10, fanH: 110, beadDrop: 15 }
 /** Relative shrink per °C frozen in below Tg (PLA = 1), typical. */
-const SHRINK = { pla: 1, petg: 1.3, asa: 2.2 }
+export const COOL_SHRINK = { pla: 1, petg: 1.3, asa: 2.2 }
 export const COOL_FILAMENTS = { pla: FILAMENTS.pla.name, petg: FILAMENTS.petg.name, asa: FILAMENTS.asa.name }
 export type CoolFilament = keyof typeof COOL_FILAMENTS
 
@@ -243,7 +243,7 @@ export function coolRun(mat: CoolFilament, fan: number, layerS: number, layers =
     }
   }
   const tArr = arrive[arrive.length - 1]
-  return { tops, dt: TOWER.dt * 10, total: layers * steps * TOWER.dt, arrive, tArr, lay, air, tg: f.tgC, soft: tArr > f.tgC, shrink: SHRINK[mat] * Math.max(0, f.tgC - tArr), column: [...T] }
+  return { tops, dt: TOWER.dt * 10, total: layers * steps * TOWER.dt, arrive, tArr, lay, air, tg: f.tgC, soft: tArr > f.tgC, shrink: COOL_SHRINK[mat] * Math.max(0, f.tgC - tArr), column: [...T] }
 }
 
 /** Shortest layer time (s) at which the layer below is under Tg when the next lands. */
