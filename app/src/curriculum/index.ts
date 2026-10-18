@@ -197,6 +197,7 @@ import { gCodeG0G1Moves, gCodeStartAndEndScripts, gCodeTemperaturesAndFans } fro
 import { temperatureCoolingHeatedBed, temperatureCoolingHotendPidTuning, temperatureCoolingPartCoolingFan, temperatureCoolingThermalRunawayProtection } from '../lessons/printing/temperature-cooling'
 import { bedAdhesionBedLevelling, bedAdhesionBrimAndRaft, bedAdhesionBuildSurfaces, bedAdhesionZOffset } from '../lessons/printing/bed-adhesion'
 import { calibrationESteps, calibrationFlowRate, calibrationPressureAdvance, calibrationRetraction, calibrationTemperatureTower } from '../lessons/printing/calibration'
+import { printProblemsStringing, printProblemsWarping, printProblemsLayerShift, printProblemsUnderExtrusion, printProblemsElephantFoot, printProblemsCloggedNozzle } from '../lessons/printing/print-problems'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -790,6 +791,12 @@ const READY: Record<string, Lesson> = {
   'printing/calibration/pressure-advance': calibrationPressureAdvance,
   'printing/calibration/retraction': calibrationRetraction,
   'printing/calibration/temperature-tower': calibrationTemperatureTower,
+  'printing/print-problems/stringing': printProblemsStringing,
+  'printing/print-problems/warping': printProblemsWarping,
+  'printing/print-problems/layer-shift': printProblemsLayerShift,
+  'printing/print-problems/under-extrusion': printProblemsUnderExtrusion,
+  'printing/print-problems/elephant-foot': printProblemsElephantFoot,
+  'printing/print-problems/clogged-nozzle': printProblemsCloggedNozzle,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

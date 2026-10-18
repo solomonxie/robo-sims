@@ -1,4 +1,4 @@
-// Calibration test prints: a banded tower (one band per setting, overhang tab each) and strings across travel moves.
+// Test prints: a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints.
 import * as THREE from 'three/webgpu'
 import { V3, add, box } from '../../models/kit'
 import { FILAMENT_COLOR } from './printer'
@@ -67,6 +67,47 @@ export function stringWeb(parent: THREE.Object3D, max: number, color = FILAMENT_
       }
       im.count = n * S
       im.instanceMatrix.needsUpdate = true
+    },
+  }
+}
+
+export interface LayerCell {
+  dx: number
+  dy: number
+  grow: number
+  color: string
+}
+
+/** Print of `layers` × `cols` slabs (mm × k, cols along x, bottom layer 0); `set(cell(layer, col))` offsets each slab by dx/dy mm, widens it by `grow` mm per side. */
+export function layerBlock(parent: THREE.Object3D, at: V3, k: number, { w = 40, d = 20, layerH = 1, layers = 20, cols = 1 } = {}) {
+  const group = add(parent, new THREE.Group(), at)
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.55 }), layers * cols)
+  im.frustumCulled = false
+  im.castShadow = true
+  group.add(im)
+  const M = new THREE.Matrix4()
+  const Q = new THREE.Quaternion()
+  const P = new THREE.Vector3()
+  const S = new THREE.Vector3()
+  const C = new THREE.Color()
+  const cw = w / cols
+  return {
+    group,
+    height: layers * layerH * k,
+    set(cell: (layer: number, col: number) => LayerCell) {
+      for (let i = 0; i < layers; i++)
+        for (let j = 0; j < cols; j++) {
+          const c = cell(i, j)
+          const edge = cols === 1 ? 2 : j === 0 || j === cols - 1 ? 1 : 0
+          const x = -w / 2 + (j + 0.5) * cw + c.dx + (cols === 1 ? 0 : j === 0 ? -c.grow / 2 : j === cols - 1 ? c.grow / 2 : 0)
+          P.set(x * k, ((i + 0.5) * layerH + c.dy) * k, 0)
+          S.set((cw + edge * c.grow) * k, layerH * k * 0.9, (d + 2 * c.grow) * k)
+          M.compose(P, Q, S)
+          im.setMatrixAt(i * cols + j, M)
+          im.setColorAt(i * cols + j, C.set(c.color))
+        }
+      im.instanceMatrix.needsUpdate = true
+      if (im.instanceColor) im.instanceColor.needsUpdate = true
     },
   }
 }

@@ -64,7 +64,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `processes` — `resinPrinter` (MSLA: LCD `mask(lit, uv)`, plate + hanging `layers`), `powderBed` (SLS: see-through powder, `gears.place`, roller, galvo laser), `printedPart` (gear/bracket/enclosure/finger/figure), `UV_COLOR`, `RESIN_COLOR`, `NYLON_COLOR`.
 - `filaments` — `FILAMENT_TINT`, `filamentSpool` (face-on 1 kg spool, `set(color, fill)`), `filamentStrand` (bendable rod chain, `set(points)`) [`physics/printing/filaments`].
 - `slicer` — wheel-hub slicer scene: `slicerRig` (tilted bed, `stack`, `shell`, toolpath `beads`, `layLayer`, `nozzleAt`), `layerStack` (round/square discs + bore), `layerPreview` (flat top view, `set`/`show`/`fit`/`dotAt`), `hubLathe`, `SEG_COLORS`/`SEG_NAMES` [`physics/printing/slicing`].
-- `testprints` — `testTower` (banded test tower, overhang tab per band; `set(i, color, droop, glow)`, `label`), `stringWeb` (sagging strings, `set(strings)`) [`physics/printing/calibration`].
+- `testprints` — `testTower` (banded test tower, overhang tab per band; `set(i, color, droop, glow)`, `label`), `stringWeb` (sagging strings, `set(strings)`), `layerBlock` (layers × columns of slabs, `set(cell)` → dx/dy/grow/colour: warp, shift, elephant foot) [`physics/printing/calibration`, `problems` (`rankCauses`: gain from fixing each cause alone)].
 - `firstlayer` — `bedRelief` (n × n height-map tiles in a tiltable `holder`, `set(h, color)`, `local(u, v, y)`), `beadCut` (first-layer lines cut across under a nozzle; `set(h, w, spacing, gap, color)`) [`physics/printing/adhesion`].
 - `cad` — `sketchPen` (2D polylines as rods, colour per line; `draw(lines)`), `plateGeometry` (`PlateSketch` outline − holes, extruded), `SKETCH_FREE`/`SKETCH_FIXED` [`physics/materials`].
 - `chassis` — `chassisModel` (top-view two-wheel + caster robot from a `ChassisPart[]` layout: plate, TT motors, 2 × 18650 (+ top deck), driver, ESP32, IMU; `place(parts)`, `at(key)`, `driverPin`/`imuPin`), `ACRYLIC_TINT` [`physics/materials/chassis`].
@@ -140,7 +140,7 @@ Much of this is taught elsewhere already (Kinematics, Signals, Perception, Actua
   - [x] Temperature & cooling
   - [x] Bed adhesion
   - [x] Calibration
-  - [ ] Print problems
+  - [x] Print problems
   - [ ] Design for printing
   - [ ] Functional parts
   - [ ] Strength

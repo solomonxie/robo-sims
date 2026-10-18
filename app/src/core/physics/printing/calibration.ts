@@ -24,9 +24,9 @@ export const eStepsOf = (k: ExtruderKey) => (stepsPerRev(E_TEST.micro) * EXTRUDE
 export const meltFeed = () => maxFlow('v6', E_TEST.blockC) / filamentArea()
 
 /** Share of the gear travel lost when the push needed (back pressure ∝ feed²) beats the grip. */
-export function gearSlip(k: ExtruderKey, feed: number) {
+export function gearSlip(k: ExtruderKey, feed: number, gripN = EXTRUDERS[k].gripN) {
   const need = 8 + 25 * (feed / meltFeed()) ** 2
-  return clamp(1 - EXTRUDERS[k].gripN / need, 0, 0.5)
+  return clamp(1 - gripN / need, 0, 0.5)
 }
 
 export function eStepsView(k: ExtruderKey, errPct: number, feed: number) {

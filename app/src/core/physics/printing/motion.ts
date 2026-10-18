@@ -92,10 +92,10 @@ const BELT_SPAN_M = 0.3
 
 export const driveMmPerRev = (d: AxisDrive) => (d === 'belt' ? BELT_Z * GT2.pitch : screwLeadMm(DRIVE_SCREW[d]))
 
-/** Push (N) a NEMA17 at 24 V gets out of the drive at `mmS`. */
-export function driveForceN(d: AxisDrive, mmS: number) {
+/** Push (N) a NEMA17 at 24 V and driver current `setA` gets out of the drive at `mmS`. */
+export function driveForceN(d: AxisDrive, mmS: number, setA = NEMA17.ratedA) {
   const rpm = (mmS / driveMmPerRev(d)) * 60
-  const nm = pullOutNm(rpmToRadS(rpm))
+  const nm = pullOutNm(rpmToRadS(rpm), setA)
   if (d === 'belt') return (BELT_EFF * nm) / (pitchRadiusMm(BELT_Z) / 1000)
   const s = DRIVE_SCREW[d]
   return thrustN(nm, screwLeadMm(s), screwEfficiency(s))
