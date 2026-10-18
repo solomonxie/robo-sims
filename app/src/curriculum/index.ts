@@ -209,6 +209,7 @@ import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAnd
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
 import { roboCarChassisPower, roboCarDriveWithEsp32, roboCarPhoneRemote, roboCarWireTheMotorDriver } from '../lessons/projects/robo-car'
+import { obstacleAvoidingCarMountTheSensor, obstacleAvoidingCarReactiveLogic, obstacleAvoidingCarTuneAndTest } from '../lessons/projects/obstacle-avoiding-car'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -833,6 +834,9 @@ const READY: Record<string, Lesson> = {
   'projects/robo-car/wire-the-motor-driver': roboCarWireTheMotorDriver,
   'projects/robo-car/drive-with-esp32': roboCarDriveWithEsp32,
   'projects/robo-car/phone-remote': roboCarPhoneRemote,
+  'projects/obstacle-avoiding-car/mount-the-sensor': obstacleAvoidingCarMountTheSensor,
+  'projects/obstacle-avoiding-car/reactive-logic': obstacleAvoidingCarReactiveLogic,
+  'projects/obstacle-avoiding-car/tune-and-test': obstacleAvoidingCarTuneAndTest,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

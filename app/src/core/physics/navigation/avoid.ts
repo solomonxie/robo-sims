@@ -56,7 +56,7 @@ export function hitSide(room: Room, p: Pose) {
   return clearance(room, lx, ly) <= clearance(room, rx, ry) ? 1 : -1
 }
 
-interface AvoidFrame {
+export interface AvoidFrame {
   t: number
   pose: Pose
   vL: number
@@ -86,7 +86,7 @@ export function heldSensor<T>(every: number, sense: (p: Pose) => T) {
 }
 
 /** Steps a controller for `seconds`; restT = when it settled within 5 cm of its end point (null if it never did); coverage = share of reachable `AVOID.cell` squares the body centre visited. */
-function avoidRun(room: Room, start: Pose, ctl: Ctl, seconds = AVOID.seconds) {
+export function avoidRun(room: Room, start: Pose, ctl: Ctl, seconds = AVOID.seconds) {
   const frames: AvoidFrame[] = []
   const nx = Math.ceil(room.w / AVOID.cell)
   const ny = Math.ceil(room.d / AVOID.cell)
