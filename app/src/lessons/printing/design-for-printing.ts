@@ -47,46 +47,24 @@ import {
   Slab,
   WIDE_VIEW,
   addLabel,
-  countBars,
   cursorBar,
   glowMat,
   liveLabel,
   memoBy,
-  plotY,
+  printBoard,
   sliceSlabs,
-  statusHeader,
   stressColor,
   stretchArrow,
-  textRows,
-  titledScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
 // One scene for all five: a printed section on the left (sliced at the real layer height), live rows top right, a plot bottom right.
-const PLOT = { x: 8.6, w: 12.4, y: -8.8, h: 8.2 }
 const PRINT = '#7fb2e6'
 const SUPPORT = '#a4a9b2'
 const EX = 3
 function dfpStage(plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
   const scene = createStage({ span: 40 })
-  const head = statusHeader(scene)
-  const rows = textRows(scene, 3, 2.4, 3.6, 0.28, 0.66)
-  const plot = titledScope(scene, PLOT.y, PLOT.h, plotTitle, LABEL, 0, PLOT.x, PLOT.w)
-  plot.lo.set(lo)
-  plot.hi.set(hi)
-  let tally: ReturnType<typeof countBars> | null = null
-  if (bars) {
-    addLabel(scene, bars.title, [2.4, 1.5, 0.3], GREY, 0.26, 'left')
-    tally = countBars(scene, [10, 0.8, 0], bars.names, 3.6, { row: 0.56, size: 0.26, color: POWER })
-  }
-  /** Bed plate + slabs, mm × k, turned a little to show depth. */
-  const bench = (at: V3, k: number, w: number, d: number, max: number, turn = -0.25) => {
-    const g = add(scene, new THREE.Group(), at)
-    g.rotation.set(0.3, turn, 0)
-    box(g, [w * k, 0.3, d * k], mat('#3a3f47', { rough: 0.6 }), [(w / 2 - 4) * k, -0.15, 0])
-    return { g, slabs: sliceSlabs(g, [0, 0, 0], k, max) }
-  }
-  return { scene, head, rows, plot, tally, bench, py: (min: number, max: number) => plotY(min, max, PLOT.h) }
+  return { scene, ...printBoard(scene, plotTitle, lo, hi, bars) }
 }
 const droopTint = (d: number) => (d < 0.1 ? PRINT : d < 0.5 ? RING : HIGH_V)
 /** Layers → slabs, `every` n-th layer drawn n thick; hanging segments drop by EX × droop, bridges sag in a parabola. */

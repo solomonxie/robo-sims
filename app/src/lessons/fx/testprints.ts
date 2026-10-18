@@ -1,8 +1,11 @@
-// Test prints: a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints, sliced-section slabs.
+// Test prints: a print board (sections left, rows + plot right), a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints, sliced-section slabs.
 import * as THREE from 'three/webgpu'
-import { V3, add, box } from '../../models/kit'
+import { V3, add, box, mat } from '../../models/kit'
+import { GREY, LABEL, POWER } from './colors'
+import { countBars } from './displays'
 import { FILAMENT_COLOR } from './printer'
-import { liveLabel } from './text'
+import { plotY, statusHeader, textRows, titledScope } from './rigs'
+import { addLabel, liveLabel } from './text'
 
 /** Tower of `bands` blocks (mm × k, bottom band 0), each with an overhang tab on +x; `set(i, color, droop 0…1, glow)`, `label(i, text, color)`. */
 export function testTower(parent: THREE.Object3D, at: V3, k: number, bands: number, { w = 20, d = 20, bandH = 8, tab = 8 } = {}) {
@@ -149,4 +152,28 @@ export function sliceSlabs(parent: THREE.Object3D, at: V3, k: number, max: numbe
       if (im.instanceColor) im.instanceColor.needsUpdate = true
     },
   }
+}
+
+export const PRINT_PLOT = { x: 8.6, w: 12.4, y: -8.8, h: 8.2 }
+/** Print board on a span-40 stage: status header, 3 rows top right, a titled plot bottom right, optional bars between;
+ *  `bench` = turned bed plate + `sliceSlabs` (mm × k), `py` maps values onto the plot. */
+export function printBoard(scene: THREE.Object3D, plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
+  const P = PRINT_PLOT
+  const head = statusHeader(scene)
+  const rows = textRows(scene, 3, 2.4, 3.6, 0.28, 0.66)
+  const plot = titledScope(scene, P.y, P.h, plotTitle, LABEL, 0, P.x, P.w)
+  plot.lo.set(lo)
+  plot.hi.set(hi)
+  let tally: ReturnType<typeof countBars> | null = null
+  if (bars) {
+    addLabel(scene, bars.title, [2.4, 1.5, 0.3], GREY, 0.26, 'left')
+    tally = countBars(scene, [10, 0.8, 0], bars.names, 3.6, { row: 0.56, size: 0.26, color: POWER })
+  }
+  const bench = (at: V3, k: number, w: number, d: number, max: number, turn = -0.25) => {
+    const g = add(scene, new THREE.Group(), at)
+    g.rotation.set(0.3, turn, 0)
+    box(g, [w * k, 0.3, d * k], mat('#3a3f47', { rough: 0.6 }), [(w / 2 - 4) * k, -0.15, 0])
+    return { g, slabs: sliceSlabs(g, [0, 0, 0], k, max) }
+  }
+  return { head, rows, plot, tally, bench, py: (min: number, max: number) => plotY(min, max, P.h) }
 }

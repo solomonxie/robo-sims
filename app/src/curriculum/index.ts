@@ -199,6 +199,7 @@ import { bedAdhesionBedLevelling, bedAdhesionBrimAndRaft, bedAdhesionBuildSurfac
 import { calibrationESteps, calibrationFlowRate, calibrationPressureAdvance, calibrationRetraction, calibrationTemperatureTower } from '../lessons/printing/calibration'
 import { printProblemsStringing, printProblemsWarping, printProblemsLayerShift, printProblemsUnderExtrusion, printProblemsElephantFoot, printProblemsCloggedNozzle } from '../lessons/printing/print-problems'
 import { designForPrintingOverhangsAndBridges, designForPrintingOrientationAndStrength, designForPrintingTolerancesAndFits, designForPrintingHolesAndTeardrops, designForPrintingChamfersVsFillets } from '../lessons/printing/design-for-printing'
+import { functionalPartsHeatSetInserts, functionalPartsCaptiveNuts, functionalPartsSnapFits, functionalPartsLivingHinges, functionalPartsPrintedGears } from '../lessons/printing/functional-parts'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -803,6 +804,11 @@ const READY: Record<string, Lesson> = {
   'printing/design-for-printing/tolerances-and-fits': designForPrintingTolerancesAndFits,
   'printing/design-for-printing/holes-and-teardrops': designForPrintingHolesAndTeardrops,
   'printing/design-for-printing/chamfers-vs-fillets': designForPrintingChamfersVsFillets,
+  'printing/functional-parts/heat-set-inserts': functionalPartsHeatSetInserts,
+  'printing/functional-parts/captive-nuts': functionalPartsCaptiveNuts,
+  'printing/functional-parts/snap-fits': functionalPartsSnapFits,
+  'printing/functional-parts/living-hinges': functionalPartsLivingHinges,
+  'printing/functional-parts/printed-gears': functionalPartsPrintedGears,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

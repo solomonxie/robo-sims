@@ -24,6 +24,9 @@ export function si(value: number, unit: string, digits = 3): string {
   return `${+(value / scale).toPrecision(digits)} ${prefix}${unit}`
 }
 
+/** 47000 → "47k", 1.2e6 → "1.2M". */
+export const countText = (n: number, digits = 2) => si(n, '', digits).replace(' ', '')
+
 /** 6.24e18 → "6.24 × 10¹⁸". */
 export function sci(value: number, digits = 3): string {
   if (value === 0) return '0'
