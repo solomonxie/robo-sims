@@ -208,6 +208,7 @@ import { printARobotAssembleWithInserts, printARobotModelTheChassis, printARobot
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
+import { roboCarChassisPower, roboCarDriveWithEsp32, roboCarPhoneRemote, roboCarWireTheMotorDriver } from '../lessons/projects/robo-car'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -828,6 +829,10 @@ const READY: Record<string, Lesson> = {
   'printing/print-a-robot/model-the-chassis': printARobotModelTheChassis,
   'printing/print-a-robot/slice-and-print': printARobotSliceAndPrint,
   'printing/print-a-robot/assemble-with-inserts': printARobotAssembleWithInserts,
+  'projects/robo-car/chassis-power': roboCarChassisPower,
+  'projects/robo-car/wire-the-motor-driver': roboCarWireTheMotorDriver,
+  'projects/robo-car/drive-with-esp32': roboCarDriveWithEsp32,
+  'projects/robo-car/phone-remote': roboCarPhoneRemote,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
