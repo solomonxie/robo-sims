@@ -1,9 +1,10 @@
 // Ranging sensors seen from above: an HC-SR04 aimed in the screen plane, its beam cone, wavefronts as arcs of dots, light rays, and an image sensor pixel grid.
 import * as THREE from 'three/webgpu'
-import { Intrinsics, Mat4, apply4 } from '../../core/physics'
+import { CAR, Intrinsics, Mat4, TCRT, Tape, apply4, darkness, sensorX } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { buildHcSr04 } from '../../models/modules'
-import { glowMat, setGlow } from './colors'
+import { GREY, RING, glowMat, setGlow } from './colors'
+import { flatBox } from './shapes'
 import type { Rods } from './pixels'
 
 /** HC-SR04 lying with its transducers pointing along `heading` (rad, screen plane), `k` units per pitch; → the T and R grille centres. */
@@ -151,4 +152,32 @@ export function frustum(pool: Rods, i: number, k: Intrinsics, Twc: Mat4, s: numb
     pool.set(i + j, o, p, r * 0.6, color)
     pool.set(i + 4 + j, p, c[(j + 1) % 4], r, color)
   })
+}
+
+export const LINE_FLOOR = '#cfcdc4'
+export const LINE_TAPE = '#141416'
+
+/** Light floor with black tape strips (metres, z up). */
+export function tapeFloor(g: THREE.Object3D, tapes: Tape[], x: [number, number], y: [number, number]) {
+  flatBox(g, [x[1] - x[0], y[1] - y[0], 0.01], mat(LINE_FLOOR, { rough: 0.9 }), [(x[0] + x[1]) / 2, (y[0] + y[1]) / 2, -0.005])
+  const tape = mat(LINE_TAPE, { rough: 0.8 })
+  for (const t of tapes)
+    t.slice(1).forEach(([bx, by], i) => {
+      const [ax, ay] = t[i]
+      const len = Math.hypot(bx - ax, by - ay)
+      flatBox(g, [len + TCRT.lineM * 0.5, TCRT.lineM, 0.002], tape, [(ax + bx) / 2, (ay + by) / 2, 0.001]).rotation.z = Math.atan2(by - ay, bx - ax)
+    })
+}
+
+/** TCRT5000 bar on a diffBot's nose; `set(adc)` lights each spot that sees tape. */
+export function noseBar(bot: THREE.Object3D) {
+  const dark = mat('#202226', { rough: 0.6 })
+  box(bot, [CAR.barM - 0.05, 0.012, 0.004], dark, [(CAR.barM + 0.05) / 2, 0, 0.03])
+  box(bot, [0.012, (TCRT.count - 1) * TCRT.pitchM + 0.014, 0.006], dark, [CAR.barM, 0, 0.03])
+  const dots = Array.from({ length: TCRT.count }, (_, i) => {
+    const m = glowMat(GREY, 0.3)
+    add(bot, mesh(new THREE.SphereGeometry(0.0055, 10, 8), m), [CAR.barM, -sensorX(i), 0.035])
+    return m
+  })
+  return (adc: number[]) => adc.forEach((a, i) => setGlow(dots[i], darkness(a) > 0.5 ? RING : IR_TINT, 0.25 + 1.2 * darkness(a)))
 }

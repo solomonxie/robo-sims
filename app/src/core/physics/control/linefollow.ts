@@ -106,7 +106,7 @@ export interface SteerFrame {
 const lostError = (last: number) => Math.sign(last || 1) * 2.5 * TCRT.pitchM
 
 /** One PD step of the line position; returns the new memory and the turn (−1.5…1.5, + = right). */
-function steerTick(m: PidMem, e: number, kp: number, kd: number, dt: number) {
+export function steerTick(m: PidMem, e: number, kp: number, kd: number, dt: number) {
   const { mem, terms } = pidTick(m, e, 0, { kp, ki: 0, kd, limit: PD_RUN.maxTurn, dTau: PD_RUN.dTau }, dt)
   return { mem, p: terms.p, d: terms.d, turn: terms.out }
 }

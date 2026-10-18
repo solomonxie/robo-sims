@@ -210,6 +210,7 @@ import { imitationLearningBehaviourCloning, imitationLearningDataCollection } fr
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
 import { roboCarChassisPower, roboCarDriveWithEsp32, roboCarPhoneRemote, roboCarWireTheMotorDriver } from '../lessons/projects/robo-car'
 import { obstacleAvoidingCarMountTheSensor, obstacleAvoidingCarReactiveLogic, obstacleAvoidingCarTuneAndTest } from '../lessons/projects/obstacle-avoiding-car'
+import { lineFollowingCarIntersections, lineFollowingCarPdController, lineFollowingCarSensorArray } from '../lessons/projects/line-following-car'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -837,6 +838,9 @@ const READY: Record<string, Lesson> = {
   'projects/obstacle-avoiding-car/mount-the-sensor': obstacleAvoidingCarMountTheSensor,
   'projects/obstacle-avoiding-car/reactive-logic': obstacleAvoidingCarReactiveLogic,
   'projects/obstacle-avoiding-car/tune-and-test': obstacleAvoidingCarTuneAndTest,
+  'projects/line-following-car/sensor-array': lineFollowingCarSensorArray,
+  'projects/line-following-car/pd-controller': lineFollowingCarPdController,
+  'projects/line-following-car/intersections': lineFollowingCarIntersections,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

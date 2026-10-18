@@ -11,7 +11,6 @@ import {
   SteerCfg,
   SteerFrame,
   TCRT,
-  Tape,
   TurnDir,
   WHEEL_TOP,
   barAt,
@@ -31,7 +30,7 @@ import {
   turnWheels,
 } from '../../core/physics'
 import { signed, mmTenths } from '../../core/units'
-import { V3, add, box, mat, mesh } from '../../models/kit'
+import { V3, add, mat, mesh } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
@@ -45,6 +44,8 @@ import {
   POWER,
   RING,
   SIDE_SCOPE,
+  LINE_FLOOR,
+  LINE_TAPE,
   addLabel,
   addRod,
   controlLoop,
@@ -56,10 +57,12 @@ import {
   liveLabel,
   memoBy,
   moduleBlock,
+  noseBar,
   pointCloud,
   scopeLabels,
   setGlow,
   statusHeader,
+  tapeFloor,
   stretchRod,
   termBars,
   traceRun,
@@ -70,34 +73,7 @@ import { Lesson, Params, Stage, n, opts, pick } from '../types'
 const VIEW = { center: [-2.2, -1.3, 0] as V3, radius: 54, polar: 1.45, azimuth: 0 }
 const DIAG = { at: [SIDE_SCOPE.x, 2.4, 0] as V3, w: 12.5, h: 3.6 }
 const SCOPE = { y: -4.4, h: 4.6 }
-const FLOOR_C = '#cfcdc4'
-const TAPE_C = '#141416'
 const smm = (m: number) => `${signed(m * 1000, 1)} mm`
-
-/** Light floor with black tape strips (metres, z up). */
-function tapeFloor(g: THREE.Object3D, tapes: Tape[], x: [number, number], y: [number, number]) {
-  flatBox(g, [x[1] - x[0], y[1] - y[0], 0.01], mat(FLOOR_C, { rough: 0.9 }), [(x[0] + x[1]) / 2, (y[0] + y[1]) / 2, -0.005])
-  const tape = mat(TAPE_C, { rough: 0.8 })
-  for (const t of tapes)
-    t.slice(1).forEach(([bx, by], i) => {
-      const [ax, ay] = t[i]
-      const len = Math.hypot(bx - ax, by - ay)
-      flatBox(g, [len + TCRT.lineM * 0.5, TCRT.lineM, 0.002], tape, [(ax + bx) / 2, (ay + by) / 2, 0.001]).rotation.z = Math.atan2(by - ay, bx - ax)
-    })
-}
-
-/** TCRT5000 bar on a diffBot's nose; `set(adc)` lights each spot that sees tape. */
-function noseBar(bot: THREE.Object3D) {
-  const dark = mat('#202226', { rough: 0.6 })
-  box(bot, [CAR.barM - 0.05, 0.012, 0.004], dark, [(CAR.barM + 0.05) / 2, 0, 0.03])
-  box(bot, [0.012, (TCRT.count - 1) * TCRT.pitchM + 0.014, 0.006], dark, [CAR.barM, 0, 0.03])
-  const dots = Array.from({ length: TCRT.count }, (_, i) => {
-    const m = glowMat(GREY, 0.3)
-    add(bot, mesh(new THREE.SphereGeometry(0.0055, 10, 8), m), [CAR.barM, -sensorX(i), 0.035])
-    return m
-  })
-  return (adc: number[]) => adc.forEach((a, i) => setGlow(dots[i], darkness(a) > 0.5 ? RING : IR_TINT, 0.25 + 1.2 * darkness(a)))
-}
 
 // --- Error from sensors: a jig slides the tape under the bar; the weighted average is the error e. ---
 
@@ -141,8 +117,8 @@ export const errorFromSensors: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 40 })
     const { status, sub, event } = statusHeader(scene)
-    flatBox(scene, [EF.w, EF.h, 0.1], mat(FLOOR_C, { rough: 0.9 }), [EF.px, EF.py, -0.25])
-    const tape = flatBox(scene, [1, EF.h, 0.06], mat(TAPE_C, { rough: 0.8 }), [EF.px, EF.py, -0.15])
+    flatBox(scene, [EF.w, EF.h, 0.1], mat(LINE_FLOOR, { rough: 0.9 }), [EF.px, EF.py, -0.25])
+    const tape = flatBox(scene, [1, EF.h, 0.06], mat(LINE_TAPE, { rough: 0.8 }), [EF.px, EF.py, -0.15])
     const sy = EF.py + 1.2
     const barY = EF.py + EF.h / 2 + 0.4
     const body = flatBox(scene, [1, 0.5, 0.3], mat('#202226', { rough: 0.6 }), [EF.px, sy, 0.15])

@@ -1,0 +1,58 @@
+import { medianMs } from '../../stopwatch'
+import { tcrtAdc } from '../sensors/infrared'
+import { pwmWheelSpeed } from './robocar'
+import { LAP_DUTIES, arraySweep, barCoupling, barPinsReadable, barRaw, dutySpeed, gridRun, gridSpinS, junctionName, lapRun, lapSheet } from './linecar'
+
+describe('Line-following car', () => {
+  it('sensor array: nominal height matches the Sensors model; per-sensor calibration fixes bias and "lost"; too high washes out', () => {
+    expect(barRaw(0, 0.005)).toBe(tcrtAdc(0))
+    expect(barRaw(1, 0.005)).toBe(tcrtAdc(1))
+    expect(barCoupling(0.0025)).toBeCloseTo(1)
+    expect(barCoupling(0.012)).toBeLessThan(0.2)
+    const raw = arraySweep(0.005, 'none')
+    const cal = arraySweep(0.005, 'sweep')
+    expect(raw.lostWorks).toBe(false)
+    expect(cal.lostWorks).toBe(true)
+    expect(Math.abs(raw.centreBias!)).toBeGreaterThan(0.0005)
+    expect(Math.abs(cal.centreBias!)).toBeLessThan(0.0002)
+    expect(cal.rms).toBeLessThan(raw.rms / 3)
+    expect(cal.stats.range).toBeGreaterThan(0.025)
+    const high = arraySweep(0.012, 'sweep')
+    expect(high.contrast).toBeLessThan(cal.contrast / 5)
+    expect(high.stats.range).toBeLessThan(0.01)
+    expect(arraySweep(0.01, 'none').whiteSum).toBeGreaterThan(3)
+    expect(arraySweep(0.003, 'sweep').stats.range).toBeLessThan(cal.stats.range)
+    expect(barPinsReadable(true)).toBe(true)
+  })
+  it('PD controller: a fast loop laps at any duty; a slow loop weaves; D rescues the 20 ms loop', () => {
+    expect(dutySpeed(0.6)).toBeCloseTo(pwmWheelSpeed(0.6), 2)
+    expect(dutySpeed(-0.6)).toBeCloseTo(-pwmWheelSpeed(0.6), 2)
+    const fast = lapSheet(80, 1, 0.005)
+    expect(fast.every((r) => r.lapS !== null)).toBe(true)
+    expect(fast[0].lapS!).toBeGreaterThan(fast.at(-1)!.lapS! * 2)
+    const p20 = lapRun({ duty: 0.8, kp: 80, kd: 0, periodS: 0.02 })
+    const pd20 = lapRun({ duty: 0.8, kp: 80, kd: 1, periodS: 0.02 })
+    expect(p20.rms).toBeGreaterThan(3 * pd20.rms)
+    expect(pd20.lapS!).toBeLessThan(p20.lapS!)
+    const slow = lapRun({ duty: 0.8, kp: 80, kd: 1, periodS: 0.05 })
+    expect(slow.rms).toBeGreaterThan(0.01)
+    expect(LAP_DUTIES).toHaveLength(7)
+  })
+  it('intersections: sensor-ended turns reach every goal at every speed; a timed spin only near the duty it was tuned at', () => {
+    for (const g of ['A', 'B', 'C'] as const)
+      for (const d of [0.4, 0.6, 0.9]) expect(gridRun(g, d, 'sensor').arrived).toBe(true)
+    const a = gridRun('A', 0.5, 'sensor')
+    expect(a.log.map(junctionName)).toEqual(['cross (L+S+R)', 'corner (R)', 'branch (S+R)', 'corner (R)'])
+    expect(gridRun('B', 0.5, 'sensor').log.at(-1)!.action).toBe('stop')
+    expect(gridRun('A', 0.7, 'timer').arrived).toBe(true)
+    expect(gridRun('A', 0.4, 'timer').arrived).toBe(false)
+    expect(gridRun('B', 0.5, 'timer').arrived).toBe(false)
+    expect(gridSpinS(0.4)).toBeGreaterThan(gridSpinS(0.7))
+    expect(junctionName({ left: true, right: true, straight: false })).toBe('T (L+R)')
+  })
+  it('speed: runs stay quick', () => {
+    expect(medianMs(() => arraySweep(0.008, 'sweep'))).toBeLessThan(100)
+    expect(medianMs(() => lapSheet(120, 1.5, 0.02), 3)).toBeLessThan(2000)
+    expect(medianMs(() => gridRun('C', 0.5, 'sensor'), 3)).toBeLessThan(500)
+  })
+})
