@@ -215,6 +215,7 @@ import { selfBalancingRobotBuildTheBase, selfBalancingRobotReadTheTilt, selfBala
 import { robotArmAssemble, robotArmCalibrateServos, robotArmIkControl } from '../lessons/projects/robot-arm'
 import { quadrupedGaitGenerator, quadrupedLegGeometry } from '../lessons/projects/quadruped'
 import { mazeSolverFloodFill, mazeSolverWallSensing } from '../lessons/projects/maze-solver'
+import { sumoRobotEdgeAndOpponentSensing, sumoRobotWedgeAndWheels } from '../lessons/projects/sumo-robot'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -855,6 +856,8 @@ const READY: Record<string, Lesson> = {
   'projects/quadruped/gait-generator': quadrupedGaitGenerator,
   'projects/maze-solver/wall-sensing': mazeSolverWallSensing,
   'projects/maze-solver/flood-fill': mazeSolverFloodFill,
+  'projects/sumo-robot/wedge-and-wheels': sumoRobotWedgeAndWheels,
+  'projects/sumo-robot/edge-and-opponent-sensing': sumoRobotEdgeAndOpponentSensing,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
