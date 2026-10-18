@@ -230,3 +230,29 @@ export function meterTrack(scene: THREE.Object3D, at: V3, k: number, x: [number,
   for (let m = 0; m <= x[1] + 1e-9; m += 0.5) addLabel(g, `${m} m`, [m, -0.14, 0.01], GREY, 0.03)
   return g
 }
+
+/** Translucent filled polygon on the floor (fan from the first vertex), up to `max` corners. */
+export function floorPolygon(parent: THREE.Object3D, max: number, color: string) {
+  const pos = new Float32Array((max - 2) * 9)
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  const m = glowMat(color, 0.5)
+  m.transparent = true
+  m.opacity = 0.32
+  m.depthWrite = false
+  m.side = THREE.DoubleSide
+  const o = add(parent, new THREE.Mesh(geo, m))
+  o.castShadow = o.receiveShadow = false
+  o.frustumCulled = false
+  return (pts: [number, number][], z: number, c?: string) => {
+    const k = Math.max(0, pts.length - 2)
+    for (let i = 0; i < k; i++)
+      [pts[0], pts[i + 1], pts[i + 2]].forEach((p, j) => pos.set([p[0], p[1], z], (i * 3 + j) * 3))
+    geo.setDrawRange(0, k * 3)
+    geo.attributes.position.needsUpdate = true
+    if (c) {
+      m.color.set(c)
+      m.emissive.set(c)
+    }
+  }
+}

@@ -19,14 +19,14 @@ function servoBox(parent: THREE.Object3D, at: V3, axis: 'y' | 'z' = 'y') {
   return g
 }
 
-/** Spider-style walker in metres, legs from `w.mounts`: coxa yaw, femur and tibia pitch servos.
- *  `set(pose, angles, down)` places it and bends every leg ({ yaw, hip, knee } from `legAngles`), lighting the feet on the ground. */
-export function servoWalker(parent: THREE.Object3D, w: Walker, { names = true } = {}) {
+/** Spider-style walker in metres, legs from `w.mounts`: coxa yaw (none if `w.coxa` = 0: 8-servo quadruped), femur and tibia pitch servos.
+ *  `width` overrides the plate width. `set(pose, angles, down)` places it and bends every leg ({ yaw, hip, knee } from `legAngles`), lighting the feet on the ground. */
+export function servoWalker(parent: THREE.Object3D, w: Walker, { names = true, width = 0 } = {}) {
   const group = add(parent, new THREE.Group())
   const body = add(group, new THREE.Group(), [0, 0, w.height])
   const xs = w.mounts.map((m) => Math.abs(m[0]))
   const ys = w.mounts.map((m) => Math.abs(m[1]))
-  const [bl, bw] = [2 * Math.max(...xs) + 0.04, 2 * Math.max(...ys) + 0.012]
+  const [bl, bw] = [2 * Math.max(...xs) + 0.04, width || 2 * Math.max(...ys) + 0.012]
   const plate = mat('#2b2f38', { rough: 0.6 })
   box(body, [bl, bw, 0.004], plate, [0, 0, 0.009])
   box(body, [bl, bw, 0.004], plate, [0, 0, -0.009])
@@ -37,8 +37,10 @@ export function servoWalker(parent: THREE.Object3D, w: Walker, { names = true } 
   const legs = w.mounts.map(([mx, my, yaw0], i) => {
     const mount = add(body, new THREE.Group(), [mx, my, 0])
     mount.rotation.z = yaw0
-    servoBox(mount, [0, 0, 0], 'z')
-    box(mount, [w.coxa, 0.014, 0.004], link, [w.coxa / 2, 0, 0.008])
+    if (w.coxa > 0) {
+      servoBox(mount, [0, 0, 0], 'z')
+      box(mount, [w.coxa, 0.014, 0.004], link, [w.coxa / 2, 0, 0.008])
+    }
     const femur = add(mount, new THREE.Group(), [w.coxa, 0, 0])
     servoBox(femur, [0.004, 0, 0])
     box(femur, [w.femur, 0.004, 0.012], link, [w.femur / 2, 0.009, 0])

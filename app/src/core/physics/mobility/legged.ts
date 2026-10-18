@@ -73,8 +73,8 @@ const footHome = (w: Walker, i: number): P2 => {
   return [x + w.reach * Math.cos(yaw), y + w.reach * Math.sin(yaw)]
 }
 
-/** Body shift (creep): eased over the four-feet gaps toward the centroid of the other feet of whichever leg swings. */
-export function swayAt(g: Gait, s: number): P2 {
+/** Body shift (creep): eased over the four-feet gaps toward the centroid of the other feet of whichever leg swings; `homes` = feet (default the gait's walker). */
+export function swayAt(g: Gait, s: number, homes?: readonly P2[]): P2 {
   if (!g.sway) return [0, 0]
   const w = walkerOf(g)
   const sw = 1 - g.duty
@@ -84,7 +84,7 @@ export function swayAt(g: Gait, s: number): P2 {
   g.lift.forEach((l, i) => {
     const rel = frac(s - l + gap)
     const b = rel < gap ? ease(rel / gap) : rel < gap + sw ? 1 : rel < 2 * gap + sw ? 1 - ease((rel - gap - sw) / gap) : 0
-    const [hx, hy] = footHome(w, i)
+    const [hx, hy] = homes ? homes[i] : footHome(w, i)
     c[0] -= (b * hx * g.sway!) / (g.lift.length - 1)
     c[1] -= (b * hy * g.sway!) / (g.lift.length - 1)
   })
