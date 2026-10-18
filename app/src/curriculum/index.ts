@@ -198,6 +198,7 @@ import { temperatureCoolingHeatedBed, temperatureCoolingHotendPidTuning, tempera
 import { bedAdhesionBedLevelling, bedAdhesionBrimAndRaft, bedAdhesionBuildSurfaces, bedAdhesionZOffset } from '../lessons/printing/bed-adhesion'
 import { calibrationESteps, calibrationFlowRate, calibrationPressureAdvance, calibrationRetraction, calibrationTemperatureTower } from '../lessons/printing/calibration'
 import { printProblemsStringing, printProblemsWarping, printProblemsLayerShift, printProblemsUnderExtrusion, printProblemsElephantFoot, printProblemsCloggedNozzle } from '../lessons/printing/print-problems'
+import { designForPrintingOverhangsAndBridges, designForPrintingOrientationAndStrength, designForPrintingTolerancesAndFits, designForPrintingHolesAndTeardrops, designForPrintingChamfersVsFillets } from '../lessons/printing/design-for-printing'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -797,6 +798,11 @@ const READY: Record<string, Lesson> = {
   'printing/print-problems/under-extrusion': printProblemsUnderExtrusion,
   'printing/print-problems/elephant-foot': printProblemsElephantFoot,
   'printing/print-problems/clogged-nozzle': printProblemsCloggedNozzle,
+  'printing/design-for-printing/overhangs-and-bridges': designForPrintingOverhangsAndBridges,
+  'printing/design-for-printing/orientation-and-strength': designForPrintingOrientationAndStrength,
+  'printing/design-for-printing/tolerances-and-fits': designForPrintingTolerancesAndFits,
+  'printing/design-for-printing/holes-and-teardrops': designForPrintingHolesAndTeardrops,
+  'printing/design-for-printing/chamfers-vs-fillets': designForPrintingChamfersVsFillets,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

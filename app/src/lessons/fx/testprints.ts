@@ -1,4 +1,4 @@
-// Test prints: a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints.
+// Test prints: a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints, sliced-section slabs.
 import * as THREE from 'three/webgpu'
 import { V3, add, box } from '../../models/kit'
 import { FILAMENT_COLOR } from './printer'
@@ -106,6 +106,45 @@ export function layerBlock(parent: THREE.Object3D, at: V3, k: number, { w = 40, 
           im.setMatrixAt(i * cols + j, M)
           im.setColorAt(i * cols + j, C.set(c.color))
         }
+      im.instanceMatrix.needsUpdate = true
+      if (im.instanceColor) im.instanceColor.needsUpdate = true
+    },
+  }
+}
+
+export interface Slab {
+  x0: number
+  x1: number
+  y0: number
+  y1: number
+  z0: number
+  z1: number
+  color: string
+}
+
+/** Up to `max` coloured boxes (mm × k) for sliced sections, supports and pins; `set(slabs)`. */
+export function sliceSlabs(parent: THREE.Object3D, at: V3, k: number, max: number) {
+  const group = add(parent, new THREE.Group(), at)
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.55 }), max)
+  im.frustumCulled = false
+  im.castShadow = true
+  group.add(im)
+  const M = new THREE.Matrix4()
+  const Q = new THREE.Quaternion()
+  const P = new THREE.Vector3()
+  const S = new THREE.Vector3()
+  const C = new THREE.Color()
+  return {
+    group,
+    set(slabs: readonly Slab[]) {
+      const n = Math.min(max, slabs.length)
+      for (let i = 0; i < n; i++) {
+        const b = slabs[i]
+        M.compose(P.set(((b.x0 + b.x1) / 2) * k, ((b.y0 + b.y1) / 2) * k, ((b.z0 + b.z1) / 2) * k), Q, S.set(Math.max(1e-3, b.x1 - b.x0) * k, Math.max(1e-3, b.y1 - b.y0) * k, Math.max(1e-3, b.z1 - b.z0) * k))
+        im.setMatrixAt(i, M)
+        im.setColorAt(i, C.set(b.color))
+      }
+      im.count = n
       im.instanceMatrix.needsUpdate = true
       if (im.instanceColor) im.instanceColor.needsUpdate = true
     },
