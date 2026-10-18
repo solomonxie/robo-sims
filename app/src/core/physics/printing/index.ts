@@ -1,4 +1,4 @@
-// 3D printing: FDM hotend and flow, layers, printer kinematics and motion, other processes, filaments, slicing, G-code, heaters, bed adhesion, calibration, print problems, design for printing, functional parts, strength, multi-material.
+// 3D printing: FDM hotend and flow, layers, printer kinematics and motion, other processes, filaments, slicing, G-code, heaters, bed adhesion, calibration, print problems, design for printing, functional parts, strength, multi-material, post-processing.
 export * from './fdm'
 export * from './layers'
 export * from './machines'
@@ -15,3 +15,4 @@ export * from './design'
 export * from './functional'
 export * from './strength'
 export * from './multimaterial'
+export * from './finishing'

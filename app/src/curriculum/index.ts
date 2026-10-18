@@ -202,6 +202,7 @@ import { designForPrintingOverhangsAndBridges, designForPrintingOrientationAndSt
 import { functionalPartsHeatSetInserts, functionalPartsCaptiveNuts, functionalPartsSnapFits, functionalPartsLivingHinges, functionalPartsPrintedGears } from '../lessons/printing/functional-parts'
 import { strengthLayerAdhesion, strengthWallCountVsInfill, strengthAnnealing } from '../lessons/printing/strength'
 import { multiMaterialToolChangersAndAms, multiMaterialSolubleSupports } from '../lessons/printing/multi-material'
+import { postProcessingSandingAndFilling, postProcessingVapourSmoothing, postProcessingPainting } from '../lessons/printing/post-processing'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -816,6 +817,9 @@ const READY: Record<string, Lesson> = {
   'printing/strength/annealing': strengthAnnealing,
   'printing/multi-material/tool-changers-and-ams': multiMaterialToolChangersAndAms,
   'printing/multi-material/soluble-supports': multiMaterialSolubleSupports,
+  'printing/post-processing/sanding-and-filling': postProcessingSandingAndFilling,
+  'printing/post-processing/vapour-smoothing': postProcessingVapourSmoothing,
+  'printing/post-processing/painting': postProcessingPainting,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

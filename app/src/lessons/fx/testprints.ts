@@ -177,3 +177,26 @@ export function printBoard(scene: THREE.Object3D, plotTitle: string, lo: string,
   }
   return { head, rows, plot, tally, bench, py: (min: number, max: number) => plotY(min, max, P.h) }
 }
+
+/** `printBoard` + a live top-of-axis value label (`yTop`) on the plot. */
+export function printPlotBoard(scene: THREE.Object3D, plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
+  const c = printBoard(scene, plotTitle, lo, hi, bars)
+  const P = PRINT_PLOT
+  const yTop = liveLabel(scene, [P.x - P.w / 2 + 0.15, P.y + P.h / 2 - 0.3, 0.3], { size: 0.26, color: GREY, align: 'left' })
+  return { ...c, yTop }
+}
+
+/** Magnified surface section as columns over `u`: each coat stacks from the one below up to its `top` (scene units, bottom coat from `base`). */
+export function profileSlabs(u: readonly number[], coats: readonly { top: readonly number[]; color: string }[], base: number, depth: number): Slab[] {
+  const out: Slab[] = []
+  const du = u.length > 1 ? u[1] - u[0] : 1
+  u.forEach((x, i) => {
+    let y0 = base
+    for (const c of coats) {
+      const y1 = Math.max(y0, c.top[i])
+      if (y1 - y0 > 1e-4) out.push({ x0: x - du / 2, x1: x + du / 2, y0, y1, z0: -depth / 2, z1: depth / 2, color: c.color })
+      y0 = y1
+    }
+  })
+  return out
+}

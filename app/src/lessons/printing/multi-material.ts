@@ -23,15 +23,12 @@ import {
 import { celsiusText, fixedText, hoursText, niceCeil, pct, umText } from '../../core/units'
 import { add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, PRINT_PLOT, RING, Slab, WIDE_VIEW, addLabel, addRod, cursorBar, filamentSpool, liveLabel, memoBy, printBoard, setGlow, shellMat, sliceSlabs, stretchRod } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, PRINT_PLOT, RING, Slab, WIDE_VIEW, addLabel, addRod, cursorBar, filamentSpool, liveLabel, memoBy, printPlotBoard, setGlow, shellMat, sliceSlabs, stretchRod } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 function mmStage(plotTitle: string, lo: string, hi: string, bars: { title: string; names: readonly string[] }) {
   const scene = createStage({ span: 40 })
-  const c = printBoard(scene, plotTitle, lo, hi, bars)
-  const P = PRINT_PLOT
-  const yTop = liveLabel(scene, [P.x - P.w / 2 + 0.15, P.y + P.h / 2 - 0.3, 0.3], { size: 0.26, color: GREY, align: 'left' })
-  return { scene, ...c, yTop }
+  return { scene, ...printPlotBoard(scene, plotTitle, lo, hi, bars) }
 }
 const minText = (s: number) => hoursText(s / 3600)
 
