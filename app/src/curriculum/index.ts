@@ -194,6 +194,7 @@ import { printerMotionAxesAndEndstops, printerMotionBeltsVsLeadScrews, printerMo
 import { filamentsCarbonFibreBlends, filamentsDryingWetFilament, filamentsFlexibleTpu, filamentsGlassTransitionTemp, filamentsMaterialProperties } from '../lessons/printing/filaments'
 import { slicingInfillPatterns, slicingLayerHeight, slicingSeams, slicingStlAnd3mf, slicingSupports, slicingWallsAndPerimeters } from '../lessons/printing/slicing'
 import { gCodeG0G1Moves, gCodeStartAndEndScripts, gCodeTemperaturesAndFans } from '../lessons/printing/g-code'
+import { temperatureCoolingHeatedBed, temperatureCoolingHotendPidTuning, temperatureCoolingPartCoolingFan, temperatureCoolingThermalRunawayProtection } from '../lessons/printing/temperature-cooling'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -774,6 +775,10 @@ const READY: Record<string, Lesson> = {
   'printing/g-code/g0-g1-moves': gCodeG0G1Moves,
   'printing/g-code/temperatures-and-fans': gCodeTemperaturesAndFans,
   'printing/g-code/start-and-end-scripts': gCodeStartAndEndScripts,
+  'printing/temperature-cooling/hotend-pid-tuning': temperatureCoolingHotendPidTuning,
+  'printing/temperature-cooling/heated-bed': temperatureCoolingHeatedBed,
+  'printing/temperature-cooling/part-cooling-fan': temperatureCoolingPartCoolingFan,
+  'printing/temperature-cooling/thermal-runaway-protection': temperatureCoolingThermalRunawayProtection,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

@@ -213,7 +213,7 @@ export function printBeads(parent: THREE.Object3D, max: number, k: number, color
 export const tempColor = (c: number, out = new THREE.Color()) => ironbow(0.08 + 0.85 * clamp01((c - 25) / 235), out)
 
 /** Hotend cut open along its axis (path s mm down from the drive gears → y = −s·k): drive + idler gears, finned cold zone,
- *  heat break, heater block (cartridge left, thermistor right) and nozzle. `set(travel, coreAt(s), blockC, gearAngle)`. */
+ *  heat break, heater block (cartridge left, `thermistor` right) and nozzle. `set(travel, coreAt(s), blockC, gearAngle)`. */
 export function hotendSection(parent: THREE.Object3D, at: V3, k: number, hotend: HotendKey) {
   const group = add(parent, new THREE.Group(), at)
   const z = hotendZones(hotend)
@@ -232,7 +232,7 @@ export function hotendSection(parent: THREE.Object3D, at: V3, k: number, hotend:
   const blockM = new THREE.MeshPhysicalMaterial({ color: '#b9bec6', transparent: true, opacity: 0.3, roughness: 0.3, metalness: 0.3, depthWrite: false })
   box(group, [22 * k, blockLen * k, 14 * k], blockM, [2 * k, Y(z.hot[0] + blockLen / 2), 0])
   const cart = cylinder(group, 3 * k, 14 * k, mat('#8a8f99', { metal: 0.5, rough: 0.4 }, true), [-6 * k, Y(z.hot[0] + blockLen / 2), 0], 'z', 16)
-  cylinder(group, 1.2 * k, 6 * k, mat('#e8e6df', { rough: 0.5 }), [6 * k, Y(z.hot[0] + blockLen / 2), 4 * k], 'z', 10)
+  const thermistor = cylinder(group, 1.2 * k, 6 * k, mat('#e8e6df', { rough: 0.5 }), [6 * k, Y(z.hot[0] + blockLen / 2), 4 * k], 'z', 10)
   const nozzle = add(group, mesh(new THREE.CylinderGeometry(0.6 * k, 4 * k, 4 * k, 6, 1, true), new THREE.MeshPhysicalMaterial({ color: '#d9b24a', transparent: true, opacity: 0.45, metalness: 0.4, roughness: 0.35, depthWrite: false, side: THREE.DoubleSide })), [0, Y(z.tip - 2), 0])
   nozzle.castShadow = false
 
@@ -257,6 +257,7 @@ export function hotendSection(parent: THREE.Object3D, at: V3, k: number, hotend:
     group,
     gears,
     cartridge: cart,
+    thermistor,
     blockMat: blockM,
     tipY: Y(z.tip),
     y: Y,
