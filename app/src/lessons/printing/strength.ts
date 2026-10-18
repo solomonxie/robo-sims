@@ -23,17 +23,10 @@ import {
 } from '../../core/physics'
 import { celsiusText, fixedText, mmFixed, pct, signed } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, Slab, WIDE_VIEW, addLabel, cursorBar, liveLabel, memoBy, printBoard, shellMat, sliceSlabs, stressColor, stretchArrow } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, PRINT_TINT, RING, Slab, WIDE_VIEW, addLabel, cursorBar, liveLabel, memoBy, printStage, shellMat, sliceSlabs, stressHex, stretchArrow } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 // One board for all three: the printed part on the left (mm × k), rows top right, a plot bottom right, bars between.
-const PRINT = '#7fb2e6'
-const hex = (f: number) => `#${stressColor(f).getHexString()}`
-function stStage(plotTitle: string, lo: string, hi: string, bars: { title: string; names: readonly string[] }) {
-  const scene = createStage({ span: 40 })
-  return { scene, ...printBoard(scene, plotTitle, lo, hi, bars) }
-}
 function rig(scene: THREE.Object3D, at: V3, k: number, max: number, turn = -0.3, tilt = 0.12) {
   const g = add(scene, new THREE.Group(), at)
   g.rotation.set(tilt, turn, 0)
@@ -81,7 +74,7 @@ export const strengthLayerAdhesion: Lesson = {
     { kind: 'slider', key: 'layer', label: 'Layer time', min: 2, max: 30, step: 1, initial: 10, format: (v) => `${v} s` },
   ],
   build(): Stage {
-    const c = stStage('Z strength / XY vs layer time', `${WELD_TIME_SWEEP[0]} s`, `${WELD_TIME_SWEEP[WELD_TIME_SWEEP.length - 1]} s`, { title: 'Z / XY per material (these settings)', names: WELD_MAT_KEYS.map((m) => FILAMENTS[m].name) })
+    const c = printStage('Z strength / XY vs layer time', `${WELD_TIME_SWEEP[0]} s`, `${WELD_TIME_SWEEP[WELD_TIME_SWEEP.length - 1]} s`, { title: 'Z / XY per material (these settings)', names: WELD_MAT_KEYS.map((m) => FILAMENTS[m].name) })
     const { scene, head, rows, plot, tally } = c
     const { k, y: by, len, w, d, every, cycle } = BAR
     const gripM = mat('#2e323a', { rough: 0.7 })
@@ -129,7 +122,7 @@ export const strengthLayerAdhesion: Lesson = {
         for (const [b, strong, layers] of [[up, V.uprightN, true], [flat, V.flatN, false]] as const) {
           const broke = F >= strong
           const gap = broke ? Math.min(3, (F - strong) / (V.flatN * 0.02) + 1.5) : 0
-          const tint = hex(broke ? 1 : F / strong)
+          const tint = stressHex(broke ? 1 : F / strong)
           b.lower.set(fill(layers, () => tint, 0, half))
           b.upper.set(fill(layers, () => tint, half, len))
           b.top.position.y = gap * k
@@ -179,7 +172,7 @@ function sectionSlabs(walls: number, infill: number, ratio: number, depth: numbe
   const lw = LINE_W
   const out: Slab[] = []
   const z0 = -depth
-  const tint = (y: number) => hex((ratio * Math.abs(y)) / (H / 2))
+  const tint = (y: number) => stressHex((ratio * Math.abs(y)) / (H / 2))
   const m = Math.min(walls, Math.floor(H / 2 / lw))
   for (let i = 0; i < m; i++) {
     const a = i * lw
@@ -198,7 +191,7 @@ function sectionSlabs(walls: number, infill: number, ratio: number, depth: numbe
   if (infill > 0 && t < H / 2) {
     const s = (2 * lw) / infill
     const th = lw * 0.7
-    const dim = (y: number) => hex((0.35 * ratio * Math.abs(y)) / (H / 2))
+    const dim = (y: number) => stressHex((0.35 * ratio * Math.abs(y)) / (H / 2))
     for (let x = -W / 2 + t + s / 2; x < W / 2 - t; x += s) out.push({ x0: x - th / 2, x1: x + th / 2, y0: -H / 2 + t, y1: H / 2 - t, z0: z0 + 0.4, z1: -0.4, color: dim(0) })
     for (let y = -H / 2 + t + s / 2; y < H / 2 - t; y += s) out.push({ x0: -W / 2 + t, x1: W / 2 - t, y0: y - th / 2, y1: y + th / 2, z0: z0 + 0.4, z1: -0.4, color: dim(y) })
   }
@@ -233,7 +226,7 @@ export const strengthWallCountVsInfill: Lesson = {
     { kind: 'slider', key: 'load', label: 'Load at mid-span', min: 50, max: 600, step: 25, initial: 250, format: (v) => `${v} N` },
   ],
   build(): Stage {
-    const c = stStage('strength vs plastic used', '0 %', '100 % plastic', { title: 'Strength per gram (solid = 1)', names: SHELL_RECIPES.map((r) => r.name) })
+    const c = printStage('strength vs plastic used', '0 %', '100 % plastic', { title: 'Strength per gram (solid = 1)', names: SHELL_RECIPES.map((r) => r.name) })
     const { scene, head, rows, plot, tally } = c
     const { k, depth } = SEC
     const { W, H, L } = SHELL_BAR
@@ -328,7 +321,7 @@ export const strengthAnnealing: Lesson = {
   ],
   build(): Stage {
     const top = ANNEAL_TIME_SWEEP[ANNEAL_TIME_SWEEP.length - 1]
-    const c = stStage('heat deflection temp vs bake time', '0 min', `${top} min`, { title: 'Heat deflection after this bake', names: ANNEAL_MAT_KEYS.map((m) => FILAMENTS[m].name) })
+    const c = printStage('heat deflection temp vs bake time', '0 min', `${top} min`, { title: 'Heat deflection after this bake', names: ANNEAL_MAT_KEYS.map((m) => FILAMENTS[m].name) })
     const { scene, head, rows, plot, tally } = c
     const { k, ex, cols, layers } = ANN
     const { L, W, H } = ANNEAL.block
@@ -356,7 +349,7 @@ export const strengthAnnealing: Lesson = {
           const squash = Math.min(0.45, (a.slump * ex * 0.15) / H)
           const sx = (1 + ex * a.xy) * (1 + squash * 0.6)
           const sz = (1 + ex * a.z) * (1 - squash)
-          const color = `#${tint.set(PRINT).lerp(new THREE.Color(CRYSTAL), a.done).getHexString()}`
+          const color = `#${tint.set(PRINT_TINT).lerp(new THREE.Color(CRYSTAL), a.done).getHexString()}`
           const slabs: Slab[] = []
           const cw = (L * sx) / cols
           const lh = (H * sz) / layers

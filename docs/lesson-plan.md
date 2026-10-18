@@ -5,7 +5,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
-- Numbers only from tested pure fns in `core/` (+ test); speed tests assert `medianMs` (`core/stopwatch.ts`) under a generous limit, never one timed run; `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `secsText`, `msText`, `mmText`/`mmTenths`/`mmFixed`, `umText`, `nmText`, `cmText`/`cmWhole`, `lengthText`, `wavelengthText`, `degText`, `radText`, `fixedText`, `tupleText`, `factorText`, `mat2Text`, `kpText`/`kiText`/`kdText`, `pct`, `mpsText`/`accelText`/`newtonsText`/`kgText`/`energyText`, `bytesText`, `countText` (47k, 1.2M), `signed`, `signText`, `velocityText`, `celsiusText`, `thetaText`, `paText`/`hpaText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `namesOf`, `toneOf`, `e12`, `angleSlider`, `resistorSlider`, `bitChoice`).
+- Numbers only from tested pure fns in `core/` (+ test); speed tests assert `medianMs` (`core/stopwatch.ts`) under a generous limit, never one timed run; `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `secsText`, `msText`, `mmText`/`mmTenths`/`mmFixed`, `umText`, `nmText`, `cmText`/`cmWhole`, `lengthText`, `wavelengthText`, `degText`, `radText`, `fixedText`, `tupleText`, `factorText`, `mat2Text`, `kpText`/`kiText`/`kdText`, `pct`, `mpsText`/`accelText`/`newtonsText`/`kgText`/`energyText`, `bytesText`, `countText` (47k, 1.2M), `signed`, `signText`, `velocityText`, `celsiusText`, `hoursText`/`durationText` (s), `thetaText`, `paText`/`hpaText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `namesOf`, `toneOf`, `e12`, `angleSlider`, `resistorSlider`, `bitChoice`).
 - Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s; `clearMeshes` keeps all materials). Heavy time-lapse solves: `memoBy(key, compute)`.
@@ -15,7 +15,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - Done = `make test typecheck lint` green + preview viewed + one local commit. No device build, no push.
 
 `lessons/fx/` (import `'../fx'`; model in brackets):
-- `util` — `ease`/`glide`/`glideAngle`, `lerp`, `frac`, `smoothstep`, `sineHash`, `add3`, `path`, `emptyGroup`, `presence`, `halton`, `rand01`/`rand`/`randomDir` (seeded, so previews repeat; no Math.random in lessons), `memoBy`, `peakToPeak`.
+- `util` — `ease`/`glide`/`glideAngle`, `lerp`, `frac`, `smoothstep`, `sineHash`, `add3`, `path`, `emptyGroup`, `presence`, `halton`, `rand01`/`rand`/`randomDir` (seeded, so previews repeat; no Math.random in lessons), `memoBy`, `peakToPeak`, `sampleFrac` (entry at fraction u).
 - `colors` — palette (`HEAT`, `INK`, …), `lit` (THREE.Color), `glowMat`, `setGlow`, `potentialColor`, `toneColor` (readout tone → colour), `ironbow` (thermal false colour), `spectralColor` (nm → colour).
 - `shapes` — `arrow`, `stretchArrow` (any length a→b), `plusGeometry`, `glowBox`, `flatBox` (shadowless), `trayMat`, `shellMat` (see-through housing), `glowDot`, `sectorGeometry`.
 - `text` — `label` (U+0304 overbar, U+0307 dot: θ̇, U+0308: q̈), `addLabel` (shadowless, at a point), `liveLabel` (changing text), `textLines` (3 lines + status) [`core/strokeFont`].
@@ -60,19 +60,19 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `fasteners` — `screwModel` (any M size/head, helix thread, own `thread` material), `nutModel` (opt. nylon lock collar), `heatSetInsert` (knurled brass), `caliper` (digital, `set(mm)`) [`physics/materials`].
 - `bearings` — `ballBearing` (open, face-on; `set(inner, cage, ballColors)`), `bearingSection` (cut through the axis), `ringTube` (flat ring facing +z) [`physics/materials`].
 - `belts` — `timingPulley` (GT2, face-on), `beltLoop` (open loop over two pulleys; `set(travel, sag)`), `couplerModel` (rigid/helical/jaw along x; `set(spin, rise)`) [`physics/materials`].
-- `printer` — printer mm × k (X → x, Y → −z, Z → y): `fdmPrinter` (bed slinger; `set(x, y, z, e)`, `bed` group for prints, `glow(part)`, `pin(part)`, `heat`), `coreXYPrinter` (crossed belts A/B), `deltaPrinter` (tower IK), `hotendSection` (cut-away; `set(travel, coreAt, blockC, gear)`, `cartridge`/`thermistor`), `printBeads` (instanced extrusion lines), `stepperBlock`, `partGlow`, `tempColor`, `gcodeTint`/`GCODE_LEGEND` [`physics/printing`].
+- `printer` — printer mm × k (X → x, Y → −z, Z → y): `fdmPrinter` (bed slinger; `set(x, y, z, e)`, `bed` group for prints, `glow(part)`, `pin(part)`, `heat`), `coreXYPrinter` (crossed belts A/B), `deltaPrinter` (tower IK), `hotendSection` (cut-away; `set(travel, coreAt, blockC, gear)`, `cartridge`/`thermistor`), `printBeads` (instanced extrusion lines), `stepperBlock`, `partGlow`, `nozzleCone` (brass tip), `tempColor`, `gcodeTint`/`GCODE_LEGEND` [`physics/printing`].
 - `mainboard` — `printerMainboard` (110 × 80 mm face-on: MCU, X Y Z E `stepDriver` sockets (`setKind`), heater MOSFETs, POWER/BED/HE0/FAN terminals, USB/SD, endstop + TH0/TB headers; `spot(name)`, `glow(part | path)` copper paths `usb`/`stepN`/`coilN`/`bed`/`he0`/`power`/`th0`), `hostSbc` (Raspberry Pi; `usb`, `glow`).
 - `processes` — `resinPrinter` (MSLA: LCD `mask(lit, uv)`, plate + hanging `layers`), `powderBed` (SLS: see-through powder, `gears.place`, roller, galvo laser), `printedPart` (gear/bracket/enclosure/finger/figure), `UV_COLOR`, `RESIN_COLOR`, `NYLON_COLOR`.
 - `filaments` — `FILAMENT_TINT`, `filamentSpool` (face-on 1 kg spool, `set(color, fill)`), `filamentStrand` (bendable rod chain, `set(points)`) [`physics/printing/filaments`].
-- `slicer` — wheel-hub slicer scene: `slicerRig` (tilted bed, `stack`, `shell`, toolpath `beads`, `layLayer`, `nozzleAt`), `layerStack` (round/square discs + bore), `layerPreview` (flat top view, `set`/`show`/`fit`/`dotAt`), `hubLathe`, `SEG_COLORS`/`SEG_NAMES` [`physics/printing/slicing`].
-- `testprints` — `printBoard` (span-40 board: header, rows, titled plot `PRINT_PLOT`, opt. bars, `bench` plate + slabs), `testTower` (banded test tower, overhang tab per band; `set(i, color, droop, glow)`, `label`), `stringWeb` (sagging strings, `set(strings)`), `layerBlock` (layers × columns of slabs, `set(cell)` → dx/dy/grow/colour: warp, shift, elephant foot), `sliceSlabs` (instanced coloured boxes, `set(Slab[])`: sliced sections, supports), `printPlotBoard` (+ live y-top label), `profileSlabs` (magnified surface section, stacked coats) [`physics/printing/calibration`, `problems` (`rankCauses`: gain from fixing each cause alone), `design`].
+- `slicer` — wheel-hub slicer scene: `slicerRig` (tilted bed, `stack`, `shell`, toolpath `beads`, `layLayer`, `nozzleAt`), `layerPreview` (flat top view, `set`/`show`/`fit`/`dotAt`), `hubLathe`, `SEG_COLORS`/`SEG_NAMES` [`physics/printing/slicing`].
+- `testprints` — `printStage`/`printPlotStage` (span-40 stage + board), `printBoard` (header, rows, titled plot `PRINT_PLOT`, opt. bars, `bench` plate + slabs), `printPlotBoard` (+ live y-top label), `PRINT_TINT`, `verdictTint`, `testTower` (band per setting + overhang tab; `set(i, color, droop, glow)`), `stringWeb`, `layerBlock` (`set(cell)` → warp, shift, elephant foot), `sliceSlabs` (instanced boxes, `set(Slab[])`), `profileSlabs` (surface section, stacked coats) [`physics/printing`].
 - `firstlayer` — `bedRelief` (n × n height-map tiles in a tiltable `holder`, `set(h, color)`, `local(u, v, y)`), `beadCut` (first-layer lines cut across under a nozzle; `set(h, w, spacing, gap, color)`) [`physics/printing/adhesion`].
 - `cad` — `sketchPen` (2D polylines as rods, colour per line; `draw(lines)`), `plateGeometry` (`PlateSketch` outline − holes, extruded), `SKETCH_FREE`/`SKETCH_FIXED` [`physics/materials`].
 - `chassis` — `chassisModel` (top-view two-wheel + caster robot from a `ChassisPart[]` layout: plate, TT motors, 2 × 18650 (+ top deck), driver, ESP32, IMU; `place(parts)`, `at(key)`, `part(key)` group per part, `plate: false`, `driverPin`/`imuPin`), `ACRYLIC_TINT` [`physics/materials/chassis`].
 - `spectrum` — `spectrumStrip` (log-λ EM strip, `cursor`, `span`), `BAND_TINT`.
 - `fields` — field lines, `emWave` (travelling E/B arrows, `set(λ, phase, amp)`).
 - `heat` — `heatGlow`, `thermometer`, `heatWaves`, `thermalLadder` (°C/W chain as a circuit), `boxFan`, `heatTint` (thermal-camera tint of any model), `finnedSink` (plate-fin sink, `set(fins)`, `heat(f)`) [`physics/materials/thermal`].
-- `beams` — `cantileverBeam` (clamped link, `set(depth, drop(u), color(u))`, `tip`), `sectionSketch` (end view + neutral axis), `tensileSpecimen` (dog-bone in grips; `set(stretch, neck, gap, color)`), `stressColor`/`stressScale` (σ/strength → blue, green SF 3, yellow SF 2, red), `MATERIAL_TINT` [`physics/materials`].
+- `beams` — `cantileverBeam` (clamped link, `set(depth, drop(u), color(u))`, `tip`), `sectionSketch` (end view + neutral axis), `tensileSpecimen` (dog-bone in grips; `set(stretch, neck, gap, color)`), `stressColor`/`stressHex`/`stressScale` (σ/strength → blue, green SF 3, yellow SF 2, red), `MATERIAL_TINT` [`physics/materials`].
 - `vectors` — `vecArrow`, `angleArc`, `dotLine`, `parallelogram`, `warpGrid` (plane under a 2×2), `dirSphere` (direction sphere + dot trails).
 - `crystal`, `dies`, `plots`, `story` (stepped lessons).
 
@@ -93,8 +93,8 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `math/` — vectors (`dot3`/`sub3`/`scale3`/`unit3`, `vecAngle`, `polar3`, `dotView`, `crossView`, `faceNormal`, `splitAlong`, `projectionView`), matrices (`Mat2` row-major, `mul2`/`apply2`/`det2`/`inv2`, `rotationCheck`, `composeView`, `inverseView`), trig (`unitCircleView`, `bearingView` atan2 vs atan(y/x), `triangleAngles`, `elbowView`), quaternions (`eulerQuat`/`eulerOf`, `quatRotate`, `axisAngleOf`, `gimbalView`, `sphereDir`, `slerpView`), calculus (`secantView`, `diffTradeoff`, `RULES`/`ruleStrips`/`integrateRule`, `areaView`, `gyroIntegrate`, `ruleErrors`), probability (`withinSigma`, `binCounts`, `gaussianView`, `bayesStep`/`bayesRun`, `averageView`, `fuseTwo`, `varianceView`), linearalgebra (`lineNormalEq`, `planeFit`, `leastSquaresView`, `eig2`, `eigenView`, `wallPca`), diffeq (`odeStep`/`odeRun` Euler/semi-implicit/RK4, `fieldGrid`, `eulerView`, `stepGain`, `criticalStep`, `stepSizeView`), discrete (`foldedHz`, `spectralImages`, `reconstructAt`, `sampleRateView`, `onePoleRun`/`onePoleAt`, `poleOfTau`/`sOfPole`, `zView`).
 - `ai/` — net (`Mlp`, `mlpInit`, `mlpForward`/`mlpOut`, `lossOf`, `mlpGrads`/`mlpBatchGrads`, `mlpTrain` full/mini-batch + snapshots, `mlpAccuracy`, `mlpField`, `classTarget`, `argmax`, `confusion`), data (`gateSet`, `toySet`, `TOY_SPAN`), perceptron, tinyml (`quantParams`/`fakeQuant`, `intDot`, `quantizeMlp`, `mlpOutQ`, `mlpMacs`/`mlpArena`, `TINY_MODELS`, `deployCost`), gesture (`gestureWindow`, `gestureFeatures`, `gestureNet`), rl (`parseGrid`, `gwOutcomes`, `valueIteration`, `qLearn`, `gwRollout`, `evalPolicy`), imitation (`peanutTrack`, `laneState`, `laneFeatures`, `expertCurv`, `laneDrive`, `clonePolicy`, `laneScore`, `collectRounds` more/noisy/DAgger), vlm (`seeDesk`, `embedText`, `groundRef`, `planTask`, `runPlan`), speech (`sayWord`, `mixAudio`, `spectrogram`, `windowFeatures`, `kwsNet`/`cmdNet` baked in speechNets.ts (`tools/bake-speech-nets.mjs`; a test retrains and compares), `kwsStream`, `kwsDetect`, `hearWords`, `parseCommand`), anomaly (`vibWindow`, `vibSpectrum`, `learnBaseline`, `zScores`, `vibModel`, `shiftRun`, `alarmStats`).
 - `materials/` — stress (`MATERIALS`, `stressAt`, `pullPath`, `regimeOf`, `SECTIONS`/`sectionProps`, `cantileverDeflection`, `hookeView`, `bracketLoad`, `thicknessFor`, `sfVerdict`), cutting (`SHEETS`, `kerfOf`, `cutContour`, `tabSlot`/`fitOf`, `kerfView`, `mountTest`, `plateCompare`), fasteners (`METRIC_SCREWS`, `screwFor`, `sizeFromCaliper`, `anchorPullout`, `ironInstall`, `preloadOf`, `loosenRun`), bearings (`BALL_BEARINGS`, `ballLoads`, `shaftLoads`, `bearingLife`, `frictionTorque`, `BUSHINGS`/`bushingState`), belts (`GT2`, `beltDrive`, `COUPLERS`, `couplerForceN`, `gripNm`, `couplerView`), cad (`bracketSketch`, `sketchStatus`, `assemblyState`, `screwFit`, `tessellateWheel`, `meshCheck`, `stlView`), chassis (`chassisLayout`, `chassisBalance`, `balanceSweep`, `couplingSpike`, `cableRoute`, `sclTrace`), thermal (`sinkTheta`, `boxAirRise`, `heatsinkView`, `jointHeat`).
-- `printing/` — fdm (`HOTENDS`, `flowView`, `maxFlow`, `coreTempAt`, `filamentArea`), layers (`PRINT_SHAPES`, `sliceView`, `layerPath`, `toolpathAt`), machines (`coreXY`, `deltaCarriages`, `motorTargets`, `machineView`), motion (`homingPlan`/`homingAt`, `repeatMm`, `driveView`, `stepsView`, `measureFix` (old × target / measured), `microstepError`, `shaperImpulses` ZV/MZV/EI, `residualVibration`, `ringRun`, `shaperView`), processes (`resinView`, `slabSection`, `plateSlots`, `slsBuild`/`slsView`, `PROCESSES`, `PICK_PARTS`, `pickProcess`), filaments (`FILAMENTS` (PLA/PETG from stress `MATERIALS`), `filamentMaterial`, `pickFilament`, `modulusRatio`/`bracketSag`, `shoreToE`/`tpuFeed`/`padSquash`, `cfBlend`/`nozzleBore`, `diffusionFrac`/`uptakePct`/`dryingPct`/`dryHours`), slicing (`HUB`/`hubShape` (r(z) + profile, flip, square), `layerHeights` (fixed/adaptive), `cuspOf`/`worstCusp`, `sliceHub`, `wallsFit`, `hubLayerPath` (walls, gap fill, skin, 5 infill patterns), `INFILL_PATTERNS`/`infillStiffness`, `sectionStiffness`, `overhangs`/`supportView`, `seamAngles`/`seamView`, `formatView` (STL vs 3MF)), gcode (`parseGcode`, `explainGcode`, `modesBefore`, `runGcode` (Marlin-like: modes, F mm/min, heaters + waits, cold-extrusion check, ooze/purge, homing, soft limits, drag) → `gcodeAt(run, t)`, `gProgram` folded rows, `moveProgram`/`heatProgram`/`scriptProgram`), heaters (`heaterRun` (any `HeaterPlant`: bang-bang/Marlin PID/M303 relay → ZN, `MARLIN_WATCH` runaway/heating watch, MAXTEMP), `hotendPlant`/`hotendRun` (cartridge → block → thermistor, fan, `HOTEND_FAULTS`), `hotendTune`, `holdStats`, `bedPlant`/`bedRun` (centre→edge strip, `BED_HEATERS` W/cm², `BED_INSUL`), `coolRun`/`minLayerS` (tower layers vs Tg), `COOL_SHRINK`), adhesion (`bedHeight`, `levelView` (none/paper/3-point/mesh `bilinear`), `beadSection` (fixed area into the gap), `zOffsetGap`, `BED_SURFACES`/`surfaceView` (grip vs shrink pull, release), `cornerArea`/`cornerView` (brim/ears/raft)), calibration (`EXTRUDERS`/`eStepsView` (mark-and-measure, `gearSlip`), `flowCalView` (single-wall cube, `beadWidth`), `paRun`/`paPattern` (melt lag τ vs K), `retractView` (strings/jam/grind), `towerView`/`towerBand` (temperature tower)), design (`scanSpans` even-odd, `printSlices` (rings → layers of solid/hang/bridge segments + droop), `hangLimit`/`cleanAngle`/`layerDroop`/`bridgeSag`, `supportNeed`, `overhangView`, `layerStrength` (Hankinson)/`bracketRing`/`bracketMoment`/`orientView`, `fitClass`/`footBulge`/`fitView`, `holeRing`/`holeView` (teardrop, facets), `cornerPts`/`edgeRing`/`cornerKt`/`edgeView`), functional (`insertBoss` (Fasteners `anchorPullout` × knurl bite, seating, Hankinson layers, hoop split), `nutPocket`/`nutPlayDeg` (`fitClass`, bridged roof), `snapHook`/`snapStrain`/`snapPushN`, `hingeCycles`/`hingeStrain` (`HINGE_MATS`), `lewisY`/`lewisStress`/`printedGear` (12:36 stage, backlash)), strength (`layerWeld`/`weldView` (interface T × time above Tg → weld, Z / XY), `shellBar`/`shellView` (walls vs infill in 3-point bend: I, torsion, mass, per gram), `crystalDone`/`annealPart`/`annealView` (Avrami, HDT, XY shrink / Z grow, warp, slump)), multimaterial (`MM_COLOURS`, `purgeMm3` (dark → light needs most), `MM_METHODS` AMS / tool changer / IDEX, `colourChange` (steps, flush, g, s), `mmJob`/`mmView` (two-colour cover), `SUPPORT_MATS`/`SUPPORT_BOND` (PLA+PVA, PETG+BVOH, ABS+HIPS), `dissolveRate` (2× / 10 °C × agitation), `freeHours` (hand reach), `solubleView`), finishing (`ridgeProfile` (bead × layer + `cuspOf` stair, `FACES`), `fillLevel` (filler settles in valleys), `sandRun`/`sandAt`/`sandView` (80 → 400 `GRITS`, scratch / grit, Ra, face loss → `fitClass`), `vapourRidge`/`vapourView` (acetone skin √(Dt), Orchard levelling ∝ λ⁻⁴, edge radius, slump; ABS/ASA only), `paintCoat`/`paintJob`/`paintView` (wet film ∝ 1/d², runs, dry spray, `PAINT_ADHESION` by prep, finish visibility)), electronics (`boardView` (driver/motor I² R heat, A4988 shutdown, pull-out vs speed per 12/24 V, heater amps + MOSFET loss), `FIRMWARES` Marlin/Klipper on 8/32-bit, `mcuTasks`/`fwTopMmS`/`firmwareView` (cycles per line + per step → MCU load, top speed), `firmwareConfig`, `probeOhms`/`probeC` (NTC 100k B3950 / PT1000), `probeDegPerCount`, `probeReading` (+ open/short/loose → MIN/MAXTEMP/runaway), `CARTRIDGES`/`cartridgeView` (P = V²/R, PWM hold duty, heat-up)), robotprint (Chassis design layout as a printed plate: `robotSketch`/`INSERT_HOLES`, `robotPlate` (ribs vs thickness: flex under a 50 N press, grams via `shellBar`), `robotJob` (orientation, walls, infill, layer → layers, h, g, $, supports, layer strength, `insertBoss`), `robotBoxes`/`bedBoxes` (+ supports)/`printedBelow`, `ASSEMBLY`, `insertScrew`, `insertJoint`, `robotBalance`, `testLoopPose`).
-- `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `TAU`, `stdDev`, `frac`, `clamp`/`clamp01`, `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise), `mean`, `once` (lazy value), rngs `seededRng` (sine hash)/`parkMiller` (fast)/`gaussRng`, `MinHeap`.
+- `printing/` — fdm (`HOTENDS`, `flowView`, `maxFlow`, `coreTempAt`, `filamentArea`), layers (`PRINT_SHAPES`, `sliceView`, `layerPath`, `toolpathAt`), machines (`coreXY`, `deltaCarriages`, `machineView`), motion (`homingPlan`/`homingAt`, `driveView`, `stepsView`, `measureFix`, `shaperImpulses` ZV/MZV/EI, `ringRun`, `shaperView`), processes (`resinView`, `slsView`, `PROCESSES`, `pickProcess`), filaments (`FILAMENTS`, `pickFilament`, `tpuFeed`, `cfBlend`, `uptakePct`/`dryHours`), slicing (`hubShape`, `layerHeights`, `cuspOf`, `sliceHub`, `hubLayerPath`, `INFILL_PATTERNS`/`infillStiffness`, `supportView`, `seamView`, `formatView`), gcode (`parseGcode`, `explainGcode`, `runGcode` (Marlin-like) → `gcodeAt`, `moveProgram`/`heatProgram`/`scriptProgram`), heaters (`hotendPlant`/`hotendRun`/`hotendTune`, `MARLIN_WATCH`, `bedRun`, `coolRun`/`minLayerS`), adhesion (`levelView`, `beadSection`, `zOffsetGap`, `surfaceView`, `cornerView`), calibration (`eStepsView`, `flowCalView`, `paRun`/`paPattern`, `retractView`, `towerView`), problems (`rankCauses` (gain from fixing each cause alone), `stringingView`, `warpView`, `shiftView`, `underView`, `footView`, `clogView`), design (`printSlices`, `bridgeSag`, `overhangView`, `layerStrength` (Hankinson), `orientView`, `fitClass`/`fitView`, `holeView`, `edgeView`), functional (`insertBoss`, `nutPocket`, `snapHook`, `hingeCycles`, `printedGear`), strength (`weldView`, `shellBar`/`shellView`, `annealView`), multimaterial (`purgeMm3`, `colourChange`, `mmView`, `solubleView`), finishing (`ridgeProfile`, `sandView`, `vapourView`, `paintView`), electronics (`boardView`, `firmwareView`, `probeReading`, `cartridgeView`), robotprint (`robotPlate`, `robotJob`, `insertJoint`, `robotBalance`).
+- `common.ts` — `LIGHT_C`, `SOUND_C`, `G`/`weightN`, `DEG`/`toDeg`, `TAU`, `stdDev`, `frac`, `clamp`/`clamp01`, `sweep` (lo…hi, n values), `fixedStepAt`, `wrapPi`/`wrap2pi`, `hash01`, `gaussAt` (repeatable noise), `mean`, `once` (lazy value), rngs `seededRng` (sine hash)/`parkMiller` (fast)/`gaussRng`, `MinHeap`.
 - `room.ts` — walled rooms, `castRoom`, robot `Pose` (x, y, th) + `toRoom`, `shuttle`: shared by mobile-robot lessons.
 
 ## Pacing
@@ -131,24 +131,41 @@ Much of this is taught elsewhere already (Kinematics, Signals, Perception, Actua
 - Waves, light & heat ✓ 7/7
 - Maths for robots ✓ 9/9
 - Materials & mechanical design ✓ 8/8
-- 3D printing
-  - [x] How FDM works
-  - [x] Other processes
-  - [x] Printer motion
-  - [x] Filaments
-  - [x] Slicing
-  - [x] G-code
-  - [x] Temperature & cooling
-  - [x] Bed adhesion
-  - [x] Calibration
-  - [x] Print problems
-  - [x] Design for printing
-  - [x] Functional parts
-  - [x] Strength
-  - [x] Multi-material
-  - [x] Post-processing
-  - [x] Printer electronics
-  - [x] Print a robot
+- 3D printing ✓ 17/17
 
 ### Wave 7 — Practice (projects, challenges, debugging, workshop)
-Checklist added once Wave 6 is done.
+- Robot projects
+  - [ ] Robo-car
+  - [ ] Obstacle-avoiding car
+  - [ ] Line-following car
+  - [ ] Self-balancing robot
+  - [ ] Robot arm
+  - [ ] Quadruped
+  - [ ] Maze solver
+  - [ ] Sumo robot
+  - [ ] Camera tracker
+  - [ ] Weather station
+  - [ ] Smart plant monitor
+  - [ ] Desk lamp tracker
+- Circuit challenges
+  - [ ] LED puzzles
+  - [ ] Divider puzzles
+  - [ ] Motor driver puzzles
+  - [ ] Battery puzzles
+  - [ ] Logic puzzles
+  - [ ] Timing puzzles
+- Debug it
+  - [ ] Won’t power on
+  - [ ] Motor does nothing
+  - [ ] Random resets
+  - [ ] Sensor noise
+  - [ ] Bus not responding
+  - [ ] Robot drifts
+  - [ ] Using a multimeter
+- Workshop skills
+  - [ ] Soldering
+  - [ ] Breadboarding
+  - [ ] Crimping & connectors
+  - [ ] Measuring
+  - [ ] Safety
+  - [ ] Tool kit

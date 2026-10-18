@@ -1,4 +1,4 @@
-import { amps, bytesText, dbmText, factorText, mat2Text, tupleText, fitDigits, hoursText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, signed, superscript, volts, watts } from './units'
+import { amps, bytesText, dbmText, factorText, mat2Text, tupleText, fitDigits, hoursText, durationText, joules, spanText, mA, mAText, millivolts, msText, niceCeil, ohms, sci, si, signed, superscript, volts, watts } from './units'
 
 describe('units', () => {
   it('always signs fixed-point text', () => {
@@ -28,6 +28,8 @@ describe('units', () => {
     expect(hoursText(0.5)).toBe('30 min')
     expect(hoursText(2.345)).toBe('2.3 h')
     expect(hoursText(2.345, 2)).toBe('2.35 h')
+    expect(durationText(1800)).toBe('30 min')
+    expect(durationText(9000)).toBe('2.5 h')
     expect(spanText(30)).toBe('30 h')
     expect(spanText(240)).toBe('10 days')
     expect(spanText(8766 * 2.34)).toBe('2.3 years')

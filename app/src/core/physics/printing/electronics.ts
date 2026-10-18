@@ -21,12 +21,12 @@ export const BOARD_DRIVERS = {
   tmc2209: { name: 'TMC2209', rdsOhm: 0.34, kPerW: 60, warnC: 120, offC: 150, how: 'UART, set in firmware' },
 }
 export type BoardDriver = keyof typeof BOARD_DRIVERS
-export const BOARD_SUPPLIES = [12, 24] as const
-export const BOARD_SPEEDS = Array.from({ length: 51 }, (_, i) => (i * BOARD.maxMmS) / 50)
+const BOARD_SUPPLIES = [12, 24] as const
+const BOARD_SPEEDS = Array.from({ length: 51 }, (_, i) => (i * BOARD.maxMmS) / 50)
 
 const radSOf = (mmS: number) => (mmS / BOARD.mmRev) * 2 * Math.PI
 /** Pull-out torque (N·m) at `mmS` on the belt axis for `amps` RMS per phase on `volts`. */
-export const axisPullNm = (mmS: number, amps: number, volts: number) => pullOutNm(radSOf(mmS), amps, volts)
+const axisPullNm = (mmS: number, amps: number, volts: number) => pullOutNm(radSOf(mmS), amps, volts)
 
 export function boardView(driver: BoardDriver, amps: number, volts: number, mmS: number) {
   const d = BOARD_DRIVERS[driver]
@@ -80,10 +80,10 @@ export const FW = { segMm: 0.5, beadMm2: 0.45 * 0.2, eSpm16: 93, hostMhz: 1500, 
 export const FW_TASKS = ['Read G-code', 'Plan moves', 'Kinematics', 'Step pulses'] as const
 
 /** Motor steps per mm of nozzle travel on a 45° curve: X + Y each at v/√2, plus the extruder. */
-export const stepsPerTravelMm = (micro: number) => stepsPerMm(BOARD.mmRev, micro) * Math.SQRT2 + (FW.beadMm2 / filamentArea()) * FW.eSpm16 * (micro / 16)
+const stepsPerTravelMm = (micro: number) => stepsPerMm(BOARD.mmRev, micro) * Math.SQRT2 + (FW.beadMm2 / filamentArea()) * FW.eSpm16 * (micro / 16)
 
 /** MCU load (fraction of its clock) per task at `mmS`: lines/s = v / segment, steps/s = v × steps per travel mm. */
-export function mcuTasks(fw: Firmware, mmS: number, micro: number) {
+function mcuTasks(fw: Firmware, mmS: number, micro: number) {
   const f = FIRMWARES[fw]
   const clk = f.mhz * 1e6
   const lines = mmS / FW.segMm
@@ -133,7 +133,7 @@ export const PROBES = {
   pt1000: { name: 'PT1000', maxC: 450 },
 }
 export type HotendProbe = keyof typeof PROBES
-export const PROBE_ADC = { pullup: 4700, vref: 3.3, bits: 12, r25: 100e3, beta: 3950, a: 3.9083e-3, b: -5.775e-7, minC: 5 }
+const PROBE_ADC = { pullup: 4700, vref: 3.3, bits: 12, r25: 100e3, beta: 3950, a: 3.9083e-3, b: -5.775e-7, minC: 5 }
 
 export function probeOhms(p: HotendProbe, tC: number) {
   const A = PROBE_ADC
@@ -181,7 +181,7 @@ export const CARTRIDGES = {
 export type Cartridge = keyof typeof CARTRIDGES
 export const CARTRIDGE_KEYS = Object.keys(CARTRIDGES) as Cartridge[]
 /** Block + cartridge heat capacity, J/K (same plant as `hotendPlant`). */
-export const HOTEND_J = HOTEND_LOSS * GCODE_HEAT.nozzle.tau + HOTEND.cartJPerK
+const HOTEND_J = HOTEND_LOSS * GCODE_HEAT.nozzle.tau + HOTEND.cartJPerK
 
 export function cartridgeView(c: Cartridge, setC: number) {
   const k = CARTRIDGES[c]

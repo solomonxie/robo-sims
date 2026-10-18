@@ -1,7 +1,7 @@
 // Multi-material (typical values): filament changer purge vs tool changer swaps on a two-colour cover; soluble vs breakaway supports.
+import { sweep } from '../common'
 import { FILAMENTS } from './filaments'
 
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 
 // --- Tool changers and AMS ---
 
@@ -16,7 +16,7 @@ export const MM_COLOURS = {
 export type MmColour = keyof typeof MM_COLOURS
 
 /** Purge to flush one colour out of a shared nozzle: base + lighten × (L_to − L_from)⁺ + hue × chroma distance; purged at `flow`. */
-export const PURGE = { base: 120, lighten: 620, hue: 180, flow: 10, rho: FILAMENTS.pla.rho / 1000 }
+const PURGE = { base: 120, lighten: 620, hue: 180, flow: 10, rho: FILAMENTS.pla.rho / 1000 }
 
 export function purgeMm3(from: MmColour, to: MmColour) {
   if (from === to) return 0
@@ -86,7 +86,7 @@ export const SUPPORT_MAT_KEYS = Object.keys(SUPPORT_MATS) as SupportMat[]
 export const SUPPORT_MODELS = ['pla', 'petg', 'asa'] as const
 export type SupportModel = (typeof SUPPORT_MODELS)[number]
 /** How well each support sticks to the model (≥ `minBond` holds through the print). */
-export const SUPPORT_BOND: Record<SupportModel, Record<SupportMat, number>> = {
+const SUPPORT_BOND: Record<SupportModel, Record<SupportMat, number>> = {
   pla: { same: 1, breakaway: 0.6, pva: 0.8, bvoh: 0.7, hips: 0.15 },
   petg: { same: 1, breakaway: 0.4, pva: 0.2, bvoh: 0.75, hips: 0.3 },
   asa: { same: 1, breakaway: 0.4, pva: 0.15, bvoh: 0.5, hips: 0.85 },
@@ -97,8 +97,8 @@ export type Agitation = keyof typeof AGITATION
 export const SOLUBLE = { doubleC: 10, minBond: 0.35, reachMm: 8, handMinPerMm: 0.6, supportG: 12, limoneneMaxC: 30, softenBelowTg: 10 }
 export const WATER_SWEEP = sweep(20, 70, 26)
 
-export const solventC = (s: SupportMat, waterC: number) => (SUPPORT_MATS[s].solvent === 'limonene' ? Math.min(waterC, SOLUBLE.limoneneMaxC) : waterC)
-export const dissolveRate = (s: SupportMat, waterC: number, a: Agitation) =>
+const solventC = (s: SupportMat, waterC: number) => (SUPPORT_MATS[s].solvent === 'limonene' ? Math.min(waterC, SOLUBLE.limoneneMaxC) : waterC)
+const dissolveRate = (s: SupportMat, waterC: number, a: Agitation) =>
   SUPPORT_MATS[s].rate20 * 2 ** ((solventC(s, waterC) - 20) / SOLUBLE.doubleC) * AGITATION[a].k
 
 /** Hours to free a support `depthMm` deep from the opening (null = by hand); hand removal stalls past the pliers' reach. */

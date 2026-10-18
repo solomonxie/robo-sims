@@ -35,7 +35,6 @@ import {
 } from '../../core/physics'
 import { degText, fixedText, mmFixed, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
   GREY,
@@ -43,6 +42,7 @@ import {
   HIGH_V,
   LABEL,
   POWER,
+  PRINT_TINT,
   RING,
   Slab,
   WIDE_VIEW,
@@ -51,7 +51,7 @@ import {
   glowMat,
   liveLabel,
   memoBy,
-  printBoard,
+  printStage,
   sliceSlabs,
   stressColor,
   stretchArrow,
@@ -59,16 +59,11 @@ import {
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
 // One scene for all five: a printed section on the left (sliced at the real layer height), live rows top right, a plot bottom right.
-const PRINT = '#7fb2e6'
 const SUPPORT = '#a4a9b2'
 const EX = 3
-function dfpStage(plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
-  const scene = createStage({ span: 40 })
-  return { scene, ...printBoard(scene, plotTitle, lo, hi, bars) }
-}
-const droopTint = (d: number) => (d < 0.1 ? PRINT : d < 0.5 ? RING : HIGH_V)
+const droopTint = (d: number) => (d < 0.1 ? PRINT_TINT : d < 0.5 ? RING : HIGH_V)
 /** Layers → slabs, `every` n-th layer drawn n thick; hanging segments drop by EX × droop, bridges sag in a parabola. */
-function layerSlabs(L: readonly SliceLayer[], z0: number, z1: number, every = 1, tint: (x: number, y: number) => string = () => PRINT, ex = EX, minW = 0): Slab[] {
+function layerSlabs(L: readonly SliceLayer[], z0: number, z1: number, every = 1, tint: (x: number, y: number) => string = () => PRINT_TINT, ex = EX, minW = 0): Slab[] {
   const out: Slab[] = []
   L.forEach((l, i) => {
     if (i % every) return
@@ -113,7 +108,7 @@ export const designForPrintingOverhangsAndBridges: Lesson = {
     return `hang per layer = h × tan θ = ${fixedText(q.h, 2)} × tan ${q.deg}° = ${mmFixed(V.hangMm, 2)} = ${pct(V.share)} of the ${LINE_W} mm line · clean while ≤ ${pct(0.35 + 0.4 * q.fan)} (fan) → up to ${degText(V.clean, 0)} · bridge sag ∝ L² = ${mmFixed(V.sag, 2)}, typical`
   },
   legend: [
-    { color: PRINT, label: 'Printed layers (sliced at your layer height)', shape: 'dot' },
+    { color: PRINT_TINT, label: 'Printed layers (sliced at your layer height)', shape: 'dot' },
     { color: RING, label: 'Droop 0.1 to 0.5 mm (drawn 3×)', shape: 'dot' },
     { color: HIGH_V, label: 'Droop over 0.5 mm: needs support', shape: 'dot' },
     { color: GREY, label: 'Steepest clean angle here', shape: 'dot' },
@@ -131,7 +126,7 @@ export const designForPrintingOverhangsAndBridges: Lesson = {
     { kind: 'choice', key: 'h', options: opts(LAYER_HS), initial: '0.2' },
   ],
   build(): Stage {
-    const c = dfpStage('edge droop vs overhang angle', '0°', `${OVERHANG_SWEEP[OVERHANG_SWEEP.length - 1]}°`)
+    const c = printStage('edge droop vs overhang angle', '0°', `${OVERHANG_SWEEP[OVERHANG_SWEEP.length - 1]}°`)
     const { scene, head, rows, plot } = c
     const { k, kb, depth } = OH
     const wedge = c.bench([-13.6, 0.4, 0], k, 50, depth + 6, 400)
@@ -159,8 +154,8 @@ export const designForPrintingOverhangsAndBridges: Lesson = {
           wLabel.group.position.set((OVERHANG.baseMm + lean + 1.5) * k, OVERHANG.heightMm * k, (depth / 2) * k)
           dLabel.group.position.set((BRIDGE_TEST.postMm + q.L / 2) * kb, (BRIDGE_TEST.heightMm + BRIDGE_TEST.deckMm + 2.5) * kb, (depth / 2) * kb)
         }
-        wLabel.set(`${q.deg}°: ${mmFixed(V.droop, 2)}`, droopTint(V.droop) === PRINT ? POWER : droopTint(V.droop))
-        dLabel.set(`bridge ${mmFixed(q.L, 0)}: sag ${mmFixed(V.sag, 2)}`, droopTint(V.sag) === PRINT ? POWER : droopTint(V.sag))
+        wLabel.set(`${q.deg}°: ${mmFixed(V.droop, 2)}`, droopTint(V.droop) === PRINT_TINT ? POWER : droopTint(V.droop))
+        dLabel.set(`bridge ${mmFixed(q.L, 0)}: sag ${mmFixed(V.sag, 2)}`, droopTint(V.sag) === PRINT_TINT ? POWER : droopTint(V.sag))
         tr.points(OVERHANG_SWEEP.map((a) => a / top), V.curve.map((d) => py(Math.min(2.5, d))), null)
         cur(q.deg / top)
         clean(Math.min(1, V.clean / top))
@@ -225,7 +220,7 @@ export const designForPrintingOrientationAndStrength: Lesson = {
     { kind: 'slider', key: 'load', label: 'Load at the upright tip', min: 5, max: 60, step: 5, initial: 30, format: (v) => `${v} N` },
   ],
   build(): Stage {
-    const c = dfpStage('PLA strength vs load angle to the layers', '0° (along)', '90° (across)', { title: 'Score per orientation (strength, support, finish, time)', names: ORDER.map((o) => ORIENTS[o].name) })
+    const c = printStage('PLA strength vs load angle to the layers', '0° (along)', '90° (across)', { title: 'Score per orientation (strength, support, finish, time)', names: ORDER.map((o) => ORIENTS[o].name) })
     const { scene, head, rows, plot, tally } = c
     const { k, every } = OR
     const B = BRACKET_L
@@ -336,7 +331,7 @@ export const designForPrintingTolerancesAndFits: Lesson = {
     { kind: 'choice', key: 'fix', options: opts(FOOT_FIXES), initial: 'none' },
   ],
   build(): Stage {
-    const c = dfpStage('gap, mouth (red) vs clearance', '0 mm', `${CLEAR_SWEEP[CLEAR_SWEEP.length - 1]} mm`)
+    const c = printStage('gap, mouth (red) vs clearance', '0 mm', `${CLEAR_SWEEP[CLEAR_SWEEP.length - 1]} mm`)
     const { scene, head, rows, plot } = c
     const { kg, ks, exg, wall, H, layer } = TF
     const R = FIT.pinMm / 2
@@ -355,7 +350,7 @@ export const designForPrintingTolerancesAndFits: Lesson = {
       h.absarc(holeX(i), 0, ((FIT.pinMm + cad) / 2) * kg, 0, Math.PI * 2, true)
       shape.holes.push(h)
     })
-    add(gauge, new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 5 * kg, bevelEnabled: false }), mat(PRINT, { rough: 0.55 })), [0, 0, -5 * kg])
+    add(gauge, new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 5 * kg, bevelEnabled: false }), mat(PRINT_TINT, { rough: 0.55 })), [0, 0, -5 * kg])
     const rings = FIT.gauge.map((cad, i) => {
       const m = glowMat(GREY, 0.8)
       const t = add(gauge, new THREE.Mesh(new THREE.TorusGeometry(((FIT.pinMm + cad) / 2 + 0.6) * kg, 0.05, 8, 32), m), [holeX(i), 0, 0.05])
@@ -448,7 +443,7 @@ export const designForPrintingHolesAndTeardrops: Lesson = {
     return `round roof: overhang → 90° at the top, last layers bridge the gap → droop ${mmFixed(V.roof, 2)} · teardrop/diamond roof at 45° · vertical hole ≈ d cos(180°/n) − 2 × squish = ${q.d} × cos(180°/${V.n}) − ${fixedText(2 * HOLE.squishMm, 1)} = ${mmFixed(V.vertical, 2)}, typical`
   },
   legend: [
-    { color: PRINT, label: 'Printed layers', shape: 'dot' },
+    { color: PRINT_TINT, label: 'Printed layers', shape: 'dot' },
     { color: RING, label: 'Roof droop 0.1 to 0.5 mm (drawn 3×)', shape: 'dot' },
     { color: HIGH_V, label: 'Roof droop over 0.5 mm', shape: 'dot' },
     { color: GREY, label: 'Hole as drawn', shape: 'dot' },
@@ -464,7 +459,7 @@ export const designForPrintingHolesAndTeardrops: Lesson = {
     { kind: 'choice', key: 'h', options: opts(LAYER_HS), initial: '0.2' },
   ],
   build(): Stage {
-    const c = dfpStage('roof droop vs hole diameter', `${HOLE_SWEEP[0]} mm`, `${HOLE_SWEEP[HOLE_SWEEP.length - 1]} mm`)
+    const c = printStage('roof droop vs hole diameter', `${HOLE_SWEEP[0]} mm`, `${HOLE_SWEEP[HOLE_SWEEP.length - 1]} mm`)
     const { scene, head, rows, plot } = c
     const { k, depth } = HO
     const b = c.bench([-15.4, -12.6, 0], k, HOLE.plateW + 8, depth + 8, 1200, -0.15)
@@ -490,7 +485,7 @@ export const designForPrintingHolesAndTeardrops: Lesson = {
           nominal.scale.set((q.d / 2) * k, (q.d / 2) * k, 1)
           tag.group.position.y = (V.cy + q.d / 2) * k
         }
-        tag.set(`roof ${mmFixed(V.roof, 2)}`, droopTint(V.roof) === PRINT ? POWER : droopTint(V.roof))
+        tag.set(`roof ${mmFixed(V.roof, 2)}`, droopTint(V.roof) === PRINT_TINT ? POWER : droopTint(V.roof))
         tr.points(HOLE_SWEEP.map((d) => (d - lo) / (hi - lo)), V.curve.map((d) => py(Math.min(1.2, d))), null)
         cur((q.d - lo) / (hi - lo))
         fail.set(py(0.3))
@@ -554,7 +549,7 @@ export const designForPrintingChamfersVsFillets: Lesson = {
     { kind: 'slider', key: 's', label: 'Edge size', min: 0, max: 4, step: 0.5, initial: 3, format: (v) => mmFixed(v, 1) },
   ],
   build(): Stage {
-    const c = dfpStage('bed-edge droop vs edge size', '0 mm', `${EDGE_SWEEP[EDGE_SWEEP.length - 1]} mm`)
+    const c = printStage('bed-edge droop vs edge size', '0 mm', `${EDGE_SWEEP[EDGE_SWEEP.length - 1]} mm`)
     const { scene, head, rows, plot } = c
     const { k, depth, footEx, ex } = ED
     const b = c.bench([-14.2, -10.4, 0], k, EDGE_PART.W + 10, depth + 6, 600, 0.45)

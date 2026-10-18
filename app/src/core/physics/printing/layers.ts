@@ -8,7 +8,7 @@ export const PRINT_SHAPES = {
   dome: { name: 'Dome 24 mm', h: 12, round: true, rAt: (z: number) => Math.sqrt(Math.max(0, 144 - z * z)) },
 }
 export type PrintShape = keyof typeof PRINT_SHAPES
-export const WALLS = 2
+const WALLS = 2
 export const SOLID_LAYERS = 3
 /** Travel, retraction and layer change per layer, s (typical). */
 export const LAYER_OVERHEAD_S = 1.5
@@ -16,7 +16,7 @@ export const LAYER_OVERHEAD_S = 1.5
 const perimeter = (round: boolean, r: number) => (round ? TAU * r : 8 * r)
 const areaOf = (round: boolean, r: number) => (round ? Math.PI * r * r : 4 * r * r)
 
-export interface SliceIn {
+interface SliceIn {
   shape: PrintShape
   layerH: number
   infill: number

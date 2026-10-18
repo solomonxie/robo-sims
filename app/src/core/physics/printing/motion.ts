@@ -16,8 +16,8 @@ export type EndstopKind = keyof typeof ENDSTOPS
 /** Soft limits in machine coordinates (mm), the power-on position and homing moves, typical 220 mm bed slinger. */
 export const MACHINE = { x: 220, y: 220, z: 250 }
 export const HOMING = { start: { x: 140, y: 90, z: 24 }, fastMmS: 50, zFastMmS: 10, backoffMm: 5, zBackoffMm: 2 }
-export type Axis3 = 'x' | 'y' | 'z'
-export type HomeStep = 'seek' | 'back off' | 'bump' | 'done'
+type Axis3 = 'x' | 'y' | 'z'
+type HomeStep = 'seek' | 'back off' | 'bump' | 'done'
 
 /** Spread (max − min) of trigger points: the delay × approach speed plus ±2σ of switch scatter. */
 export const repeatMm = (kind: EndstopKind, bumpMmS: number) => {
@@ -34,7 +34,7 @@ export function endstopTrials(kind: EndstopKind, bumpMmS: number, count: number,
   return Array.from({ length: count }, () => v * E.latencyS * rng() + E.sigmaMm * g())
 }
 
-export interface HomeSeg { axis: Axis3; step: HomeStep; from: number; to: number; t0: number; dur: number }
+interface HomeSeg { axis: Axis3; step: HomeStep; from: number; to: number; t0: number; dur: number }
 
 /** G28 on a bed slinger: X, then Y, then Z; each seeks fast, backs off and re-bumps slowly (sensorless: one fast hit; Z keeps a switch). */
 export function homingPlan(kind: EndstopKind, bumpMmS: number) {
@@ -87,10 +87,10 @@ const DRIVE_SCREW: Record<Exclude<AxisDrive, 'belt'>, Screw> = { t8l8: SCREWS.t8
 const BELT_Z = 20
 const BELT_EFF = 0.95
 /** Brass-nut backlash, typical; a tensioned belt has none but stretches. */
-export const NUT_BACKLASH_MM = 0.08
+const NUT_BACKLASH_MM = 0.08
 const BELT_SPAN_M = 0.3
 
-export const driveMmPerRev = (d: AxisDrive) => (d === 'belt' ? BELT_Z * GT2.pitch : screwLeadMm(DRIVE_SCREW[d]))
+const driveMmPerRev = (d: AxisDrive) => (d === 'belt' ? BELT_Z * GT2.pitch : screwLeadMm(DRIVE_SCREW[d]))
 
 /** Push (N) a NEMA17 at 24 V and driver current `setA` gets out of the drive at `mmS`. */
 export function driveForceN(d: AxisDrive, mmS: number, setA = NEMA17.ratedA) {
@@ -143,7 +143,7 @@ export type StepDriveKey = keyof typeof STEP_DRIVES
 export const CAL_MM = 100
 
 /** Detent torque pulls the rotor off each microstep by about (detent / holding) electrical rad ÷ 50 teeth: the real accuracy limit. */
-export const detentErrMm = (mmRev: number) => (mmRev * (NEMA_DETENT_NM / NEMA17.holdNm)) / NEMA17.teeth / TAU
+const detentErrMm = (mmRev: number) => (mmRev * (NEMA_DETENT_NM / NEMA17.holdNm)) / NEMA17.teeth / TAU
 
 /** Measure-and-correct: a setting that produced `measured` where `target` was asked becomes old × target / measured. */
 export const measureFix = (old: number, target: number, measured: number) => (old * target) / measured
@@ -182,7 +182,7 @@ export const SHAPERS = {
 }
 export type ShaperKind = keyof typeof SHAPERS
 /** Design damping (Klipper default) and the real frame's, typical. */
-export const SHAPER_ZETA = 0.1
+const SHAPER_ZETA = 0.1
 export const FRAME = { hz: 45, zeta: 0.07 }
 
 /** Impulse amplitudes (sum 1) and times (s) of a shaper tuned to `hz` (Klipper's ZV, MZV, EI). */
@@ -206,7 +206,7 @@ export function shaperImpulses(kind: ShaperKind, hz: number, zeta = SHAPER_ZETA)
   const sum = a.reduce((s, x) => s + x, 0)
   return { a: a.map((x) => x / sum), t }
 }
-export type Impulses = ReturnType<typeof shaperImpulses>
+type Impulses = ReturnType<typeof shaperImpulses>
 
 /** Ringing left after the shaped move, as a fraction of the unshaped ringing, on a mode at `hz` with damping `zeta`. */
 export function residualVibration(imp: Impulses, hz: number, zeta = FRAME.zeta) {

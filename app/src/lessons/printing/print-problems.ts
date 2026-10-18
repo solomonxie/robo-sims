@@ -49,6 +49,7 @@ import {
   layerBlock,
   liveLabel,
   memoBy,
+  nozzleCone,
   plotY,
   statusHeader,
   stringWeb,
@@ -98,13 +99,7 @@ function diagStage(plotTitle: string, causes: readonly string[], barsTitle = 'Fi
     },
   }
 }
-const brass = () => mat('#c9a24a', { metal: 0.8, rough: 0.3 })
 const bedPlate = (g: THREE.Object3D, w: number, d: number) => box(g, [w, 0.4, d], mat('#3a3f47', { rough: 0.6 }), [0, -0.2, 0])
-function nozzleCone(g: THREE.Object3D, r = 0.45, h = 1.2) {
-  const m = add(g, new THREE.Mesh(new THREE.ConeGeometry(r, h, 20), brass()))
-  m.rotation.x = Math.PI
-  return m
-}
 
 // --- Stringing ---
 

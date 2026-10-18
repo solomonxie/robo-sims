@@ -8,9 +8,9 @@ import { label } from './text'
 const SILK = { glow: false, color: '#eef2f6' } as const
 const DIM = '#2a3a33'
 
-export type BoardSpot = 'usb' | 'sd' | 'power' | 'bed' | 'he0' | 'fan0' | 'th0' | 'tb' | 'endX' | 'endY' | 'endZ' | 'mcu' | 'qbed' | 'qhe' | `motor${number}`
-export type BoardPath = 'usb' | 'power' | 'bed' | 'he0' | 'th0' | 'tb' | `step${number}` | `coil${number}`
-export const BOARD_AXES = ['X', 'Y', 'Z', 'E'] as const
+type BoardSpot = 'usb' | 'sd' | 'power' | 'bed' | 'he0' | 'fan0' | 'th0' | 'tb' | 'endX' | 'endY' | 'endZ' | 'mcu' | 'qbed' | 'qhe' | `motor${number}`
+type BoardPath = 'usb' | 'power' | 'bed' | 'he0' | 'th0' | 'tb' | `step${number}` | `coil${number}`
+const BOARD_AXES = ['X', 'Y', 'Z', 'E'] as const
 const DRV_X = [-40, -22, -4, 14]
 const DRV_Y = 18
 

@@ -76,3 +76,5 @@ export function memoBy<P, T>(key: (p: P) => string, compute: (p: P) => T) {
 }
 export const add3 = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
 export const peakToPeak = (v: number[]) => Math.max(...v) - Math.min(...v)
+/** Entry of `arr` nearest fraction `u` (0…1) along it. */
+export const sampleFrac = (arr: readonly number[], u: number) => arr[Math.min(arr.length - 1, Math.max(0, Math.round(u * (arr.length - 1))))]

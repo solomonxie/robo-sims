@@ -19,7 +19,7 @@ const PLATE = robotLayout().find((p) => p.key === 'plate')!
 /** Plate outline (mm) and the robot x (mm) of the sketch origin. */
 export const ROBOT_PLATE = { w: Math.round(PLATE.size[0] * 1000), h: Math.round(PLATE.size[1] * 1000), x0: PLATE.x * 1000 }
 
-export interface InsertHole {
+interface InsertHole {
   part: string
   x: number
   y: number
@@ -33,7 +33,7 @@ export const INSERT_HOLES: readonly InsertHole[] = [
   at('boards', 0.013, 0.03), at('boards', 0.027, 0.03),
   ...[1, -1].flatMap((sx) => [1, -1].map((sy) => at('boards', -0.075 + sx * 0.023, 0.025 + sy * 0.011))),
 ]
-export const WIRE_HOLE = { x: 0.03 * 1000 - ROBOT_PLATE.x0, y: 0, d: 14 }
+const WIRE_HOLE = { x: 0.03 * 1000 - ROBOT_PLATE.x0, y: 0, d: 14 }
 
 export const RIB_SETS = { none: 'No ribs', edge: 'Two edge ribs', four: 'Edge + inner ribs' } as const
 export type RibSet = keyof typeof RIB_SETS
@@ -57,7 +57,7 @@ export const bossHeight = (t: number) => Math.max(0, ROBOT.holeDepth + 1 - t)
 const bossOd = () => INSERT_BOSS.hole + 2 * ROBOT.bossWall
 
 /** I (mm⁴) and farthest fibre c about the centroid of rects [x, yCentre, w, h]. */
-export function centroidSection(rects: readonly Rect[]) {
+function centroidSection(rects: readonly Rect[]) {
   const area = rects.reduce((a, [, , w, h]) => a + w * h, 0)
   const yc = rects.reduce((a, [, y, w, h]) => a + w * h * y, 0) / area
   const I = rects.reduce((a, [, y, w, h]) => a + (w * h ** 3) / 12 + w * h * (y - yc) ** 2, 0)
@@ -129,7 +129,7 @@ export function robotJob(o: PrintOrient, t: number, ribs: RibSet, walls: number,
 export const INFILL_SWEEP_JOB = Array.from({ length: 13 }, (_, i) => 0.05 + i * 0.05)
 
 /** Axis-aligned box (mm). */
-export interface PartBox {
+interface PartBox {
   x0: number
   x1: number
   y0: number

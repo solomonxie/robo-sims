@@ -40,14 +40,14 @@ export const LEVEL_MODES = { none: 'No levelling (homed at the centre)', paper: 
 export type LevelMode = keyof typeof LEVEL_MODES
 
 /** Bed surface height (mm) at (x, y) mm: `tilt` across the diagonal, centre `warp` above the corners, small ripple. */
-export function bedHeight(x: number, y: number, tilt: number, warp: number) {
+function bedHeight(x: number, y: number, tilt: number, warp: number) {
   const u = x / BED_MAP.mm - 0.5
   const v = y / BED_MAP.mm - 0.5
   return tilt * (0.8 * u + 0.6 * v) + warp * (0.5 - 2 * (u * u + v * v)) + 0.012 * Math.sin(9 * u + 1) * Math.cos(7 * v)
 }
 
 /** Probe points of a mesh n × n over the reachable area. */
-export const meshPoints = (n: number) => {
+const meshPoints = (n: number) => {
   const { mm, margin } = BED_MAP
   const step = (mm - 2 * margin) / (n - 1)
   return Array.from({ length: n * n }, (_, i) => [margin + (i % n) * step, margin + Math.floor(i / n) * step] as [number, number])
@@ -114,7 +114,7 @@ export type BedSurface = keyof typeof BED_SURFACES
 export const SURFACE_PREP = { clean: 'Wiped with IPA', prints: 'Fingerprints on it' }
 export type SurfacePrep = keyof typeof SURFACE_PREP
 /** Shrink pull at a cold bed (N/mm², PLA), typical. */
-export const PULL_BASE = 0.3
+const PULL_BASE = 0.3
 /** Removal: pops off alone below `pop`, flexing the sheet releases up to `flex`. */
 export const RELEASE = { pop: 0.15, flex: 0.45 }
 
@@ -143,7 +143,7 @@ export const SURFACE_SWEEP = Array.from({ length: 48 }, (_, i) => 25 + i * 2)
 
 // --- Brim and raft: a tall box corner peeling up; aids add holding area right at the corner. ---
 
-export const CORNER = { zoneMm: 10, peelMm: 0.6, partMm: [60, 20, 30] as const, pullN: 2.2, unevenMm: 0.25, raftUnevenMm: 1, raftMm: 5, raftLayers: 4 }
+const CORNER = { zoneMm: 10, peelMm: 0.6, partMm: [60, 20, 30] as const, pullN: 2.2, unevenMm: 0.25, raftUnevenMm: 1, raftMm: 5, raftLayers: 4 }
 export const AIDS = { none: 'Nothing', brim: 'Brim', ears: 'Mouse ears', raft: 'Raft' }
 export type Aid = keyof typeof AIDS
 

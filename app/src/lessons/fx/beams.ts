@@ -18,6 +18,7 @@ export function stressColor(f: number, out = new THREE.Color()) {
   const [b, cb] = STRESS_STOPS[i]
   return out.copy(ca).lerp(cb, (x - a) / (b - a))
 }
+export const stressHex = (f: number) => `#${stressColor(f).getHexString()}`
 
 /** Horizontal `stressColor` key `w` wide from `at` (left), ticked at SF 3, 2, 1. */
 export function stressScale(parent: THREE.Object3D, at: V3, w: number, steps = 30) {

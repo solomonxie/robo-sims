@@ -33,7 +33,7 @@ export function coreTempAt(h: HotendKey, blockC: number, feed: number, s: number
 }
 
 /** Metal temperature along the path: fan-cooled heatsink, steep heat break, hot block. */
-export function metalTempAt(h: HotendKey, blockC: number, s: number) {
+function metalTempAt(h: HotendKey, blockC: number, s: number) {
   const z = hotendZones(h)
   if (s < z.cold[0]) return 30
   if (s < z.cold[1]) return 40 + ((s - z.cold[0]) / (z.cold[1] - z.cold[0])) * 10
@@ -48,7 +48,7 @@ export function maxFlow(h: HotendKey, blockC: number) {
   return (meltMm / (tau * Math.log((blockC - T_BREAK_OUT) / (blockC - PLA_FLOW_C)))) * filamentArea()
 }
 
-export interface FlowIn {
+interface FlowIn {
   hotend: HotendKey
   blockC: number
   speed: number

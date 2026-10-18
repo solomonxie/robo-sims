@@ -4,8 +4,8 @@ import { P3 } from '../room'
 import { LINE_W, filamentArea } from './fdm'
 import { MACHINE, homingAt, homingPlan, softClip } from './motion'
 
-export interface GWord { letter: string; value: number }
-export interface GLine { raw: string; code: string | null; words: GWord[]; comment: string }
+interface GWord { letter: string; value: number }
+interface GLine { raw: string; code: string | null; words: GWord[]; comment: string }
 
 export function parseGcode(raw: string): GLine {
   const cut = raw.indexOf(';')
@@ -21,9 +21,9 @@ export function parseGcode(raw: string): GLine {
   return { raw, code, words, comment }
 }
 
-export const wordOf = (g: GLine, letter: string) => g.words.find((w) => w.letter === letter)?.value
+const wordOf = (g: GLine, letter: string) => g.words.find((w) => w.letter === letter)?.value
 
-export const GCODE_NAMES: Record<string, string> = {
+const GCODE_NAMES: Record<string, string> = {
   G0: 'travel move',
   G1: 'straight move, may extrude',
   G4: 'dwell (pause)',
@@ -88,11 +88,11 @@ export const GCODE_HEAT = {
 
 export const extrudeMm = (len: number, h: number, w = LINE_W) => (len * w * h) / filamentArea()
 
-export type GMoveKind = 'travel' | 'extrude' | 'home'
-export interface GMove { line: number; t0: number; t1: number; a: P3; b: P3; kind: GMoveKind; e: number; laid: number; cold: boolean; drag: boolean; clipped: boolean }
-export interface GSample { t: number; nozzle: number; bed: number; fan: number; line: number }
-export interface GEvent { line: number; t: number; text: string; bad: boolean }
-export interface GState { absXYZ: boolean; absE: boolean; f: number; nozzleSet: number; bedSet: number; fan: number; homed: boolean; motors: boolean; eCount: number; deficit: number }
+type GMoveKind = 'travel' | 'extrude' | 'home'
+interface GMove { line: number; t0: number; t1: number; a: P3; b: P3; kind: GMoveKind; e: number; laid: number; cold: boolean; drag: boolean; clipped: boolean }
+interface GSample { t: number; nozzle: number; bed: number; fan: number; line: number }
+interface GEvent { line: number; t: number; text: string; bad: boolean }
+interface GState { absXYZ: boolean; absE: boolean; f: number; nozzleSet: number; bedSet: number; fan: number; homed: boolean; motors: boolean; eCount: number; deficit: number }
 export interface GRun { lines: GLine[]; moves: GMove[]; samples: GSample[]; events: GEvent[]; lineT: number[]; total: number; dt: number; final: GState; firstLay: { t: number; nozzle: number } | null; laid: number }
 
 const HOME = homingPlan('micro', 5)
@@ -296,7 +296,7 @@ export function gcodeAt(run: GRun, t: number) {
 /** A listing: the G-code run, and display rows that may fold several source lines (`from`…`to`) into one. */
 export interface GProgram { src: string[]; rows: { text: string; from: number; to: number }[] }
 type Item = string | [string, string[]]
-export function gProgram(items: readonly Item[]): GProgram {
+function gProgram(items: readonly Item[]): GProgram {
   const src: string[] = []
   const rows: GProgram['rows'] = []
   for (const it of items) {
@@ -310,7 +310,7 @@ export const rowOf = (p: GProgram, line: number) => Math.max(0, p.rows.findIndex
 
 const f2 = (v: number) => `${Math.round(v * 100) / 100}`
 /** One square layer, corners (x0, y0)…(x1, y1) at height z: four G1 lines, relative E. */
-export function squareLayer(x0: number, y0: number, x1: number, y1: number, z: number, h: number, f?: number) {
+function squareLayer(x0: number, y0: number, x1: number, y1: number, z: number, h: number, f?: number) {
   const e = (len: number) => f2(extrudeMm(len, h))
   const w = x1 - x0
   const d = y1 - y0

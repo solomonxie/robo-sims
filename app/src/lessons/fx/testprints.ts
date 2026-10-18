@@ -1,7 +1,8 @@
 // Test prints: a print board (sections left, rows + plot right), a banded tower (one band per setting, overhang tab each), strings across travel moves, a layer-by-layer block for failed prints, sliced-section slabs.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, mat } from '../../models/kit'
-import { GREY, LABEL, POWER } from './colors'
+import { createStage } from '../../scene/stage'
+import { GREY, HIGH_V, LABEL, POWER, RING } from './colors'
 import { countBars } from './displays'
 import { FILAMENT_COLOR } from './printer'
 import { plotY, statusHeader, textRows, titledScope } from './rigs'
@@ -199,4 +200,19 @@ export function profileSlabs(u: readonly number[], coats: readonly { top: readon
     }
   })
   return out
+}
+
+/** Default printed-part blue. */
+export const PRINT_TINT = '#7fb2e6'
+/** ok → green, warn → yellow, else red. */
+export const verdictTint = (ok: boolean, warn: boolean) => (ok ? POWER : warn ? RING : HIGH_V)
+/** Span-40 stage with a `printBoard`. */
+export function printStage(plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
+  const scene = createStage({ span: 40 })
+  return { scene, ...printBoard(scene, plotTitle, lo, hi, bars) }
+}
+/** Span-40 stage with a `printPlotBoard`. */
+export function printPlotStage(plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
+  const scene = createStage({ span: 40 })
+  return { scene, ...printPlotBoard(scene, plotTitle, lo, hi, bars) }
 }

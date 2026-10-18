@@ -45,8 +45,10 @@ import {
   hotendSection,
   liveLabel,
   memoBy,
+  nozzleCone,
   plotY,
   printBeads,
+  sampleFrac,
   smoothstep,
   statusHeader,
   stringWeb,
@@ -71,8 +73,6 @@ function calStage(plotTitle: string, rowsN = 4) {
   }
   return { scene, head, plot, rows, clock }
 }
-const brass = () => mat('#c9a24a', { metal: 0.8, rough: 0.3 })
-const sampleAt = (arr: readonly number[], u: number) => arr[Math.min(arr.length - 1, Math.max(0, Math.round(u * (arr.length - 1))))]
 
 // --- E-steps: mark the filament 120 mm above the extruder, feed 100 mm, measure what is left. ---
 
@@ -337,8 +337,7 @@ export const calibrationPressureAdvance: Lesson = {
     const yOf = (i: number) => (i + 1.5) * gap
     const tags = Array.from({ length: n0 }, (_, i) => liveLabel(g, [-3 * k, 0.3, -yOf(i) * k], { size: 0.32, align: 'right' }))
     addLabel(g, 'your K', [-3 * k, 0.3, 0], RING, 0.32, 'right')
-    const nozzle = add(g, new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 20), brass()))
-    nozzle.rotation.x = Math.PI
+    const nozzle = nozzleCone(g)
     const S = plot.s
     const tT = S.trace(GREY, { samples: 200, radius: 0.05 })
     const tN = S.trace(HEAT, { samples: 200, radius: 0.05 })
@@ -353,7 +352,7 @@ export const calibrationPressureAdvance: Lesson = {
         const T = run.t[run.t.length - 1]
         const t = c.clock(paKey(p), dt, T * PA.slow + PA.rest)
         const tu = Math.min(1, t / (T * PA.slow))
-        const xNow = sampleAt(run.xs, tu)
+        const xNow = sampleFrac(run.xs, tu)
         let m = 0
         const line = (i: number, width: readonly number[], color: string, upto = PA_LEN) => {
           const y = i < 0 ? 0 : yOf(i)
@@ -377,7 +376,7 @@ export const calibrationPressureAdvance: Lesson = {
         nozzle.position.set(xNow * k, 1.1, 0)
         const hi = Math.max(PA_LINE.fast * 1.15, ...run.qo, ...none.qo)
         const py = plotY(Math.min(0, ...run.qo), hi, PLOT.h)
-        const tr = (arr: readonly number[]) => (u: number) => py(sampleAt(arr, u))
+        const tr = (arr: readonly number[]) => (u: number) => py(sampleFrac(arr, u))
         tT.draw(tr(run.v), null)
         tN.draw(tr(none.qo), null)
         tK.draw(tr(run.qo), tu)
@@ -452,8 +451,7 @@ export const calibrationRetraction: Lesson = {
     const towers = [-1, 1].map((sx) => testTower(g, [(sx * span) / 2 * k, 0, 0], k, bands, look))
     const web = stringWeb(g, RETRACT_TEST.travels)
     const H = bands * bandH * k
-    const nozzle = add(g, new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 20), brass()))
-    nozzle.rotation.x = Math.PI
+    const nozzle = nozzleCone(g)
     const S = plot.s
     const tS = S.trace(HEAT, { samples: 41, radius: 0.06 })
     const tJ = S.trace(HIGH_V, { samples: 41, radius: 0.06 })

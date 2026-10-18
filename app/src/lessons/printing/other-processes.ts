@@ -19,7 +19,7 @@ import {
   slabSection,
   slsView,
 } from '../../core/physics'
-import { fixedText, hoursText, newtonsText, pct } from '../../core/units'
+import { durationText, fixedText, hoursText, newtonsText, pct } from '../../core/units'
 import { V3, add, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -54,7 +54,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const minText = (s: number) => hoursText(s / 3600)
 const perMmText = (s: number) => `${fixedText(s / 60, 1)} min/mm`
 const cm2 = (mm2: number) => `${fixedText(mm2 / 100, 1)} cm²`
 
@@ -73,7 +72,7 @@ export const otherProcessesSlaAndMslaResin: Lesson = {
   tagline: 'UV light cures liquid resin a whole layer at a time',
   formula: (p) => {
     const { q, V } = rsRun(p)
-    return `layer time = expose ${RESIN.exposeS} s + lift ${RESIN.liftS} s = ${fixedText(V.layerS, 1)} s, whatever the area · layers = ${fixedText(V.H, 1)} mm / ${fixedText(q.layerH, 3)} mm = ${V.layers} · time = ${V.layers} × ${fixedText(V.layerS, 1)} s = ${minText(V.total)} · peel ≈ ${RESIN.suctionNmm2} N/mm² × ${Math.round(V.peakA)} mm² = ${newtonsText(V.peelN, 1)} (typical)`
+    return `layer time = expose ${RESIN.exposeS} s + lift ${RESIN.liftS} s = ${fixedText(V.layerS, 1)} s, whatever the area · layers = ${fixedText(V.H, 1)} mm / ${fixedText(q.layerH, 3)} mm = ${V.layers} · time = ${V.layers} × ${fixedText(V.layerS, 1)} s = ${durationText(V.total)} · peel ≈ ${RESIN.suctionNmm2} N/mm² × ${Math.round(V.peakA)} mm² = ${newtonsText(V.peelN, 1)} (typical)`
   },
   legend: [
     { color: UV_COLOR, label: 'MSLA: 405 nm UV through the LCD mask', shape: 'dot' },
@@ -171,7 +170,7 @@ export const otherProcessesSlaAndMslaResin: Lesson = {
 
         const peelTone = V.peelN < 15 ? POWER : V.peelN < 40 ? HEAT : HIGH_V
         rows[0].set(`${V.layers} layers of ${Math.round(q.layerH * 1000)} µm, ${fixedText(V.layerS, 1)} s each at any area`, LABEL)
-        rows[1].set(`print ${minText(V.total)} · ${minText(V.perPart)} per part · laser SLA ${minText(V.laserTotal)}`, RING)
+        rows[1].set(`print ${durationText(V.total)} · ${durationText(V.perPart)} per part · laser SLA ${durationText(V.laserTotal)}`, RING)
         rows[2].set(`peel force up to ${newtonsText(V.peelN, 1)} on ${cm2(V.peakA)}`, peelTone)
         rows[3].set(`per mm: MSLA ${perMmText(V.perMm.msla)} · FDM ${perMmText(V.perMm.fdm)}`, GREY)
         head.status.set(`SLA and MSLA resin · ${q.parts} part${q.parts > 1 ? 's' : ''} · tilted ${q.tiltDeg}°`)
@@ -184,8 +183,8 @@ export const otherProcessesSlaAndMslaResin: Lesson = {
       readouts: (p) => {
         const { V } = rsRun(p)
         return [
-          { label: 'Print time', value: minText(V.total) },
-          { label: 'Per part', value: minText(V.perPart) },
+          { label: 'Print time', value: durationText(V.total) },
+          { label: 'Per part', value: durationText(V.perPart) },
           { label: 'Peel force', value: newtonsText(V.peelN, 1), tone: toneOf(V.peelN < 15, V.peelN < 40) },
         ]
       },
@@ -209,7 +208,7 @@ export const otherProcessesSlsNylonPowder: Lesson = {
   tagline: 'A laser fuses powder; the loose powder holds the part up',
   formula: (p) => {
     const { q, V } = slRun(p)
-    return `build = ${V.layers} layers × ${SLS.recoatS} s recoat + ${q.parts} × ${fixedText(SLS_GEAR.vol / 1000, 1)} cm³ / ${fixedText(q.layerH, 2)} mm / ${SLS.laserMm2s} mm²/s laser = ${minText(V.build)} · + cool-down ≈ build = ${minText(V.total)} · per gear ${minText(V.perPart)} (typical)`
+    return `build = ${V.layers} layers × ${SLS.recoatS} s recoat + ${q.parts} × ${fixedText(SLS_GEAR.vol / 1000, 1)} cm³ / ${fixedText(q.layerH, 2)} mm / ${SLS.laserMm2s} mm²/s laser = ${durationText(V.build)} · + cool-down ≈ build = ${durationText(V.total)} · per gear ${durationText(V.perPart)} (typical)`
   },
   legend: [
     { color: HEAT, label: 'Being sintered by the laser', shape: 'dot' },
@@ -287,12 +286,12 @@ export const otherProcessesSlsNylonPowder: Lesson = {
         const u = (q.parts - 1) / (SLS_PARTS_MAX - 1)
         marker.position.set(plot.s.xAt(u), py(V.total), 0.46)
         cursor(u)
-        plot.right.set(`${minText(V.total)} for ${q.parts}`, RING)
-        tMaxTag.set(minText(yMax), GREY)
+        plot.right.set(`${durationText(V.total)} for ${q.parts}`, RING)
+        tMaxTag.set(durationText(yMax), GREY)
 
         rows[0].set(`${perLevel} gears per level · ${V.nest.levels} level${V.nest.levels > 1 ? 's' : ''} · ${Math.round(height)} mm tall`, LABEL)
-        rows[1].set(`${V.layers} layers: recoat ${minText(V.recoat)} + laser ${minText(V.scan)}`, LABEL)
-        rows[2].set(`+ cool-down = ${minText(V.total)} · ${minText(V.perPart)} per gear`, RING)
+        rows[1].set(`${V.layers} layers: recoat ${durationText(V.recoat)} + laser ${durationText(V.scan)}`, LABEL)
+        rows[2].set(`+ cool-down = ${durationText(V.total)} · ${durationText(V.perPart)} per gear`, RING)
         rows[3].set(`parts fill ${pct(V.packing)} of the bed · no supports`, POWER)
         head.status.set(`SLS nylon powder · ${q.parts} gear${q.parts > 1 ? 's' : ''} · ${fixedText(q.layerH, 2)} mm layers`)
         head.sub.set(`time-lapse: the whole build in ${SL.lapse} s, typical small SLS printer`, GREY)
@@ -304,8 +303,8 @@ export const otherProcessesSlsNylonPowder: Lesson = {
       readouts: (p) => {
         const { V } = slRun(p)
         return [
-          { label: 'Build + cool', value: minText(V.total) },
-          { label: 'Per gear', value: minText(V.perPart) },
+          { label: 'Build + cool', value: durationText(V.total) },
+          { label: 'Per gear', value: durationText(V.perPart) },
           { label: 'Bed filled', value: pct(V.packing) },
         ]
       },

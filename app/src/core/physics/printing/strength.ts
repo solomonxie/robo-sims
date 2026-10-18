@@ -1,5 +1,5 @@
 // Strength of prints (typical values): layer welding vs interface temperature × time, walls vs infill in a bent bar, annealing.
-import { clamp, clamp01 } from '../common'
+import { clamp, clamp01, sweep } from '../common'
 import { MATERIALS, bendingStress, rectI } from '../materials/stress'
 import { LINE_W } from './fdm'
 import { FILAMENTS } from './filaments'
@@ -7,7 +7,6 @@ import { GCODE_HEAT } from './gcode'
 import { INFILL_PATTERNS, InfillPattern, infillStiffness } from './slicing'
 
 const AMB = GCODE_HEAT.ambient
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 
 // --- Layer adhesion: chains diffuse across the interface while it is above Tg; weld = (∫ dt / τ(T))^¼ ---
 
@@ -67,7 +66,7 @@ export function weldView(m: WeldMat, nozzleC: number, fan: number, layerS: numbe
 /** Bar section W × H (mm), span L, shell thickness = walls × line width all round (top/bottom layers to match). */
 export const SHELL_BAR = { W: 20, H: 12, L: 80 }
 export const WALL_SWEEP = [1, 2, 3, 4, 5, 6, 7, 8, 10, 13]
-export const SHELL_INFILL_SWEEP = sweep(0, 1, 21)
+const SHELL_INFILL_SWEEP = sweep(0, 1, 21)
 export const SHELL_RECIPES = [
   { name: '2 walls, 20 %', walls: 2, infill: 0.2 },
   { name: '4 walls, 20 %', walls: 4, infill: 0.2 },

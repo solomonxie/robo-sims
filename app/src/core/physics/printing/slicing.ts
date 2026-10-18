@@ -9,7 +9,7 @@ export const HUB = { flangeR: 22, flangeH: 4, chamferR: 16, bossR: 10, bossH: 8,
 export const PLA_G_MM3 = 1.24e-3
 export type HubForm = 'round' | 'square'
 
-export interface HubShape {
+interface HubShape {
   h: number
   boreR: number
   /** Outer radius at height z (0 outside the part). */
@@ -97,7 +97,7 @@ export const infillStiffness = (p: InfillPattern, d: number) => {
   return P.k.map((k, i) => k * x ** P.e[i] + (1 - k) * x ** 8)
 }
 
-export interface SliceSpec {
+interface SliceSpec {
   layerH?: number
   heights?: readonly number[]
   walls: number
@@ -107,7 +107,7 @@ export interface SliceSpec {
   lineW?: number
 }
 
-export interface HubLayer {
+interface HubLayer {
   z: number
   h: number
   rOut: number
@@ -165,7 +165,7 @@ export function sliceHub(s: HubShape, spec: SliceSpec, form: HubForm = 'round') 
 }
 
 /** Worst stair step on the outside of the sliced part; flat shelves (outline jumps) print exactly and are skipped. */
-export function worstCusp(s: HubShape, hs: readonly number[]) {
+function worstCusp(s: HubShape, hs: readonly number[]) {
   let z = 0
   let worst = 0
   for (const h of hs) {
@@ -309,7 +309,7 @@ function ring(out: SliceSeg[], form: HubForm, r: number, kind: SegKind, w: numbe
   for (let k = 0; k < sides; k++) out.push({ a: at(k), b: at(k + 1), wall: true, kind, w })
 }
 
-export interface PathOpts {
+interface PathOpts {
   pattern?: InfillPattern
   infill: number
   index?: number
@@ -371,9 +371,7 @@ export function wallsView(walls: number, z: number, order: 'outer' | 'inner') {
   }
 }
 
-export const DENSITY_SWEEP = Array.from({ length: 21 }, (_, i) => i * 0.05)
-/** Top skin over sparse infill sags (pillowing) below about this density (typical). */
-export const PILLOW_BELOW = 0.1
+const DENSITY_SWEEP = Array.from({ length: 21 }, (_, i) => i * 0.05)
 
 export function infillView(pattern: InfillPattern, d: number) {
   const s = hubShape()
@@ -478,7 +476,7 @@ export function seamAngles(mode: SeamMode, layers: number, form: HubForm, seed =
 }
 
 /** Zit height at the seam, mm (typical): ooze at the start/stop, cut by coasting + wipe. */
-export const zitMm = (wipe: boolean) => (wipe ? 0.05 : 0.18)
+const zitMm = (wipe: boolean) => (wipe ? 0.05 : 0.18)
 
 export function seamView(mode: SeamMode, form: HubForm, wipe: boolean, travelSpeed = 150) {
   const s = hubShape(45, false, form)
@@ -504,8 +502,8 @@ export function seamView(mode: SeamMode, form: HubForm, wipe: boolean, travelSpe
 }
 
 /** File size and what survives: binary STL is 50 B per triangle and nothing else; 3MF is zipped XML with shared vertices. */
-export const FORMAT_BYTES = { vertexXml: 52, triXml: 44, objectXml: 400, colourXml: 60, settingsXml: 14000, zip: 0.3, asciiPerTri: 250 }
-export const hubTriangles = (segments: number) => 2 * segments * (hubShape().profile.length - 1)
+const FORMAT_BYTES = { vertexXml: 52, triXml: 44, objectXml: 400, colourXml: 60, settingsXml: 14000, zip: 0.3, asciiPerTri: 250 }
+const hubTriangles = (segments: number) => 2 * segments * (hubShape().profile.length - 1)
 
 export const FILE_FEATURES = ['Triangles', 'Units (mm)', 'Colours', 'Separate objects', 'Print settings', 'Modifiers'] as const
 export function formatView(segments: number, objects: number) {

@@ -20,17 +20,11 @@ import {
   mmView,
   solubleView,
 } from '../../core/physics'
-import { celsiusText, fixedText, hoursText, niceCeil, pct, umText } from '../../core/units'
+import { celsiusText, durationText, fixedText, hoursText, niceCeil, pct, umText } from '../../core/units'
 import { add, box, cylinder, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
-import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, PRINT_PLOT, RING, Slab, WIDE_VIEW, addLabel, addRod, cursorBar, filamentSpool, liveLabel, memoBy, printPlotBoard, setGlow, shellMat, sliceSlabs, stretchRod } from '../fx'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, PRINT_PLOT, RING, Slab, WIDE_VIEW, addLabel, addRod, cursorBar, filamentSpool, liveLabel, memoBy, printPlotStage, setGlow, shellMat, sliceSlabs, stretchRod } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-function mmStage(plotTitle: string, lo: string, hi: string, bars: { title: string; names: readonly string[] }) {
-  const scene = createStage({ span: 40 })
-  return { scene, ...printPlotBoard(scene, plotTitle, lo, hi, bars) }
-}
-const minText = (s: number) => hoursText(s / 3600)
 
 // --- Tool changers and AMS ---
 
@@ -117,7 +111,7 @@ export const multiMaterialToolChangersAndAms: Lesson = {
     const { q, V } = mmRun(p)
     const c = V.cur
     const M = MM_METHODS[q.m]
-    return `${M.name}: ${q.per} change${q.per > 1 ? 's' : ''}/layer × ${q.layers} layers = ${c.changes} changes · ${M.flush === 'purge' ? `purge ${Math.round(c.go.flushMm3)} mm³ going lighter, ${Math.round(c.back.flushMm3)} mm³ back` : `prime ${M.primeMm3} mm³ per swap`} → ${fixedText(c.wasteG, 1)} g waste (part ${fixedText(c.partG, 1)} g), +${minText(c.addS)} on a ${minText(c.printS)} print · hardware ~$${M.priceUsd}, typical`
+    return `${M.name}: ${q.per} change${q.per > 1 ? 's' : ''}/layer × ${q.layers} layers = ${c.changes} changes · ${M.flush === 'purge' ? `purge ${Math.round(c.go.flushMm3)} mm³ going lighter, ${Math.round(c.back.flushMm3)} mm³ back` : `prime ${M.primeMm3} mm³ per swap`} → ${fixedText(c.wasteG, 1)} g waste (part ${fixedText(c.partG, 1)} g), +${durationText(c.addS)} on a ${durationText(c.printS)} print · hardware ~$${M.priceUsd}, typical`
   },
   legend: [
     { color: HEAT, label: 'Waste vs two-colour layers: AMS (shared nozzle)', shape: 'dot' },
@@ -139,7 +133,7 @@ export const multiMaterialToolChangersAndAms: Lesson = {
     { kind: 'slider', key: 'layers', label: 'Layers with the logo', min: 1, max: MM_COVER.layers, step: 1, initial: 10, format: (v) => `${v} of ${MM_COVER.layers}` },
   ],
   build(): Stage {
-    const c = mmStage('waste vs layers with the logo', '0 layers', `${MM_COVER.layers} layers`, { title: 'Added print time per method', names: MM_METHOD_KEYS.map((k) => MM_METHODS[k].short) })
+    const c = printPlotStage('waste vs layers with the logo', '0 layers', `${MM_COVER.layers} layers`, { title: 'Added print time per method', names: MM_METHOD_KEYS.map((k) => MM_METHODS[k].short) })
     const { scene, head: hd, rows, plot, tally, yTop } = c
     const k = 0.15
     const thick = 0.6
@@ -220,15 +214,15 @@ export const multiMaterialToolChangersAndAms: Lesson = {
         cur(q.layers / MM_COVER.layers)
         yTop.set(`${top} g`)
         plot.right.set(`${q.layers} layers: ${fixedText(V.cur.wasteG, 1)} g`, RING)
-        tally?.set(V.jobs.map((j) => j.addS), V.jobs.map((j) => `+${minText(j.addS)}`), MM_METHOD_KEYS.map((m) => (m === q.m ? RING : GREY)))
+        tally?.set(V.jobs.map((j) => j.addS), V.jobs.map((j) => `+${durationText(j.addS)}`), MM_METHOD_KEYS.map((m) => (m === q.m ? RING : GREY)))
         const cv = V.cur
         const flushWord = MM_METHODS[q.m].flush === 'purge' ? 'purge' : 'prime'
         rows[0].set(`${COLOUR_NAMES[q.base]} → ${COLOUR_NAMES[q.logo]}: ${flushWord} ${Math.round(cv.go.flushMm3)} mm³ (${fixedText(cv.go.grams, 2)} g), ${Math.round(cv.go.seconds)} s`, cv.go.grams > 0.5 ? HEAT : POWER)
         rows[1].set(`${COLOUR_NAMES[q.logo]} → ${COLOUR_NAMES[q.base]}: ${flushWord} ${Math.round(cv.back.flushMm3)} mm³ (${fixedText(cv.back.grams, 2)} g), ${Math.round(cv.back.seconds)} s`, cv.back.grams > 0.5 ? HEAT : POWER)
         rows[2].set(`${cv.changes} changes: ${fixedText(cv.wasteG, 1)} g waste on a ${fixedText(cv.partG, 1)} g part, typical`, cv.wasteShare > 1 ? HIGH_V : cv.wasteShare > 0.3 ? RING : POWER)
         hd.status.set(`${MM_METHODS[q.m].name} · ${cv.changes} colour changes`)
-        hd.sub.set(`time-lapse: ${minText(R.total)} of printing in ${loop} s, at ${minText(sim)}`, GREY)
-        hd.event.set(done ? `done: +${minText(cv.addS)} for colour, ${pct(cv.slowdown - 1)} slower` : seg.text, swapping ? HEAT : LABEL)
+        hd.sub.set(`time-lapse: ${durationText(R.total)} of printing in ${loop} s, at ${durationText(sim)}`, GREY)
+        hd.event.set(done ? `done: +${durationText(cv.addS)} for colour, ${pct(cv.slowdown - 1)} slower` : seg.text, swapping ? HEAT : LABEL)
       },
       readouts: (p) => {
         const { V } = mmRun(p)
@@ -237,7 +231,7 @@ export const multiMaterialToolChangersAndAms: Lesson = {
           { label: 'Per change', value: `${Math.round(cv.go.seconds)} s`, tone: toneOf(cv.go.seconds < 15, cv.go.seconds < 45) },
           { label: 'Waste', value: `${fixedText(cv.wasteG, 1)} g`, tone: toneOf(cv.wasteShare < 0.2, cv.wasteShare < 1) },
           { label: 'Waste / part', value: pct(cv.wasteShare) },
-          { label: 'Added time', value: minText(cv.addS), tone: toneOf(cv.slowdown < 1.2, cv.slowdown < 2) },
+          { label: 'Added time', value: durationText(cv.addS), tone: toneOf(cv.slowdown < 1.2, cv.slowdown < 2) },
         ]
       },
     }
@@ -309,7 +303,7 @@ export const multiMaterialSolubleSupports: Lesson = {
     { kind: 'slider', key: 'depth', label: 'Cavity depth', min: 2, max: 30, step: 2, initial: 14, format: (v) => `${v} mm` },
   ],
   build(): Stage {
-    const c = mmStage('time to free vs bath', `${WATER_SWEEP[0]} °C`, `${WATER_SWEEP[WATER_SWEEP.length - 1]} °C`, { title: 'Time to free the part', names: SUPPORT_MAT_KEYS.map((k) => SUPPORT_MATS[k].name) })
+    const c = printPlotStage('time to free vs bath', `${WATER_SWEEP[0]} °C`, `${WATER_SWEEP[WATER_SWEEP.length - 1]} °C`, { title: 'Time to free the part', names: SUPPORT_MAT_KEYS.map((k) => SUPPORT_MATS[k].name) })
     const { scene, head: hd, rows, plot, tally, yTop } = c
     const k = 0.37
     const g = add(scene, new THREE.Group(), [-14, -11.6, 0])

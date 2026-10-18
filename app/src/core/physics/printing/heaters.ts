@@ -9,20 +9,20 @@ import { GCODE_HEAT } from './gcode'
 const AMB = GCODE_HEAT.ambient
 const PWM = 255
 
-export interface HeaterPlant {
+interface HeaterPlant {
   read(): number
   actual(): number
   step(duty: number, dt: number, t: number): void
   extra?(): number[]
 }
 
-export type HeatCtrl = { kind: 'bang'; band: number; every?: number } | { kind: 'pid'; gains: Gains } | { kind: 'relay'; cycles?: number }
+type HeatCtrl = { kind: 'bang'; band: number; every?: number } | { kind: 'pid'; gains: Gains } | { kind: 'relay'; cycles?: number }
 /** Marlin defaults: runaway once at target (`period` s below target − `hyst`), heating watch (+`watchRise` °C every `watchS` s), MAXTEMP. */
 export interface Watchdog { period: number; hyst: number; watchS: number; watchRise: number; maxC: number }
 export const MARLIN_WATCH: Watchdog = { period: 40, hyst: 4, watchS: 20, watchRise: 2, maxC: 275 }
 
-export interface HeaterFrame { t: number; read: number; actual: number; duty: number; p: number; i: number; d: number; x: number[] }
-export interface RelayTune { ku: number; tu: number; gains: Gains; doneAt: number; amp: number; d: number }
+interface HeaterFrame { t: number; read: number; actual: number; duty: number; p: number; i: number; d: number; x: number[] }
+interface RelayTune { ku: number; tu: number; gains: Gains; doneAt: number; amp: number; d: number }
 export interface HeaterRun { frames: HeaterFrame[]; dt: number; keep: number; halt: { t: number; why: string } | null; peak: number; tune: RelayTune | null }
 
 /** Marlin PID: full on/off more than `band` °C from target (integral reset), else PID with D on measurement, integral held in 0…255. */
@@ -35,7 +35,7 @@ function marlinPid(mem: PidMem, sp: number, meas: number, g: Gains, dt: number, 
 }
 
 /** Runs `plant` toward `setC`; relay = M303 (bias/d adjust, Ku = 4d/(π·a), classic ZN), then holds with the found gains (U1). */
-export function heaterRun(plant: HeaterPlant, o: { ctrl: HeatCtrl; setC: number; seconds: number; dt: number; watch?: Watchdog | null; keep?: number }): HeaterRun {
+function heaterRun(plant: HeaterPlant, o: { ctrl: HeatCtrl; setC: number; seconds: number; dt: number; watch?: Watchdog | null; keep?: number }): HeaterRun {
   const { setC, dt } = o
   const keep = o.keep ?? 1
   const frames: HeaterFrame[] = []
@@ -116,7 +116,7 @@ const BLOCK_J = HOTEND_LOSS * GCODE_HEAT.nozzle.tau
 export const HOTEND_FAULTS = { none: 'Normal print', loose: 'Thermistor fell out', heater: 'Heater cartridge failing', fan: 'Fan blowing on bare block' }
 export type HotendFault = keyof typeof HOTEND_FAULTS
 
-export interface HotendCfg { fanAt?: number; fan?: number; fault?: HotendFault; faultAt?: number; startC?: number }
+interface HotendCfg { fanAt?: number; fan?: number; fault?: HotendFault; faultAt?: number; startC?: number }
 export function hotendPlant(c: HotendCfg = {}): HeaterPlant {
   const H = HOTEND
   const s = { cart: c.startC ?? AMB, block: c.startC ?? AMB, sense: c.startC ?? AMB }
@@ -161,11 +161,11 @@ export type BedHeater = keyof typeof BED_HEATERS
 /** Loss through the underside, W/m²K, typical. */
 export const BED_INSUL = { none: { name: 'Bare underside', h: 16 }, cork: { name: 'Cork sheet', h: 5 }, foam: { name: 'Foil-backed foam', h: 2 } }
 export type BedInsul = keyof typeof BED_INSUL
-export interface BedCfg { sizeMm: number; heater: BedHeater; insul: BedInsul }
+interface BedCfg { sizeMm: number; heater: BedHeater; insul: BedInsul }
 
-export const bedWatts = (c: BedCfg) => BED_HEATERS[c.heater].wPerCm2 * ((c.sizeMm - 2 * BED.margin * 1000) / 10) ** 2
+const bedWatts = (c: BedCfg) => BED_HEATERS[c.heater].wPerCm2 * ((c.sizeMm - 2 * BED.margin * 1000) / 10) ** 2
 
-export function bedPlant(c: BedCfg): HeaterPlant {
+function bedPlant(c: BedCfg): HeaterPlant {
   const N = BED.cells
   const dx = c.sizeMm / 2000 / N
   const T = Array<number>(N).fill(AMB)
@@ -192,7 +192,7 @@ export function bedPlant(c: BedCfg): HeaterPlant {
 
 const bedTuneMemo = new Map<string, Gains | null>()
 /** M303 E-1 on this bed at `setC` (null when it cannot get there). */
-export function bedTune(c: BedCfg, setC: number) {
+function bedTune(c: BedCfg, setC: number) {
   const key = `${c.sizeMm} ${c.heater} ${c.insul} ${setC}`
   if (!bedTuneMemo.has(key)) bedTuneMemo.set(key, heaterRun(bedPlant(c), { ctrl: { kind: 'relay' }, setC, seconds: 5400, dt: BED.dt, keep: 1e9 }).tune?.gains ?? null)
   return bedTuneMemo.get(key)!
@@ -211,7 +211,7 @@ export function bedRun(c: BedCfg, ctrl: BedCtrl, setC: number, seconds = 900) {
 
 // --- Part cooling: a 20 mm tower; each new 0.2 mm layer lands hot on the one below, which must be under Tg by then. ---
 
-export const TOWER = { mm: 20, layerMm: 0.2, layers: 30, dt: 0.05, layerWPerM2K: 1000, stillH: 10, fanH: 110, beadDrop: 15 }
+const TOWER = { mm: 20, layerMm: 0.2, layers: 30, dt: 0.05, layerWPerM2K: 1000, stillH: 10, fanH: 110, beadDrop: 15 }
 /** Relative shrink per °C frozen in below Tg (PLA = 1), typical. */
 export const COOL_SHRINK = { pla: 1, petg: 1.3, asa: 2.2 }
 export const COOL_FILAMENTS = { pla: FILAMENTS.pla.name, petg: FILAMENTS.petg.name, asa: FILAMENTS.asa.name }

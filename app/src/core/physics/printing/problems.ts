@@ -1,6 +1,6 @@
 // Print problems: start from the symptom, rank the causes by how much fixing each alone helps; numbers from the calibration,
 // adhesion, motion, hotend and filament models.
-import { clamp, clamp01 } from '../common'
+import { clamp, clamp01, sweep } from '../common'
 import { AID_SWEEP, FIRST_LAYER, PROBE_Z, beadSection, cornerView, gripTempFactor, shrinkPull, zOffsetView } from './adhesion'
 import { EXTRUDERS, RETRACT_SETUPS, RETRACT_TEST, beadWidth, gearSlip, retractView, towerBand } from './calibration'
 import { FILAMENT_D, LINE_W, filamentArea, hotendZones, maxFlow } from './fdm'
@@ -8,7 +8,6 @@ import { FILAMENTS, FilamentKey, uptakePct } from './filaments'
 import { CoolFilament } from './heaters'
 import { driveForceN } from './motion'
 
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 
 export interface Cause<In> {
   name: string
@@ -27,7 +26,7 @@ export function rankCauses<In extends object>(base: In, score: (x: In) => number
 export const STRING_FILAMENTS: readonly FilamentKey[] = ['pla', 'petg', 'tpu', 'nylon']
 /** Travel between the two towers (mm) and the travel time over which a string fully forms (s), typical. */
 export const STRING_TEST = { travelMm: 40, formS: 0.4, travels: RETRACT_TEST.travels, okShare: 0.15, retractMmS: 40, goodRetract: RETRACT_SETUPS.direct.needMm }
-export interface StringIn {
+interface StringIn {
   fil: FilamentKey
   dc: number
   retractMm: number
@@ -36,7 +35,7 @@ export interface StringIn {
 }
 
 /** Share of travels that leave a string (0…1) and its parts. */
-export function stringParts(s: StringIn) {
+function stringParts(s: StringIn) {
   const f = FILAMENTS[s.fil]
   const hot = towerBand(s.fil, f.nozzleC + s.dc).string
   const leak = retractView('direct', s.retractMm, STRING_TEST.retractMmS).string
@@ -46,7 +45,7 @@ export function stringParts(s: StringIn) {
   const raw = (0.25 + leak) * (0.15 + 1.5 * hot) * (0.4 + 0.6 * ooze) + 0.7 * steam
   return { hot, leak, wetPct, steam, ooze, raw, share: clamp01(raw) }
 }
-export const stringShare = (s: StringIn) => stringParts(s).share
+const stringShare = (s: StringIn) => stringParts(s).share
 const stringRaw = (s: StringIn) => stringParts(s).raw
 
 export function stringingView(s: StringIn) {
@@ -65,7 +64,7 @@ export function stringingView(s: StringIn) {
 
 /** Enclosure air with the bed on (°C), and the extra pull of a draft across the part, typical. */
 export const WARP = { chamberC: 45, draftGain: 1.2, liftMm: 3, goodBrim: 8 }
-export interface WarpIn {
+interface WarpIn {
   mat: CoolFilament
   bedC: number
   enclosed: boolean
@@ -90,7 +89,7 @@ function warpForces(w: WarpIn) {
   return { hold, pull }
 }
 /** Corner lift (mm): 0 while the hold beats the pull. */
-export const warpLift = (w: WarpIn) => {
+const warpLift = (w: WarpIn) => {
   const { hold, pull } = warpForces(w)
   return clamp01(1 - hold / pull) * WARP.liftMm
 }
@@ -123,7 +122,7 @@ export const BELT_TENSION = {
   loose: { name: 'Belt loose', jumpN: 14 },
 }
 export type BeltTension = keyof typeof BELT_TENSION
-export interface ShiftIn {
+interface ShiftIn {
   speed: number
   accel: number
   amps: number
@@ -131,14 +130,14 @@ export interface ShiftIn {
   curl: boolean
 }
 
-export function shiftForces(s: ShiftIn) {
+function shiftForces(s: ShiftIn) {
   const need = (SHIFT.kg * s.accel) / 1000 + SHIFT.frictionN + (s.curl ? SHIFT.curlN : 0)
   const motor = driveForceN('belt', s.speed, s.amps)
   const belt = BELT_TENSION[s.belt].jumpN
   return { need, motor, belt, limit: Math.min(motor, belt), byBelt: belt < motor }
 }
 /** Offset (mm) of the layers above the skip: groups of 4 full steps lost at the motor, whole teeth at a loose belt. */
-export function shiftMm(s: ShiftIn) {
+function shiftMm(s: ShiftIn) {
   const f = shiftForces(s)
   if (f.need <= f.limit) return 0
   const skips = Math.min(SHIFT.maxSkips, Math.ceil((f.need / Math.max(1e-6, f.limit) - 1) * 4))
@@ -166,7 +165,7 @@ export type UnderFault = keyof typeof UNDER_FAULTS
 export const UNDER = { clogKeep: 0.4, wornGripN: 14, thinMm: 1.65, layerH: 0.2 }
 export const UNDER_SPEEDS = sweep(10, 200, 39)
 
-export function underFlow(fault: UnderFault, speed: number, blockC: number) {
+function underFlow(fault: UnderFault, speed: number, blockC: number) {
   const want = LINE_W * UNDER.layerH * speed
   const diam = fault === 'diameter' ? (UNDER.thinMm / FILAMENT_D) ** 2 : 1
   const healthy = gearSlip('mk8', want / filamentArea())
@@ -192,7 +191,7 @@ export function underView(fault: UnderFault, speed: number, blockC: number) {
 
 /** Bulge from a soft bottom (mm at full softness), the layers it spans, a fit tolerance (mm), typical. */
 export const FOOT = { softMm: 0.2, softSpanC: 20, layers: 4, fitMm: 0.15, goodChamfer: 0.5 }
-export interface FootIn {
+interface FootIn {
   mat: CoolFilament
   zOffset: number
   bedC: number
@@ -205,8 +204,8 @@ export function footParts(e: FootIn) {
   const bulge = squish + soft
   return { squish, soft, bulge, left: Math.max(0, bulge - e.chamfer) }
 }
-export const footLeft = (e: FootIn) => footParts(e).left
-export const FOOT_ZS = sweep(PROBE_Z.trueMm - 0.15, PROBE_Z.trueMm + 0.1, 26)
+const footLeft = (e: FootIn) => footParts(e).left
+const FOOT_ZS = sweep(PROBE_Z.trueMm - 0.15, PROBE_Z.trueMm + 0.1, 26)
 
 export function footView(e: FootIn) {
   const p = footParts(e)
@@ -224,21 +223,21 @@ export const CLOG_FILAMENTS: readonly CoolFilament[] = ['pla', 'petg', 'asa']
 /** Heatsink rise over the air with the fan full (°C), push needed by a clean hotend and the plug growth rate (N, N/min), typical. */
 export const CLOG = { sinkRiseC: 25, cleanN: 12, growN: 3, creepSpanC: 25, minutes: 60 }
 
-export interface ClogIn {
+interface ClogIn {
   mat: CoolFilament
   fan: number
   airC: number
   retractMm: number
 }
 /** Heatsink temperature: air + the rise, worse as the heat-break fan slows. */
-export const heatsinkC = (c: Pick<ClogIn, 'fan' | 'airC'>) => c.airC + CLOG.sinkRiseC / (0.2 + 0.8 * clamp01(c.fan))
-export function clogParts(c: ClogIn) {
+const heatsinkC = (c: Pick<ClogIn, 'fan' | 'airC'>) => c.airC + CLOG.sinkRiseC / (0.2 + 0.8 * clamp01(c.fan))
+function clogParts(c: ClogIn) {
   const sink = heatsinkC(c)
   const creep = clamp01((sink - FILAMENTS[c.mat].tgC) / CLOG.creepSpanC)
   const jam = retractView('direct', c.retractMm, STRING_TEST.retractMmS).jam
   return { sink, creep, jam, rate: creep + 0.6 * jam }
 }
-export const clogRate = (c: ClogIn) => clogParts(c).rate
+const clogRate = (c: ClogIn) => clogParts(c).rate
 
 /** Push needed over time (N) against the gear grip, flow while it keeps up, minutes to a full clog (Infinity if never). */
 export function clogView(c: ClogIn) {

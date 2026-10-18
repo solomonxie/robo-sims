@@ -12,7 +12,7 @@ export const SEG_NAMES: Record<SegKind, string> = { outer: 'Outer wall', inner: 
 export const hubLathe = (profile: readonly [number, number][], k: number, segments = 64) =>
   new THREE.LatheGeometry(profile.map(([r, z]) => new THREE.Vector2(Math.max(1e-3, r * k), z * k)), segments)
 
-export interface StackLayer {
+interface StackLayer {
   z: number
   h: number
   rOut: number
@@ -20,7 +20,7 @@ export interface StackLayer {
 }
 
 /** Stack of printed layers: solid discs (round or square) with the bore drawn dark; `set(layers, count, form, color(i))`. */
-export function layerStack(parent: THREE.Object3D, k: number, max = 600) {
+function layerStack(parent: THREE.Object3D, k: number, max = 600) {
   const mk = (sides: number, color: string) => {
     const m = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, sides), new THREE.MeshStandardMaterial({ color, roughness: 0.6 }), max)
     m.count = 0

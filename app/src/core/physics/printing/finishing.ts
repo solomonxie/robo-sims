@@ -1,10 +1,9 @@
 // Post-processing (typical values): sanding layer ridges grit by grit with filler primer, acetone vapour smoothing, painting.
+import { frac, sweep } from '../common'
 import { FILAMENTS } from './filaments'
 import { fitClass } from './design'
 import { cuspOf } from './slicing'
 
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
-const frac = (x: number) => x - Math.floor(x)
 
 // --- Sanding and filling ---
 
@@ -19,7 +18,7 @@ export const GRITS = [80, 120, 180, 240, 320, 400] as const
 /** bead = rounded bead depth / layer height; scratchK / grit = scratch depth µm; rateK / grit = µm/min on a 20 cm² face; filler sands 3× faster; coatUm = dry filler primer per coat. */
 export const SAND = { bead: 0.4, scratchK: 2400, rateK: 3200, fillerFast: 3, coatUm: 25, perPeriod: 40, periods: 3, clearMm: 0.15 }
 export const scratchUm = (grit: number) => SAND.scratchK / grit
-export const sandRate = (grit: number) => SAND.rateK / grit
+const sandRate = (grit: number) => SAND.rateK / grit
 
 /** Magnified surface across 3 layers: u (mm along the face), y (µm above the deepest valley); rz = peak to valley. */
 export function ridgeProfile(layerMm: number, face: Face) {
@@ -56,7 +55,7 @@ export function fillLevel(y: readonly number[], um: number) {
 }
 
 /** Surface after sanding down to `level` with scratches `scratch` deep on the flats; valleys filled up to `fill`. */
-export function sandedSurface(p: Profile, level: number, scratch: number, fill: number) {
+function sandedSurface(p: Profile, level: number, scratch: number, fill: number) {
   return p.y.map((v, i) => {
     const top = Math.max(v, Math.min(fill, level + 1e-9))
     if (top < level) return top
@@ -70,7 +69,7 @@ export function roughnessRa(y: readonly number[]) {
   return y.reduce((s, v) => s + Math.abs(v - m), 0) / y.length
 }
 
-export interface SandStep { grit: number; from: number; to: number; plasticUm: number; fillerUm: number; minutes: number; t0: number; ra: number }
+interface SandStep { grit: number; from: number; to: number; plasticUm: number; fillerUm: number; minutes: number; t0: number; ra: number }
 
 /** Sand from 80 up to `lastGrit` after `coats` of filler primer: the first grit flattens to the filler level, each finer grit removes the last one's scratches. */
 export function sandRun(layerMm: number, face: Face, lastGrit: number, coats: number) {
@@ -120,13 +119,13 @@ export const VAPOUR_METHODS = {
 export type VapourMethod = keyof typeof VAPOUR_METHODS
 /** dSkin m²/s of acetone into ABS/ASA (PLA, PETG ~0); σ N/m, η Pa·s of the swollen skin; edge radius = edgeK × skin; text strokes 0.4 mm; slump when the skin passes slumpUm of a 2-wall shell. */
 export const VAPOUR = { dSkin: 4.2e-12, sigma: 0.035, eta: 4e5, edgeK: 1.5, strokeMm: 0.4, slumpUm: 350, maxMin: 60 }
-export const VAPOUR_SOLVENT: Record<'pla' | 'petg' | 'asa', number> = { pla: 0, petg: 0, asa: 1 }
+const VAPOUR_SOLVENT: Record<'pla' | 'petg' | 'asa', number> = { pla: 0, petg: 0, asa: 1 }
 export type VapourMat = keyof typeof VAPOUR_SOLVENT
 export const VAPOUR_MATS = Object.keys(VAPOUR_SOLVENT) as VapourMat[]
 export const VAPOUR_TIME_SWEEP = sweep(0, VAPOUR.maxMin, 31)
 export const VAPOUR_LAYERS = [0.12, 0.2, 0.28]
 
-export const skinUm = (m: VapourMat, method: VapourMethod, minutes: number) => Math.sqrt(VAPOUR.dSkin * VAPOUR_SOLVENT[m] * VAPOUR_METHODS[method].k * minutes * 60) * 1e6
+const skinUm = (m: VapourMat, method: VapourMethod, minutes: number) => Math.sqrt(VAPOUR.dSkin * VAPOUR_SOLVENT[m] * VAPOUR_METHODS[method].k * minutes * 60) * 1e6
 
 /** Ridge left after `minutes` (closed form of the Orchard decay with d ∝ √t): A0 exp(−σ q⁴ D^1.5 t^2.5 / (7.5 η)). */
 export function vapourRidge(m: VapourMat, method: VapourMethod, minutes: number, layerMm: number) {
@@ -169,7 +168,7 @@ export const PAINT_PREPS = {
 export type PaintPrep = keyof typeof PAINT_PREPS
 export const PAINT_PREP_KEYS = Object.keys(PAINT_PREPS) as PaintPrep[]
 /** Cross-hatch tape test class 0…5 (5B = nothing lifts), typical. */
-export const PAINT_ADHESION: Record<VapourMat, Record<PaintPrep, number>> = {
+const PAINT_ADHESION: Record<VapourMat, Record<PaintPrep, number>> = {
   pla: { none: 1, scuff: 3, primer: 5, filler: 5 },
   petg: { none: 0, scuff: 2, primer: 4, filler: 4 },
   asa: { none: 3, scuff: 4, primer: 5, filler: 5 },
@@ -187,7 +186,7 @@ export const PAINT = { wetUm: 45, refCm: 25, solids: 0.35, runUm: 80, drySprayCm
 export const PAINT_COAT_SWEEP = [1, 2, 3, 4, 5, 6]
 
 /** Wet film per pass at `cm`, its dry thickness and how far it levels before it sets (0…1, Orchard over the open time). */
-export function paintCoat(cm: number, layerMm: number) {
+function paintCoat(cm: number, layerMm: number) {
   const wet = PAINT.wetUm * (PAINT.refCm / cm) ** 2 * (cm > PAINT.drySprayCm ? 0.6 : 1)
   const q = (2 * Math.PI) / (layerMm / 1000)
   const K = (PAINT.sigma * (wet * 1e-6) ** 3 * q ** 4) / (3 * PAINT.eta)
@@ -196,7 +195,7 @@ export function paintCoat(cm: number, layerMm: number) {
 }
 
 /** Ridge left after the prep: raw bead, scuffed, primed, or filled and sanded flat to 320 (Sanding and filling). */
-export function prepRidge(prep: PaintPrep, layerMm: number) {
+function prepRidge(prep: PaintPrep, layerMm: number) {
   const p = ridgeProfile(layerMm, 'wall')
   if (prep === 'filler') return sandRun(layerMm, 'wall', PAINT.sandGrit, PAINT.fillerCoats).steps.at(-1)!.ra * 3
   const primer = prep === 'primer' ? PAINT.primerUm * PAINT.flow : 0

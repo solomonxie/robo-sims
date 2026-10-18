@@ -22,9 +22,8 @@ import {
   probeDegPerCount,
   probeReading,
 } from '../../core/physics'
-import { celsiusText, countText, fixedText, niceCeil, pct } from '../../core/units'
+import { celsiusText, countText, fixedText, niceCeil, nmText, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat, rod } from '../../models/kit'
-import { createStage } from '../../scene/stage'
 import {
   GREY,
   HEAT,
@@ -46,7 +45,7 @@ import {
   moduleBlock,
   nema17,
   path,
-  printPlotBoard,
+  printPlotStage,
   printerMainboard,
   setGlow,
   tempColor,
@@ -54,7 +53,6 @@ import {
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
 const B_LIGHT = '#8ab8ff'
-const nm = (v: number) => `${fixedText(v, 2)} N·m`
 const amps = (a: number) => `${fixedText(a, 1)} A`
 const watts = (w: number) => `${fixedText(w, w < 1 ? 2 : 1)} W`
 
@@ -98,9 +96,8 @@ export const printerElectronicsMainboardAndDrivers: Lesson = {
     { kind: 'slider', key: 'mms', label: 'Y axis speed', min: 20, max: BOARD.maxMmS, step: 20, initial: 200, format: (v) => `${v} mm/s` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const c = printPlotBoard(scene, 'pull-out torque vs speed', '0 mm/s', `${BOARD.maxMmS} mm/s`, { title: 'Heat, W (typical)', names: ['Motor coils', 'Driver chip', 'Bed MOSFET', 'Hotend MOSFET'] })
-    const { head, rows, plot, tally, yTop } = c
+    const c = printPlotStage('pull-out torque vs speed', '0 mm/s', `${BOARD.maxMmS} mm/s`, { title: 'Heat, W (typical)', names: ['Motor coils', 'Driver chip', 'Bed MOSFET', 'Hotend MOSFET'] })
+    const { scene, head, rows, plot, tally, yTop } = c
     const k = 0.145
     const mb = printerMainboard(scene, [-8.6, -1.9, 0], k)
     const motor = nema17(scene, [-14.4, -10.5, 0], 1.15)
@@ -130,8 +127,8 @@ export const printerElectronicsMainboardAndDrivers: Lesson = {
         tr.other.points(us, V.curves[1 - mine].map(py), null)
         need.set(py(BOARD.needNm))
         cur(q.s / BOARD.maxMmS)
-        yTop.set(nm(top))
-        plot.right.set(off ? 'driver off: 0 N·m' : `${nm(V.pullNm)} at ${q.s} mm/s`, V.skips ? HIGH_V : POWER)
+        yTop.set(nmText(top))
+        plot.right.set(off ? 'driver off: 0 N·m' : `${nmText(V.pullNm)} at ${q.s} mm/s`, V.skips ? HIGH_V : POWER)
 
         const pulse = 0.5 + 0.5 * Math.sin(t * 14)
         const phase = (t % 3) / 3
@@ -161,12 +158,12 @@ export const printerElectronicsMainboardAndDrivers: Lesson = {
 
         const d = BOARD_DRIVERS[q.d]
         rows[0].set(`Y driver ${d.name} ${amps(q.a)}${V.vref !== null ? ` (Vref ${fixedText(V.vref, 2)} V)` : ' (UART)'}: ${watts(V.driverW)} → ${celsiusText(V.driverC)}`, off ? HIGH_V : V.state === 'hot' ? HEAT : POWER)
-        rows[1].set(off ? 'Motor: no current, the axis stops, position lost' : `Motor: ${watts(V.motorW)} → ${celsiusText(V.motorC)}; ${nm(V.pullNm)} of ${nm(BOARD.needNm)} needed`, off || V.skips ? HIGH_V : V.motorC > 80 ? HEAT : POWER)
+        rows[1].set(off ? 'Motor: no current, the axis stops, position lost' : `Motor: ${watts(V.motorW)} → ${celsiusText(V.motorC)}; ${nmText(V.pullNm)} of ${nmText(BOARD.needNm)} needed`, off || V.skips ? HIGH_V : V.motorC > 80 ? HEAT : POWER)
         rows[2].set(`${q.v} V: ${BOARD.bedW} W bed draws ${amps(V.bedA)} (MOSFET ${watts(V.bedFetW)}), PSU ${amps(V.psuA)}`, V.bedA > 12 ? HEAT : LABEL)
         tally?.set([V.motorW, V.driverW, V.bedFetW, V.hotFetW], [V.motorW, V.driverW, V.bedFetW, V.hotFetW].map(watts), [V.motorC > 80 ? HEAT : POWER, off ? HIGH_V : V.state === 'hot' ? HEAT : POWER, V.bedFetW > 2 ? HEAT : POWER, POWER], Math.max(4, V.motorW, V.driverW))
         head.status.set(`Mainboard and drivers · ${d.name} at ${amps(q.a)}, ${q.v} V`)
         head.sub.set(`Y at ${q.s} mm/s = ${countText(V.stepHz)} steps/s, ${Math.round(V.rpm)} rpm (motor shown ${SLOW}× slow) · top speed ${V.topMmS} mm/s`, GREY)
-        head.event.set(off ? `${d.name} over ${d.offC} °C: thermal shutdown` : V.skips ? `pull-out ${nm(V.pullNm)} < ${nm(BOARD.needNm)}: skipped steps, layer shift` : ['USB: a G-code line reaches the MCU', 'MCU: plans the move, times STEP pulses', 'driver: steps the coil currents'][phase < 0.3 ? 0 : phase < 0.65 ? 1 : 2], off || V.skips ? HIGH_V : RING)
+        head.event.set(off ? `${d.name} over ${d.offC} °C: thermal shutdown` : V.skips ? `pull-out ${nmText(V.pullNm)} < ${nmText(BOARD.needNm)}: skipped steps, layer shift` : ['USB: a G-code line reaches the MCU', 'MCU: plans the move, times STEP pulses', 'driver: steps the coil currents'][phase < 0.3 ? 0 : phase < 0.65 ? 1 : 2], off || V.skips ? HIGH_V : RING)
       },
       readouts: (p) => {
         const { V } = mbRun(p)
@@ -221,9 +218,8 @@ export const printerElectronicsMarlinAndKlipper: Lesson = {
     { kind: 'choice', key: 'micro', options: opts(MICRO_NAMES), initial: '16' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const c = printPlotBoard(scene, 'MCU load vs speed', '0 mm/s', `${FW.maxMmS} mm/s`, { title: 'Top speed the MCU keeps up with', names: FW_SHORT })
-    const { head, rows, plot, tally, yTop } = c
+    const c = printPlotStage('MCU load vs speed', '0 mm/s', `${FW.maxMmS} mm/s`, { title: 'Top speed the MCU keeps up with', names: FW_SHORT })
+    const { scene, head, rows, plot, tally, yTop } = c
     const pi = hostSbc(scene, [-12.8, 1.4, 0], 0.085)
     const mb = printerMainboard(scene, [-10.7, -6.6, 0], 0.1)
     const u0 = pi.usb
@@ -343,9 +339,8 @@ export const printerElectronicsThermistorsAndHeaters: Lesson = {
     { kind: 'choice', key: 'fault', options: opts(FAULT_NAMES), initial: 'none' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const c = printPlotBoard(scene, '°C per ADC count', '0 °C', `${T_MAX} °C`, { title: 'Heater power on full PWM', names: ['24 V 40 W', '24 V 60 W', '12 V 40 W', '24 V on 12 V', '12 V on 24 V'] })
-    const { head, rows, plot, tally, yTop } = c
+    const c = printPlotStage('°C per ADC count', '0 °C', `${T_MAX} °C`, { title: 'Heater power on full PWM', names: ['24 V 40 W', '24 V 60 W', '12 V 40 W', '24 V on 12 V', '12 V on 24 V'] })
+    const { scene, head, rows, plot, tally, yTop } = c
     const blockMat = new THREE.MeshStandardMaterial({ color: '#b9bec6', metalness: 0.4, roughness: 0.4, emissive: '#000000' })
     const B: V3 = [-12, -2.6, 0]
     box(scene, [6, 4.2, 2.6], blockMat, B)

@@ -11,6 +11,12 @@ import { clamp01 } from './util'
 const ALU = () => mat('#aab1bb', { metal: 0.5, rough: 0.4 })
 const EXTRUSION = () => mat('#33363d', { metal: 0.4, rough: 0.5 })
 export const FILAMENT_COLOR = '#ff8a3d'
+/** Brass nozzle tip, point down. */
+export function nozzleCone(g: THREE.Object3D, r = 0.45, h = 1.2) {
+  const m = add(g, new THREE.Mesh(new THREE.ConeGeometry(r, h, 20), mat('#c9a24a', { metal: 0.8, rough: 0.3 })))
+  m.rotation.x = Math.PI
+  return m
+}
 
 /** Clones the materials under `group` so `set(f)` makes it glow (0 = off). */
 export function partGlow(group: THREE.Object3D, color = RING) {
@@ -38,7 +44,7 @@ export function stepperBlock(parent: THREE.Object3D, at: V3, k: number, len = 40
   return g
 }
 
-export const BED_TOP = 64
+const BED_TOP = 64
 const NOZ_DROP = 60
 const NOZ_Z = 30
 

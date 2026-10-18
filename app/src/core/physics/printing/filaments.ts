@@ -29,7 +29,7 @@ export const filamentMaterial = (k: FilamentKey): Material => {
 // --- Material properties: 0…1 scores and a pick for a robot part ---
 
 export const FILAMENT_PROPS = ['strength', 'stiffness', 'toughness', 'heat', 'ease', 'cheap', 'outdoor', 'flex', 'wear'] as const
-export type FilamentProp = (typeof FILAMENT_PROPS)[number]
+type FilamentProp = (typeof FILAMENT_PROPS)[number]
 
 const maxOf = (f: (k: FilamentKey) => number) => Math.max(...FILAMENT_KEYS.map(f))
 export function filamentScores(k: FilamentKey): Record<FilamentProp, number> {
@@ -135,7 +135,7 @@ const PRINT_LINE_MM2 = 0.45 * 0.2
 const gradeE = (g: TpuGrade) => (g === 'pla' ? FILAMENTS.pla.E : shoreToE(TPU_GRADES[g].shore))
 
 /** Euler load of a fixed–fixed column, N: 4π²·E·I / L². */
-export function columnBucklingN(E: number, dMm: number, lenMm: number) {
+function columnBucklingN(E: number, dMm: number, lenMm: number) {
   const I = (Math.PI * dMm ** 4) / 64
   return (4 * Math.PI ** 2 * (E / MPA) * I) / lenMm ** 2
 }
@@ -163,7 +163,7 @@ export function padSquash(g: TpuGrade, forceN: number, infill = 0.15) {
 // --- Carbon-fibre blends ---
 
 /** Short carbon fibre, typical: modulus, density, and efficiency of short, misaligned fibres in a print. */
-export const CARBON_FIBRE = { E: 230 * GPA, rho: 1.8, eta: 0.1 }
+const CARBON_FIBRE = { E: 230 * GPA, rho: 1.8, eta: 0.1 }
 export const CF_BASES = ['pla', 'petg', 'nylon'] as const
 export type CfBase = (typeof CF_BASES)[number]
 
@@ -241,8 +241,8 @@ export function dryHours(k: FilamentKey, startPct: number, c: number, dMm = FILA
 }
 
 /** Spool: 1 kg of filament on a 250 g empty spool, plus its water. */
-export const SPOOL_G = { filament: 1000, empty: 250 }
-export const spoolGrams = (pct: number) => SPOOL_G.filament * (1 + pct / 100) + SPOOL_G.empty
+const SPOOL_G = { filament: 1000, empty: 250 }
+const spoolGrams = (pct: number) => SPOOL_G.filament * (1 + pct / 100) + SPOOL_G.empty
 
 export function moistureView(k: FilamentKey, days: number, dryC: number, dMm = FILAMENT_D) {
   const wet = uptakePct(k, days, 0.5, dMm)

@@ -1,12 +1,11 @@
 // Functional parts: heat-set insert bosses, captive-nut pockets, snap-fit hooks, living hinges, printed gears (typical values).
-import { DEG, clamp01 } from '../common'
+import { DEG, clamp01, sweep } from '../common'
 import { centerDistanceMm, tipErrorMm, trainRatio } from '../actuators/gearing'
 import { ANCHORS, M3_INSERT, METRIC_SCREWS, anchorPullout } from '../materials/fasteners'
 import { bridgeSag, fitClass, layerStrength } from './design'
 import { LINE_W } from './fdm'
 import { FILAMENTS } from './filaments'
 
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 const ACROSS = layerStrength(90)
 
 // --- Heat-set insert boss: hole size, wall, depth and orientation for an M3 insert (Materials > Fasteners model). ---

@@ -39,8 +39,8 @@ import {
   RING,
   WIDE_VIEW,
   addLabel,
-  bedRelief,
   beadCut,
+  bedRelief,
   countBars,
   cursorBar,
   glowDot,
@@ -49,6 +49,7 @@ import {
   memoBy,
   plotY,
   printBeads,
+  sampleFrac,
   statusHeader,
   textRows,
   titledScope,
@@ -60,7 +61,6 @@ const GAP_TONE = { gaps: B_FIELD, good: POWER, squished: HEAT, scraping: HIGH_V 
 const GAP_NAME = { gaps: 'too high: round beads, gaps', good: 'good squish, lines fused', squished: 'squished: wide lines, ridges', scraping: 'nozzle scraping the bed' }
 const MATS = opts(COOL_FILAMENTS)
 /** Nearest sample of a sweep at 0…1. */
-const sampleAt = (arr: readonly number[]) => (s: number) => arr[Math.min(arr.length - 1, Math.round(s * (arr.length - 1)))]
 
 // --- Bed levelling: a tilted, bowed bed; none / paper / 3-point plane / mesh; the first layer laid across it. ---
 
@@ -171,10 +171,10 @@ export const bedAdhesionBedLevelling: Lesson = {
         const hi = Math.max(...along.map((a) => Math.max(a.bed, a.est))) + 0.05
         const py = plotY(lo, hi, T.h)
         const u = done / (PATH.length - 1)
-        trBed.draw((s) => py(sampleAt(along.map((a) => a.bed))(s)), u)
-        trEst.draw((s) => py(sampleAt(along.map((a) => a.est))(s)), u)
+        trBed.draw((s) => py(sampleFrac(along.map((a) => a.bed), s)), u)
+        trEst.draw((s) => py(sampleFrac(along.map((a) => a.est), s)), u)
         const gy = plotY(0, 0.4, L.h)
-        trGap.draw((s) => gy(sampleAt(along.map((a) => a.gap))(s)), u)
+        trGap.draw((s) => gy(sampleFrac(along.map((a) => a.gap), s)), u)
         top.right.set(`Z ${mmFixed(g.est, 2)}`, RING)
         const s8 = beadSection(g.gap).state
         low.right.set(`${mmFixed(g.gap, 2)} · ${s8}`, GAP_TONE[s8])
@@ -269,12 +269,12 @@ export const bedAdhesionZOffset: Lesson = {
         cut.set(bead.h, bead.w, q.w, gap, tone)
         gapTag.set(`gap ${mmFixed(gap, 2)}`, tone)
         const u = (q.z - ZO.lo) / (ZO.hi - ZO.lo)
-        trW.draw((s) => wy(sampleAt(sweep.map((b) => b.w))(s)), u)
-        trH.draw((s) => wy(sampleAt(sweep.map((b) => b.h))(s)), u)
-        trC.draw((s) => wy(sampleAt(sweep.map((b) => b.contact))(s)), u)
+        trW.draw((s) => wy(sampleFrac(sweep.map((b) => b.w), s)), u)
+        trH.draw((s) => wy(sampleFrac(sweep.map((b) => b.h), s)), u)
+        trC.draw((s) => wy(sampleFrac(sweep.map((b) => b.contact), s)), u)
         lvW.set(wy(q.w))
         curT(u)
-        trF.draw((s) => fy(sampleAt(sweep.map((b) => b.fuse))(s)), u)
+        trF.draw((s) => fy(sampleFrac(sweep.map((b) => b.fuse), s)), u)
         curL(u)
         top.right.set(`w ${mmFixed(bead.w, 2)} · h ${mmFixed(bead.h, 2)}`, RING)
         low.right.set(bead.fuse < 0 ? `gap ${mmFixed(-bead.fuse, 2)}` : `overlap ${mmFixed(bead.fuse, 2)}`, tone)
@@ -400,8 +400,8 @@ export const bedAdhesionBuildSurfaces: Lesson = {
         flake.position.y = 0.06
         hole.visible = flake.visible
         const uc = (c0: number) => (c0 - SURFACE_SWEEP[0]) / (SURFACE_SWEEP[SURFACE_SWEEP.length - 1] - SURFACE_SWEEP[0])
-        trG.draw((s) => gy(sampleAt(grip)(s)), uc(q.c))
-        trP.draw((s) => gy(sampleAt(pull)(s)), uc(q.c))
+        trG.draw((s) => gy(sampleFrac(grip, s)), uc(q.c))
+        trP.draw((s) => gy(sampleFrac(pull, s)), uc(q.c))
         cur(uc(q.c))
         tgBar(uc(FILAMENTS[q.mat].tgC))
         top.right.set(timesText(v.margin), v.holds ? POWER : HIGH_V)
@@ -526,8 +526,8 @@ export const bedAdhesionBrimAndRaft: Lesson = {
         part.position.y = base + (H * k * grow) / 2 + 0.1
         body.rotation.z = (v.lift * BR.ex * grow ** 2) / (L + 12)
         const u = q.w / AID_SWEEP[AID_SWEEP.length - 1]
-        trB.draw((s) => my(sampleAt(bm)(s)), q.aid === 'brim' ? u : null)
-        trE.draw((s) => my(sampleAt(em)(s)), q.aid === 'ears' ? u : null)
+        trB.draw((s) => my(sampleFrac(bm, s)), q.aid === 'brim' ? u : null)
+        trE.draw((s) => my(sampleFrac(em, s)), q.aid === 'ears' ? u : null)
         raftLv.set(my(each[3].margin))
         cur(q.aid === 'brim' || q.aid === 'ears' ? u : null)
         top.right.set(`×${fixedText(v.margin, 2)}`, v.lifts ? HIGH_V : POWER)

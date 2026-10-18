@@ -26,7 +26,7 @@ import {
   toolpathAt,
   toolpathLength,
 } from '../../core/physics'
-import { celsiusText, fixedText, hoursText, mmFixed, newtonsText, pct } from '../../core/units'
+import { celsiusText, durationText, fixedText, mmFixed, newtonsText, pct } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -59,7 +59,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const minText = (s: number) => hoursText(s / 3600)
 const LINK_MOTION = 'Printer motion'
 
 // --- Anatomy of a printer: a bed slinger printing a small tray; highlight each part. ---
@@ -101,7 +100,7 @@ export const howFdmWorksAnatomyOfAPrinter: Lesson = {
   tagline: 'Frame, three axes, a hotend, an extruder and a hot bed',
   formula: (p) => {
     const v = n(p, 'speed')
-    return `print time ≈ path length / speed + layers × overhead = ${fixedText(TRAY_PLAN.mm / 1000, 1)} m / ${v} mm/s + ${TRAY_PLAN.layers.length} × ${LAYER_OVERHEAD_S} s = ${minText(trayTime(v))} (60 × 60 × 12 mm tray, 0.3 mm layers, ${pct(TRAY.infill)} infill; typical, ignores acceleration)`
+    return `print time ≈ path length / speed + layers × overhead = ${fixedText(TRAY_PLAN.mm / 1000, 1)} m / ${v} mm/s + ${TRAY_PLAN.layers.length} × ${LAYER_OVERHEAD_S} s = ${durationText(trayTime(v))} (60 × 60 × 12 mm tray, 0.3 mm layers, ${pct(TRAY.infill)} infill; typical, ignores acceleration)`
   },
   legend: [
     { color: RING, label: 'Highlighted part', shape: 'dot' },
@@ -200,13 +199,13 @@ export const howFdmWorksAnatomyOfAPrinter: Lesson = {
         mot[2].set(`Z screws ${zMove ? 'lifting one layer' : 'holding'}`, zMove ? POWER : GREY)
         mot[3].set(`E extruder ${done ? 'stopped' : 'feeding'}`, done ? GREY : FILAMENT_COLOR)
         head.status.set(`Anatomy of a printer · ${speed} mm/s`)
-        head.sub.set(`t = ${minText(printT)} of ${minText(total)}, time-lapse ${Math.round(total / LAPSE_S)}×`, GREY)
+        head.sub.set(`t = ${durationText(printT)} of ${durationText(total)}, time-lapse ${Math.round(total / LAPSE_S)}×`, GREY)
         head.event.set(done ? 'print done: the gantry lifts and the bed comes forward' : `layer ${Math.min(layerNow + 1, TRAY_PLAN.layers.length)} of ${TRAY_PLAN.layers.length}: ${g.wall ? 'walls' : 'infill'}`, done ? POWER : LABEL)
       },
       readouts: (p) => {
         const speed = n(p, 'speed')
         return [
-          { label: 'Tray print time', value: minText(trayTime(speed)), tone: toneOf(speed <= 100, speed <= 150) },
+          { label: 'Tray print time', value: durationText(trayTime(speed)), tone: toneOf(speed <= 100, speed <= 150) },
           { label: 'Layers', value: `${TRAY_PLAN.layers.length} × 0.3 mm` },
           { label: 'Filament', value: `${fixedText((TRAY_PLAN.mm * LINE_W * TRAY.layerH) / filamentArea() / 1000, 1)} m` },
         ]
@@ -375,7 +374,7 @@ export const howFdmWorksLayerByLayer: Lesson = {
   tagline: 'Walls, infill, next layer: thin layers look better and take longer',
   formula: (p) => {
     const { q, V } = lbRun(p)
-    return `layers = height / layer height = ${PRINT_SHAPES[q.shape].h} / ${fixedText(q.layerH, 2)} = ${V.layers.length} · time ≈ Σ (walls + infill length) / speed + ${LAYER_OVERHEAD_S} s per layer = ${minText(V.total)} at ${LB.speed} mm/s · steepest stair step on the top ${mmFixed(V.step, 2)} (typical)`
+    return `layers = height / layer height = ${PRINT_SHAPES[q.shape].h} / ${fixedText(q.layerH, 2)} = ${V.layers.length} · time ≈ Σ (walls + infill length) / speed + ${LAYER_OVERHEAD_S} s per layer = ${durationText(V.total)} at ${LB.speed} mm/s · steepest stair step on the top ${mmFixed(V.step, 2)} (typical)`
   },
   legend: [
     { color: FILAMENT_COLOR, label: 'Printed layers', shape: 'dot' },
@@ -485,11 +484,11 @@ export const howFdmWorksLayerByLayer: Lesson = {
         const u = (q.layerH - LAYER_SWEEP[0]) / (LAYER_SWEEP[LAYER_SWEEP.length - 1] - LAYER_SWEEP[0])
         marker.position.set(plot.s.xAt(u), py(V.total), 0.46)
         cursor(u)
-        plot.right.set(`${minText(V.total)} at ${fixedText(q.layerH, 2)} mm`, RING)
-        tMaxTag.set(minText(tMax), GREY)
+        plot.right.set(`${durationText(V.total)} at ${fixedText(q.layerH, 2)} mm`, RING)
+        tMaxTag.set(durationText(tMax), GREY)
 
         rows[0].set(`${N} layers · walls ${2} lines · infill ${pct(q.infill)}, solid top and bottom`, LABEL)
-        rows[1].set(`print time ${minText(V.total)} · ${fixedText(V.filamentMm3 / 1000, 1)} cm³ of plastic`, RING)
+        rows[1].set(`print time ${durationText(V.total)} · ${fixedText(V.filamentMm3 / 1000, 1)} cm³ of plastic`, RING)
         rows[2].set(q.shape === 'dome' ? `top stair steps up to ${mmFixed(V.step, 2)} wide` : `flat top: no stair steps`, q.shape === 'dome' && V.step > 1.2 ? HEAT : POWER)
         rows[3].set(Math.abs(V.heightErr) > 0.01 ? `height rounds to ${mmFixed(N * q.layerH, 2)}` : 'height is a whole number of layers', GREY)
         head.status.set(`Layer by layer · ${S.name} · ${fixedText(q.layerH, 2)} mm`)
@@ -500,7 +499,7 @@ export const howFdmWorksLayerByLayer: Lesson = {
         const { V } = lbRun(p)
         return [
           { label: 'Layers', value: `${V.layers.length}` },
-          { label: 'Print time', value: minText(V.total) },
+          { label: 'Print time', value: durationText(V.total) },
           { label: 'Top stair step', value: mmFixed(V.step, 2), tone: toneOf(V.step < 1, V.step < 1.6) },
         ]
       },

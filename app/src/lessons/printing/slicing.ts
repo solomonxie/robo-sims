@@ -19,7 +19,7 @@ import {
   toolpathAt,
   wallsView,
 } from '../../core/physics'
-import { bytesText, degText, fixedText, hoursText, mmFixed, pct } from '../../core/units'
+import { bytesText, degText, durationText, fixedText, mmFixed, pct } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
@@ -50,7 +50,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const minText = (s: number) => hoursText(s / 3600)
 const RIG = { at: [-9.6, -9.4, 0] as V3, k: 0.34 }
 const PREVIEW = { at: [8.6, -8.4, 0] as V3, span: 46, size: 9.6 }
 const shade = (i: number) => (i % 2 ? '#d9732f' : FILAMENT_COLOR)
@@ -179,7 +178,7 @@ export const slicingLayerHeight: Lesson = {
   tagline: 'Thick where walls are straight, thin where they curve',
   formula: (p) => {
     const V = lhRun(p)
-    return `stair step = h · sin(wall lean) · adaptive: h = step limit / sin(lean), between 0.08 and ${fixedText(n(p, 'layer'), 2)} mm → ${V.heights.length} layers, ${minText(V.slice.total)}, worst step ${mmFixed(V.cusp, 2)} · keep h ≤ 0.75 × nozzle (typical)`
+    return `stair step = h · sin(wall lean) · adaptive: h = step limit / sin(lean), between 0.08 and ${fixedText(n(p, 'layer'), 2)} mm → ${V.heights.length} layers, ${durationText(V.slice.total)}, worst step ${mmFixed(V.cusp, 2)} · keep h ≤ 0.75 × nozzle (typical)`
   },
   legend: [
     { color: FILAMENT_COLOR, label: 'Thick layers', shape: 'dot' },
@@ -246,7 +245,7 @@ export const slicingLayerHeight: Lesson = {
         limit.set(y(0.75 * noz))
         yTag.set(`${LH_MAX} mm`, GREY)
         plot.right.set(`${V.heights.length} layers, ${fixedText(V.minH, 2)}–${fixedText(Math.max(...V.heights), 2)} mm`, LOW_V)
-        rows[0].set(`${V.heights.length} layers · print ${minText(V.slice.total)} (0.08 mm everywhere: ${minText(V.fineTime)})`, LABEL)
+        rows[0].set(`${V.heights.length} layers · print ${durationText(V.slice.total)} (0.08 mm everywhere: ${durationText(V.fineTime)})`, LABEL)
         rows[1].set(`worst stair step on the dome ${mmFixed(V.cusp, 2)}`, V.cusp < 0.08 ? POWER : V.cusp < 0.16 ? RING : HEAT)
         rows[2].set(V.tooThick ? `${fixedText(hMax, 2)} mm > 75 % of ${noz} mm: weak, gappy layers` : `${fixedText(hMax, 2)} mm ≤ 75 % of ${noz} mm nozzle: beads squash`, V.tooThick ? HIGH_V : POWER)
         rows[3].set(`layer bond ${pct(V.bond)} of best (typical)`, toneColor(V.bond))
@@ -258,7 +257,7 @@ export const slicingLayerHeight: Lesson = {
         const V = lhRun(p)
         return [
           { label: 'Layers', value: `${V.heights.length}` },
-          { label: 'Print time', value: minText(V.slice.total) },
+          { label: 'Print time', value: durationText(V.slice.total) },
           { label: 'Worst step', value: mmFixed(V.cusp, 2), tone: toneOf(V.cusp < 0.08, V.cusp < 0.16) },
         ]
       },
@@ -311,7 +310,7 @@ export const slicingWallsAndPerimeters: Lesson = {
   tagline: 'Outlines first, then fill the inside',
   formula: (p) => {
     const V = wpRun(p)
-    return `walls that fit = ring width / (2 × line width) → ${V.fit.m} of ${n(p, 'walls')} · wall path this layer ${fixedText(V.wallMm / 1000, 2)} m · print ${minText(V.slice.total)} · side-load stiffness ${pct(V.stiff)} of solid (typical)`
+    return `walls that fit = ring width / (2 × line width) → ${V.fit.m} of ${n(p, 'walls')} · wall path this layer ${fixedText(V.wallMm / 1000, 2)} m · print ${durationText(V.slice.total)} · side-load stiffness ${pct(V.stiff)} of solid (typical)`
   },
   legend: segLegend(['outer', 'inner', 'gap', 'skin', 'infill']),
   points: [
@@ -343,7 +342,7 @@ export const slicingWallsAndPerimeters: Lesson = {
         tag.set(`layer ${V.index + 1} at ${mmFixed(V.layer.z, 1)}, seen from above`, LABEL)
         const short = V.fit.m < walls
         rows[0].set(`${V.fit.m} of ${walls} walls fit${V.fit.gap ? ' + gap fill' : ''} at radius ${mmFixed(V.layer.rOut, 1)}`, short ? HEAT : POWER)
-        rows[1].set(`print ${minText(V.slice.total)} · side-load stiffness ${pct(V.stiff)} (typical)`, LABEL)
+        rows[1].set(`print ${durationText(V.slice.total)} · side-load stiffness ${pct(V.stiff)} (typical)`, LABEL)
         const t2 = V.sweep[1]
         rows[2].set(`vs 2 walls: time ×${fixedText(V.slice.total / t2.time, 2)}, stiffness ×${fixedText(V.stiff / t2.stiff, 2)}`, RING)
         rows[3].set(p.order === 'inner' ? 'inner first: outer loop leans on them, better overhangs' : 'outer first: accurate outside, overhangs droop more', GREY)
@@ -355,7 +354,7 @@ export const slicingWallsAndPerimeters: Lesson = {
         const V = wpRun(p)
         return [
           { label: 'Walls fitted', value: `${V.fit.m} of ${n(p, 'walls')}`, tone: V.fit.m < n(p, 'walls') ? 'warn' : 'ok' },
-          { label: 'Print time', value: minText(V.slice.total) },
+          { label: 'Print time', value: durationText(V.slice.total) },
           { label: 'Stiffness', value: pct(V.stiff) },
         ]
       },
@@ -374,7 +373,7 @@ export const slicingInfillPatterns: Lesson = {
   tagline: 'A lattice inside: stiffness per gram and per minute',
   formula: (p) => {
     const V = ifRun(p)
-    return `infill line spacing = line width / density · stiffness ≈ k × density^e per axis → X ${pct(V.xyz[0])}, Y ${pct(V.xyz[1])}, Z ${pct(V.xyz[2])} of solid · part ${pct(V.part)} · ${fixedText(V.slice.grams, 1)} g, ${minText(V.slice.total)} (typical)`
+    return `infill line spacing = line width / density · stiffness ≈ k × density^e per axis → X ${pct(V.xyz[0])}, Y ${pct(V.xyz[1])}, Z ${pct(V.xyz[2])} of solid · part ${pct(V.part)} · ${fixedText(V.slice.grams, 1)} g, ${durationText(V.slice.total)} (typical)`
   },
   legend: segLegend(['outer', 'inner', 'skin', 'infill']),
   points: [
@@ -411,7 +410,7 @@ export const slicingInfillPatterns: Lesson = {
         const ft = V.slice.total / F.slice.total
         const top = Math.max(1e-6, ...V.xyz)
         bars.set(V.xyz, V.xyz.map((x) => `${pct(x)} of solid`), V.xyz.map((x) => (x > 0.8 * top ? POWER : x > 0.4 * top ? RING : HIGH_V)), Math.max(0.05, 0.6 * d))
-        cost.set([fg, ft], [`${fixedText(V.slice.grams, 1)} g`, minText(V.slice.total)], [HEAT, HEAT], 1)
+        cost.set([fg, ft], [`${fixedText(V.slice.grams, 1)} g`, durationText(V.slice.total)], [HEAT, HEAT], 1)
         rows[0].set(`${pat.name} ${pct(d)} · part side-load stiffness ${pct(V.part)} of solid`, LABEL)
         const pillow = d > 0 && d < 0.1
         rows[1].set(d === 0 ? 'hollow: nothing holds up the top skin' : pillow ? 'below ~10 %: top skin sags (pillowing)' : d > 0.3 ? 'past ~30 %: plastic and time for little gain' : '15–25 %: the usual sweet spot', d === 0 || pillow ? HIGH_V : d > 0.3 ? RING : POWER)
@@ -423,7 +422,7 @@ export const slicingInfillPatterns: Lesson = {
         const V = ifRun(p)
         return [
           { label: 'Plastic', value: `${fixedText(V.slice.grams, 1)} g` },
-          { label: 'Print time', value: minText(V.slice.total) },
+          { label: 'Print time', value: durationText(V.slice.total) },
           { label: 'Weakest axis', value: pct(Math.min(...V.xyz)) },
         ]
       },
@@ -444,7 +443,7 @@ export const slicingSupports: Lesson = {
   tagline: 'Scaffolding under overhangs, and what it costs',
   formula: (p) => {
     const V = spRun(p)
-    return `support where overhang from vertical > ${degText(n(p, 'limit'), 0)} → ${Math.round(V.area)} mm² · support ${fixedText(V.grams, 1)} g, +${minText(V.minutes * 60)} on a ${fixedText(V.partGrams, 1)} g, ${minText(V.partMinutes * 60)} part (typical)`
+    return `support where overhang from vertical > ${degText(n(p, 'limit'), 0)} → ${Math.round(V.area)} mm² · support ${fixedText(V.grams, 1)} g, +${durationText(V.minutes * 60)} on a ${fixedText(V.partGrams, 1)} g, ${durationText(V.partMinutes * 60)} part (typical)`
   },
   legend: [
     { color: FILAMENT_COLOR, label: 'Prints fine', shape: 'dot' },
@@ -548,7 +547,7 @@ export const slicingSupports: Lesson = {
         const pg = V.partGrams
         bars.set(
           [V.area / 1500, V.contact / 1500, V.grams / pg, V.minutes / V.partMinutes, V.stuck],
-          [`${Math.round(V.area)} mm²`, `${Math.round(V.contact)} mm²`, `${fixedText(V.grams, 1)} g`, `+${minText(V.minutes * 60)}`, V.area ? (V.stuck > 0.6 ? 'hard' : V.stuck > 0.2 ? 'firm' : 'easy') : 'none'],
+          [`${Math.round(V.area)} mm²`, `${Math.round(V.contact)} mm²`, `${fixedText(V.grams, 1)} g`, `+${durationText(V.minutes * 60)}`, V.area ? (V.stuck > 0.6 ? 'hard' : V.stuck > 0.2 ? 'firm' : 'easy') : 'none'],
           [HIGH_V, HEAT, HEAT, HEAT, V.stuck > 0.6 ? HIGH_V : POWER],
           1,
         )
@@ -564,7 +563,7 @@ export const slicingSupports: Lesson = {
         const V = spRun(p)
         return [
           { label: 'Support', value: `${fixedText(V.grams, 1)} g` },
-          { label: 'Extra time', value: minText(V.minutes * 60) },
+          { label: 'Extra time', value: durationText(V.minutes * 60) },
           { label: 'Scars', value: `${Math.round(V.contact)} mm²`, tone: toneOf(V.contact === 0, V.contact < 400) },
         ]
       },

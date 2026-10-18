@@ -1,24 +1,24 @@
 // Resin (MSLA, laser SLA) and powder (SLS) vs FDM: layer times, peel force, nesting, picking a process. Values typical.
+import { DEG } from '../common'
 import { MATERIALS } from '../materials/stress'
 import { LAYER_OVERHEAD_S, sliceLayers } from './layers'
 
-const DEG = Math.PI / 180
 
 /** Typical desktop MSLA: 50 µm LCD pixels, 405 nm backlight; laser SLA draws the same layer with a spot. */
 export const RESIN = { pixelMm: 0.05, exposeS: 2.5, liftS: 6, suctionNmm2: 0.02, laserMm2s: 250, plate: [128, 80] as const, layerMm: 0.05 }
 /** The resin demo part: a bracket plate L × W × t mm. */
 export const RESIN_PART = { L: 30, W: 20, t: 4 }
 export const RESIN_MAX_PARTS = 6
-export const FDM_LAYER = 0.2
+const FDM_LAYER = 0.2
 
 const FDM_RATE = (() => {
   const ls = sliceLayers({ shape: 'box', layerH: FDM_LAYER, infill: 0.2, speed: 60 })
   return (ls[50].time - LAYER_OVERHEAD_S) / 400
 })()
 /** FDM time for one layer with `area` mm² of cross-section (walls + 20 % infill at 60 mm/s, scaled from the sliced box). */
-export const fdmLayerS = (area: number) => LAYER_OVERHEAD_S + area * FDM_RATE
-export const mslaLayerS = () => RESIN.exposeS + RESIN.liftS
-export const laserLayerS = (area: number) => RESIN.liftS + area / RESIN.laserMm2s
+const fdmLayerS = (area: number) => LAYER_OVERHEAD_S + area * FDM_RATE
+const mslaLayerS = () => RESIN.exposeS + RESIN.liftS
+const laserLayerS = (area: number) => RESIN.liftS + area / RESIN.laserMm2s
 
 /** x-extent [x0, x1] at height z of an L × t slab tilted `deg` up from the plate (lowest corner at z = 0), or null. */
 export function slabSection(deg: number, L: number, t: number, z: number): [number, number] | null {
@@ -51,7 +51,7 @@ export function plateSlots(n: number, dx = 40, dy = 34): [number, number][] {
 
 export const AREA_SWEEP = Array.from({ length: 21 }, (_, i) => i * 250)
 
-export interface ResinIn {
+interface ResinIn {
   parts: number
   tiltDeg: number
   layerH: number
@@ -95,7 +95,7 @@ export const SLS = { bed: 165, height: 300, recoatS: 15, laserMm2s: 400, gapMm: 
 export const SLS_GEAR = { d: 30, h: 10, vol: Math.PI * 15 * 15 * 10 * 0.95 }
 export const SLS_PARTS_MAX = 64
 
-export interface Nest {
+interface Nest {
   perRow: number
   perLevel: number
   levels: number
@@ -103,7 +103,7 @@ export interface Nest {
 }
 
 /** Parts of footprint `size` mm × `h` mm nested in the bed: a grid per level, levels stacked with gaps. */
-export function slsNest(qty: number, size: number, h: number): Nest {
+function slsNest(qty: number, size: number, h: number): Nest {
   const perRow = Math.max(1, Math.floor((SLS.bed - SLS.gapMm) / (size + SLS.gapMm)))
   const perLevel = perRow * perRow
   const levels = Math.ceil(qty / perLevel)
@@ -111,7 +111,7 @@ export function slsNest(qty: number, size: number, h: number): Nest {
 }
 
 /** Build of `qty` parts of volume `vol` mm³: layers × recoat + Σ sintered area / laser rate, then cool-down. */
-export function slsBuild(qty: number, size: number, h: number, vol: number, layerH: number) {
+function slsBuild(qty: number, size: number, h: number, vol: number, layerH: number) {
   const nest = slsNest(qty, size, h)
   const layers = Math.ceil(nest.height / layerH)
   const recoat = layers * SLS.recoatS
@@ -164,7 +164,7 @@ function processHours(key: ProcessKey, part: (typeof PICK_PARTS)[PickPart], qty:
   return slsBuild(qty, part.size, part.h, part.vol * 1000, 0.1).total / 3600
 }
 
-export interface ProcessRow {
+interface ProcessRow {
   key: ProcessKey
   hours: number
   cost: number

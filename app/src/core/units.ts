@@ -123,6 +123,8 @@ export const velocityText = (v: number) => `${v < -1e-6 ? '−' : v > 1e-6 ? '+'
 export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 /** Minutes under an hour, else hours to `digits` decimals. */
 export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)
+/** Seconds as `hoursText` (min under an hour). */
+export const durationText = (s: number) => hoursText(s / 3600)
 /** Battery-life style span: hours, then days, then years. */
 export const spanText = (h: number) => (h < 48 ? hoursText(h) : h < 24 * 365 ? `${Math.round(h / 24)} days` : `${+(h / 8766).toFixed(1)} years`)
 

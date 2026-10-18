@@ -58,16 +58,17 @@ import {
   liveLabel,
   memoBy,
   plateGeometry,
-  printPlotBoard,
+  printPlotStage,
   screwModel,
   sketchPen,
   sliceSlabs,
+  statusHeader,
   storyClock,
   storySlider,
   stretchArrow,
   stretchRod,
   textRows,
-  statusHeader,
+  verdictTint,
   zUp,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
@@ -75,7 +76,6 @@ import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 const CAD_TINT = '#7fb2e6'
 const SUPPORT_TINT = '#9aa0a8'
 const RIB_COLORS: Record<RibSet, string> = { none: GREY, edge: POWER, four: B_FIELD }
-const verdict = (ok: boolean, warn: boolean) => (ok ? POWER : warn ? RING : HIGH_V)
 const grams = (g: number) => `${Math.round(g)} g`
 
 /** The printed chassis in sketch mm (z up from the plate's bottom): plate, insert bosses, ribs. `set(t, ribs, fillet, extrude 0…1, grow 0…1)`. */
@@ -174,9 +174,8 @@ export const printARobotModelTheChassis: Lesson = {
     { kind: 'choice', key: 'ribs', options: opts(RIB_SETS), initial: 'edge' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const ribKeys = Object.keys(RIB_SETS) as RibSet[]
-    const { head, rows, plot, yTop, tally } = printPlotBoard(scene, `Flex under a ${ROBOT.pressN} N press vs thickness`, `${PLATE_T_SWEEP[0]} mm`, `${PLATE_T_SWEEP[PLATE_T_SWEEP.length - 1]} mm`, {
+        const ribKeys = Object.keys(RIB_SETS) as RibSet[]
+    const { scene, head, rows, plot, yTop, tally } = printPlotStage(`Flex under a ${ROBOT.pressN} N press vs thickness`, `${PLATE_T_SWEEP[0]} mm`, `${PLATE_T_SWEEP[PLATE_T_SWEEP.length - 1]} mm`, {
       title: 'Grams at this thickness',
       names: ribKeys.map((r) => RIB_SETS[r]),
     })
@@ -247,7 +246,7 @@ export const printARobotModelTheChassis: Lesson = {
         dimW.set(s <= 1 ? `${ROBOT_PLATE.w} mm` : '')
         dimH.set(s <= 1 ? `${ROBOT_PLATE.h} mm` : '')
         tag.group.position.set(...at(xm - 30, -ROBOT_PLATE.h / 2 - 8, top + 26))
-        tag.set(check ? `${ROBOT.pressN} N: flex ${mmFixed(P.deflMm, 2)}` : s === 2 ? `t = ${mmFixed(q.t, 2)}` : s === 3 && P.bossH > 0 ? `bosses ${mmFixed(P.bossH, 1)}` : '', check ? verdict(tone === 'ok', tone === 'warn') : LABEL)
+        tag.set(check ? `${ROBOT.pressN} N: flex ${mmFixed(P.deflMm, 2)}` : s === 2 ? `t = ${mmFixed(q.t, 2)}` : s === 3 && P.bossH > 0 ? `bosses ${mmFixed(P.bossH, 1)}` : '', check ? verdictTint(tone === 'ok', tone === 'warn') : LABEL)
         const tu = (q.t - PLATE_T_SWEEP[0]) / (PLATE_T_SWEEP[PLATE_T_SWEEP.length - 1] - PLATE_T_SWEEP[0])
         cur(tu)
         dot.position.set(S.xAt(tu), py(P.deflMm), 0.4)
@@ -255,11 +254,11 @@ export const printARobotModelTheChassis: Lesson = {
         const gs = ribKeys.map((r) => robotPlate(q.t, r).grams)
         tally?.set(gs, gs.map(grams), ribKeys.map((r) => (r === q.ribs ? RING : RIB_COLORS[r])), 100)
         rows[0].set(`${s + 1}. ${MC_ROWS[s]}`, LABEL)
-        rows[1].set(`${grams(P.grams)} · flex ${mmFixed(P.deflMm, 2)} · SF ${fixedText(P.sf, 1)} (typical)`, verdict(tone === 'ok' && P.sf >= 2, tone !== 'bad'))
+        rows[1].set(`${grams(P.grams)} · flex ${mmFixed(P.deflMm, 2)} · SF ${fixedText(P.sf, 1)} (typical)`, verdictTint(tone === 'ok' && P.sf >= 2, tone !== 'bad'))
         rows[2].set(P.bossH > 0 ? `Bosses ${mmFixed(P.bossH, 1)} tall give ${mmFixed(ROBOT.holeDepth, 1)} deep insert holes` : 'Plate deep enough for the inserts: no bosses', P.bossH > 0 ? LABEL : HEAT)
         head.status.set(`Chassis plate in CAD · ${RIB_SETS[q.ribs].toLowerCase()}`)
         head.sub.set(`Step ${s + 1} of ${MC_STEPS.length}: ${MC_STEPS[s]} · PLA, ${ROBOT.wheelbase * 1000} mm wheelbase`, GREY)
-        head.event.set(check ? (tone === 'ok' ? 'Stiff enough: export the STL' : tone === 'warn' ? 'Bends a little: add ribs or thickness' : 'Floppy: wheels toe in under load') : '', verdict(tone === 'ok', tone === 'warn'))
+        head.event.set(check ? (tone === 'ok' ? 'Stiff enough: export the STL' : tone === 'warn' ? 'Bends a little: add ribs or thickness' : 'Floppy: wheels toe in under load') : '', verdictTint(tone === 'ok', tone === 'warn'))
       },
       readouts: (p) => {
         const { P } = mcRun(p)
@@ -322,10 +321,9 @@ export const printARobotSliceAndPrint: Lesson = {
     { kind: 'choice', key: 'layer', options: opts(LAYERS), initial: '0.2' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const lo = INFILL_SWEEP_JOB[0]
+        const lo = INFILL_SWEEP_JOB[0]
     const hi = INFILL_SWEEP_JOB[INFILL_SWEEP_JOB.length - 1]
-    const { head, rows, plot, yTop } = printPlotBoard(scene, 'Print time vs infill (typical)', pct(lo), pct(hi))
+    const { scene, head, rows, plot, yTop } = printPlotStage('Print time vs infill (typical)', pct(lo), pct(hi))
     const holder = add(scene, new THREE.Group(), SP.at)
     holder.rotation.set(0.62, 0.45, 0)
     const pr = fdmPrinter(holder, [0, 0, 0], SP.k)
@@ -534,15 +532,15 @@ export const printARobotAssembleWithInserts: Lesson = {
         MOTOR_SCREWS.forEach((l) => (screws.get(l)!.group.visible = l === q.len))
         lift.position.y = Math.max(0, motor.engaged - ROBOT.holeDepth) * kk
         screwTag.set(`M3 × ${q.len}: ${fixedText(motor.engaged, 1)} mm in the insert`, screwTone(motor.verdict))
-        rows[0].set(`Inserts: ${joint.iron.note}`, verdict(joint.iron.ok && joint.iron.fill >= 0.9 && q.temp <= 240, joint.iron.ok))
+        rows[0].set(`Inserts: ${joint.iron.note}`, verdictTint(joint.iron.ok && joint.iron.fill >= 0.9 && q.temp <= 240, joint.iron.ok))
         rows[1].set(`Motors: 4 × M3 × ${q.len}, ${SCREW_WORD[motor.verdict]}`, screwTone(motor.verdict))
         rows[2].set(others.map(({ a, s: sc }) => `${a.name.split(' ')[0]} M3 × ${sc.best}`).join(' · '), POWER)
-        rows[3].set(`CoM ${pct(B.share)} on the drive wheels, ${Math.round(B.kg * 1000)} g in all`, verdict(B.stable && B.share > 0.5, B.stable))
+        rows[3].set(`CoM ${pct(B.share)} on the drive wheels, ${Math.round(B.kg * 1000)} g in all`, verdictTint(B.stable && B.share > 0.5, B.stable))
         head.status.set(`Assembling the printed robot · step ${s + 1} of ${AS_STEPS.length}`)
         head.sub.set(`${AS_STEPS[s]}${ASSEMBLY[s].screws ? ` · ${ASSEMBLY[s].screws} × M3 into inserts` : ''}`, GREY)
         head.event.set(
           hot ? `Iron ${celsiusText(q.temp)}: ${joint.iron.ok ? `about ${Math.round(joint.iron.secs)} s per insert` : 'will not go in'}` : checking ? (s === 5 ? (B.stable ? 'CoM inside the triangle: stable' : 'CoM outside: tips') : 'Test drive: next, wire it up in Practice > Robo-car') : `${ASSEMBLY[s].parts.length} part${ASSEMBLY[s].parts.length > 1 ? 's' : ''} drop in`,
-          hot ? verdict(joint.iron.ok && joint.iron.fill >= 0.9 && q.temp <= 240, joint.iron.ok) : POWER,
+          hot ? verdictTint(joint.iron.ok && joint.iron.fill >= 0.9 && q.temp <= 240, joint.iron.ok) : POWER,
         )
       },
       readouts: (p) => {

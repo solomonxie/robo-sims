@@ -1,13 +1,12 @@
 // Calibration: E-steps (mark-and-measure, gear slip), flow multiplier from a single-wall cube, pressure advance (melt lag vs K),
 // retraction (stringing vs jams and grinding), temperature tower (adhesion, stringing, droop per band).
 import { stepsPerRev } from '../actuators/stepper'
-import { clamp, clamp01 } from '../common'
+import { clamp, clamp01, sweep } from '../common'
 import { beadSection } from './adhesion'
 import { FILAMENT_D, LINE_W, filamentArea, maxFlow } from './fdm'
 import { FILAMENTS, FilamentKey } from './filaments'
 import { measureFix } from './motion'
 
-const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 const sig = (x: number) => 0.5 + 0.5 * Math.tanh(x)
 
 // --- E-steps: mark 120 mm above the extruder, feed 100 mm, measure what is left. ---
@@ -145,7 +144,7 @@ export const TEMP_TOWER = { bands: 9, step: 5 }
 export const CAL_FILAMENTS: readonly FilamentKey[] = ['pla', 'petg', 'asa', 'tpu', 'nylon', 'pc']
 
 /** Band temperatures bottom (hot) to top: nozzleC + 20 down to nozzleC − 20. */
-export const towerTemps = (f: FilamentKey) => sweep(FILAMENTS[f].nozzleC + 20, FILAMENTS[f].nozzleC - 20, TEMP_TOWER.bands)
+const towerTemps = (f: FilamentKey) => sweep(FILAMENTS[f].nozzleC + 20, FILAMENTS[f].nozzleC - 20, TEMP_TOWER.bands)
 
 /** Quality of one band (0…1 each, typical trends): layer adhesion, stringing, overhang droop, melt flow headroom. */
 export function towerBand(f: FilamentKey, c: number) {

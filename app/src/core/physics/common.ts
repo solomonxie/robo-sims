@@ -18,6 +18,8 @@ export const stdDev = (xs: readonly number[]) => {
 
 export const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
 export const clamp01 = (x: number) => clamp(x, 0, 1)
+/** `n` evenly spaced values lo…hi (both ends included). */
+export const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 
 /** Sample of a fixed-step run (`dt` apart) at time `t`, held at the ends. */
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]

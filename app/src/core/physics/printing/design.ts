@@ -1,6 +1,6 @@
 // Design for printing: slice a 2D section into layers, find what hangs or bridges, droop and sag (typical values);
 // orientation vs layer strength, pin-in-hole fits, hole shapes, edge profiles.
-import { DEG, clamp01 } from '../common'
+import { DEG, clamp01, sweep } from '../common'
 import { facetedHoleMm, segmentsFor } from '../materials/cad'
 import { MATERIALS, bendingStress, rectI } from '../materials/stress'
 import { PROBE_Z } from './adhesion'
@@ -8,7 +8,7 @@ import { LINE_W } from './fdm'
 import { footParts } from './problems'
 import { cuspOf } from './slicing'
 
-export type PtMm = readonly [number, number]
+type PtMm = readonly [number, number]
 export type Ring = readonly PtMm[]
 
 /** Inside intervals of a horizontal line at y through closed rings (even-odd, so a ring inside another is a hole). */
@@ -26,8 +26,8 @@ export function scanSpans(rings: readonly Ring[], y: number): [number, number][]
   return out
 }
 
-export type SegKindDfp = 'solid' | 'hang' | 'bridge'
-export interface SliceSpan {
+type SegKindDfp = 'solid' | 'hang' | 'bridge'
+interface SliceSpan {
   x0: number
   x1: number
   kind: SegKindDfp
@@ -39,7 +39,7 @@ export interface SliceLayer {
   h: number
   segs: SliceSpan[]
 }
-export interface PrintOpts {
+interface PrintOpts {
   h: number
   fan?: number
   speed?: number
@@ -47,11 +47,11 @@ export interface PrintOpts {
 }
 
 /** Share of the bead that may hang past the layer below before it curls down: more with the part fan on. */
-export const hangLimit = (fan: number) => 0.35 + 0.4 * clamp01(fan)
+const hangLimit = (fan: number) => 0.35 + 0.4 * clamp01(fan)
 /** Steepest overhang (degrees from vertical) that prints clean for a layer height and fan. */
 export const cleanAngle = (h: number, fan: number, w = LINE_W) => Math.atan((hangLimit(fan) * w) / h) / DEG
 /** Edge droop of one layer hanging `hangMm` past the one below (mm, typical). */
-export const layerDroop = (hangMm: number, h: number, fan: number, w = LINE_W) => 3 * h * Math.max(0, Math.min(3, hangMm / w) - hangLimit(fan)) ** 1.5
+const layerDroop = (hangMm: number, h: number, fan: number, w = LINE_W) => 3 * h * Math.max(0, Math.min(3, hangMm / w) - hangLimit(fan)) ** 1.5
 /** Mid-span sag of a bridge `L` mm long (typical): grows with L², less with fan, least near 25 mm/s. */
 export const bridgeSag = (L: number, fan: number, speed: number) => 4e-4 * L * L * (1.3 - clamp01(fan)) * (1 + ((speed - 25) / 50) ** 2)
 const CARRY = 0.7
@@ -96,32 +96,31 @@ export function printSlices(rings: readonly Ring[], { h, fan = 1, speed = 30, li
   return out
 }
 
-export const worstDroop = (L: readonly SliceLayer[], kind?: SegKindDfp) =>
+const worstDroop = (L: readonly SliceLayer[], kind?: SegKindDfp) =>
   Math.max(0, ...L.flatMap((l) => l.segs.filter((s) => (kind ? s.kind === kind : s.kind !== 'solid')).map((s) => s.droop)))
 /** Overhang area that needs support (droop over `okMm`), mm per mm of depth, and its support volume per mm of depth. */
-export function supportNeed(L: readonly SliceLayer[], okMm = 0.5) {
+function supportNeed(L: readonly SliceLayer[], okMm = 0.5) {
   let width = 0
   let area = 0
   for (const l of L) for (const s of l.segs) if (s.kind === 'hang' && s.droop > okMm) [width, area] = [width + (s.x1 - s.x0), area + (s.x1 - s.x0) * l.y0]
   return { width, area }
 }
 
-const range = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 export const rectRing = (x0: number, y0: number, x1: number, y1: number): Ring => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
-export const circleRing = (cx: number, cy: number, r: number, n = 48): Ring => range(0, 1, n + 1).slice(0, n).map((u) => [cx + r * Math.cos(u * 2 * Math.PI), cy + r * Math.sin(u * 2 * Math.PI)] as PtMm)
+export const circleRing = (cx: number, cy: number, r: number, n = 48): Ring => sweep(0, 1, n + 1).slice(0, n).map((u) => [cx + r * Math.cos(u * 2 * Math.PI), cy + r * Math.sin(u * 2 * Math.PI)] as PtMm)
 
 // --- Overhangs and bridges: a wedge leaning out at an angle, and a deck between two posts. ---
 
 export const OVERHANG = { baseMm: 6, heightMm: 10 }
-export const overhangRing = (deg: number, { baseMm, heightMm } = OVERHANG): Ring => {
+const overhangRing = (deg: number, { baseMm, heightMm } = OVERHANG): Ring => {
   const lean = heightMm * Math.tan(Math.min(85, deg) * DEG)
   return [[0, 0], [baseMm, 0], [baseMm + lean, heightMm], [lean, heightMm]].map(([x, y]) => [x, y] as PtMm)
 }
 export const BRIDGE_TEST = { postMm: 6, heightMm: 10, deckMm: 2 }
-export const bridgeRings = (L: number, { postMm, heightMm, deckMm } = BRIDGE_TEST): Ring[] => [
+const bridgeRings = (L: number, { postMm, heightMm, deckMm } = BRIDGE_TEST): Ring[] => [
   [[0, 0], [postMm, 0], [postMm, heightMm], [postMm + L, heightMm], [postMm + L, 0], [2 * postMm + L, 0], [2 * postMm + L, heightMm + deckMm], [0, heightMm + deckMm]],
 ]
-export const OVERHANG_SWEEP = range(0, 80, 17)
+export const OVERHANG_SWEEP = sweep(0, 80, 17)
 
 export function overhangView(deg: number, h: number, fan: number, L: number, speed: number) {
   const opts = { h, fan, speed }
@@ -154,7 +153,7 @@ export const layerStrength = (deg: number, zFrac = BRACKET_L.zFrac) => {
   const s = Math.sin(deg * DEG) ** 2
   return zFrac / (zFrac * (1 - s) + s)
 }
-export const LOAD_SWEEP = range(0, 90, 19)
+export const LOAD_SWEEP = sweep(0, 90, 19)
 
 const L_PROFILE = ({ base, up, t } = BRACKET_L): PtMm[] => [[0, 0], [base, 0], [base, t], [t, t], [t, up], [0, up]]
 const turn = (deg: number, [x, y]: PtMm): PtMm => [x * Math.cos(deg * DEG) - y * Math.sin(deg * DEG), x * Math.sin(deg * DEG) + y * Math.cos(deg * DEG)]
@@ -176,7 +175,7 @@ export function bracketMoment(deg: number, p: PtMm, { base, up, t } = BRACKET_L)
   return v > t ? clamp01((up - v) / (up - t)) : clamp01(1 - (u - t) / (base - t - 5))
 }
 
-export function orientOne(o: OrientKey, loadN: number, h = 0.2) {
+function orientOne(o: OrientKey, loadN: number, h = 0.2) {
   const B = BRACKET_L
   const O = ORIENTS[o]
   const ring = bracketRing(O.deg)
@@ -216,7 +215,7 @@ export const fitClass = (gap: number): FitClass => (gap < -0.15 ? 'stuck' : gap 
 export const footBulge = (chamfer = 0) => footParts({ mat: 'pla', zOffset: PROBE_Z.trueMm - 0.05, bedC: 65, chamfer }).left
 export const FOOT_FIXES = { none: 'No fix', chamfer: '0.5 mm chamfer at the hole mouth', comp: 'Slicer elephant-foot compensation' } as const
 export type FootFix = keyof typeof FOOT_FIXES
-export const CLEAR_SWEEP = range(0, 0.6, 25)
+export const CLEAR_SWEEP = sweep(0, 0.6, 25)
 
 export function fitView(clearMm: number, shrinkMm: number, fix: FootFix) {
   const gapOf = (c: number) => c - shrinkMm - FIT.pinGrowMm
@@ -243,19 +242,19 @@ export type HoleShape = keyof typeof HOLE_SHAPES
 export const HOLE = { plateW: 26, below: 5, above: 5, squishMm: 0.1, stlTol: 0.05, stlDeg: 15, fan: 1, speed: 30 }
 
 /** Hole outline centred at (cx, cy); teardrop tip and diamond at 45°, flat top cut at the circle's top. */
-export function holeRing(shape: HoleShape, d: number, cx: number, cy: number, n = 48): Ring {
+function holeRing(shape: HoleShape, d: number, cx: number, cy: number, n = 48): Ring {
   const r = d / 2
   if (shape === 'round') return circleRing(cx, cy, r, n)
   if (shape === 'diamond') return [[cx + r * Math.SQRT2, cy], [cx, cy + r * Math.SQRT2], [cx - r * Math.SQRT2, cy], [cx, cy - r * Math.SQRT2]]
-  const arc = range(Math.PI * 0.75, Math.PI * 2.25, n).map((a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)] as PtMm)
+  const arc = sweep(Math.PI * 0.75, Math.PI * 2.25, n).map((a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)] as PtMm)
   if (shape === 'teardrop') return [...arc, [cx, cy + r * Math.SQRT2]]
   const w = r * (Math.SQRT2 - 1)
   return [...arc, [cx + w, cy + r], [cx - w, cy + r]]
 }
-export const HOLE_SWEEP = range(3, 16, 14)
-export const holeTop = (shape: HoleShape, d: number) => (shape === 'round' || shape === 'flat' ? d / 2 : (d / 2) * Math.SQRT2)
+export const HOLE_SWEEP = sweep(3, 16, 14)
+const holeTop = (shape: HoleShape, d: number) => (shape === 'round' || shape === 'flat' ? d / 2 : (d / 2) * Math.SQRT2)
 
-export function holeSlices(shape: HoleShape, d: number, h: number) {
+function holeSlices(shape: HoleShape, d: number, h: number) {
   const top = holeTop(shape, d)
   const cy = HOLE.below + d / 2
   const H = cy + top + HOLE.above
@@ -285,19 +284,19 @@ export type EdgeKind = keyof typeof EDGE_KINDS
 export const EDGE_PART = { W: 30, base: 10, t: 8, H: 24, ktMax: 3, fan: 1 }
 
 /** Replaces the 90° corner P (edge in along unit a, out along unit b) with a chamfer or a fillet of size s. */
-export function cornerPts(P: PtMm, a: PtMm, b: PtMm, kind: EdgeKind, s: number, n = 10): PtMm[] {
+function cornerPts(P: PtMm, a: PtMm, b: PtMm, kind: EdgeKind, s: number, n = 10): PtMm[] {
   if (kind === 'square' || s <= 0) return [P]
   const T1: PtMm = [P[0] - s * a[0], P[1] - s * a[1]]
   const T2: PtMm = [P[0] + s * b[0], P[1] + s * b[1]]
   if (kind === 'chamfer') return [T1, T2]
   const C: PtMm = [T1[0] + T2[0] - P[0], T1[1] + T2[1] - P[1]]
-  return range(0, 1, n + 1).map((u) => {
+  return sweep(0, 1, n + 1).map((u) => {
     const [c, si] = [Math.cos((u * Math.PI) / 2), Math.sin((u * Math.PI) / 2)]
     return [C[0] + c * (T1[0] - C[0]) + si * (T2[0] - C[0]), C[1] + c * (T1[1] - C[1]) + si * (T2[1] - C[1])] as PtMm
   })
 }
 
-export function edgeRing(bottom: EdgeKind, top: EdgeKind, inside: EdgeKind, s: number, { W, base, t, H } = EDGE_PART): Ring {
+function edgeRing(bottom: EdgeKind, top: EdgeKind, inside: EdgeKind, s: number, { W, base, t, H } = EDGE_PART): Ring {
   return [
     ...cornerPts([0, 0], [0, -1], [1, 0], bottom, s),
     [W, 0],
@@ -308,11 +307,11 @@ export function edgeRing(bottom: EdgeKind, top: EdgeKind, inside: EdgeKind, s: n
   ]
 }
 /** Stress raise at an inside corner of a wall `t` thick (typical): sharp → ktMax; a chamfer acts like a fillet of 0.3 × its size. */
-export const cornerKt = (kind: EdgeKind, s: number, t = EDGE_PART.t) => {
+const cornerKt = (kind: EdgeKind, s: number, t = EDGE_PART.t) => {
   const r = kind === 'fillet' ? s : kind === 'chamfer' ? 0.3 * s : 0
   return r <= 0 ? EDGE_PART.ktMax : Math.min(EDGE_PART.ktMax, 1 + 0.6 * Math.sqrt(t / r))
 }
-export const EDGE_SWEEP = range(0, 4, 17)
+export const EDGE_SWEEP = sweep(0, 4, 17)
 const bedDroop = (kind: EdgeKind, s: number, h: number) => {
   const L = printSlices([edgeRing(kind, 'square', 'square', s)], { h, fan: EDGE_PART.fan }, EDGE_PART.base)
   return worstDroop(L)
