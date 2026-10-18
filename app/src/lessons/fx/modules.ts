@@ -280,6 +280,34 @@ export function esp32Cam(parent: THREE.Object3D, at: V3, k: number) {
   }
 }
 
+/** Kit pan-tilt head in servo units (≈ 7 mm), z up, +y forward, pan axis at the origin: base plate, pan SG90, bracket, tilt SG90
+ *  on its side, ESP32-CAM looking +y. `set(pan, tilt)` (rad, + = left / up); `lens()` in world. */
+export function panTiltHead(parent: THREE.Object3D, at: V3, k = 0.09) {
+  const g = add(parent, new THREE.Group(), at)
+  const plastic = mat('#20232a', { rough: 0.7 })
+  box(g, [5.2, 4.2, 0.3], plastic, [0, 0, 0.15])
+  const pan = sg90Servo(g, [0.75, 0, 1.4])
+  const bracket = add(pan, new THREE.Group(), [0, 0, 0.1])
+  box(bracket, [3.6, 2.2, 0.2], plastic, [-0.6, 0, 0.1])
+  box(bracket, [0.2, 2.2, 3], plastic, [1.1, 0, 1.6])
+  const tiltAxis = add(bracket, new THREE.Group(), [0.9, 0, 2.6])
+  tiltAxis.rotation.y = -Math.PI / 2
+  const tilt = sg90Servo(tiltAxis, [0.75, 0, -1.75])
+  const mount = add(tilt, new THREE.Group(), [0, 0, 0.1])
+  mount.rotation.y = Math.PI / 2
+  box(mount, [0.2, 2.2, 2.6], plastic, [0.1, 0, 0.6])
+  const cam = esp32Cam(mount, [-1.4, 0.6, 0.6], k)
+  cam.group.rotation.set(-Math.PI / 2, 0, Math.PI)
+  return {
+    group: g,
+    cam,
+    set(panRad: number, tiltRad: number) {
+      pan.rotation.z = panRad
+      tilt.rotation.z = tiltRad
+    },
+  }
+}
+
 const DRIVER_PINS = [
   ['EN', 'MS1', 'MS2', 'MS3', 'RST', 'SLP', 'STEP', 'DIR'],
   ['VMOT', 'GND', '2B', '2A', '1A', '1B', 'VDD', 'GND'],

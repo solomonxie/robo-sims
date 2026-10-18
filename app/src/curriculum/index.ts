@@ -216,6 +216,7 @@ import { robotArmAssemble, robotArmCalibrateServos, robotArmIkControl } from '..
 import { quadrupedGaitGenerator, quadrupedLegGeometry } from '../lessons/projects/quadruped'
 import { mazeSolverFloodFill, mazeSolverWallSensing } from '../lessons/projects/maze-solver'
 import { sumoRobotEdgeAndOpponentSensing, sumoRobotWedgeAndWheels } from '../lessons/projects/sumo-robot'
+import { cameraTrackerColourTrackingLoop, cameraTrackerPanTiltRig } from '../lessons/projects/camera-tracker'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -858,6 +859,8 @@ const READY: Record<string, Lesson> = {
   'projects/maze-solver/flood-fill': mazeSolverFloodFill,
   'projects/sumo-robot/wedge-and-wheels': sumoRobotWedgeAndWheels,
   'projects/sumo-robot/edge-and-opponent-sensing': sumoRobotEdgeAndOpponentSensing,
+  'projects/camera-tracker/pan-tilt-rig': cameraTrackerPanTiltRig,
+  'projects/camera-tracker/colour-tracking-loop': cameraTrackerColourTrackingLoop,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
