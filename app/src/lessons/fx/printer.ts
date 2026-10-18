@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu'
 import { DELTA, deltaCarriages, deltaTower, hotendZones, HotendKey } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, STEEL } from '../../models/kit'
-import { RING, glowMat, ironbow } from './colors'
+import { B_FIELD, DATA_COLOR, GREY, HEAT, POWER, RING, glowMat, ironbow } from './colors'
 import { gearBrass, leadScrew, spurGear } from './gears'
 import { addRod, stretchRod } from './layout'
 import { shellMat } from './shapes'
@@ -366,4 +366,21 @@ export function deltaPrinter(parent: THREE.Object3D, at: V3, k: number, height =
     },
     reach: DELTA.L,
   }
+}
+
+/** G-code line colours: moves blue, heaters orange, fan cyan, modes violet, home/motors green, comments and folds grey. */
+export const GCODE_TINT = { move: '#8ab8ff', heat: HEAT, fan: B_FIELD, mode: DATA_COLOR, machine: POWER, note: GREY }
+export const GCODE_LEGEND = [
+  { color: GCODE_TINT.move, label: 'G0/G1 moves', shape: 'dot' },
+  { color: GCODE_TINT.heat, label: 'M104/M109 nozzle, M140/M190 bed', shape: 'dot' },
+  { color: GCODE_TINT.fan, label: 'M106/M107 part fan', shape: 'dot' },
+] as const
+export const gcodeTint = (l: string) => {
+  const c = l.trim().split(/\s/)[0].toUpperCase()
+  if (!c || c.startsWith(';')) return GCODE_TINT.note
+  if (/^G[01]$/.test(c)) return GCODE_TINT.move
+  if (/^M(104|109|140|190)$/.test(c)) return GCODE_TINT.heat
+  if (/^M10[67]$/.test(c)) return GCODE_TINT.fan
+  if (/^(G9[012]|M8[23])$/.test(c)) return GCODE_TINT.mode
+  return GCODE_TINT.machine
 }

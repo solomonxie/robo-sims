@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu'
 import { V3, add, box, mat } from '../../models/kit'
 import { GREY, HEAT, HIGH_V, LABEL, LED_RED, POWER, glowMat, setGlow } from './colors'
-import { flatBox } from './shapes'
+import { flatBox, glowBox } from './shapes'
 import { ledLamp, resistorAlong } from './circuit'
 import { wire } from './layout'
 import { partLetter } from './parts'
@@ -27,6 +27,21 @@ export function codeBlock(parent: THREE.Object3D, at: V3, size = 0.72, rows = 3,
       if (!l.startsWith(' ')) color = tint(l)
       r.set(l, color)
     })
+  }
+}
+
+/** Code listing of `rows` lines from `at` down, `gap` apart, with a glowing bar `width` wide behind the current line.
+ *  `set(lines, current, tint)`; lines past the end are blank. */
+export function codeListing(parent: THREE.Object3D, at: V3, rows: number, width: number, size = 0.32, gap = size * 2.1, barColor = '#ffd56b') {
+  const bar = glowBox(parent, [width, gap * 0.92, 0.08], [at[0] + width / 2 - size, at[1], at[2] - 0.2], barColor, 0.22)
+  const lines = Array.from({ length: rows }, (_, k) => liveLabel(parent, [at[0], at[1] - k * gap, at[2]], { size, align: 'left', glow: 0.7 }))
+  return {
+    lines,
+    set(text: readonly string[], current: number, tint: (line: string, i: number) => string = () => LABEL) {
+      lines.forEach((r, i) => r.set(text[i] ?? '', tint(text[i] ?? '', i)))
+      bar.mesh.visible = current >= 0 && current < rows
+      bar.mesh.position.y = at[1] - current * gap
+    },
   }
 }
 

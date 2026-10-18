@@ -193,6 +193,7 @@ import { otherProcessesChoosingAProcess, otherProcessesSlaAndMslaResin, otherPro
 import { printerMotionAxesAndEndstops, printerMotionBeltsVsLeadScrews, printerMotionInputShaping, printerMotionStepsPerMm } from '../lessons/printing/printer-motion'
 import { filamentsCarbonFibreBlends, filamentsDryingWetFilament, filamentsFlexibleTpu, filamentsGlassTransitionTemp, filamentsMaterialProperties } from '../lessons/printing/filaments'
 import { slicingInfillPatterns, slicingLayerHeight, slicingSeams, slicingStlAnd3mf, slicingSupports, slicingWallsAndPerimeters } from '../lessons/printing/slicing'
+import { gCodeG0G1Moves, gCodeStartAndEndScripts, gCodeTemperaturesAndFans } from '../lessons/printing/g-code'
 import { reinforcementLearningQLearningGridworld, reinforcementLearningRewardAndPolicy, reinforcementLearningSimToReal } from '../lessons/ai/reinforcement-learning'
 import { imitationLearningBehaviourCloning, imitationLearningDataCollection } from '../lessons/ai/imitation-learning'
 import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning } from '../lessons/ai/vision-language-models'
@@ -770,6 +771,9 @@ const READY: Record<string, Lesson> = {
   'printing/slicing/infill-patterns': slicingInfillPatterns,
   'printing/slicing/supports': slicingSupports,
   'printing/slicing/seams': slicingSeams,
+  'printing/g-code/g0-g1-moves': gCodeG0G1Moves,
+  'printing/g-code/temperatures-and-fans': gCodeTemperaturesAndFans,
+  'printing/g-code/start-and-end-scripts': gCodeStartAndEndScripts,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
