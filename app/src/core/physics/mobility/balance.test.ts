@@ -69,3 +69,15 @@ describe('cascaded loops', () => {
     expect(fellAt(push(1, 0.5))).not.toBeNull()
   })
 })
+
+describe('loop options', () => {
+  it('perfect sensing reports the true tilt; the speed loop absorbs a sensor offset; a slower gearbox caps the speed', () => {
+    const r = balanceLoop({ tilt: TILT, seconds: 1, start: 3 * DEG })
+    expect(r.every((f) => f.seen === f.tilt)).toBe(true)
+    const biased = balanceLoop({ tilt: TILT, speed: SPEED, seconds: 10, sense: () => (s) => ({ tilt: s.tilt + 1 * DEG, rate: s.rate }) })
+    const end = biased[biased.length - 1]
+    expect(end.target / DEG).toBeCloseTo(1, 0)
+    expect(end.seen - end.tilt).toBeCloseTo(1 * DEG)
+    expect(balanceLoop({ tilt: TILT, speed: SPEED, seconds: 6, drive: () => 0.6, bot: { vMax: 0.4 } }).some((f) => f.sat)).toBe(true)
+  })
+})

@@ -171,8 +171,9 @@ export function rcCar(parent: THREE.Object3D) {
 export const balanceBotHeight = (h: number) => Math.max(0.1, 2 * h - 0.03)
 
 /** Two-wheeled self-balancer (TT motors, MPU-6050 low on the front, ESP32 deck, 2×18650 on top), CoM about `h` above the axle;
- *  `shift` moves the battery forward (m). `set(tilt, roll)` leans the body about the axle and turns the wheels by `roll` m. */
-export function balanceBot(parent: THREE.Object3D, { h = BALANCER.h, shift = 0 } = {}) {
+ *  `shift` moves the battery forward (m), `packZ` puts its centre that high above the axle (default: on the top deck).
+ *  `set(tilt, roll)` leans the body about the axle and turns the wheels by `roll` m. */
+export function balanceBot(parent: THREE.Object3D, { h = BALANCER.h, shift = 0, packZ = 0 } = {}) {
   const group = add(parent, new THREE.Group())
   const body = add(group, new THREE.Group(), [0, 0, WHEEL_R])
   const H = balanceBotHeight(h)
@@ -190,7 +191,7 @@ export function balanceBot(parent: THREE.Object3D, { h = BALANCER.h, shift = 0 }
   const imu = i2cBreakout(face(0.04), [0, 0, 0], { name: 'MPU-6050', k: 0.001 })
   esp32Board(face(decks[1] + 0.02), [-0.009, 0, 0], KIT_UNIT_M)
   box(body, [0.03, 0.022, 0.01], mat('#c8323c', { rough: 0.5 }), [0, 0, 0.026])
-  const pack = add(body, new THREE.Group(), [shift, 0, H + 0.013])
+  const pack = add(body, new THREE.Group(), [shift, 0, packZ || H + 0.013])
   box(pack, [0.078, 0.042, 0.004], mat('#1c1c1f', { rough: 0.7 }), [0, 0, -0.01])
   for (const y of [-0.0095, 0.0095]) cylinder(pack, 0.009, 0.065, mat('#2f6fd0', { rough: 0.45 }), [0, y, 0], 'x', 16)
   const wheels = [1, -1].map((s) => {

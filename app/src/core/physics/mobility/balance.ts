@@ -44,7 +44,7 @@ export function cartStep(s: Cart, cmd: number, dt: number, bot: Balancer = BALAN
   return { x: s.x + v * dt, v, tilt, rate, a, fallen: false }
 }
 
-export interface BalanceFrame { t: number; x: number; v: number; tilt: number; target: number; cmd: number; got: number; p: number; i: number; d: number; sat: boolean; fallen: boolean }
+export interface BalanceFrame { t: number; x: number; v: number; tilt: number; seen: number; target: number; cmd: number; got: number; p: number; i: number; d: number; sat: boolean; fallen: boolean }
 export interface BalanceSetup {
   /** Tilt loop gains in duty per degree (per °·s, per °/s). */
   tilt: Gains
@@ -61,11 +61,17 @@ export interface BalanceSetup {
   supply?: number
   maxLean?: number
   h?: number
+  /** Motor overrides (another gearbox). */
+  bot?: Partial<Pick<Balancer, 'aMax' | 'vMax' | 'lag'>>
+  /** Tilt sensor: makes a fresh reader per run that returns the measured tilt and rate (rad, rad/s) from the true state; default perfect. */
+  sense?: () => (s: Cart, n: number, dt: number) => { tilt: number; rate: number }
 }
 /** Runs the closed loop at the balancer's loop rate: tilt PID (D from the gyro rate) → torque command, optionally under a speed PI → target tilt. */
 export function balanceLoop(c: BalanceSetup): BalanceFrame[] {
   const k = c.supply ?? 1
-  const bot = { ...BALANCER, h: c.h ?? BALANCER.h, aMax: BALANCER.aMax * k, vMax: BALANCER.vMax * k }
+  const base = { ...BALANCER, ...c.bot }
+  const bot = { ...base, h: c.h ?? BALANCER.h, aMax: base.aMax * k, vMax: base.vMax * k }
+  const read = c.sense?.() ?? ((s: Cart) => s)
   const dt = bot.dt
   const lean = c.maxLean ?? 12
   let s: Cart = { ...CART0, tilt: c.start ?? 0 }
@@ -80,12 +86,12 @@ export function balanceLoop(c: BalanceSetup): BalanceFrame[] {
       outer = pidStep(outer, (c.drive?.(t) ?? 0) - s.v, c.speed, dt, lean)
       target = outer.out
     }
-    const deg = s.tilt / DEG
-    inner = pidStep(inner, deg - target, c.tilt, dt, 1, s.rate / DEG)
+    const m = read(s, n, dt)
+    inner = pidStep(inner, m.tilt / DEG - target, c.tilt, dt, 1, m.rate / DEG)
     const cmd = s.fallen ? 0 : inner.out
     const got = torqueLimit(cmd, s.v, bot)
-    out.push({ t, x: s.x, v: s.v, tilt: s.tilt, target: target * DEG, cmd, got, p: cmd && inner.p, i: cmd && inner.i, d: cmd && inner.d, sat: !s.fallen && (inner.sat || got !== cmd), fallen: s.fallen })
-    s = cartStep(s, cmd, dt, bot, c.offset ?? 0, pushes.find((p) => p.n === n)?.kick ?? 0)
+    out.push({ t, x: s.x, v: s.v, tilt: s.tilt, seen: m.tilt, target: target * DEG, cmd, got, p: cmd && inner.p, i: cmd && inner.i, d: cmd && inner.d, sat: !s.fallen && (inner.sat || got !== cmd), fallen: s.fallen })
+    s = cartStep(s, got, dt, bot, c.offset ?? 0, pushes.find((p) => p.n === n)?.kick ?? 0)
   }
   return out
 }

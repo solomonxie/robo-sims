@@ -211,6 +211,7 @@ import { visionLanguageModelsGroundingObjects, visionLanguageModelsTaskPlanning 
 import { roboCarChassisPower, roboCarDriveWithEsp32, roboCarPhoneRemote, roboCarWireTheMotorDriver } from '../lessons/projects/robo-car'
 import { obstacleAvoidingCarMountTheSensor, obstacleAvoidingCarReactiveLogic, obstacleAvoidingCarTuneAndTest } from '../lessons/projects/obstacle-avoiding-car'
 import { lineFollowingCarIntersections, lineFollowingCarPdController, lineFollowingCarSensorArray } from '../lessons/projects/line-following-car'
+import { selfBalancingRobotBuildTheBase, selfBalancingRobotReadTheTilt, selfBalancingRobotTuneTheLoop } from '../lessons/projects/self-balancing-robot'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -841,6 +842,9 @@ const READY: Record<string, Lesson> = {
   'projects/line-following-car/sensor-array': lineFollowingCarSensorArray,
   'projects/line-following-car/pd-controller': lineFollowingCarPdController,
   'projects/line-following-car/intersections': lineFollowingCarIntersections,
+  'projects/self-balancing-robot/build-the-base': selfBalancingRobotBuildTheBase,
+  'projects/self-balancing-robot/read-the-tilt': selfBalancingRobotReadTheTilt,
+  'projects/self-balancing-robot/tune-the-loop': selfBalancingRobotTuneTheLoop,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
