@@ -217,6 +217,7 @@ import { quadrupedGaitGenerator, quadrupedLegGeometry } from '../lessons/project
 import { mazeSolverFloodFill, mazeSolverWallSensing } from '../lessons/projects/maze-solver'
 import { sumoRobotEdgeAndOpponentSensing, sumoRobotWedgeAndWheels } from '../lessons/projects/sumo-robot'
 import { cameraTrackerColourTrackingLoop, cameraTrackerPanTiltRig } from '../lessons/projects/camera-tracker'
+import { weatherStationSendOverWiFi, weatherStationWireTheSensors } from '../lessons/projects/weather-station'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -861,6 +862,8 @@ const READY: Record<string, Lesson> = {
   'projects/sumo-robot/edge-and-opponent-sensing': sumoRobotEdgeAndOpponentSensing,
   'projects/camera-tracker/pan-tilt-rig': cameraTrackerPanTiltRig,
   'projects/camera-tracker/colour-tracking-loop': cameraTrackerColourTrackingLoop,
+  'projects/weather-station/wire-the-sensors': weatherStationWireTheSensors,
+  'projects/weather-station/send-over-wi-fi': weatherStationSendOverWiFi,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
