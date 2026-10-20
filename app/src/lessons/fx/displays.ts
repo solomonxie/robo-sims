@@ -1,5 +1,6 @@
 // Readouts: seven-segment digits, bar meter, count bars, loss waterfall, multimeter and probes, phasor, clock face, USB logic analyser.
 import * as THREE from 'three/webgpu'
+import type { DmmDial } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh, rod, STEEL } from '../../models/kit'
 import { GREY, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
 import { cableRun } from './layout'
@@ -69,10 +70,18 @@ export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', g
 export type DialUnit = 'V' | 'A' | 'Ω' | '°C'
 /** Dial stops (of 8, clockwise from the top) per range. */
 const DIAL_STOPS: Record<DialUnit, number> = { V: 1, A: 3, '°C': 5, 'Ω': 7 }
+/** Full dial (`full`): stop → label, up the left side and down the right (clear of the display). */
+const FULL_STOPS: Record<DmmDial, string> = { vdc: 'V', vac: 'V~', mv: 'mV', ohm: 'Ω', beep: ')))', diode: '>|', ma: 'mA', amp: 'A' }
+const FULL_KEYS = Object.keys(FULL_STOPS) as DmmDial[]
+/** Full meter's sockets, left to right. */
+export type MeterJack = 'a10' | 'ma' | 'com' | 'v'
+const JACK_X: Record<MeterJack, number> = { a10: -2.85, ma: -0.95, com: 0.95, v: 2.85 }
+const JACK_TEXT: Record<MeterJack, string> = { a10: '10A', ma: 'mA', com: 'COM', v: 'VΩ' }
 
 /** Handheld multimeter facing +z, on the V⎓ range (Ω with `ohms`); `dial(unit)` turns it to V / A / Ω / °C. Jacks at the
- *  bottom (red V, black COM). */
-export function multimeter({ ohms = false } = {}) {
+ *  bottom (red V, black COM). `full`: eight stops (`dial` also takes a `DmmDial`: V⎓ V~ mV Ω ))) diode mA A) and four
+ *  sockets 10A / mA / COM / VΩ (`jacks`). */
+export function multimeter({ ohms = false, full = false } = {}) {
   const group = new THREE.Group()
   box(group, [8.4, 12.4, 1.6], mat('#f2c230', { rough: 0.7 }), [0, 0, 0])
   box(group, [7.2, 11.2, 0.3], mat('#2a2c32', { rough: 0.5 }), [0, 0, 0.85])
@@ -84,35 +93,37 @@ export function multimeter({ ohms = false } = {}) {
   knobBase.castShadow = true
   const knob = add(group, new THREE.Group(), [0, -0.6, 1.5])
   box(knob, [0.3, 1.6, 0.2], mat('#f4f4f4', { emissive: '#555555' }), [0, 0.8, 0])
-  const ticks = Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2
+  const angles = full ? [-140, -110, -80, -50, 50, 80, 110, 140].map((d) => (d * Math.PI) / 180) : Array.from({ length: 8 }, (_, i) => (i / 8) * Math.PI * 2)
+  const ticks = angles.map((a) => {
     const m = new THREE.MeshStandardMaterial({ color: '#8a8f99', emissive: '#000000' })
     box(group, [0.12, 0.45, 0.1], m, [Math.sin(a) * 2.6, -0.6 + Math.cos(a) * 2.6, 1.05]).rotation.z = -a
     return m
   })
-  for (const [unit, i] of Object.entries(DIAL_STOPS)) {
-    const a = (i / 8) * Math.PI * 2
-    add(group, label(unit, { size: 0.55, color: '#c9ced8' }), [Math.sin(a) * 3.25, -0.6 + Math.cos(a) * 3.25, 1.05])
-  }
+  const labels: [string, number][] = full ? FULL_KEYS.map((k, i) => [FULL_STOPS[k], angles[i]]) : Object.entries(DIAL_STOPS).map(([u, i]) => [u, angles[i]])
+  const lr = full ? 3.05 : 3.25
+  for (const [text, a] of labels) add(group, label(text, { size: full ? 0.46 : 0.55, color: '#c9ced8' }), [Math.sin(a) * lr, -0.6 + Math.cos(a) * lr, 1.05])
   let stop = -1
-  const dial = (unit: DialUnit) => {
-    const i = DIAL_STOPS[unit]
-    if (i === stop) return
+  const dial = (unit: DialUnit | DmmDial) => {
+    const i = full ? FULL_KEYS.indexOf(unit === 'V' ? 'vdc' : unit === 'A' ? 'amp' : unit === 'Ω' ? 'ohm' : (unit as DmmDial)) : DIAL_STOPS[unit as DialUnit] ?? 1
+    if (i === stop || i < 0) return
     stop = i
-    knob.rotation.z = -(i / 8) * Math.PI * 2
+    knob.rotation.z = -angles[i]
     ticks.forEach((m, k) => {
       m.color.set(k === i ? RING : '#8a8f99')
       m.emissive.set(k === i ? '#aa8800' : '#000000')
     })
   }
   dial(ohms ? 'Ω' : 'V')
-  const red: V3 = [1.7, -4.3, 1.1]
-  const black: V3 = [-1.7, -4.3, 1.1]
-  for (const [at, color] of [[red, '#d23b3b'], [black, '#202226']] as const) {
-    cylinder(group, 0.6, 0.3, mat(color, { rough: 0.4 }), at, 'z', 24)
+  const red: V3 = full ? [JACK_X.v, -4.6, 1.1] : [1.7, -4.3, 1.1]
+  const black: V3 = full ? [JACK_X.com, -4.6, 1.1] : [-1.7, -4.3, 1.1]
+  const jacks = Object.fromEntries((Object.keys(JACK_X) as MeterJack[]).map((j) => [j, [JACK_X[j], -4.6, 1.1] as V3])) as Record<MeterJack, V3>
+  const sockets: [V3, string][] = full ? (Object.keys(JACK_X) as MeterJack[]).map((j) => [jacks[j], j === 'com' ? '#202226' : '#d23b3b']) : [[red, '#d23b3b'], [black, '#202226']]
+  for (const [at, color] of sockets) {
+    cylinder(group, full ? 0.55 : 0.6, 0.3, mat(color, { rough: 0.4 }), at, 'z', 24)
     cylinder(group, 0.25, 0.32, mat('#111'), [at[0], at[1], at[2] + 0.02], 'z', 16)
   }
-  return { group, display, red, black, dial }
+  if (full) for (const j of Object.keys(JACK_X) as MeterJack[]) add(group, label(JACK_TEXT[j], { size: 0.38, color: '#c9ced8' }), [JACK_X[j], -5.55, 1.05])
+  return { group, display, red, black, jacks, dial }
 }
 
 /** Test probe touching `tip`, handle pointing along `dir`; returns where its cable leaves. */

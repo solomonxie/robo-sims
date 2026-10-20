@@ -232,6 +232,7 @@ import { randomResetsMotorSpikeResets, randomResetsWeakRegulator } from '../less
 import { sensorNoiseFloatingInput, sensorNoiseMissingDecoupling } from '../lessons/debugging/sensor-noise'
 import { busNotRespondingMissingPullUps, busNotRespondingWrongAddress } from '../lessons/debugging/bus-not-responding'
 import { robotDriftsMotorMismatch, robotDriftsWheelSizeError } from '../lessons/debugging/robot-drifts'
+import { usingAMultimeterContinuityTest, usingAMultimeterCurrentTest, usingAMultimeterVoltageTest } from '../lessons/debugging/using-a-multimeter'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -909,6 +910,9 @@ const READY: Record<string, Lesson> = {
   'debugging/bus-not-responding/missing-pull-ups': busNotRespondingMissingPullUps,
   'debugging/robot-drifts/motor-mismatch': robotDriftsMotorMismatch,
   'debugging/robot-drifts/wheel-size-error': robotDriftsWheelSizeError,
+  'debugging/using-a-multimeter/continuity-test': usingAMultimeterContinuityTest,
+  'debugging/using-a-multimeter/voltage-test': usingAMultimeterVoltageTest,
+  'debugging/using-a-multimeter/current-test': usingAMultimeterCurrentTest,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

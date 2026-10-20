@@ -13,7 +13,7 @@ import { placeAt } from './drive'
 import { ringTube } from './bearings'
 import { floorMat, floorView, pointCloud } from './rooms'
 import { diffBot } from './wheeled'
-import { DialUnit, probe } from './displays'
+import { DialUnit, MeterJack, probe } from './displays'
 import { addRod, cableRun, stretchRod, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
@@ -24,15 +24,15 @@ import { addLabel, liveLabel } from './text'
 import { emptyGroup } from './util'
 import { Control, Params, Readout, huntReadout, namesOf, opts, pick } from '../types'
 
-/** Span-40 stage with the fault-hunt header: `set(symptom, verdict, why, hint)`, badge PROBE / FOUND / WRONG. */
+/** Span-40 stage with the fault-hunt header: `set(symptom, verdict, why, hint, badge?)`, badge PROBE / FOUND / WRONG. */
 export function huntStage() {
   const scene = createStage({ span: 40 })
   const h = puzzleHeader(scene)
   return {
     scene,
     header: {
-      set: (symptom: string, v: PuzzleVerdict, why: string, hint = '') =>
-        h.set(symptom, v, why, hint, { lead: 'Symptom', badge: v.pass ? 'FOUND' : v.near ? 'PROBE' : 'WRONG' }),
+      set: (symptom: string, v: PuzzleVerdict, why: string, hint = '', badge?: string) =>
+        h.set(symptom, v, why, hint, { lead: 'Symptom', badge: badge ?? (v.pass ? 'FOUND' : v.near ? 'PROBE' : 'WRONG') }),
     },
   }
 }
@@ -91,22 +91,23 @@ export function readingText(r: MeterRead): string {
   return r.label ? `${v} ${r.label}` : v
 }
 
-/** Multimeter (scale `k`) at `at` with red / black probes; `aim(red, black)` moves the tips (rebuilds only on change),
- *  `park()` lays them down beside the meter, `show(r, t)` writes the reading, flickering between `value` and `alt` every
- *  ½ s, with a MIN / MAX tag for a held reading. Cables drop to `laneY` and run over. */
-export function probeMeter(parent: THREE.Object3D, at: V3, k = 0.42, laneY = -3) {
+/** Multimeter (scale `k`) at `at` with red / black probes; `aim(red, black, socket?)` moves the tips (rebuilds only on
+ *  change; `full` meters take the red lead's socket), `park()` lays them down beside the meter, `show(r, t)` writes the
+ *  reading, flickering between `value` and `alt` every ½ s, with a MIN / MAX tag for a held reading. Cables drop to
+ *  `laneY` and run over. */
+export function probeMeter(parent: THREE.Object3D, at: V3, k = 0.42, laneY = -3, full = false) {
   const g = add(parent, new THREE.Group())
-  const { meter, jack } = benchMeter(g, at[0], at[1], k)
+  const { meter, jack } = benchMeter(g, at[0], at[1], k, full)
   const leads = add(g, new THREE.Group())
   const holdTag = liveLabel(g, [at[0] - 2.2 * k, at[1] + 6.9 * k, 0.4], { size: 0.32, align: 'left' })
   let key = ''
   const parked: [V3, V3] = [[at[0] - 1.4, laneY - 0.3, 0.4], [at[0] - 2.4, laneY - 0.3, 0.4]]
-  const aim = (red: V3, black: V3) => {
-    const next = `${red}|${black}`
+  const aim = (red: V3, black: V3, socket: MeterJack = 'v') => {
+    const next = `${red}|${black}|${socket}`
     if (next === key) return
     key = next
     emptyGroup(leads)
-    for (const [tip, color, to, dx] of [[red, PROBE_RED, jack(meter.red), 0.2], [black, PROBE_BLACK, jack(meter.black), -0.2]] as const) {
+    for (const [tip, color, to, dx] of [[red, PROBE_RED, jack(full ? meter.jacks[socket] : meter.red), 0.2], [black, PROBE_BLACK, jack(meter.black), -0.2]] as const) {
       const end = probe(leads, tip, [dx, tip[1] < 0 ? 0.45 : -0.45, 1], color)
       cableRun(leads, [end, [end[0], laneY, end[2]], [to[0], laneY - (color === PROBE_RED ? 0 : 0.3), to[2] + 0.6], [to[0], to[1] - 0.6, to[2] + 0.4], to], color, 0.09)
     }

@@ -11,6 +11,9 @@ export interface Fuse {
 export const FUSES = {
   F1A: { ratedA: 1, minMeltA: 1.8, tauS: 0.25 },
   T1A: { ratedA: 1, minMeltA: 1.8, tauS: 2 },
+  /** A multimeter's mA and 10A socket fuses (fast, ceramic). */
+  F400mA: { ratedA: 0.4, minMeltA: 0.72, tauS: 0.1 },
+  F10A: { ratedA: 10, minMeltA: 18, tauS: 1 },
 } satisfies Record<string, Fuse>
 
 /** Where the element's heat settles at `amps` (I²R in, loss ∝ rise out); ≥ 1 means it melts. */

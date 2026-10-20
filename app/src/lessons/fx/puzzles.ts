@@ -58,8 +58,8 @@ const RED_LEAD = '#d23b3b'
 const BLACK_LEAD = '#202226'
 
 /** A `multimeter` scaled by `k` at (mx, my), pushed back 0.4; `jack(j)` = a jack in `g` coordinates. */
-export function benchMeter(g: THREE.Object3D, mx: number, my: number, k: number) {
-  const meter = multimeter()
+export function benchMeter(g: THREE.Object3D, mx: number, my: number, k: number, full = false) {
+  const meter = multimeter({ full })
   add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
   const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
   return { meter, jack }
