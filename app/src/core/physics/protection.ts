@@ -51,13 +51,14 @@ export const IRF4905: Mosfet = { vthV: 3, k: 7.1, n: 1.5 }
 
 /** Battery `vb` (negative = in backwards) into a load through a reverse-polarity guard. With no guard a backwards battery
  *  drives the chip's substrate diodes straight across the cell. Diode guard: series 1N4007. P-FET guard: high side, gate to
- *  ground, so Vgs = −V and it turns on only the right way round; its body diode blocks the wrong way. */
-export function reverseGuard(vb: number, loadOhms: number, guard: Guard) {
-  const r = loadOhms + BATTERY_OHMS
+ *  ground, so Vgs = −V and it turns on only the right way round; its body diode blocks the wrong way. `batteryOhms` = the
+ *  pack's internal + wiring resistance. */
+export function reverseGuard(vb: number, loadOhms: number, guard: Guard, batteryOhms = BATTERY_OHMS) {
+  const r = loadOhms + batteryOhms
   const d = DIODES['1N4007']
   if (guard === 'none') {
     if (vb >= 0) return { vLoad: (vb * loadOhms) / r, amps: vb / r, guardV: 0 }
-    const sub = diodeNode(-vb, BATTERY_OHMS, d, { load: loadOhms })
+    const sub = diodeNode(-vb, batteryOhms, d, { load: loadOhms })
     return { vLoad: -sub.v, amps: -sub.sourceA, guardV: 0 }
   }
   const rds = guard === 'pfet' && vb > 0 ? rdsOn(vb, IRF4905) : Infinity

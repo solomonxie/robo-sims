@@ -73,6 +73,9 @@ export const toneOf = (good: boolean, ok: boolean): Readout['tone'] => (good ? '
 /** Puzzle verdict as a readout: Pass / Close / Fail. */
 export const verdictReadout = (v: { pass: boolean; near: boolean }): Readout => ({ label: 'Verdict', value: v.pass ? 'Pass' : v.near ? 'Close' : 'Fail', tone: toneOf(v.pass, v.near) })
 
+/** Fault-hunt verdict as a readout: Found / Wrong / Probing. */
+export const huntReadout = (v: { pass: boolean; near: boolean }): Readout => ({ label: 'Diagnosis', value: v.pass ? 'Found' : v.near ? 'Probing' : 'Wrong', tone: toneOf(v.pass, v.near) })
+
 export const n = (p: Params, k: string) => Number(p[k])
 /** `v` if it is a key of `rec`, else the default `d`. */
 export const pick = <R extends object>(rec: R, v: unknown, d: keyof R & string) => (String(v) in rec ? (v as keyof R & string) : d)

@@ -226,6 +226,7 @@ import { motorDriverPuzzlesPwmSpeedTarget, motorDriverPuzzlesTruthTableChallenge
 import { batteryPuzzlesRuntimeTarget, batteryPuzzlesSeriesCount } from '../lessons/challenges/battery-puzzles'
 import { logicPuzzlesBuildXor, logicPuzzlesDesignA2BitCounter } from '../lessons/challenges/logic-puzzles'
 import { timingPuzzlesBlinkAt1Hz, timingPuzzlesDebounceTime } from '../lessons/challenges/timing-puzzles'
+import { wontPowerOnDeadBattery, wontPowerOnReversePolarity, wontPowerOnShortCircuit } from '../lessons/debugging/wont-power-on'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -889,6 +890,9 @@ const READY: Record<string, Lesson> = {
   'challenges/logic-puzzles/design-a-2-bit-counter': logicPuzzlesDesignA2BitCounter,
   'challenges/timing-puzzles/blink-at-1-hz': timingPuzzlesBlinkAt1Hz,
   'challenges/timing-puzzles/debounce-time': timingPuzzlesDebounceTime,
+  'debugging/won-t-power-on/dead-battery': wontPowerOnDeadBattery,
+  'debugging/won-t-power-on/reverse-polarity': wontPowerOnReversePolarity,
+  'debugging/won-t-power-on/short-circuit': wontPowerOnShortCircuit,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

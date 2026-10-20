@@ -18,8 +18,9 @@ import { clamp01, emptyGroup } from './util'
 export const puzzleTint = (v: PuzzleVerdict) => verdictTint(v.pass, v.near)
 const BADGE = (v: PuzzleVerdict) => (v.pass ? 'PASS' : v.near ? 'CLOSE' : 'FAIL')
 
-/** Top-left: goal line, a tinted PASS / CLOSE / FAIL badge and the reason beside it. */
-function puzzleHeader(scene: THREE.Object3D, at: V3 = [-17, 6.6, 0.3]) {
+/** Top-left: goal line, a tinted PASS / CLOSE / FAIL badge and the reason beside it; `o.lead` replaces "Goal",
+ *  `o.badge` the badge text. */
+export function puzzleHeader(scene: THREE.Object3D, at: V3 = [-17, 6.6, 0.3]) {
   const goal = liveLabel(scene, at, { size: 0.42, align: 'left' })
   const plate = glowMat(POWER, 0.8)
   flatBox(scene, [2.9, 0.9, 0.08], plate, [at[0] + 1.45, at[1] - 1.15, 0.1])
@@ -27,11 +28,11 @@ function puzzleHeader(scene: THREE.Object3D, at: V3 = [-17, 6.6, 0.3]) {
   const reason = liveLabel(scene, [at[0] + 3.3, at[1] - 1.15, 0.3], { size: 0.3, align: 'left' })
   const hint = liveLabel(scene, [at[0], at[1] - 2.1, 0.3], { size: 0.28, align: 'left', color: GREY })
   return {
-    set(goalText: string, v: PuzzleVerdict, why: string, hintText = '') {
+    set(goalText: string, v: PuzzleVerdict, why: string, hintText = '', o: { lead?: string; badge?: string } = {}) {
       const c = puzzleTint(v)
-      goal.set(`Goal: ${goalText}`, LABEL)
+      goal.set(`${o.lead ?? 'Goal'}: ${goalText}`, LABEL)
       setGlow(plate, c, 0.8)
-      badge.set(BADGE(v), INK)
+      badge.set(o.badge ?? BADGE(v), INK)
       reason.set(why, c)
       hint.set(hintText, GREY)
     },
@@ -57,7 +58,7 @@ const RED_LEAD = '#d23b3b'
 const BLACK_LEAD = '#202226'
 
 /** A `multimeter` scaled by `k` at (mx, my), pushed back 0.4; `jack(j)` = a jack in `g` coordinates. */
-function benchMeter(g: THREE.Object3D, mx: number, my: number, k: number) {
+export function benchMeter(g: THREE.Object3D, mx: number, my: number, k: number) {
   const meter = multimeter()
   add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
   const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
