@@ -45,7 +45,7 @@ export function resistorColorBands(ohms: number): [string, string, string, strin
   return [DIGIT_COLORS[first], DIGIT_COLORS[second], multiplierColor(exponent), GOLD]
 }
 
-const E12 = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82]
+export const E12 = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82]
 
 /** Nearest standard E12 value (the 10 % / common 5 % series), compared on a log scale. */
 export function nearestE12(ohms: number): number {

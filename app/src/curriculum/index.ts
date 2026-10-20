@@ -220,6 +220,7 @@ import { cameraTrackerColourTrackingLoop, cameraTrackerPanTiltRig } from '../les
 import { weatherStationSendOverWiFi, weatherStationWireTheSensors } from '../lessons/projects/weather-station'
 import { smartPlantMonitorMoistureProbe, smartPlantMonitorPumpControl } from '../lessons/projects/smart-plant-monitor'
 import { deskLampTrackerLdrPair, deskLampTrackerServoFollow } from '../lessons/projects/desk-lamp-tracker'
+import { ledPuzzlesBrightnessTarget, ledPuzzlesSafeLedCurrent, ledPuzzlesTwoLedsOneSupply } from '../lessons/challenges/led-puzzles'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -870,6 +871,9 @@ const READY: Record<string, Lesson> = {
   'projects/smart-plant-monitor/pump-control': smartPlantMonitorPumpControl,
   'projects/desk-lamp-tracker/ldr-pair': deskLampTrackerLdrPair,
   'projects/desk-lamp-tracker/servo-follow': deskLampTrackerServoFollow,
+  'challenges/led-puzzles/safe-led-current': ledPuzzlesSafeLedCurrent,
+  'challenges/led-puzzles/two-leds-one-supply': ledPuzzlesTwoLedsOneSupply,
+  'challenges/led-puzzles/brightness-target': ledPuzzlesBrightnessTarget,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

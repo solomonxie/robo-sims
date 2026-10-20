@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu'
 import { V3, add, box, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, HIGH_V, LABEL, POWER, RING } from './colors'
+import { GREY, LABEL, POWER } from './colors'
 import { countBars } from './displays'
 import { FILAMENT_COLOR } from './printer'
 import { plotY, statusHeader, textRows, titledScope } from './rigs'
@@ -204,8 +204,6 @@ export function profileSlabs(u: readonly number[], coats: readonly { top: readon
 
 /** Default printed-part blue. */
 export const PRINT_TINT = '#7fb2e6'
-/** ok → green, warn → yellow, else red. */
-export const verdictTint = (ok: boolean, warn: boolean) => (ok ? POWER : warn ? RING : HIGH_V)
 /** Span-40 stage with a `printBoard`. */
 export function printStage(plotTitle: string, lo: string, hi: string, bars?: { title: string; names: readonly string[] }) {
   const scene = createStage({ span: 40 })
