@@ -22,6 +22,11 @@ describe('fault hunt', () => {
     expect(sameReading({ value: 60, unit: 'mV' }, { value: 0, unit: 'mV' })).toBe(false)
     expect(sameReading({ value: 211, unit: 'ns' }, { value: 1095, unit: 'ns' })).toBe(false)
     expect(sameReading({ value: Infinity, unit: 'ns', open: true }, { value: 2020, unit: 'ns' })).toBe(false)
+    // A caliper tells a 63 mm tyre from a 65 mm one; a protractor 334° from 360°; an encoder 164 rpm from 181.
+    expect(sameReading({ value: 63, unit: 'mm' }, { value: 65, unit: 'mm' })).toBe(false)
+    expect(sameReading({ value: 1000, unit: 'mm' }, { value: 1008, unit: 'mm' })).toBe(true)
+    expect(sameReading({ value: 334, unit: '°' }, { value: 360, unit: '°' })).toBe(false)
+    expect(sameReading({ value: 164, unit: 'rpm' }, { value: 181, unit: 'rpm' })).toBe(false)
   })
   it('table, ruled-out suspects, the probe that splits two, and the shortest probe list', () => {
     expect(faultTable(H).ok.y.value).toBe(3.3)

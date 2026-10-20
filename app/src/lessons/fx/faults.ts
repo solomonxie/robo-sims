@@ -1,7 +1,7 @@
 // Debug it: fault-hunt stage (symptom + PROBE / FOUND / WRONG), a meter whose probes jump to test points, the suspect
 // table, and the robo-car supply bench (6 × AA holder → plug → switch → fuse or guard diode → LM2596 → ESP32).
 import * as THREE from 'three/webgpu'
-import { FaultHunt, I2cEvent, MeterRead, PuzzleVerdict, caseFaults, decisiveProbe, huntVerdict, sameReading, stillSuspect } from '../../core/physics'
+import { FaultHunt, I2cEvent, MeterRead, Pose, PuzzleVerdict, caseFaults, decisiveProbe, huntVerdict, sameReading, stillSuspect } from '../../core/physics'
 import { fixedText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
@@ -9,8 +9,12 @@ import { diodeAlong, glowHalo, motorCan, resistorAlong } from './circuit'
 import { buildElectrolyticCap } from '../../models/passives'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
 import { dcdcModule, esp32Board, i2cBreakout } from './modules'
+import { placeAt } from './drive'
+import { ringTube } from './bearings'
+import { floorMat, floorView, pointCloud } from './rooms'
+import { diffBot } from './wheeled'
 import { DialUnit, probe } from './displays'
-import { cableRun, wire } from './layout'
+import { addRod, cableRun, stretchRod, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
 import { boxScope } from './rigs'
@@ -66,11 +70,13 @@ export function meterText(r: MeterRead, flip = false) {
 }
 
 /** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "10.0 kΩ", "149 °C lead", "min 2.19 V", a log
- *  line, "62.2 mV p-p", "48 presses", "211 ns" / "2.02 µs" (`open`: never 70 %). */
+ *  line, "62.2 mV p-p", "48 presses", "211 ns" / "2.02 µs" (`open`: never 70 %), "312 mm", "178 rpm", "334°". */
 export function readingText(r: MeterRead): string {
   if (r.unit === 'log') return r.label ?? ''
+  if (r.unit === 'mm' || r.unit === 'rpm') return `${Math.round(shown(r.value))} ${r.unit}`
+  if (r.unit === '°') return `${Math.round(r.value)}°`
   if (r.unit === 'ns') return r.open ? 'never 70 %' : r.value >= 999.5 ? `${fixedText(r.value / 1000, 2)} µs` : `${Math.round(r.value)} ns`
-  if (r.unit === 'cnt') return `${Math.round(r.value)} ${r.label ?? 'cnt'}`
+  if (r.unit === 'cnt') return `${Math.round(r.value)} ${r.label ?? 'cnt'}`.trim()
   if (r.unit === 'mV') return `${fixedText(shown(r.value), r.value >= 99.5 ? 0 : 1)} mV p-p`
   if (r.hold) return `${r.hold} ${readingText({ ...r, hold: undefined })}`
   if (r.open) return 'OL'
@@ -1222,5 +1228,119 @@ export function busBench(parent: THREE.Object3D, o: { oled?: boolean } = {}) {
   bench.swap(false)
   bench.power(true)
   bench.ad0(false)
+  return bench
+}
+
+// --- The drift bench: floor tests on the robo-car (drive along a tape, wheels up on a block, spin in place, caliper) ---
+
+export type DriftTp = 'mR1' | 'mR2' | 'leadR' | 'mL1' | 'mL2'
+export type DriftPart = 'motorR' | 'motorL' | 'wheelR' | 'wheelL' | 'pack' | 'esp' | 'car'
+
+const DB = { at: [-13.5, 2.2, 0] as V3, k: 13, carK: 1.5, tilt: -0.5, lift: 0.035, x: [-0.2, 1.2] as [number, number], y: [-0.44, 0.13] as [number, number] }
+const TAPE = '#e8e2cc'
+const TYRE_K = 0.045
+/** Car-local test points and glow spots (metres, x forward, y left, z up): the right motor's terminals at its inner end. */
+const DRIFT_TP: Record<DriftTp, V3> = { mR1: [-0.04, -0.029, 0.04], mR2: [-0.04, -0.041, 0.04], leadR: [-0.065, -0.022, 0.05], mL1: [-0.04, 0.041, 0.04], mL2: [-0.04, 0.029, 0.04] }
+const DRIFT_SPOTS: Record<DriftPart, V3> = { motorR: [0, -0.035, 0.05], motorL: [0, 0.035, 0.05], wheelR: [0, -0.065, 0.035], wheelL: [0, 0.065, 0.035], pack: [-0.05, 0, 0.07], esp: [0.03, 0, 0.06], car: [0, 0, 0.05] }
+
+/** Floor-test bench: a tilted floor (metres) with a 1 m masking-tape line from a start mark, the robo-car (`diffBot`,
+ *  drawn `carK`× size) and a cyan trail, a block for wheels-up tests, and markers: `offset` (tape → where it stopped,
+ *  with a label), `span` (a tape measure from the start), `heading` (needle vs the start heading), `tyre(mm)` (the
+ *  wheel face-on with a caliper's dimension line, a grey ring at 65 mm; null hides). `place(pose, dL, dR, lifted)` puts the car and rolls its wheels; `trail(path,
+ *  n)` shows the first n poses of a path. `tp` (right / left motor terminals, the right motor lead) are at the parked,
+ *  lifted car; `glow(part)` halos ride on the car. */
+export function driftBench(parent: THREE.Object3D) {
+  const floor = floorView(parent, DB.at, DB.k, DB.tilt)
+  floorMat(floor, DB.x, DB.y)
+  const tape = mat(TAPE, { rough: 0.8 })
+  flatBox(floor, [1.1, 0.019, 0.003], tape, [0.55, 0, 0.004])
+  flatBox(floor, [0.019, 0.12, 0.003], tape, [0, 0, 0.004])
+  flatBox(floor, [0.012, 0.08, 0.003], tape, [1, 0, 0.004])
+  addLabel(floor, 'start', [-0.18, 0.03, 0.006], GREY, 0.028, 'right')
+  addLabel(floor, '1 m', [1, 0.07, 0.006], GREY, 0.028)
+  const block = box(floor, [0.12, 0.09, DB.lift], mat('#b98a52', { rough: 0.8 }), [0, 0, DB.lift / 2])
+  const car = add(floor, new THREE.Group())
+  const inner = add(car, new THREE.Group())
+  inner.scale.setScalar(DB.carK)
+  const bot = diffBot(inner)
+  const dots = pointCloud(floor, 200, 0.006)
+  const ring = glowMat(RING, 0.8)
+  const offRod = addRod(floor, ring)
+  const spanRod = addRod(floor, glowMat(RING, 0.5))
+  const needles = [addRod(floor, glowMat(GREY, 0.4)), addRod(floor, glowMat(B_FIELD, 0.9))]
+  const [offMark, spanMark, headMark] = [0, 1, 2].map(() => liveLabel(floor, [0, 0, 0.01], { size: 0.032, align: 'left' }))
+  // Tyre gauge: the wheel face-on at `TYRE_K` units per mm, a grey ring at the healthy 65 mm, a dimension line.
+  const gauge = add(parent, new THREE.Group(), [-8, -1, 4.5])
+  ringTube(gauge, 32.5 * TYRE_K - 0.03, 32.5 * TYRE_K + 0.03, 0.05, glowMat(GREY, 0.5), [0, 0, 0.2])
+  const tyre = add(gauge, new THREE.Group())
+  cylinder(tyre, 1, 0.3, mat('#18191c', { rough: 0.85 }), [0, 0, 0], 'z', 40)
+  cylinder(tyre, 0.68, 0.32, mat('#f2c230', { rough: 0.55 }), [0, 0, 0.01], 'z', 32)
+  cylinder(tyre, 0.16, 0.36, mat('#e8e8e8', { rough: 0.5 }), [0, 0, 0.02], 'z', 16)
+  const dim = [0, 1, 2].map(() => addRod(gauge, glowMat(RING, 0.8)))
+  const dimText = liveLabel(gauge, [0, 0, 0.3], { size: 0.3 })
+  const gaugeNote = liveLabel(gauge, [-2, 0, 0.3], { size: 0.26, align: 'right' })
+  const halos = Object.fromEntries((Object.keys(DRIFT_SPOTS) as DriftPart[]).map((k) => [k, glowHalo(inner, DRIFT_SPOTS[k], (k === 'car' ? 0.8 : 0.45) / (DB.k * DB.carK))])) as Record<DriftPart, ReturnType<typeof glowHalo>>
+  const place = (p: Pose, dL = 0, dR = 0, lifted = false) => {
+    placeAt(car, p, lifted ? DB.lift - 0.004 : 0)
+    bot.set({ x: 0, y: 0, th: 0 }, dL / DB.carK, dR / DB.carK)
+    block.visible = lifted
+  }
+  // Test points: world positions at the parked, lifted car.
+  place({ x: 0, y: 0, th: 0 }, 0, 0, true)
+  parent.updateMatrixWorld(true)
+  const world = (v: V3): V3 => inner.localToWorld(new THREE.Vector3(...v)).toArray() as V3
+  const tp = Object.fromEntries((Object.keys(DRIFT_TP) as DriftTp[]).map((k) => [k, world(DRIFT_TP[k])])) as Record<DriftTp, V3>
+  const spots = Object.fromEntries((Object.keys(DRIFT_SPOTS) as DriftPart[]).map((k) => [k, world(DRIFT_SPOTS[k])])) as Record<DriftPart, V3>
+  let drawn: readonly Pose[] | null = null
+  const z = 0.008
+  /** Above the car's roof, so markers at the car stay visible. */
+  const top = 0.13
+  const bench = {
+    floor,
+    tp,
+    spots,
+    place,
+    trail(path: readonly Pose[] | null, n: number) {
+      if (path !== drawn) {
+        drawn = path
+        path?.forEach((p, i) => i < 200 && dots.set(i, [p.x, p.y, z], B_FIELD))
+      }
+      dots.show(path ? Math.min(n, path.length) : 0)
+    },
+    offset(end: Pose | null, text = '') {
+      stretchRod(offRod, end ? [end.x, 0, top] : [0, 0, 0], end ? [end.x, end.y, top] : [0, 0, 0], 0.004)
+      if (end) offMark.group.position.set(end.x + 0.17, end.y / 2, 0.01)
+      offMark.set(end ? text : '', RING)
+    },
+    span(end: Pose | null, text = '') {
+      stretchRod(spanRod, [0, 0, z], end ? [end.x, end.y, z] : [0, 0, z], 0.005)
+      if (end) spanMark.group.position.set(end.x + 0.17, end.y - 0.04, 0.01)
+      spanMark.set(end ? text : '', RING)
+    },
+    heading(th: number | null, text = '') {
+      const tip = (a: number): V3 => [0.22 * Math.cos(a), 0.22 * Math.sin(a), top]
+      stretchRod(needles[0], [0, 0, top], th === null ? [0, 0, top] : tip(0), 0.004)
+      stretchRod(needles[1], [0, 0, top], th === null ? [0, 0, top] : tip(th), 0.005)
+      if (th !== null) headMark.group.position.set(0.25, -0.14, 0.01)
+      headMark.set(th === null ? '' : text, B_FIELD)
+    },
+    /** Caliper reading of a tyre, drawn as the wheel with a dimension line (null hides). */
+    tyre(mm: number | null, note = '') {
+      gauge.visible = mm !== null
+      if (mm === null) return
+      const r = (mm / 2) * TYRE_K
+      tyre.scale.set(r, r, 1)
+      const y = 32.5 * TYRE_K + 0.4
+      stretchRod(dim[0], [-r, y, 0.3], [r, y, 0.3], 0.03)
+      for (const [i, x] of [[1, -r], [2, r]] as const) stretchRod(dim[i], [x, y - 0.25, 0.3], [x, y + 0.25, 0.3], 0.03)
+      dimText.group.position.y = y + 0.45
+      dimText.set(`Ø ${fixedText(mm, 2)} mm`, RING)
+      gaugeNote.set(note, GREY)
+    },
+    glow: (part: DriftPart, f: number, c = HEAT) => halos[part].set(f, c),
+    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+  }
+  bench.tyre(null)
+  bench.place({ x: 0, y: 0, th: 0 })
   return bench
 }

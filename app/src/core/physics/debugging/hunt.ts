@@ -3,10 +3,11 @@
 import { seededRng } from '../common'
 import { PuzzleVerdict, puzzleVerdict } from '../challenges/verdict'
 
-/** `log` = not a meter: a line the firmware prints (`label`, e.g. a reset reason); `mV` = a scope's peak-to-peak;
- *  `cnt` = a count off the serial monitor (events, or the spread of ADC readings; `label` names it); `ns` = a time off a
- *  scope (an edge's rise time; `open` = the edge never gets there). */
-export type MeterUnit = 'V' | 'A' | 'Ω' | '°C' | 'log' | 'mV' | 'cnt' | 'ns'
+/** `log` = not a meter: a line the firmware prints or what you see (`label`, e.g. a reset reason, 'veers R'); `mV` = a scope's peak-to-peak;
+ *  `cnt` = a count off the serial monitor (events, or the spread of ADC readings; `label` names it, '' = the probe name does); `ns` = a time off a
+ *  scope (an edge's rise time; `open` = the edge never gets there); floor tests: `mm` (tape or caliper), `rpm` (encoder
+ *  speed off the serial monitor), `°` (a heading read off a protractor). */
+export type MeterUnit = 'V' | 'A' | 'Ω' | '°C' | 'log' | 'mV' | 'cnt' | 'ns' | 'mm' | 'rpm' | '°'
 
 /** What the meter shows: a value, or `open` (OL); `alt` = a second value it flickers to (a supply hiccuping);
  *  `label` = what it is on (a thermal camera's hottest part); `hold` = the lowest / highest value it caught (MIN/MAX). */
@@ -26,17 +27,27 @@ export interface FaultHunt<F extends string, P extends string> {
   read: (fault: F | 'ok', probe: P) => MeterRead
 }
 
-/** Absolute tolerance per unit a hobby meter (scope, serial count) tells apart (plus 5 % of the value). */
-const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5, log: 0, mV: 3, cnt: 2, ns: 20 }
+/** Absolute tolerance per unit a hobby meter (scope, serial count, tape) tells apart, plus a share of the value (5 %
+ *  unless `REL` says otherwise: a tape, a caliper and an encoder are finer than a meter's last digit). */
+const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5, log: 0, mV: 3, cnt: 2, ns: 20, mm: 1, rpm: 2, '°': 2 }
+const REL: Partial<Record<MeterUnit, number>> = { mm: 0.01, rpm: 0.02, '°': 0.02 }
 
 /** Two readings a person with a meter can't tell apart. */
 export function sameReading(a: MeterRead, b: MeterRead): boolean {
   if (a.unit !== b.unit || !!a.open !== !!b.open || a.label !== b.label || a.hold !== b.hold) return false
   if (a.open || a.unit === 'log') return true
   if ((a.alt === undefined) !== (b.alt === undefined)) return false
-  const near = (x: number, y: number) => Math.abs(x - y) <= TOL[a.unit] + 0.05 * Math.max(Math.abs(x), Math.abs(y))
+  const rel = REL[a.unit] ?? 0.05
+  const near = (x: number, y: number) => Math.abs(x - y) <= TOL[a.unit] + rel * Math.max(Math.abs(x), Math.abs(y))
   return near(a.value, b.value) && (a.alt === undefined || near(a.alt, b.alt!))
 }
+
+/** A hunt from name tables: suspects and probes in key order. */
+export const huntOf = <F extends string, P extends string>(faults: Record<F, unknown>, probes: Record<P, unknown>, read: (f: F | 'ok', p: P) => MeterRead): FaultHunt<F, P> => ({
+  faults: Object.keys(faults) as F[],
+  probes: Object.keys(probes) as P[],
+  read,
+})
 
 /** Every suspect (and 'ok') × every probe. */
 export function faultTable<F extends string, P extends string>(h: FaultHunt<F, P>) {
