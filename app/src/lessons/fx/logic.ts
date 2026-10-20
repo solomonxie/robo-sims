@@ -1,6 +1,6 @@
 // Logic schematics: gate symbols, glowing signal wires, LED bit rows, gate nets, flip-flop blocks.
 import * as THREE from 'three/webgpu'
-import { GateName, Net, Src } from '../../core/logic'
+import { Bit, GateName, Inputs, Net, Src, evalNet, netSteps } from '../../core/logic'
 import { V3, add, box, lead, mat, mesh, rod } from '../../models/kit'
 import { junction, ledLamp } from './circuit'
 import { wire } from './layout'
@@ -8,6 +8,7 @@ import { groundSymbol } from './symbols'
 import { GREY, LED_RED, RING, potentialColor } from './colors'
 import { pulseLabel, segmentDisplay } from './displays'
 import { partLetter } from './parts'
+import { ease } from './util'
 
 /** Legend entry for logic schematics. */
 export const LOGIC_WIRES = { color: '#ff4d4d', label: 'Wires: red = 1, blue = 0; LED on = 1', shape: 'dot' } as const
@@ -170,6 +171,8 @@ export interface NetLayout {
   /** LEDs fed by gate `src`, legs at `at`; cathodes share a ground rail on the right. */
   outputs: { src: number; at: V3; label: string }[]
   size?: number
+  /** Gate pin stub length (default 1.2). */
+  stub?: number
   ledScale?: number
 }
 
@@ -177,7 +180,7 @@ export interface NetLayout {
  *  levels 0..1; `wires` lists each gate input's path, `outs` each output's, for extra highlights. */
 export function gateNet(parent: THREE.Object3D, net: Net, layout: NetLayout) {
   const { size = 3.6, bus = {} } = layout
-  const syms = net.map((g, i) => gateSymbol(parent, layout.gates[i], g.gate, { size }))
+  const syms = net.map((g, i) => gateSymbol(parent, layout.gates[i], g.gate, { size, stub: layout.stub }))
   const from = (s: Src) => (typeof s === 'number' ? syms[s].pins.out : layout.inputs[s])
   const route = (pts: V3[]) => pts.filter((q, i) => !i || q[0] !== pts[i - 1][0] || q[1] !== pts[i - 1][1])
   const glowing = (pts: V3[], src: Src) => {
@@ -270,6 +273,28 @@ export function flipFlopBlock(parent: THREE.Object3D, at: V3, { w = 4.4, h = 5.6
     set(q: number, clk: number) {
       qMat.emissive.copy(potentialColor(q, qMat.color))
       potentialColor(clk, clkMat.emissive).multiplyScalar(0.6)
+    },
+  }
+}
+
+/** Unit-delay playback for `gateNet`: on an input change the gates update one level per `delayS`; levels ease toward
+ *  that state. `frame(dt, ins)` → `{ ins, gates }` eased levels 0..1 and `steps` (the unit-delay states). */
+export function netSettler(net: Net, delayS = 0.4) {
+  const s = { key: '', steps: [] as Bit[][], t: 0, ins: {} as Record<string, number>, gates: [] as number[] }
+  const now = () => s.steps[Math.min(s.steps.length - 1, Math.floor(s.t / delayS))]
+  return {
+    frame(dt: number, ins: Inputs) {
+      const key = Object.values(ins).join()
+      if (key !== s.key) {
+        const from = s.steps.length ? now() : evalNet(net, ins)
+        if (!s.gates.length) Object.assign(s, { gates: [...from], ins: { ...ins } })
+        Object.assign(s, { key, steps: netSteps(net, ins, from), t: 0 })
+      }
+      s.t += dt
+      const target = now()
+      s.gates = s.gates.map((l, i) => l + (target[i] - l) * ease(dt, 14))
+      for (const k in ins) s.ins[k] += (ins[k] - s.ins[k]) * ease(dt, 14)
+      return s
     },
   }
 }

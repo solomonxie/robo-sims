@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
+  HC_TIMING as HC,
   TimingPath,
   WATCH_HZ,
   captureImbalance,
@@ -90,7 +91,6 @@ function verdictLamp(parent: THREE.Object3D, at: V3) {
 
 // --- Propagation delay: a launch flip-flop, a chain of inverters and a capture flip-flop on one clock. ---
 
-const HC = { tcq: 14e-9, tpd: 8e-9, tsu: 10e-9 }
 const NS_S = 0.05
 const ns = (s: number) => `${+(s * 1e9).toFixed(1)} ns`
 const pdPath = (p: Record<string, unknown>): TimingPath => ({ ...HC, period: 1e-6 / Number(p.mhz), stages: Number(p.stages) })

@@ -11,7 +11,6 @@ import {
   PWM_PUZZLE,
   PWM_TARGETS,
   Pins,
-  PuzzleVerdict,
   PwmLoad,
   PwmPack,
   PwmTarget,
@@ -42,7 +41,7 @@ import {
   verdictTint,
   windowGauge,
 } from '../fx'
-import { Lesson, Params, Readout, Stage, bitChoice, n, namesOf, opts, pick, toneOf } from '../types'
+import { Lesson, Params, Stage, bitChoice, n, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
 const GX = 8
 const GW = 7.6
@@ -52,8 +51,6 @@ const LEGEND = [
   { color: RING, label: 'Close miss', shape: 'dot' as const },
   { color: HIGH_V, label: 'Fail / short', shape: 'dot' as const },
 ]
-const tone = (v: PuzzleVerdict): Readout['tone'] => toneOf(v.pass, v.near)
-const verdictReadout = (v: PuzzleVerdict): Readout => ({ label: 'Verdict', value: v.pass ? 'Pass' : v.near ? 'Close' : 'Fail', tone: tone(v) })
 const rpmText = (rpm: number) => `${Math.round(rpm)} rpm`
 const wheelRpm = (radS: number) => (radS * RPM_PER_RADS) / TT_GEAR
 const liveCaption = (y: number, scene: Parameters<typeof liveLabel>[0]) => liveLabel(scene, [GX - GW / 2, y + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' })

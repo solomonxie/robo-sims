@@ -3,7 +3,6 @@ import {
   CHEMISTRIES,
   ChemistryId,
   ItemId,
-  PuzzleVerdict,
   RUNTIME_MISSIONS,
   RUNTIME_PACKS,
   RUNTIME_PUZZLE,
@@ -40,7 +39,7 @@ import {
   wire,
   windowGauge,
 } from '../fx'
-import { Lesson, Params, Readout, Stage, namesOf, opts, pick, toneOf } from '../types'
+import { Lesson, Params, Stage, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
 const GX = 8
 const GW = 7.6
@@ -52,8 +51,6 @@ const LEGEND = [
   { color: HIGH_V, label: 'Fail / over a limit', shape: 'dot' as const },
   { color: LABEL, label: 'Voltmeter across the pack', shape: 'dot' as const },
 ]
-const tone = (v: PuzzleVerdict): Readout['tone'] => toneOf(v.pass, v.near)
-const verdictReadout = (v: PuzzleVerdict): Readout => ({ label: 'Verdict', value: v.pass ? 'Pass' : v.near ? 'Close' : 'Fail', tone: tone(v) })
 const liveCaption = (scene: THREE.Object3D, y: number) => liveLabel(scene, [GX - GW / 2, y + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' })
 const grams = (g: number) => `${Math.round(g)} g`
 const hrs = (h: number) => (h < 48 ? hoursText(h) : `${+(h / 24).toFixed(1)} days`)

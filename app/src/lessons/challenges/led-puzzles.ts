@@ -9,7 +9,6 @@ import {
   LedPair,
   LedTarget,
   LedWiring,
-  PuzzleVerdict,
   brightnessTarget,
   pairParts,
   safeLed,
@@ -38,7 +37,7 @@ import {
   verdictTint,
   windowGauge,
 } from '../fx'
-import { Lesson, Params, Readout, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf } from '../types'
+import { Lesson, Params, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf, verdictReadout } from '../types'
 
 // --- Shared bench: cell, rails, rows, ammeter in the right rail; gauges on the right. ---
 
@@ -52,8 +51,6 @@ const GW = 7.6
 const P = LED_PUZZLE
 const mA = (a: number) => si(tiny(a, 1e-7), 'A', 3)
 const meterText = (a: number) => fixedText(a * 1000, a < 0.01 ? 2 : 1)
-const tone = (v: PuzzleVerdict): Readout['tone'] => toneOf(v.pass, v.near)
-const verdictReadout = (v: PuzzleVerdict): Readout => ({ label: 'Verdict', value: v.pass ? 'Pass' : v.near ? 'Close' : 'Fail', tone: tone(v) })
 const COLOUR_NAMES = Object.fromEntries((Object.keys(LEDS) as LedColour[]).map((c) => [c, c[0].toUpperCase() + c.slice(1)])) as Record<LedColour, string>
 const supplyOf = (p: Params, list: string[], d: string) => Number(list.includes(String(p.vs)) ? p.vs : d)
 const supplyChoice = (list: string[], initial: string) => ({ kind: 'choice' as const, key: 'vs', options: list.map((v) => ({ value: v, label: `${v} V` })), initial })

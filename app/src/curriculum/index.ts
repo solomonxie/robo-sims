@@ -224,6 +224,7 @@ import { ledPuzzlesBrightnessTarget, ledPuzzlesSafeLedCurrent, ledPuzzlesTwoLeds
 import { dividerPuzzles3v3From5v, dividerPuzzlesAdcRangeMatching } from '../lessons/challenges/divider-puzzles'
 import { motorDriverPuzzlesPwmSpeedTarget, motorDriverPuzzlesTruthTableChallenge } from '../lessons/challenges/motor-driver-puzzles'
 import { batteryPuzzlesRuntimeTarget, batteryPuzzlesSeriesCount } from '../lessons/challenges/battery-puzzles'
+import { logicPuzzlesBuildXor, logicPuzzlesDesignA2BitCounter } from '../lessons/challenges/logic-puzzles'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -883,6 +884,8 @@ const READY: Record<string, Lesson> = {
   'challenges/motor-driver-puzzles/pwm-speed-target': motorDriverPuzzlesPwmSpeedTarget,
   'challenges/battery-puzzles/runtime-target': batteryPuzzlesRuntimeTarget,
   'challenges/battery-puzzles/series-count': batteryPuzzlesSeriesCount,
+  'challenges/logic-puzzles/build-xor': logicPuzzlesBuildXor,
+  'challenges/logic-puzzles/design-a-2-bit-counter': logicPuzzlesDesignA2BitCounter,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

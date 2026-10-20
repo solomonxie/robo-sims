@@ -9,7 +9,6 @@ import {
   DividerJob,
   ESP32_ABS_MAX,
   ESP32_ATTEN,
-  PuzzleVerdict,
   adcMatch,
   adcTapRead,
   shiftDivider,
@@ -18,7 +17,7 @@ import { E12, E24 } from '../../core/resistorColors'
 import { fixedText, ohms, pct, si, volts } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { FACE_VIEW, GAUGE_CAPTION_Y, HIGH_V, LABEL, POWER, RING, dividerBench, liveLabel, memoBy, puzzleStage, verdictTint, windowGauge } from '../fx'
-import { Lesson, Params, Readout, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf } from '../types'
+import { Lesson, Params, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf, verdictReadout } from '../types'
 
 // --- Shared layout: divider bench on the left, three gauges on the right. ---
 
@@ -34,8 +33,6 @@ const LEGEND = [
   { color: HIGH_V, label: 'Fail / absolute limit', shape: 'dot' as const },
   { color: LABEL, label: 'Voltmeter across the tap', shape: 'dot' as const },
 ]
-const tone = (v: PuzzleVerdict): Readout['tone'] => toneOf(v.pass, v.near)
-const verdictReadout = (v: PuzzleVerdict): Readout => ({ label: 'Verdict', value: v.pass ? 'Pass' : v.near ? 'Close' : 'Fail', tone: tone(v) })
 const watts = (w: number) => si(w, 'W', 2)
 const errPct = (f: number) => `${fixedText(f * 100, 1)} %`
 const time = (s: number) => (Number.isFinite(s) ? si(s, 's', 2) : 'never')

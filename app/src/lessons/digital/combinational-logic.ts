@@ -1,7 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
   ALARM,
-  Bit,
   DECODER2,
   FULL_ADDER,
   HALF_ADDER,
@@ -13,41 +12,19 @@ import {
   bit,
   evalNet,
   netDepth,
-  netSteps,
   netTable,
   toBits,
 } from '../../core/logic'
 import { binary } from '../../core/numbers'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { GREY, LABEL, LED_RED, LOGIC_WIRES, NetLayout, RING, ease, emptyGroup, gateNet, glowBox, litWire, partLetter, segmentDisplay, storyClock, storySlider } from '../fx'
+import { GREY, LABEL, LED_RED, LOGIC_WIRES, NetLayout, RING, ease, emptyGroup, gateNet, glowBox, netSettler, litWire, partLetter, segmentDisplay, storyClock, storySlider } from '../fx'
 import { Lesson, Params, Stage, bitChoice, n } from '../types'
 
 const DELAY_S = 0.4
 const GATE_PS = 15
 const SLOW = DELAY_S / (GATE_PS * 1e-12)
 const delayText = (net: Net) => `${netDepth(net)} gate${netDepth(net) > 1 ? 's' : ''} ≈ ${netDepth(net) * GATE_PS} ps`
-
-/** Unit-delay playback: on an input change the gates update one level per DELAY_S; levels ease toward that state. */
-function settler(net: Net) {
-  const s = { key: '', steps: [] as Bit[][], t: 0, ins: {} as Record<string, number>, gates: [] as number[] }
-  const now = () => s.steps[Math.min(s.steps.length - 1, Math.floor(s.t / DELAY_S))]
-  return {
-    frame(dt: number, ins: Inputs) {
-      const key = Object.values(ins).join()
-      if (key !== s.key) {
-        const from = s.steps.length ? now() : evalNet(net, ins)
-        if (!s.gates.length) Object.assign(s, { gates: [...from], ins: { ...ins } })
-        Object.assign(s, { key, steps: netSteps(net, ins, from), t: 0 })
-      }
-      s.t += dt
-      const target = now()
-      s.gates = s.gates.map((l, i) => l + (target[i] - l) * ease(dt, 14))
-      for (const k in ins) s.ins[k] += (ins[k] - s.ins[k]) * ease(dt, 14)
-      return s
-    },
-  }
-}
 
 // --- Truth tables: any table becomes AND terms ORed together; three examples with three inputs. ---
 
@@ -142,13 +119,13 @@ export const tableToCircuit: Lesson = {
       }),
     )
     let cellOut: THREE.Group[] = []
-    const live = { fn: '', net: null as ReturnType<typeof gateNet> | null, sim: settler(MAJORITY), col: colX(0) }
+    const live = { fn: '', net: null as ReturnType<typeof gateNet> | null, sim: netSettler(MAJORITY), col: colX(0) }
     const clock = storyClock(ROWS3.map(() => ROW3_S))
     const rebuild = (fn: string) => {
       emptyGroup(holder)
       const f = FUNCS[fn]
       live.net = gateNet(holder, f.net, f.layout)
-      live.sim = settler(f.net)
+      live.sim = netSettler(f.net)
       for (const g of cellOut) g.removeFromParent()
       cellOut = netTable(f.net, ABC, outOf(f.net)).map((r, k) => {
         ;[r.ins.A, r.ins.B, r.ins.C].forEach((v, i) => cells[k][i].set(String(v)))
@@ -241,7 +218,7 @@ export const multiplexer: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 30 })
     const net = gateNet(scene, MUX_NET, MUX_LAYOUT)
-    const sim = settler(MUX_NET)
+    const sim = netSettler(MUX_NET)
     const pathOf = (g: number) => [net.wires.find((w) => w.gate === g && w.pin === 0)!.pts, net.wires.find((w) => w.src === g)!.pts]
     const paths = [1, 2].map((g) => ({ glows: [...pathOf(g), net.outs[0].pts].map((pts) => litWire(scene, pts, 0.5)), f: 0 }))
     const ring = new THREE.Color(RING)
@@ -320,7 +297,7 @@ export const decoder: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 34 })
     const net = gateNet(scene, DECODER2, DEC_LAYOUT)
-    const sim = settler(DECODER2)
+    const sim = netSettler(DECODER2)
     const s = { key: '', addr: 0, t: 0 }
     return {
       scene,
@@ -418,12 +395,12 @@ export const halfAndFullAdder: Lesson = {
   build(): Stage {
     const scene = createStage({ span: 32 })
     const holder = add(scene, new THREE.Group())
-    const live = { kind: '', net: null as ReturnType<typeof gateNet> | null, sim: settler(FULL_ADDER) }
+    const live = { kind: '', net: null as ReturnType<typeof gateNet> | null, sim: netSettler(FULL_ADDER) }
     const rebuild = (kind: string) => {
       emptyGroup(holder)
       const a = ADDERS[kind]
       live.net = gateNet(holder, a.net, a.layout)
-      live.sim = settler(a.net)
+      live.sim = netSettler(a.net)
       if (kind === 'full') {
         glowBox(holder, [8.4, 12, 0.2], [-8, 2.6, -1.2], '#6f8cff', 0.1)
         glowBox(holder, [8.4, 12.4, 0.2], [4, 0.75, -1.2], '#6f8cff', 0.1)

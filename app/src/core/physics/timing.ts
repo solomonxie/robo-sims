@@ -17,6 +17,9 @@ export interface TimingPath {
   tsu: number
 }
 
+/** Typical 74HC at 5 V: clock → Q, one gate's delay, setup. */
+export const HC_TIMING = { tcq: 14e-9, tpd: 8e-9, tsu: 10e-9 }
+
 export const pathDelay = (p: TimingPath) => p.tcq + p.stages * p.tpd
 export const pathSlack = (p: TimingPath) => p.period - pathDelay(p) - p.tsu
 /** Fastest clock a register-to-register path allows: tclk→Q + logic + setup (+ skew). */
