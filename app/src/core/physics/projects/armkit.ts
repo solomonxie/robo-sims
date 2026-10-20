@@ -1,6 +1,6 @@
 // Robot arm: the Kinematics servo arm as a kit. Horn mounting → each servo's 180° of travel, two-point servo calibration
 // with a protractor, and a pick-and-place job run by IK at 50 Hz on slew-limited servos with a friction gripper.
-import { DEG, G, clamp, sweep } from '../common'
+import { DEG, G, clamp, dist3, sweep } from '../common'
 import { P3 } from '../room'
 import { SERVO_SPECS } from '../actuators/servo'
 import { SERVO_ARM, armFk, toolOf } from '../kinematics/chain'
@@ -14,7 +14,6 @@ import {
 
 const N_JOINTS = SERVO_ARM.rows.length
 const CENTRE_US = (SERVO_SPECS.wide.minUs + SERVO_SPECS.wide.maxUs) / 2
-const dist3 = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 // --- Assemble: centre each servo, then fit the horn with the joint at the middle of the travel it needs. ---
 
@@ -23,11 +22,11 @@ export const DESK_Z = -0.05
 /** Centred servo, horn on the tooth nearest the intended pose: what is left by eye (each ≤ half a 14.4° tooth). */
 export const ARM_HORN_DEG = [5, -6, 4, -3]
 /** Horns pressed on unpowered: each shaft sat wherever the last test left it. */
-export const HORN_LOOSE_DEG = [33, -52, 41, -24]
+const HORN_LOOSE_DEG = [33, -52, 41, -24]
 /** Joint angle at the centre pulse as designed: base ahead, upper arm straight up, elbow straight, wrist in line. */
 export const MOUNT_CENTRES = ARM_CAL.map((c) => jointFromPulse(CENTRE_US, c) + 0)
 
-export interface MountPlan {
+interface MountPlan {
   centred: boolean
   /** Horn put on this many teeth off the designed pose, per joint (+ = joint sits further positive). */
   teeth: readonly number[]
@@ -55,11 +54,11 @@ export const DESK_SPOTS: { name: string; at: P3 }[] = [
   { name: 'shelf', at: [-0.04, 0.17, 0.13] },
 ]
 /** Hand pitches the controller may use to get there, steepest first. */
-export const SPOT_PITCHES = [-90, -60, -30, 0, -120].map((d) => d * DEG)
+const SPOT_PITCHES = [-90, -60, -30, 0, -120].map((d) => d * DEG)
 /** Elbow and wrist must stay this far above the desk. */
 const DESK_CLEAR = 0.008
 
-export type SpotWhy = 'ok' | 'travel' | 'desk' | 'reach'
+type SpotWhy = 'ok' | 'travel' | 'desk' | 'reach'
 export interface SpotResult {
   name: string
   at: P3
@@ -106,7 +105,7 @@ export function mountCheck(m: MountPlan) {
 // --- Calibrate servos: send known pulses, read the joint on a protractor, fit zero and µs per degree. ---
 
 /** Each servo's real µs per degree ÷ the nominal 11.1 (hobby servos spread ±5 %). */
-export const SERVO_SPREAD = [0.97, 1.05, 0.94, 1.06]
+const SERVO_SPREAD = [0.97, 1.05, 0.94, 1.06]
 /** The arm as built: horn offsets by eye, real scales; `flipElbow` = elbow servo mounted the wrong way round. */
 export const servoTruths = (flipElbow = false): ServoCal[] =>
   ARM_CAL.map((c, i) => ({ zeroUs: hornShift(c, ARM_HORN_DEG[i]).zeroUs, usPerRad: c.usPerRad * SERVO_SPREAD[i] * (flipElbow && i === 2 ? -1 : 1) }))
@@ -172,7 +171,7 @@ export const ARM_JOB = {
   placeTol: 0.01,
 }
 export type JobInterp = 'cartesian' | 'joint'
-export interface JobSeg {
+interface JobSeg {
   kind: 'move' | 'close' | 'open'
   a: P3
   b: P3

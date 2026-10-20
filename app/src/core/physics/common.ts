@@ -18,6 +18,12 @@ export const stdDev = (xs: readonly number[]) => {
 
 export const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
 export const clamp01 = (x: number) => clamp(x, 0, 1)
+/** Smooth 0…1 ease (3x² − 2x³), clamped. */
+export const smoothstep = (u: number) => {
+  const x = clamp01(u)
+  return x * x * (3 - 2 * x)
+}
+export const dist3 = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 /** `n` evenly spaced values lo…hi (both ends included). */
 export const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 

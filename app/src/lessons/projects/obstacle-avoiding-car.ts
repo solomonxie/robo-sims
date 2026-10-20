@@ -48,6 +48,7 @@ import {
   glowDot,
   glowMat,
   hcSr04,
+  headerStage,
   lapseClock,
   memoBy,
   pointCloud,
@@ -56,15 +57,13 @@ import {
   sg90Servo,
   sideCar,
   simClock,
-  statusHeader,
+  sketchTint,
   textRows,
   titledScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
 const cmOr = (m: number | null, none = 'none') => (m === null ? none : cmWhole(m))
-const CODE_GREEN = '#9fe0a0'
-const codeTint = (l: string) => (l.trim().startsWith('//') ? GREY : CODE_GREEN)
 
 // --- Mount the sensor: side view of the car closing on a target; floor echoes from a low or tilted sensor, low obstacles under the beam. ---
 
@@ -107,8 +106,7 @@ export const obstacleAvoidingCarMountTheSensor: Lesson = {
     { kind: 'choice', key: 'target', options: opts(TARGET_NAMES), initial: 'wall' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const k = MS.k
     const X = (m: number) => MS.faceX + m * k
     const floorW = (SONAR_MOUNT.fromM + 0.45) * k
@@ -310,7 +308,7 @@ export const obstacleAvoidingCarReactiveLogic: Lesson = {
         const range = L.servo > 1 ? L.left : L.servo < -1 ? L.right : L.front
         cone([sx, sy, AVOID.z + 0.2], f.pose.th + servoRad, (HCSR04.halfDeg * Math.PI) / 180, Math.max(0.02, range), 0.22, range < q.stop ? HIGH_V : IR_TINT)
         horn.rotation.z = servoRad
-        code.set(rlCode(q.plan, q.stop), STATE_LINE[f.rule], codeTint)
+        code.set(rlCode(q.plan, q.stop), STATE_LINE[f.rule], sketchTint)
         reads[0].set(`front ${cmWhole(L.front)}`, L.front < q.stop ? HIGH_V : LABEL)
         reads[1].set(q.plan === 'look' ? `left ${cmWhole(L.left)}` : 'left —', q.plan === 'look' ? LABEL : GREY)
         reads[2].set(q.plan === 'look' ? `right ${cmWhole(L.right)}` : 'right —', q.plan === 'look' ? LABEL : GREY)
@@ -376,8 +374,7 @@ export const obstacleAvoidingCarTuneAndTest: Lesson = {
     { kind: 'choice', key: 'ping', options: opts(PINGS), initial: 'p60' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const floor = floorView(scene, TT.floor, TT.k, TT.tilt)
     floorMat(floor, [-0.25, STOP_TEST.startM + 0.15], [-0.35, 0.35])
     for (let m = 0; m <= STOP_TEST.startM + 1e-9; m += 0.4) addLabel(floor, `${fixedText(STOP_TEST.startM - m, 1)} m`, [m, -0.3, 0.01], GREY, 0.035)
@@ -420,7 +417,7 @@ export const obstacleAvoidingCarTuneAndTest: Lesson = {
         cone([f.x, 0, AVOID.z + 0.2], 0, (HCSR04.halfDeg * Math.PI) / 180, Math.min(reach, STOP_TEST.startM - f.x), 0.2, f.cm > 0 && f.cm < stop * 100 ? HIGH_V : IR_TINT)
         echo.visible = f.cm > 0
         echo.position.set(f.x + f.cm / 100, 0, AVOID.z)
-        code.set(ttCode(stop, ping), f.braking ? 2 : 1, codeTint)
+        code.set(ttCode(stop, ping), f.braking ? 2 : 1, sketchTint)
 
         const tint = (s: (typeof sheet)[number]) => (s.crashed ? HIGH_V : s.gapM < 0.05 ? HEAT : POWER)
         bars.set(

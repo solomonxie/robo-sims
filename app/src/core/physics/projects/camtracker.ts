@@ -101,7 +101,7 @@ export function ptRayToWall(panDeg: number, tiltDeg: number, left: number, up: n
   return z > 1e-9 ? [(x * d) / z, (y * d) / z] : null
 }
 
-export interface PtCfg {
+interface PtCfg {
   frame: PtFrame
   kp: number
   deadDeg: number
@@ -118,7 +118,7 @@ export interface PtSample {
   err: [number, number]
   frame: number
 }
-export interface PtShot {
+interface PtShot {
   t: number
   /** Ball centre and radius (px) in the full frame. */
   ball: [number, number, number]

@@ -28,7 +28,7 @@ export const CAR_PACKS: Record<CarPack, { name: string; chem: ChemistryId; serie
 }
 
 /** Volts left for one motor and its current at pack `vpack`, cruising on the floor (driver drop and motor current agree). */
-export function cruiseMotor(vpack: number) {
+function cruiseMotor(vpack: number) {
   let amps = 0
   let motorV = vpack
   for (let k = 0; k < 8; k++) {
@@ -38,17 +38,17 @@ export function cruiseMotor(vpack: number) {
   return { amps, motorV, speed: wheelDrive(motorV, GEARBOXES.tt48, 0).speed }
 }
 /** One stalled TT motor behind the DRV8833 (e.g. the first instant of a start). */
-export const stallMotorAmps = (vpack: number) => vpack / (5 + 0.36)
+const stallMotorAmps = (vpack: number) => vpack / (5 + 0.36)
 
 /** 5 V rail from the buck and the ESP32's 3.3 V after its AMS1117 at `logicA`. */
-export function logicRail(vpack: number, logicA: number) {
+function logicRail(vpack: number, logicA: number) {
   const buck = dcdcPoint(LM2596, vpack, ROBOCAR.rail, logicA)
   const railV = buck.limit === 'off' ? 0 : buck.vout
   const mcuV = Math.max(0, Math.min(AMS1117_33.vout, railV - dropoutVolts(AMS1117_33, logicA)))
   return { buck, railV, mcuV, iin: buck.iin }
 }
 
-export type PowerVerdict = 'ok' | 'noLogic' | 'resets' | 'dips' | 'slow'
+type PowerVerdict = 'ok' | 'noLogic' | 'resets' | 'dips' | 'slow'
 
 /** The whole power tree for a pack at state of charge `soc`: cruising (Wi-Fi average) and a hard start (both motors stalled, Wi-Fi burst). */
 export function carPower(pack: CarPack, soc = ROBOCAR.soc) {
@@ -74,10 +74,6 @@ export type DrvMode = 'coast' | 'forward' | 'reverse' | 'brake'
 /** DRV8833 per channel: IN1 IN2 = 10 forward, 01 reverse, 11 brake (both low sides on), 00 coast (outputs off). */
 export const drvMode = (in1: boolean, in2: boolean): DrvMode => (in1 ? (in2 ? 'brake' : 'forward') : in2 ? 'reverse' : 'coast')
 const MODE_DIR: Record<DrvMode, number> = { forward: 1, reverse: -1, brake: 0, coast: 0 }
-
-/** Left motor on AIN1/AIN2, right on BIN1/BIN2. GPIO 34–39 are input-only on an ESP32. */
-export const CAR_PINS = { ain1: 25, ain2: 26, bin1: 27, bin2: 14 }
-export const INPUT_ONLY_GPIO = [34, 35, 36, 39]
 
 export type CarCmd = 'forward' | 'reverse' | 'left' | 'spin' | 'brake' | 'coast'
 /** [AIN1, AIN2, BIN1, BIN2] for each command. */
@@ -129,7 +125,7 @@ export function startDuty(vpack = PACK_V()) {
 /** Spin delay (ms, 10 ms steps) that turns 90° at the tuned duty with matched motors. */
 export const spinMs = () => Math.round(((Math.PI / 2) * (CHASSIS.track / 2)) / pwmWheelSpeed(DRIVE.tunedDuty) / 0.01) * 10
 
-export interface PwmSquareFrame extends Pose {
+interface PwmSquareFrame extends Pose {
   t: number
   leg: number
   spinning: boolean
@@ -183,7 +179,7 @@ export function pwmSquareRun(duty: number, trim: number) {
 export const PHONE_CAR = { dt: 0.01, seconds: 8, hz: 20, oneWayS: 0.02, dz: 0.08, lockAt: 4.4, wallX: 1.6, halfLen: 0.08, slewPerS: 3, brakeS: 0.15 }
 
 /** Driver's thumb [x right, y forward]: ease off, a nudge left, then hold forward as the phone screen locks. */
-export function phoneThumb(t: number): [number, number] {
+function phoneThumb(t: number): [number, number] {
   if (t < 0.4) return [0.04, 0.05]
   if (t < 1.8) return [0, 0.7]
   if (t < 2.4) return [0.04, 0.05]
@@ -193,7 +189,7 @@ export function phoneThumb(t: number): [number, number] {
 }
 export const phoneJson = (x: number, y: number) => `{"x":${x.toFixed(2)},"y":${y.toFixed(2)}}`
 
-export interface PhoneFrame extends Pose {
+interface PhoneFrame extends Pose {
   t: number
   sx: number
   sy: number

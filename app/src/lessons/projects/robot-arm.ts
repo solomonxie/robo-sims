@@ -34,7 +34,7 @@ import {
 } from '../../core/physics'
 import { fixedText, mmTenths, radText } from '../../core/units'
 import { V3, box, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   ARM_LEAD,
   B_FIELD,
@@ -52,16 +52,17 @@ import {
   dotPen,
   ghostRig,
   glide,
+  headerStage,
   memoBy,
   plotY,
   serialArm,
-  statusHeader,
+  sideView,
   textRows,
   titledScope,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -0.9, 0] as V3, radius: 58, polar: 1.45, azimuth: 0 }
+const VIEW = sideView(-1.2, -0.9, 58)
 const DESK_AT: V3 = [-11, -7.6, 0]
 const K = 28
 const X = 1.6
@@ -139,8 +140,7 @@ export const robotArmAssemble: Lesson = {
     { kind: 'slider', key: 'elbow', label: 'Elbow horn', min: -6, max: 6, step: 1, initial: 0, format: teethText },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const d = armDesk(scene, DESK_AT, K, KINDS)
     const blocks = spotBlocks(d.lifted)
     const arcs = dotPen(d.lifted, 600, 0.0016)
@@ -255,8 +255,7 @@ export const robotArmCalibrateServos: Lesson = {
     { kind: 'choice', key: 'elbow', options: opts(ELBOWS), initial: 'mirror' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const d = armDesk(scene, DESK_AT, K, KINDS)
     const ghost = serialArm(d.lifted, SERVO_ARM, { ...SERVO_ARM_LOOK, axes: false })
     ghostRig(ghost.group, B_FIELD, 0.18)
@@ -388,8 +387,7 @@ export const robotArmIkControl: Lesson = {
     { kind: 'slider', key: 'squeeze', label: 'Gripper past contact', min: 1, max: 10, step: 1, initial: 6, format: (v) => `${v}°` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const d = armDesk(scene, DESK_AT, K, KINDS)
     box(d.lifted, [0.05, 0.05, 0.002], mat(RING, { rough: 0.7 }), [ARM_JOB.pick[0], ARM_JOB.pick[1], DESK_Z + 0.001])
     box(d.lifted, [0.05, 0.05, 0.002], mat(POWER, { rough: 0.7 }), [ARM_JOB.place[0], ARM_JOB.place[1], DESK_Z + 0.001])

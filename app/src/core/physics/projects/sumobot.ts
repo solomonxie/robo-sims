@@ -1,6 +1,6 @@
 // Sumo robot: a 4WD TT-motor pusher on a 77 cm ring. The shove (grip, weight transfer, who gets the wedge under whom)
 // and the match brain (two ToF rangers find the rival, two TCRT5000s on the white edge, stop before the rim).
-import { G, clamp, gaussAt, wrapPi } from '../common'
+import { DEG, G, clamp, gaussAt, wrapPi } from '../common'
 import { GEARBOXES, TT_CAR, TT_GEAR, TT_INERTIA, gearEfficiency, shaftTorque, stallTorque } from '../actuators/dcmotor'
 import { brakeOnlyStop } from '../mechanics/collision'
 import { axleLoads, slipRatio, tractionMu } from '../mechanics/friction'
@@ -152,7 +152,7 @@ export type SumoStart = keyof typeof SUMO_STARTS
 /** Search spin wheel speed, reverse and spin-away times after an edge, how long an attack keeps going blind; our tyres; match timeout; start centres at ±startX (behind the lines, 29 cm apart). */
 export const SUMO_BRAIN = { spinV: 0.3, backS: 0.25, awayS: 0.35, lostS: 0.3, mu: SUMO_TYRES.silicone.mu, seconds: 12, startX: 0.22 }
 /** Rival: box side; waits on its line, then circles the centre at r slowly; dodges sideways (v, s) when we charge inside `near` m, at most `dodges` times; turn rate rad/s. */
-export const SUMO_RIVAL = { side: 0.15, wait: 0, v: 0.12, r: 0.25, near: 0.22, charge: 0.35, dodgeV: 0.5, dodgeS: 0.4, dodges: 2, turn: 8 }
+const SUMO_RIVAL = { side: 0.15, wait: 0, v: 0.12, r: 0.25, near: 0.22, charge: 0.35, dodgeV: 0.5, dodgeS: 0.4, dodges: 2, turn: 8 }
 
 /** Raw 12-bit TCRT5000 at radius `rM` (white edge high reflectance → low reading); off the ring the floor is `ring.h` further away, so it reads dark again. */
 export function edgeAdc(rM: number, z = 0) {
@@ -197,7 +197,7 @@ function rayBox(ox: number, oy: number, th: number, p: Pose, s: number) {
 /** Ranger `slot` (0 left, 1 right) origin and heading. */
 export function sumoEye(p: Pose, slot: number) {
   const s = slot === 0 ? 1 : -1
-  return { at: toRoom(p, SUMO_EYES.x, s * SUMO_EYES.y), th: p.th + s * SUMO_EYES.toe * (Math.PI / 180) }
+  return { at: toRoom(p, SUMO_EYES.x, s * SUMO_EYES.y), th: p.th + s * SUMO_EYES.toe * DEG }
 }
 
 /** One ToF reading of the rival: nearest return over 3 rays across the 25° cone; out of range beyond the ring (nothing there). */

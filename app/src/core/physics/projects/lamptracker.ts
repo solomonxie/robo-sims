@@ -16,7 +16,7 @@ export function ldrOhms(lux: number, r10 = GL5528.r10) {
 }
 
 /** LED desk lamp aimed at the head: 300 cd on axis, 60 cm away; LDR head 5 mm across, touching the wall. */
-export const LAMP_EYE = { cd: 300, distM: 0.6, ldrMm: 5 }
+const LAMP_EYE = { cd: 300, distM: 0.6, ldrMm: 5 }
 export const lampDirectLux = (eye = LAMP_EYE) => eye.cd / eye.distM ** 2
 
 export const LAMP_MOUNTS = {
@@ -41,7 +41,7 @@ export const LAMP_ROOMS = {
   day: { name: 'Sunny window', lux: 1500 },
 }
 export type LampRoom = keyof typeof LAMP_ROOMS
-export const LAMP_FIXED_OHMS = 10e3
+const LAMP_FIXED_OHMS = 10e3
 
 /** Shade on one LDR from the wall when the lamp is `awayDeg` past the other side (0 none … 1 fully shaded). */
 export const lampShade = (awayDeg: number, wallMm: number, ldrMm = LAMP_EYE.ldrMm) =>
@@ -59,7 +59,7 @@ export function lampLux(phiDeg: number, mount: LampMount, roomLux: number, eye =
 /** The half-bridge zero: what the pin reads with equal resistances (3.3 V / 2). */
 export const LAMP_MID = esp32Raw(GPIO_VDD / 2, '11')
 /** Direction error in counts, + = lamp to the left: L − R for two dividers, raw − mid for the half bridge. */
-export const lampErr = (raws: readonly number[], wiring: LampWiring) => (wiring === 'two' ? raws[0] - raws[1] : raws[0] - LAMP_MID)
+const lampErr = (raws: readonly number[], wiring: LampWiring) => (wiring === 'two' ? raws[0] - raws[1] : raws[0] - LAMP_MID)
 
 /** LDR resistances, pin volts and raw ADC readings (11 dB) for given lux; dividers put the LDR on top (brighter → higher);
  *  the half bridge has the left LDR on top, the right one below. */
@@ -83,7 +83,7 @@ export function lampEye(phiDeg: number, cfg: LampCfg) {
 }
 
 /** Errors smaller than this are lost in ADC noise. */
-export const LAMP_NOISE = 15
+const LAMP_NOISE = 15
 /** Where the head comes to rest (error crosses zero, searched over ±60°), the slope there (counts/°), and the capture range:
  *  how far (up to 90°) the lamp can be on each side with the error pushing the right way by more than the noise. */
 export function lampNull(cfg: LampCfg) {
@@ -134,7 +134,7 @@ export function lampAt(motion: LampMotion, t: number) {
   return 45 * Math.sin((2 * Math.PI * t) / 1.6)
 }
 
-export interface LampFollowCfg {
+interface LampFollowCfg {
   motion: LampMotion
   /** Command step per frame, degrees per 100 counts of error. */
   gain: number

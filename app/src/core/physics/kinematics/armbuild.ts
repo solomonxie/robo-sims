@@ -1,7 +1,7 @@
 // Building the 4-DOF servo arm: servo per joint, gravity holding torque, current and rail sag, pulse calibration, play and droop at the hand.
 import { RAIL, SERVO_BAND_DEG, SERVO_SPECS } from '../actuators/servo'
 import { DRIVES, Drive, outputKt, stallA } from '../actuators/sizing'
-import { DEG, G, clamp } from '../common'
+import { DEG, G, clamp, dist3 } from '../common'
 import { minInputVolts } from '../power/brownout'
 import { AMS1117_33 } from '../regulators'
 import { P3 } from '../room'
@@ -156,5 +156,5 @@ export const sagJoints = (tau: readonly number[], drives: readonly Drive[], play
 /** Distance between the tool points of two poses. */
 export function handGap(qa: readonly number[], qb: readonly number[], arm: SerialArm = SERVO_ARM) {
   const [a, b] = [toolOf(armFk(arm, qa)), toolOf(armFk(arm, qb))]
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+  return dist3(a, b)
 }

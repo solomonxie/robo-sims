@@ -25,7 +25,7 @@ export const plantCapVolts = (eps: number) => PLANT_CAP.vTop / (1 + PLANT_CAP.cP
 /** Resistive fork (YL-69): soil between the tines, 10 kΩ to 3.3 V on the module; 10 kΩ at field capacity, ∝ θ⁻². */
 export const PLANT_FORK = { seriesOhms: 10e3, fcOhms: 10e3, exp: 2, waterOhms: 1e3, readS: 0.01, copperMg: 62.7, failShare: 0.5, dissolveShare: 0.3 }
 export const plantForkOhms = (theta: number) => PLANT_FORK.fcOhms * (PLANT_SOIL.fcTheta / Math.max(theta, 1e-3)) ** PLANT_FORK.exp
-export const plantForkVolts = (ohms: number) => (GPIO_VDD * ohms) / (ohms + PLANT_FORK.seriesOhms)
+const plantForkVolts = (ohms: number) => (GPIO_VDD * ohms) / (ohms + PLANT_FORK.seriesOhms)
 
 export const PLANT_PROBES = {
   fork: { name: 'Resistive fork, always on', kind: 'fork' as const, pulsed: false },
@@ -33,7 +33,7 @@ export const PLANT_PROBES = {
   cap: { name: 'Capacitive v1.2', kind: 'cap' as const, pulsed: false },
 }
 export type PlantProbe = keyof typeof PLANT_PROBES
-export type PlantMedium = number | 'air' | 'water'
+type PlantMedium = number | 'air' | 'water'
 
 /** Probe output for soil at θ, or in air / a glass of water. */
 export function plantProbeVolts(probe: PlantProbe, m: PlantMedium) {
@@ -86,8 +86,8 @@ export function plantProbe(probe: PlantProbe, theta: number, pin: PlantPin, cal:
 // --- Pump control ---
 
 /** 5 V mini submersible pump: small brushed motor (no-load current = its in-water load) on a 14 mm impeller, 1.6 L/min free. */
-export const PLANT_PUMP_MOTOR: DcMotor = { ohms: 6, noLoadA: 0.18, voltsPerRpm: 0.000784 }
-export const PLANT_PUMP: CentrifugalPump = { impellerM: 0.007, psi: 0.5, maxRpm: 5000, maxLpm: 1.6 }
+const PLANT_PUMP_MOTOR: DcMotor = { ohms: 6, noLoadA: 0.18, voltsPerRpm: 0.000784 }
+const PLANT_PUMP: CentrifugalPump = { impellerM: 0.007, psi: 0.5, maxRpm: 5000, maxLpm: 1.6 }
 /** USB 5 V, gate from a 3.3 V pin, the pot 30 cm above the tank. */
 export const PLANT_RIG = { supplyV: 5, gateV: GPIO_VDD, liftM: 0.3 }
 
@@ -150,12 +150,12 @@ export function plantEt(tH: number, theta: number, pot = PLANT_POT) {
 /** Flow measured on the bench with the logic-level FET: the firmware turns a dose (mL) into pump seconds with it. */
 export const plantBenchMlS = once(() => plantPumpDrive('irlz').mlPerS)
 
-export interface PlantCfg {
+interface PlantCfg {
   driver: PlantDriver
   strategy: PlantStrategy
   tankMl: number
 }
-export interface PlantSample {
+interface PlantSample {
   t: number
   truePct: number
   readPct: number
@@ -164,7 +164,7 @@ export interface PlantSample {
   /** Total run out of the drain hole so far, mL. */
   drainedMl: number
 }
-export type PlantAlert = { t: number; kind: 'dry' | 'tank' }
+type PlantAlert = { t: number; kind: 'dry' | 'tank' }
 
 /** Two weeks of the pot: probe read every 10 s (every 0.5 s while pumping), the strategy switches the pump, water soaks down
  *  to the probe, anything over field capacity runs out the drain hole. Samples every 10 min. */

@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
+  DEG,
   GL5528,
   LAMP_FOLLOW,
   LAMP_MID,
@@ -8,13 +9,13 @@ import {
   LAMP_PAIRS,
   LAMP_ROOMS,
   LAMP_WIRINGS,
-  SERVO_DEG_PER_S,
   LampMotion,
   LampMount,
   LampPair,
   LampRoom,
   LampSample,
   LampWiring,
+  SERVO_DEG_PER_S,
   fixedStepAt,
   lampDirectLux,
   lampEye,
@@ -25,9 +26,10 @@ import {
 } from '../../core/physics'
 import { fixedText, ohms, volts } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   B_FIELD,
+  FACE_VIEW,
   GREY,
   HEAT,
   HIGH_V,
@@ -36,22 +38,20 @@ import {
   RING,
   SUN_TINT,
   addLabel,
+  boxScope,
   codeBlock,
   cursorBar,
+  headerStage,
   lapseClock,
   lightRay,
   liveLabel,
   memoBy,
-  scope,
   setGlow,
   sg90Servo,
-  statusHeader,
   traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const DEG = Math.PI / 180
-const VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: Math.PI / 2, azimuth: 0 }
 const signedDeg = (v: number, d = 0) => `${v > 0.05 ? '+' : v < -0.05 ? '−' : ''}${fixedText(Math.abs(v), d)}°`
 const luxText = (l: number) => `${l >= 100 ? Math.round(l) : fixedText(l, l >= 10 ? 0 : 1)} lux`
 const LAMP_R = 6.4
@@ -177,26 +177,15 @@ export const deskLampTrackerLdrPair: Lesson = {
     { kind: 'choice', key: 'room', options: opts(ROOM_NAMES), initial: 'dark' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const rig = deskRig(scene, RIG1, 0.95)
     const luxTags = [0, 1].map((i) => liveLabel(scene, [RIG1[0] + (i ? 3.4 : -3.4), RIG1[1] - 3.3, 0.5], { size: 0.28, color: i ? HEAT : RING }))
-    const rp = scope(scene, RP.w, RP.h, { divs: [12, 4], zeroAt: 0 })
-    rp.group.position.set(RP.x, RP.y, 0)
-    addLabel(scene, 'Raw ADC vs lamp angle', [RP.x - RP.w / 2, RP.y + RP.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const rawTag = liveLabel(scene, [RP.x + RP.w / 2, RP.y + RP.h / 2 + 0.9, 0.3], { size: 0.28, align: 'right' })
-    addLabel(scene, '4095', [RP.x - RP.w / 2 - 0.4, RP.y + RP.h / 2, 0.3], GREY, 0.24, 'right')
-    addLabel(scene, '0', [RP.x - RP.w / 2 - 0.4, RP.y - RP.h / 2, 0.3], GREY, 0.24, 'right')
+    const { s: rp, tag: rawTag } = boxScope(scene, RP, 'Raw ADC vs lamp angle', [12, 4], { axis: ['4095', '0'] })
     const trL = rp.trace(RING, { samples: 121, radius: 0.06 })
     const trR = rp.trace(HEAT, { samples: 121, radius: 0.06 })
     const midLv = rp.level(GREY)
     const rpCursor = cursorBar(rp, LABEL, 0.05)
-    const ep = scope(scene, EP.w, EP.h, { divs: [12, 4], zeroAt: 0.5 })
-    ep.group.position.set(EP.x, EP.y, 0)
-    addLabel(scene, 'Direction error e, counts', [EP.x - EP.w / 2, EP.y + EP.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const errTag = liveLabel(scene, [EP.x + EP.w / 2, EP.y + EP.h / 2 + 0.9, 0.3], { size: 0.28, align: 'right' })
-    addLabel(scene, `+${ERR_MAX}`, [EP.x - EP.w / 2 - 0.4, EP.y + EP.h / 2, 0.3], GREY, 0.24, 'right')
-    addLabel(scene, `−${ERR_MAX}`, [EP.x - EP.w / 2 - 0.4, EP.y - EP.h / 2, 0.3], GREY, 0.24, 'right')
+    const { s: ep, tag: errTag } = boxScope(scene, EP, 'Direction error e, counts', [12, 4], { zeroAt: 0.5, axis: [`+${ERR_MAX}`, `−${ERR_MAX}`] })
     for (const a of [-90, -45, 0, 45, 90]) addLabel(scene, signedDeg(a), [EP.x + (a / 180) * EP.w, EP.y - EP.h / 2 - 0.6, 0.3], GREY, 0.24)
     addLabel(scene, 'lamp angle', [EP.x + EP.w / 2, EP.y - EP.h / 2 - 1.2, 0.3], GREY, 0.24, 'right')
     const trE = ep.trace(B_FIELD, { samples: 121, radius: 0.06 })
@@ -208,7 +197,7 @@ export const deskLampTrackerLdrPair: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = lpParams(p)
         const e = lampEye(q.phi, q)
@@ -317,20 +306,13 @@ export const deskLampTrackerServoFollow: Lesson = {
     { kind: 'choice', key: 'wiring', options: opts(WIRING_NAMES), initial: 'half' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const rig = deskRig(scene, RIG2, 0.95)
     rig.mount('wall')
-    const ap = scope(scene, AP.w, AP.h, { divs: [10, 4], zeroAt: 0.5 })
-    ap.group.position.set(AP.x, AP.y, 0)
-    addLabel(scene, `Angle ±${ANG}°, ${LAMP_FOLLOW.seconds} s`, [AP.x - AP.w / 2, AP.y + AP.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const angTag = liveLabel(scene, [AP.x + AP.w / 2, AP.y + AP.h / 2 + 0.9, 0.3], { size: 0.28, align: 'right' })
+    const { s: ap, tag: angTag } = boxScope(scene, AP, `Angle ±${ANG}°, ${LAMP_FOLLOW.seconds} s`, [10, 4], { zeroAt: 0.5 })
     const trLamp = ap.trace(GREY, { samples: 300, radius: 0.05 })
     const trHead = ap.trace(RING, { samples: 300, radius: 0.07 })
-    const er = scope(scene, ER.w, ER.h, { divs: [10, 2], zeroAt: 0.5 })
-    er.group.position.set(ER.x, ER.y, 0)
-    addLabel(scene, 'Error e, ±2000 counts', [ER.x - ER.w / 2, ER.y + ER.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const errTag = liveLabel(scene, [ER.x + ER.w / 2, ER.y + ER.h / 2 + 0.9, 0.3], { size: 0.28, align: 'right' })
+    const { s: er, tag: errTag } = boxScope(scene, ER, 'Error e, ±2000 counts', [10, 2], { zeroAt: 0.5 })
     addLabel(scene, '0', [ER.x - ER.w / 2, ER.y - ER.h / 2 - 0.6, 0.3], GREY, 0.24, 'left')
     addLabel(scene, `${LAMP_FOLLOW.seconds} s`, [ER.x + ER.w / 2, ER.y - ER.h / 2 - 0.6, 0.3], GREY, 0.24, 'right')
     const trErr = er.trace(B_FIELD, { samples: 300, radius: 0.05 })
@@ -344,7 +326,7 @@ export const deskLampTrackerServoFollow: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = sfParams(p)
         const R = sfRun(q)

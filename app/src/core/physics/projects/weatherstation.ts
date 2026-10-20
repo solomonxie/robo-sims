@@ -1,6 +1,6 @@
 // Weather station: ESP32 + BMP280 + SSD1306 on one I²C bus, the sensor in or out of the box (board heat vs cable capacitance),
 // then a week on an 18650 (+ solar): wake, read, send over Wi-Fi to a dashboard that reduces to sea level and flags a falling glass.
-import { clamp, gaussAt } from '../common'
+import { clamp, gaussAt, smoothstep } from '../common'
 import { boxAirRise } from '../materials/thermal'
 import { I2C_CHIPS, I2C_MODES, chipAddress, i2cRiseTime, i2cScan, openDrainClock, pullupMax } from '../mcu/i2c'
 import { DEVKIT_EXTRA_A, NODE_RADIO, NodeRadio, POWER_MODES, Step, averageAmps, nodeCycle, phaseTime } from '../mcu/sleep'
@@ -52,17 +52,13 @@ export const WX_WEEK = { days: 7, altM: 250, basePa: 101_800, tidePa: 50, frontH
 /** Falling more than 3.5 hPa in 3 h is "falling quickly" (WMO): storm warning. */
 export const WX_ALERT = { windowH: 3, pa: 350 }
 
-const ease = (u: number) => {
-  const x = clamp(u, 0, 1)
-  return x * x * (3 - 2 * x)
-}
 /** True sea-level pressure (Pa) at hour t: base, semi-diurnal tide, the front's fall and partial recovery. */
 export const wxSeaPa = (tH: number, w = WX_WEEK) =>
-  w.basePa + w.tidePa * Math.sin((2 * Math.PI * tH) / 12) - w.dropPa * ease((tH - w.frontH) / w.dropH) + 0.8 * w.dropPa * ease((tH - w.frontH - w.dropH) / w.riseH)
+  w.basePa + w.tidePa * Math.sin((2 * Math.PI * tH) / 12) - w.dropPa * smoothstep((tH - w.frontH) / w.dropH) + 0.8 * w.dropPa * smoothstep((tH - w.frontH - w.dropH) / w.riseH)
 /** Outdoor air (°C): 9 ± 5, warmest at 15:00. */
-export const wxAirC = (tH: number) => 9 + 5 * Math.sin((2 * Math.PI * (tH - 9)) / 24)
+const wxAirC = (tH: number) => 9 + 5 * Math.sin((2 * Math.PI * (tH - 9)) / 24)
 /** What the BMP280 reads at the station's height. */
-export const wxStationPa = (tH: number, w = WX_WEEK) => airPressureAt(w.altM, wxSeaPa(tH, w))
+const wxStationPa = (tH: number, w = WX_WEEK) => airPressureAt(w.altM, wxSeaPa(tH, w))
 /** Dashboard reduction to sea level with the standard atmosphere (exact inverse of `airPressureAt` for p0). */
 export const wxSeaLevel = (pPa: number, altM: number) => (pPa * P_SEA) / airPressureAt(altM)
 
@@ -79,7 +75,7 @@ export const WX_SUN = {
 }
 export type WxSun = keyof typeof WX_SUN
 /** Cloud cover while the front passes: the panel gives 30 %. */
-export const wxCloud = (tH: number, w = WX_WEEK) => (tH > w.frontH - 6 && tH < w.frontH + w.dropH + 12 ? 0.3 : 1)
+const wxCloud = (tH: number, w = WX_WEEK) => (tH > w.frontH - 6 && tH < w.frontH + w.dropH + 12 ? 0.3 : 1)
 
 /** Sunlight 0…1 at hour t: half-sine over the daylight, scaled so a day holds `peakH` full-sun hours. */
 export function wxSunAt(sun: WxSun, tH: number) {
@@ -88,7 +84,7 @@ export function wxSunAt(sun: WxSun, tH: number) {
   const u = (h - (12 - s.dayH / 2)) / s.dayH
   return u <= 0 || u >= 1 ? 0 : ((s.peakH * Math.PI) / (2 * s.dayH)) * Math.sin(Math.PI * u)
 }
-export const wxPanelA = (sun: WxSun, tH: number) => (WX_SUN[sun].panelW / WX_WEEK.panelV) * wxSunAt(sun, tH) * wxCloud(tH)
+const wxPanelA = (sun: WxSun, tH: number) => (WX_SUN[sun].panelW / WX_WEEK.panelV) * wxSunAt(sun, tH) * wxCloud(tH)
 
 /** One wake cycle (`nodeCycle`) with the board's always-on extras added to every step. */
 export const wxCycle = (everyS: number, radio: NodeRadio, board: WxBoard): Step[] => nodeCycle(everyS, radio).map((p) => ({ ...p, amps: p.amps + WX_BOARDS[board].extraA }))
@@ -101,20 +97,20 @@ export const wxReportBytes = (radio: NodeRadio) => {
   return radio === 'espnow' ? payload : webExchange('http', payload).reduce((s, k) => s + k.bytes, 0)
 }
 
-export interface WxCfg {
+interface WxCfg {
   everyS: number
   radio: NodeRadio
   board: WxBoard
   sun: WxSun
 }
-export interface WxReport {
+interface WxReport {
   t: number
   seaPa: number
   airC: number
   /** 3-hour tendency (Pa per 3 h) from the reading 3 h back; null until there is one. */
   tend: number | null
 }
-export interface WxSample {
+interface WxSample {
   t: number
   soc: number
   chargeA: number
@@ -122,7 +118,7 @@ export interface WxSample {
 }
 
 /** First hour the true 3-h tendency drops past the alert. */
-export function wxTrueAlertH(w = WX_WEEK) {
+function wxTrueAlertH(w = WX_WEEK) {
   for (let t = WX_ALERT.windowH; t <= w.days * 24; t += 0.01) if (wxSeaPa(t, w) - wxSeaPa(t - WX_ALERT.windowH, w) <= -WX_ALERT.pa) return t
   return null
 }

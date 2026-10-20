@@ -30,7 +30,7 @@ import {
 } from '../../core/physics'
 import { fixedText, mmTenths, mpsText, msText, pct, signed } from '../../core/units'
 import { V3, add, box, mat, mesh } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   DATA_COLOR,
   GREY,
@@ -54,13 +54,14 @@ import {
   floorTrail,
   floorView,
   glowMat,
+  headerStage,
   lapseClock,
   liveLabel,
   memoBy,
   noseBar,
   pointCloud,
   setGlow,
-  statusHeader,
+  sketchTint,
   stretchRod,
   tapeFloor,
   textRows,
@@ -108,8 +109,7 @@ export const lineFollowingCarSensorArray: Lesson = {
     { kind: 'choice', key: 'cal', options: opts(CALS), initial: 'sweep' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const X = (m: number) => SA.cx + m * 1000 * SA.s
     const floorW = 2 * (sweepHalf(TCRT.pitchM, TCRT.count) + 0.012) * 1000 * SA.s
     flatBox(scene, [floorW, 0.5, 2], mat(LINE_FLOOR, { rough: 0.9 }), [SA.cx, SA.floorY - 0.25, 0])
@@ -252,8 +252,7 @@ export const lineFollowingCarPdController: Lesson = {
     { kind: 'choice', key: 'period', options: opts(PERIODS), initial: 'p20' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const g = floorView(scene, PD.at, PD.k, PD.tilt)
     tapeFloor(g, [TRACK], [-1.15, 1.15], [-0.72, 0.72])
     const bot = diffBot(g, { track: CHASSIS.track })
@@ -372,8 +371,7 @@ export const lineFollowingCarIntersections: Lesson = {
     { kind: 'choice', key: 'end', options: opts(ENDS), initial: 'sensor' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const g = floorView(scene, IX.at, IX.k, IX.tilt)
     const c = LINE_GRID.cell
     tapeFloor(g, gridLines(), [-0.2, 2 * c + 0.2], [LINE_GRID.startY - 0.1, 2 * c + 0.2])
@@ -415,7 +413,7 @@ export const lineFollowingCarIntersections: Lesson = {
         lights(f.adc)
         const done = i === r.frames.length - 1
         goalMs.forEach((gm) => setGlow(gm.m, gm.k === q.goal ? (done ? (r.arrived ? POWER : HIGH_V) : RING) : GREY, gm.k === q.goal ? 1 : 0.3))
-        code.set(ixCode(q.end, GRID_GOALS[q.goal].turns.join('')), STATE_LINE[f.state], (l) => (l.trim().startsWith('//') ? GREY : '#9fe0a0'))
+        code.set(ixCode(q.end, GRID_GOALS[q.goal].turns.join('')), STATE_LINE[f.state], sketchTint)
         log.forEach((row, k) => {
           const j = r.log[k]
           if (!j || k >= f.k) return row.set(k < GRID_GOALS[q.goal].turns.length + 1 ? `#${k + 1}  …` : '', GREY)

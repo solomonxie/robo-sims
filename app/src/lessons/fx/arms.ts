@@ -23,7 +23,7 @@ const BOX = new THREE.BoxGeometry(1, 1, 1)
 const DISC = new THREE.CylinderGeometry(1, 1, 1, 32).rotateX(Math.PI / 2)
 const RING_GEO = new THREE.TorusGeometry(1, 0.11, 10, 40)
 
-export interface ArmLook {
+interface ArmLook {
   /** Bar width and thickness (along the joint axis), metres. */
   w?: number
   t?: number
@@ -173,7 +173,7 @@ const MOUNT_TURN = [0, Math.PI / 2, 0, 0, 0]
 
 /** `SERVO_ARM` as a hobby build: aluminium brackets, a servo body beside every joint (+ gripper servo), acrylic base box `baseH` tall
  *  under frame 0. `set(q)` → frames; `fit(i, kind)` swaps a servo; `heat(i, k)` glows a body red; `ports(f)` = cable exits (arm space). */
-export function servoArmBuild(parent: THREE.Object3D, kinds: readonly ArmServo[], baseH = 0.05) {
+function servoArmBuild(parent: THREE.Object3D, kinds: readonly ArmServo[], baseH = 0.05) {
   const t = 0.017
   const rig = serialArm(parent, SERVO_ARM, { w: 0.022, t, link: '#c9ccd2', housing: '#30333a', axes: false })
   add(rig.group, mesh(BOX, mat('#2b2f38', { rough: 0.35, metal: 0.1 })), [-0.005, 0, -baseH / 2]).scale.set(0.085, 0.07, baseH)
@@ -215,7 +215,7 @@ export function servoArmBuild(parent: THREE.Object3D, kinds: readonly ArmServo[]
 }
 
 /** Height of `armDesk`'s base box: the desk is this far below frame 0. */
-export const ARM_DESK_H = 0.05
+const ARM_DESK_H = 0.05
 /** Servo lead colour. */
 export const ARM_LEAD = '#d9822b'
 

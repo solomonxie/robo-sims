@@ -21,9 +21,9 @@ import {
   supportHull,
   toDeg,
 } from '../../core/physics'
-import { fixedText, mmText, nmText } from '../../core/units'
+import { degWhole, fixedText, mmText, nmText } from '../../core/units'
 import { V3, add } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   B_FIELD,
   GREY,
@@ -42,12 +42,13 @@ import {
   floorView,
   frac,
   glowMat,
+  headerStage,
   liveLabel,
   memoBy,
   plotY,
   pointCloud,
   servoWalker,
-  statusHeader,
+  sideView,
   stretchArrow,
   stretchRod,
   textRows,
@@ -55,10 +56,9 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-1.2, -0.9, 0] as V3, radius: 58, polar: 1.45, azimuth: 0 }
+const VIEW = sideView(-1.2, -0.9, 58)
 const LINK_NAMES = Object.fromEntries(Object.entries(QUAD_LINKS).map(([k, v]) => [k, v.name])) as Record<QuadLinks, string>
 const STALL = QUAD_KIT.servo.stallNm
-const deg = (v: number) => `${Math.round(v)}°`
 const us = (servoDeg: number) => `${Math.round(pulseForDeg(servoDeg, [500, 2500]))} µs`
 const BODY_W = 2 * QUAD_KIT.hipY - 0.03
 const nCm = (t: number) => `${fixedText(t * 100, 1)} N·cm`
@@ -134,8 +134,7 @@ export const quadrupedLegGeometry: Lesson = {
     { kind: 'slider', key: 'stride', label: 'Stride', min: 10, max: 120, step: 10, initial: 50, format: (v) => `${v} mm` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
 
     const leg = add(scene, new THREE.Group(), LG.hip)
     leg.scale.setScalar(LG.k)
@@ -241,12 +240,12 @@ export const quadrupedLegGeometry: Lesson = {
         leverTag.group.position.set((f.knee[0] + f.foot[0]) / 2, f.foot[1] - 0.009, 0.01)
         leverTag.set(me.down ? `τ ${nCm(ld.kneeNm)}` : '', HEAT)
         const okHip = me.st.hipDeg >= 0 && me.st.hipDeg <= 180
-        hipTag.set(`hip ${deg(me.st.hipDeg)}`, okHip ? LABEL : HIGH_V)
+        hipTag.set(`hip ${degWhole(me.st.hipDeg)}`, okHip ? LABEL : HIGH_V)
         kneeTag.group.position.set(f.knee[0] - 0.008, f.knee[1], 0.01)
-        kneeTag.set(`knee ${deg(me.st.kneeDeg)}`, me.st.fits ? LABEL : HIGH_V)
+        kneeTag.set(`knee ${degWhole(me.st.kneeDeg)}`, me.st.fits ? LABEL : HIGH_V)
 
         const stand = R.stand
-        rows[0].set(`standing: hip servo ${deg(stand.hipDeg)} (${us(stand.hipDeg)}) · knee ${deg(stand.kneeDeg)} (${us(stand.kneeDeg)})`, stand.fits ? LABEL : HIGH_V)
+        rows[0].set(`standing: hip servo ${degWhole(stand.hipDeg)} (${us(stand.hipDeg)}) · knee ${degWhole(stand.kneeDeg)} (${us(stand.kneeDeg)})`, stand.fits ? LABEL : HIGH_V)
         rows[1].set(R.reach ? `foot reaches ${mmText(-R.reach[0])} back · ${mmText(R.reach[1])} forward` : 'cannot stand at this height', R.reach ? B_FIELD : HIGH_V)
         rows[2].set(`each foot pushes ${fixedText(ld.F, 2)} N (${q.down} feet down)`, RING)
         rows[3].set(`worst knee ${nCm(R.worstKnee)} · hip ${nCm(R.worstHip)} · stall ${nCm(STALL)}`, R.verdict === 'ok' ? POWER : R.verdict === 'thin' ? HEAT : HIGH_V)
@@ -264,7 +263,7 @@ export const quadrupedLegGeometry: Lesson = {
         const R = lgCalc(q)
         return [
           { label: 'Stride the leg reaches', value: mmText(R.maxStride), tone: toneOf(R.fits, R.maxStride > 0) },
-          { label: 'Standing servos hip · knee', value: `${deg(R.stand.hipDeg)} · ${deg(R.stand.kneeDeg)}`, tone: R.stand.fits ? 'ok' : 'bad' },
+          { label: 'Standing servos hip · knee', value: `${degWhole(R.stand.hipDeg)} · ${degWhole(R.stand.kneeDeg)}`, tone: R.stand.fits ? 'ok' : 'bad' },
           { label: 'Worst knee torque', value: nmText(R.worstKnee, 3) },
           { label: 'Share of SG90 stall', value: `${Math.round(R.share * 100)} %`, tone: R.verdict === 'ok' ? 'ok' : R.verdict === 'thin' ? 'warn' : 'bad' },
         ]
@@ -312,8 +311,7 @@ export const quadrupedGaitGenerator: Lesson = {
     { kind: 'slider', key: 'period', label: 'Cycle time T', min: 0.3, max: 2, step: 0.1, initial: 1.2, format: (v) => `${v.toFixed(1)} s` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const fv = floorView(scene, GG.at, GG.k, -1.1)
     floorMat(fv, [GG.run[0] - 0.12, GG.run[1] + 0.12], [-0.13, 0.13])
     const prints = pointCloud(fv, 120, 0.008)
@@ -393,9 +391,9 @@ export const quadrupedGaitGenerator: Lesson = {
           const kn = [servo(i, 1, fr.cmd), servo(i, 1, fr.q)]
           const lag = Math.max(Math.abs(h[0] - h[1]), Math.abs(kn[0] - kn[1]))
           const stop = h[0] < 0.5 || h[0] > 179.5
-          rows[i].set(`${QUAD_KIT.names[i]} ${(fr.down[i] ? 'stand' : 'swing').padEnd(5)} ${us(h[0])} · ${us(kn[0])} · ${stop ? 'hip at its stop' : `lag ${deg(lag)}`}`, lag > 8 || stop ? HIGH_V : fr.down[i] ? LABEL : GREY)
+          rows[i].set(`${QUAD_KIT.names[i]} ${(fr.down[i] ? 'stand' : 'swing').padEnd(5)} ${us(h[0])} · ${us(kn[0])} · ${stop ? 'hip at its stop' : `lag ${degWhole(lag)}`}`, lag > 8 || stop ? HIGH_V : fr.down[i] ? LABEL : GREY)
         })
-        sc.right.set(`lag ≤ ${deg(toDeg(R.lagMax))}`, toDeg(R.lagMax) > 8 ? HIGH_V : POWER)
+        sc.right.set(`lag ≤ ${degWhole(toDeg(R.lagMax))}`, toDeg(R.lagMax) > 8 ? HIGH_V : POWER)
 
         const nDown = fr.down.filter(Boolean).length
         status.set(`${GAIT_NAMES[q.gait]} · ${nDown} of 4 feet down · walked ${mmText(R.stride)} of ${mmText(q.stride)} per step`, LABEL)
@@ -411,7 +409,7 @@ export const quadrupedGaitGenerator: Lesson = {
         return [
           { label: 'Speed walked · planned', value: `${mmText(R.speed)}/s · ${mmText(R.planned)}/s`, tone: toneOf(ratio > 0.9, ratio > 0.7) },
           { label: 'Swing foot lift', value: mmText(R.lift), tone: toneOf(R.lift > 0.015, R.lift > 0.01) },
-          { label: 'Worst servo lag', value: deg(toDeg(R.lagMax)), tone: toneOf(R.lagMax < (5 * Math.PI) / 180, R.lagMax < (12 * Math.PI) / 180) },
+          { label: 'Worst servo lag', value: degWhole(toDeg(R.lagMax)), tone: toneOf(R.lagMax < (5 * Math.PI) / 180, R.lagMax < (12 * Math.PI) / 180) },
           { label: 'Static margin', value: R.minDown < 3 ? 'none: 2 feet' : mmText(Math.max(0, R.margin)), tone: R.minDown < 3 ? 'warn' : toneOf(R.margin > 0.008, R.margin > 0.003) },
         ]
       },

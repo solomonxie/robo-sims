@@ -94,6 +94,7 @@ export const celsiusText = (c: number, digits = 0) => `${fixedText(c, digits)} �
 /** Thermal resistance, °C/W: two decimals under 1, one under 10, else whole. */
 export const thetaText = (r: number) => `${r < 1 ? r.toFixed(2) : r < 10 ? r.toFixed(1) : Math.round(r)} °C/W`
 export const degText = (d: number, digits = 1) => `${d.toFixed(digits)}°`
+export const degWhole = (d: number) => `${Math.round(d)}°`
 /** Radians as degrees, values that round to zero shown as 0. */
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)
 /** Fixed digits with a true minus, values that round to zero unsigned. */
@@ -125,6 +126,11 @@ export const millivolts = (v: number) => `${Math.round(v * 1000)} mV`
 export const hoursText = (h: number, digits = 1) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(digits)} h`)
 /** Seconds as `hoursText` (min under an hour). */
 export const durationText = (s: number) => hoursText(s / 3600)
+/** Hour `tH` of a run as "day 2, 07:30". */
+export const dayClock = (tH: number) => {
+  const h = ((tH % 24) + 24) % 24
+  return `day ${Math.floor(tH / 24) + 1}, ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`
+}
 /** Battery-life style span: hours, then days, then years. */
 export const spanText = (h: number) => (h < 48 ? hoursText(h) : h < 24 * 365 ? `${Math.round(h / 24)} days` : `${+(h / 8766).toFixed(1)} years`)
 

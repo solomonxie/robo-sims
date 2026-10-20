@@ -2,6 +2,7 @@
 import * as THREE from 'three/webgpu'
 import { fixedStepAt } from '../../core/physics'
 import { V3, add } from '../../models/kit'
+import { createStage } from '../../scene/stage'
 import { GREY, LABEL } from './colors'
 import { scope } from './screens'
 import { addLabel, liveLabel } from './text'
@@ -15,6 +16,8 @@ export const WIDE_VIEW = sideView(-1.2, -1, 56)
 export const WIDE_LEFT = { x: -9, w: 15, top: -1.2, topH: 6.6, low: -10.3, lowH: 6.6 }
 export const WIDE_RIGHT = { x: 8.6, w: 12.4, y: -10.3, h: 6.6 }
 export const WIDE_TALL = { x: 8.6, w: 11.8, y: -5.9, h: 7.2 }
+/** Straight face-on board: plots and rigs on one plane. */
+export const FACE_VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: Math.PI / 2, azimuth: 0 }
 
 export function statusHeader(scene: THREE.Object3D) {
   return {
@@ -22,6 +25,11 @@ export function statusHeader(scene: THREE.Object3D) {
     sub: liveLabel(scene, [-17, 5.7, 0.3], { size: 0.3, color: GREY, align: 'left' }),
     event: liveLabel(scene, [-17, 4.9, 0.3], { size: 0.32, align: 'left' }),
   }
+}
+/** Span-40 stage with a `statusHeader`. */
+export function headerStage() {
+  const scene = createStage({ span: 40 })
+  return { scene, ...statusHeader(scene) }
 }
 
 /** Metres group (z up), viewed `tilt` rad from the side; `holder` turns a model so its nose points into the screen. */
@@ -95,6 +103,19 @@ export function titledScope(scene: THREE.Object3D, y: number, h: number, title: 
   const lo = liveLabel(scene, [x - w / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'left' })
   const hi = liveLabel(scene, [x + w / 2, y - h / 2 - 0.9, 0.3], { size: 0.26, color: GREY, align: 'right' })
   return { s, right, lo, hi, h }
+}
+
+/** Scope in box `p` (centre x, y; w × h): title top left, live `tag` top right, opt. `axis` [top, bottom] labels on the left. */
+export function boxScope(scene: THREE.Object3D, p: { x: number; y: number; w: number; h: number }, title: string, divs: [number, number], o: { zeroAt?: number; tag?: number; axis?: [string, string]; axisSize?: number } = {}) {
+  const s = scope(scene, p.w, p.h, { divs, zeroAt: o.zeroAt ?? 0 })
+  s.group.position.set(p.x, p.y, 0)
+  addLabel(scene, title, [p.x - p.w / 2, p.y + p.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
+  const tag = liveLabel(scene, [p.x + p.w / 2, p.y + p.h / 2 + 0.9, 0.3], { size: o.tag ?? 0.28, align: 'right' })
+  if (o.axis) {
+    addLabel(scene, o.axis[0], [p.x - p.w / 2 - 0.4, p.y + p.h / 2, 0.3], GREY, o.axisSize ?? 0.24, 'right')
+    addLabel(scene, o.axis[1], [p.x - p.w / 2 - 0.4, p.y - p.h / 2, 0.3], GREY, o.axisSize ?? 0.24, 'right')
+  }
+  return { s, tag }
 }
 
 /** `k` left-aligned live text rows from (x, y) down, `gap` apart. */

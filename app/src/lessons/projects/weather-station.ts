@@ -23,13 +23,14 @@ import {
   wxSunAt,
   wxWeek,
 } from '../../core/physics'
-import { amps as ampText, bytesText, hexByte as hex, celsiusText, fixedText, hoursText, ohms, pct, secs } from '../../core/units'
+import { amps as ampText, bytesText, celsiusText, dayClock, fixedText, hexByte as hex, hoursText, ohms, pct, secs } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   CLK_COLOR,
   CODE_LEGEND,
   DATA_COLOR,
+  FACE_VIEW,
   GREY,
   HEAT,
   HIGH_V,
@@ -38,6 +39,7 @@ import {
   RING,
   SUN_TINT,
   addLabel,
+  addRod,
   cableRun,
   cell18650,
   codeBlock,
@@ -46,6 +48,7 @@ import {
   frac,
   glowDot,
   glowMat,
+  headerStage,
   heatWaves,
   i2cBreakout,
   liveLabel,
@@ -56,13 +59,10 @@ import {
   scope,
   setGlow,
   shellMat,
-  statusHeader,
   stretchRod,
-  addRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: Math.PI / 2, azimuth: 0 }
 const pf = (f: number) => `${Math.round(f * 1e12)} pF`
 const BOX = { x: -12, y: -0.9, w: 9.6, h: 6.6, d: 2.4 }
 
@@ -131,8 +131,7 @@ export const weatherStationWireTheSensors: Lesson = {
     { kind: 'choice', key: 'mode', options: opts(MODES), initial: 'fast' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     stationBox(scene, [BOX.x, BOX.y, 0], BOX.w, BOX.h, BOX.d)
     const espAt: V3 = [-13.7, -1.3, 0]
     const ek = 0.32
@@ -167,7 +166,7 @@ export const weatherStationWireTheSensors: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = wsParams(p)
         const b = wxBus(q.cable, q.pullup, q.mode)
@@ -272,10 +271,6 @@ const P_HI = 102_400
 const PP = { x: 4.6, y: -0.2, w: 14, h: 4.6 }
 const BP = { x: 4.6, y: -6.9, w: 14, h: 2.6 }
 const ST: V3 = [-13.2, -4.4, 0]
-const dayText = (tH: number) => {
-  const h = ((tH % 24) + 24) % 24
-  return `day ${Math.floor(tH / 24) + 1}, ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`
-}
 const SEND_CODE: Record<NodeRadio, string> = {
   wifi: 'WiFi.begin(ssid, pass);  // scan + join + DHCP',
   static: 'WiFi.config(ip, gw, mask); WiFi.begin(ssid, pass, ch, bssid);',
@@ -313,8 +308,7 @@ export const weatherStationSendOverWiFi: Lesson = {
     { kind: 'choice', key: 'sun', options: opts(SUN_NAMES), initial: 'none' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const metal = mat('#9aa0aa', { metal: 0.5, rough: 0.4 })
     stretchRod(addRod(scene, metal), [ST[0], -10, -0.6], [ST[0], -0.4, -0.6], 0.18)
     stationBox(scene, ST, 3.4, 2.6, 1.4)
@@ -358,7 +352,7 @@ export const weatherStationSendOverWiFi: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = swParams(p)
         const R = swRun(q)
@@ -404,10 +398,10 @@ export const weatherStationSendOverWiFi: Lesson = {
           `http.POST(${wxJson(last?.seaPa ?? 101_325, last?.airC ?? 10, 3.6 + 0.6 * s.soc)});`,
           `esp_deep_sleep(${q.everyS}e6);  // ${EVERY[String(q.everyS) as keyof typeof EVERY]}`,
         ])
-        status.set(`${dayText(tH)} · ${s.alive ? 'reporting' : 'battery flat'}`, s.alive ? LABEL : HIGH_V)
+        status.set(`${dayClock(tH)} · ${s.alive ? 'reporting' : 'battery flat'}`, s.alive ? LABEL : HIGH_V)
         sub.set(`7 days in ${LAPSE_S} s (${Math.round((WEEK_H * 3600) / LAPSE_S).toLocaleString('en')}× faster) · ${RADIOS[q.radio]} every ${EVERY[String(q.everyS) as keyof typeof EVERY]}`, GREY)
         const front = tH > WX_WEEK.frontH
-        if (!s.alive) event.set(`battery flat on ${dayText(R.emptyH!)}: the dashboard goes dark${R.alertH === null ? ' and misses the storm' : ''}`, HIGH_V)
+        if (!s.alive) event.set(`battery flat on ${dayClock(R.emptyH!)}: the dashboard goes dark${R.alertH === null ? ' and misses the storm' : ''}`, HIGH_V)
         else if (alerted) event.set(`storm alert: ${fixedText(-(R.reports.find((r) => r.t === R.alertH)?.tend ?? 0) / 100, 1)} hPa down in 3 h, ${hoursText(R.alertH! - R.trueAlertH!)} after the real fall passed 3.5`, HIGH_V)
         else if (front) event.set('the front is coming: pressure starts to fall', HEAT)
         else event.set(`${fixedText(R.useMahPerDay, 0)} mAh a day out, ${fixedText(R.inMahPerDay, 0)} in from the sun`, R.inMahPerDay >= R.useMahPerDay ? POWER : GREY)

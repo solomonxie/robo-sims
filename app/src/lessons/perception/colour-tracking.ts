@@ -1,3 +1,4 @@
+import { degWhole } from '../../core/units'
 import * as THREE from 'three/webgpu'
 import {
   Img, MaskBlob, MeasFilter, NO_FILTER, PAN_CAM, PanSample, Cleanup, panFrameImg, filterDelay, findBlob, fixedStepAt, hsvMask, hsvToRgb, labelBlobs, largestBlob, maskIoU, noisyImg, panStats, panTrackRun, rgbToHsv, tabletopImg,
@@ -12,7 +13,6 @@ import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const f1 = (v: number) => v.toFixed(1)
 const f2 = (v: number) => v.toFixed(2)
-const deg = (v: number) => `${Math.round(v)}°`
 const rgb01 = (c: string): Rgb01 => {
   const k = new THREE.Color(c)
   return [k.r, k.g, k.b]
@@ -144,8 +144,8 @@ export const colourTrackingHsvMask: Lesson = {
         boxes.commit()
         rings.commit()
         hist.set(S.hist, (i) => hsvToRgb((i + 0.5) * (360 / HM.bins), 0.85, 0.95).map((c) => c / 255) as Rgb01)
-        hist.marker(0, (((S.hue - S.tol) % 360) + 360) % 360 / 360, RING, deg((S.hue - S.tol + 360) % 360))
-        hist.marker(1, ((S.hue + S.tol) % 360) / 360, RING, deg((S.hue + S.tol) % 360))
+        hist.marker(0, (((S.hue - S.tol) % 360) + 360) % 360 / 360, RING, degWhole((S.hue - S.tol + 360) % 360))
+        hist.marker(1, ((S.hue + S.tol) % 360) / 360, RING, degWhole((S.hue + S.tol) % 360))
         const b = S.best
         const name = TARGETS[S.target]
         const specks = S.blobs.length - (b ? 1 : 0)
@@ -295,13 +295,13 @@ export const colourTrackingCentroidSteering: Lesson = {
           r: 'x̄ = centre',
           e: s.seen ? `e ${f1(s.errPx)} px` : 'lost',
           u: `${Math.round(s.rate)} °/s`,
-          y: `pan ${deg(s.panDeg)}`,
+          y: `pan ${degWhole(s.panDeg)}`,
           m: s.seen ? 'x̄' : 'no blob',
         })
         status.set(`${PATHS[c.path]} · Kp ${c.kp}${c.kd > 0 ? ` · Kd ${c.kd}` : ''} · ${c.fps} fps`, LABEL)
         if (!s.seen && s.t > 0.2) event.set(`ball out of the frame: turning ${s.errPx >= 0 ? 'left' : 'right'}, where it was last seen`, HIGH_V)
         else if (R.stats.lostS > 0.3) event.set(`too much gain for ${Math.round(latencyMs(c))} ms of delay: the camera overshoots and loses the ball`, HEAT)
-        else if (Math.abs(miss) > 8) event.set(`lagging ${deg(Math.abs(miss))} behind the ball: the loop needs a bigger error to turn faster`, HEAT)
+        else if (Math.abs(miss) > 8) event.set(`lagging ${degWhole(Math.abs(miss))} behind the ball: the loop needs a bigger error to turn faster`, HEAT)
         else event.set(`locked on: ${f1(Math.abs(miss))}° off, centroid ${f1(Math.abs(s.errPx))} px from the middle`, POWER)
         sub.set(`${t.toFixed(2)} / ${PAN_CAM.seconds} s · slowed ${1 / CS.slow}× · ${PAN_CAM.w} × ${PAN_CAM.h} frames, ${PAN_CAM.hfovDeg}° field of view, ball ${PAN_CAM.distM * 100} cm away`, GREY)
       },

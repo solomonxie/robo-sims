@@ -1,7 +1,7 @@
 // Maze-solver car: three VL53L0X wall sensors in a 25 cm cell maze (mount, cone, floor returns, threshold), and the micromouse run on a TT car (sense, flood, spin, drive; fast run on merged straights).
 import { ENCODERS, TT_WHEEL_MM, TT_TRACK_M, mmPerTick, ticksPerWheelRev } from '../sensors/encoder'
 import { TT_GEAR } from '../actuators/dcmotor'
-import { DEG, gaussAt, wrapPi } from '../common'
+import { DEG, clamp01, gaussAt, wrapPi } from '../common'
 import { moveAt, trapezoidMove } from '../control/position'
 import { DIR_TH, Dir, MAZE, Maze, cellDrive, mouseRun, neighbour, wallAt } from '../navigation/maze'
 import { Pose, rayDir, toRoom } from '../room'
@@ -72,7 +72,7 @@ export function sensorRay(p: Pose, slot: number, mount: SideMount): { at: [numbe
 }
 
 /** One VL53L0X ranging: nearest return inside its 25° cone (5 rays; walls, posts or the floor), photon-limited noise, 8190 if no valid return. */
-export function tofWallMm(m: Maze, at: [number, number], th: number, k: number) {
+function tofWallMm(m: Maze, at: [number, number], th: number, k: number) {
   let best: { m: number; refl: number } | null = null
   for (const [a, e] of CONE_RAYS) {
     const hit = castMaze(m, [at[0], at[1], MAZE_BOT.z], rayDir(th + a, e), VL53L0X.maxM)
@@ -150,8 +150,8 @@ export const mapBytes = (w: number, h: number) => w * h + 2 * w * h
 /** Encoder ticks per cell: TT Hall encoder, ×4 decoding, 1:48 gearbox. */
 export const cellTicks = (cellM = MAZE.cellM) => Math.round((cellM * 1000) / mmPerTick(TT_WHEEL_MM, ticksPerWheelRev(ENCODERS.hall.ppr, 4, TT_GEAR)))
 
-export type MousePhase = 'search' | 'return' | 'fast'
-export interface MouseSeg {
+type MousePhase = 'search' | 'return' | 'fast'
+interface MouseSeg {
   kind: 'sense' | 'turn' | 'drive'
   phase: MousePhase
   t0: number
@@ -223,7 +223,7 @@ export function mouseAt(m: Maze, segs: MouseSeg[], t: number) {
   let i = segs.findIndex((s) => t < s.t0 + s.T)
   if (i < 0) i = segs.length - 1
   const s = segs[i]
-  const u = Math.min(1, Math.max(0, (t - s.t0) / s.T))
+  const u = clamp01((t - s.t0) / s.T)
   const centre = (c: number): [number, number] => [((c % m.w) + 0.5) * MAZE.cellM, (Math.floor(c / m.w) + 0.5) * MAZE.cellM]
   const [x0, y0] = centre(s.from)
   let rolled = 0

@@ -30,8 +30,9 @@ import {
 } from '../../core/physics'
 import { fixedText, hoursText, mpsText, msText, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
+  ARDUINO,
   B_FIELD,
   GREY,
   HEAT,
@@ -46,8 +47,8 @@ import {
   arcAt,
   cableRun,
   cell18650,
-  codeListing,
   chassisModel,
+  codeListing,
   countBars,
   crashWall,
   cursorBar,
@@ -61,6 +62,7 @@ import {
   floorView,
   glowDot,
   glowMat,
+  headerStage,
   i2cBreakout,
   lapseClock,
   liveLabel,
@@ -68,7 +70,7 @@ import {
   moduleBlock,
   packetPool,
   setGlow,
-  statusHeader,
+  sketchTint,
   stickPhone,
   storyClock,
   storySlider,
@@ -86,8 +88,7 @@ const mmFixedM = (m: number) => (Math.abs(m) < 1 ? `${Math.round(m * 1000)} mm` 
 /** Car top view on the left of a span-40 board, metres × k, x forward, tilted toward the viewer. */
 const CAR = { at: [-9.4, -3.2, 0] as V3, tilt: -0.3, k: 68 }
 function carStage() {
-  const scene = createStage({ span: 40 })
-  const head = statusHeader(scene)
+  const { scene, ...head } = headerStage()
   const top = add(scene, new THREE.Group(), CAR.at)
   top.rotation.x = CAR.tilt
   const parts = robocarParts()
@@ -344,8 +345,7 @@ export const roboCarWireTheMotorDriver: Lesson = {
     { kind: 'choice', key: 'fault', options: opts(FAULT_NAMES), initial: 'ok' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const espPin = esp32Board(scene, WD.esp, WD.espK)
     const esp = (name: string) => espPin(espIndex(name), false)
     for (const g of ['34', '25', '26', '27', '14', 'GND']) {
@@ -493,7 +493,7 @@ export const roboCarDriveWithEsp32: Lesson = {
     return `wheel ≈ speed at duty × ${V(carPower('li2').cruise.packV)}: L ${mpsText(R.vL)}, R ${fixedText(q.duty * (1 + q.trim) * 100, 0)} % × (1 − ${DRIVE.weak}) → ${mpsText(R.vR)} · drift over ${mmFixedM(R.side)} = ${mmFixedM(Math.abs(R.driftM))} · spin ${spinMs()} ms → ${fixedText(R.turnDeg, 0)}° · starts moving at ${fixedText(startDuty() * 100, 0)} % · LEDC at ${PWM_HZ_VAL.k20 === q.hz ? '20 kHz' : '1 kHz'}: up to ${ledcResolution(q.hz)} bits, ${audible(q.hz) ? 'audible whine' : 'silent'} (typical)`
   },
   legend: [
-    { color: '#9fe0a0', label: 'The sketch (Arduino), current line lit', shape: 'dot' },
+    { color: ARDUINO, label: 'The sketch (Arduino), current line lit', shape: 'dot' },
     { color: HEAT, label: 'Left wheel PWM (AIN1)', shape: 'dot' },
     { color: B_FIELD, label: 'Right wheel PWM (BIN1)', shape: 'dot' },
     { color: GREY, label: 'Path driven; the ideal square in yellow', shape: 'dot' },
@@ -510,8 +510,7 @@ export const roboCarDriveWithEsp32: Lesson = {
     { kind: 'choice', key: 'hz', options: opts(PWM_HZ), initial: 'k20' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const code = codeListing(scene, [-16.8, 3.9, 0.3], 10, 17, 0.2, 0.44, '#ffd56b')
     const floor = floorView(scene, DE.floor, DE.floorK, -0.55)
     floorMat(floor, [-0.3, 1.5], [-0.3, 1.4])
@@ -549,7 +548,7 @@ export const roboCarDriveWithEsp32: Lesson = {
         const c: V3[] = [[0, 0, 0.004], [s, 0, 0.004], [s, s, 0.004], [0, s, 0.004]]
         ideal.forEach((r, i) => stretchRod(r, c[i], c[(i + 1) % 4], 0.006))
         const line = tNow >= R.seconds ? 9 : f.spinning ? 8 : 7
-        code.set(deCode(q.duty, q.trim, q.hz, spinMs()), line, (l) => (l.includes('//') && l.trim().startsWith('//') ? GREY : '#9fe0a0'))
+        code.set(deCode(q.duty, q.trim, q.hz, spinMs()), line, sketchTint)
 
         const dL = Math.abs(f.l)
         const dR = Math.abs(f.r)
@@ -634,8 +633,7 @@ export const roboCarPhoneRemote: Lesson = {
     { kind: 'slider', key: 'cap', label: 'Speed limit', min: 30, max: 80, step: 10, initial: 50, format: (v) => `${v} %` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const head = statusHeader(scene)
+    const { scene, ...head } = headerStage()
     const phone = stickPhone(scene, PR.phone, PR.phoneK)
     const floor = floorView(scene, PR.floor, PR.floorK, -0.55)
     floorMat(floor, [-0.3, 1.75], [-0.45, 0.45])
@@ -713,7 +711,7 @@ export const roboCarPhoneRemote: Lesson = {
         packets.end()
 
         const sec = FAILSAFE_S[fs]
-        code.set(prCode(sec, cap), f.failsafe ? 3 : locked ? -1 : 1, (l) => (l.trim().startsWith('//') ? (sec ? GREY : HIGH_V) : '#9fe0a0'))
+        code.set(prCode(sec, cap), f.failsafe ? 3 : locked ? -1 : 1, (l) => (l.trim().startsWith('//') ? (sec ? GREY : HIGH_V) : ARDUINO))
         rows[0].set(`stick x ${fixedText(f.sx, 2)} y ${fixedText(f.sy, 2)} → L ${pct(f.wl)} R ${pct(f.wr)}`, locked ? GREY : RING)
         rows[1].set(locked ? `Last message ${msText(f.age)} ago${f.failsafe ? ': failsafe stopped the wheels' : ''}` : `Messages every ${msText(1 / PHONE_CAR.hz)}, last ${msText(f.age)} ago`, locked ? (f.failsafe ? POWER : HIGH_V) : LABEL)
         rows[2].set(R.crashed ? `This run: hits the wall ${mmFixedM(R.blindM)} after the lock` : `This run: stops ${mmFixedM(R.gapM)} short of the wall, ${mmFixedM(R.blindM)} blind`, R.crashed ? HIGH_V : R.blindM < 0.1 ? POWER : HEAT)

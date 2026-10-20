@@ -51,7 +51,7 @@ export function floorEcho(h: number, tiltDeg: number): Heard {
 
 /** Echo from an obstacle face `d` ahead, `H` tall. A face up to the sensor height mirrors the level ray straight back;
  *  a lower one only scatters back the slice of the beam it catches (like a thin post, but vertically). */
-export function faceEcho(h: number, tiltDeg: number, d: number, H: number, refl: number): Heard {
+function faceEcho(h: number, tiltDeg: number, d: number, H: number, refl: number): Heard {
   const tilt = tiltDeg * DEG
   if (H >= h) {
     const a = (refl * beamGain(Math.abs(tilt)) ** 2 * spread(2 * d)) / THRESHOLD
@@ -69,8 +69,8 @@ export function faceEcho(h: number, tiltDeg: number, d: number, H: number, refl:
   return { m: a >= 1 ? Math.hypot(d, h - H) : null, peak: a }
 }
 
-export type EchoSource = 'target' | 'floor' | 'none'
-export interface MountFrame {
+type EchoSource = 'target' | 'floor' | 'none'
+interface MountFrame {
   d: number
   /** What the sketch prints, cm (0 = timed out). */
   cm: number
@@ -100,14 +100,14 @@ export function mountScan(h: number, tiltDeg: number, target: MountTarget) {
 
 export type LookPlan = 'left' | 'look'
 export const LOOK_STATES = ['DRIVE', 'BRAKE', 'LOOK LEFT', 'LOOK RIGHT', 'BACK UP', 'TURN'] as const
-export type LookState = (typeof LOOK_STATES)[number]
+type LookState = (typeof LOOK_STATES)[number]
 /** Ping every 60 ms (HC-SR04 datasheet), servo ±70°, wait 0.1 s after a swing for the horn and echoes to settle. */
 export const LOOK = { pingS: 0.06, lookDeg: 70, settleS: 0.1, brakeS: 0.2, backS: 0.4, clearK: 1.3, maxTurnS: 1.5, maxM: 2, duty: 0.6, seconds: 60, start: { x: 0.4, y: 1.0, th: 0.35 } as Pose }
 
 /** Swing time of the SG90 at 5 V plus the settle wait. */
 export const servoWaitS = (fromDeg: number, toDeg: number) => Math.abs(toDeg - fromDeg) / SERVO_DEG_PER_S + LOOK.settleS
 
-export interface LookFrame {
+interface LookFrame {
   state: LookState
   servo: number
   /** Last front, left and right readings, m. */
@@ -187,7 +187,7 @@ export const STOP_TEST = { startM: 1.2, canM: 0.013, dt: 0.002, seconds: 6, temp
 export const stopDecel = () => BUMP_BOT.mu * G
 
 /** The target as reflectors: a wall through (x, 0) turned `deg` from square-on, or a post. */
-export function stopReflectors(target: StopTarget, x: number): Reflector[] {
+function stopReflectors(target: StopTarget, x: number): Reflector[] {
   const T = STOP_TARGETS[target]
   if (T.leg) return [{ kind: 'post', at: { x, y: 0 }, width: T.leg, refl: T.refl, name: 'leg' }]
   const s = Math.sin(T.deg * DEG)
@@ -203,7 +203,7 @@ export function stopPing(target: StopTarget, sx: number) {
   return e ? arduinoCm(echoSeconds(e.path / 2, STOP_TEST.tempC)) : 0
 }
 
-export interface ApproachFrame {
+interface ApproachFrame {
   t: number
   /** Sensor position, m from the start. */
   x: number

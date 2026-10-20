@@ -81,7 +81,7 @@ export type QuadGait = keyof typeof QUAD_GAITS
 /** Body shift along x at cycle fraction s (feet move by −shift in the body frame). */
 export const quadShift = (g: Gait, s: number, k = QUAD_KIT) => swayAt(g, s, quadHips(k).map(([x]) => [x, 0] as P2))[0]
 
-export interface QuadFrame {
+interface QuadFrame {
   t: number
   /** Commanded and actual [hip, knee] per leg (rad). */
   cmd: P2[]

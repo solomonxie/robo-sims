@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import {
+  DEG,
   LENSES,
   PT_CROP,
   PT_FRAMES,
@@ -24,11 +25,12 @@ import {
   ptTrackRun,
   ptView,
 } from '../../core/physics'
-import { fixedText } from '../../core/units'
+import { degWhole, fixedText } from '../../core/units'
 import { V3, add } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   B_FIELD,
+  FACE_VIEW,
   GREY,
   HEAT,
   HIGH_V,
@@ -39,8 +41,10 @@ import {
   addLabel,
   beamCone,
   codeListing,
+  commentTint,
   floorView,
   gridPoint,
+  headerStage,
   lapseClock,
   liveLabel,
   memoBy,
@@ -51,16 +55,12 @@ import {
   scopeLabels,
   showImg,
   sideScope,
-  statusHeader,
   textRows,
   traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const DEG = Math.PI / 180
-const deg = (v: number) => `${Math.round(v)}°`
 const signedDeg = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(Math.round(v))}°`
-const VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: Math.PI / 2, azimuth: 0 }
 
 /** Floor with a pan-tilt head on it (metres; the head drawn `scale` m per servo unit). */
 function rigStage(scene: THREE.Scene, at: V3, k: number, tilt: number, scale: number, floor: [number, number, number], lift = 0) {
@@ -98,7 +98,7 @@ export const cameraTrackerPanTiltRig: Lesson = {
     const c = ptCoverage(q.lens, q.frame, q.teeth)
     const L = ptLoop(q.frame)
     const v = rgView(q)
-    return `ball radius = f·R/d = ${fixedText(ptFocal(q.lens, q.frame), 0)} px × ${PT_RIG.ballR * 100} cm / ${fixedText(q.dist, 1)} m = ${fixedText(v.r, 1)} px · sees ${signedDeg(c.see.right)} … ${signedDeg(c.see.left)} = pan ${signedDeg(c.pan[0])} … ${signedDeg(c.pan[1])} ± ${deg(c.hfov / 2)} · loop = min(${PT_FRAMES[q.frame].grabFps} fps grab, 1 / ${fixedText(L.procMs, 0)} ms mask) = ${fixedText(L.fps, 1)} fps`
+    return `ball radius = f·R/d = ${fixedText(ptFocal(q.lens, q.frame), 0)} px × ${PT_RIG.ballR * 100} cm / ${fixedText(q.dist, 1)} m = ${fixedText(v.r, 1)} px · sees ${signedDeg(c.see.right)} … ${signedDeg(c.see.left)} = pan ${signedDeg(c.pan[0])} … ${signedDeg(c.pan[1])} ± ${degWhole(c.hfov / 2)} · loop = min(${PT_FRAMES[q.frame].grabFps} fps grab, 1 / ${fixedText(L.procMs, 0)} ms mask) = ${fixedText(L.fps, 1)} fps`
   },
   legend: [
     { color: RING, label: 'Camera field of view', shape: 'dot' },
@@ -120,8 +120,7 @@ export const cameraTrackerPanTiltRig: Lesson = {
     { kind: 'choice', key: 'horn', options: opts(HORNS), initial: '0' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const { g, head } = rigStage(scene, RG.floor, RG.k, RG.tilt, RG.scale, [0.62, 0.36, 0.08])
     const seeCone = beamCone(g, GREY)
     const fovCone = beamCone(g, RING)
@@ -143,7 +142,7 @@ export const cameraTrackerPanTiltRig: Lesson = {
     const clock = lapseClock(RG.sweepS, 1, 0)
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = rgParams(p)
         const c = ptCoverage(q.lens, q.frame, q.teeth)
@@ -168,7 +167,7 @@ export const cameraTrackerPanTiltRig: Lesson = {
             limitTags[i].set(signedDeg(a), HEAT)
           })
           limits.commit()
-          rows[0].set(`view ${deg(c.hfov)} × ${deg(c.vfov)} · range ${fixedText(range, 1)} m`, LABEL)
+          rows[0].set(`view ${degWhole(c.hfov)} × ${degWhole(c.vfov)} · range ${fixedText(range, 1)} m`, LABEL)
           rows[1].set(`sees ${signedDeg(c.see.right)} … ${signedDeg(c.see.left)} across`, LABEL)
           rows[2].set(`and ${signedDeg(c.see.down)} … ${signedDeg(c.see.up)} up and down`, LABEL)
           const L = ptLoop(q.frame)
@@ -258,8 +257,7 @@ export const cameraTrackerColourTrackingLoop: Lesson = {
     { kind: 'slider', key: 'dead', label: 'Dead zone ±', min: 0, max: 1.5, step: 0.1, initial: 0, format: (v) => `${v.toFixed(1)}°` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const D = PT_TRACK.distM
     const { g, head } = rigStage(scene, CT.floor, CT.k, CT.tilt, CT.scale, [1.2, 1.15, 0.45], CT.lensZ - 0.135)
     const wall = add(g, new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.85), new THREE.MeshStandardMaterial({ color: '#8a909c', roughness: 0.9 })), [0, D + 0.01, 0.425])
@@ -288,7 +286,7 @@ export const cameraTrackerColourTrackingLoop: Lesson = {
     const st = { key: '', shot: -1 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = ctParams(p)
         const R = ctRun(q)
@@ -296,7 +294,7 @@ export const cameraTrackerColourTrackingLoop: Lesson = {
         if (key !== st.key) {
           Object.assign(st, { key, shot: -1 })
           clock = lapseClock(PT_TRACK.seconds, CT.slow, CT.rest)
-          code.set(LOOP_CODE(R.fps, q), 2, (l) => (l.startsWith('//') ? GREY : LABEL))
+          code.set(LOOP_CODE(R.fps, q), 2, commentTint)
         }
         const t = clock(dt, key)
         const s: PtSample = fixedStepAt(R.samples, t, R.sampleDt)

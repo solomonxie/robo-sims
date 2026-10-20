@@ -86,7 +86,7 @@ export function maxShove(deck: PackDeck, gear: BalGear) {
 /** Accel noise (g rms, motor vibration included), gyro noise (°/s rms) per 5 ms sample. */
 export const BAL_IMU = { noiseG: 0.02, noiseDps: 0.05, low: 0.04 }
 export type TiltFilter = 'accel' | 'gyro' | 'comp'
-export interface ImuCfg {
+interface ImuCfg {
   filter: TiltFilter
   /** Complementary filter time constant (s). */
   tau: number
@@ -105,7 +105,7 @@ export function mountedAccel(tilt: number, rate: number, alpha: number, a: numbe
 export const accelLean = (f: [number, number, number]) => -accelTilt(f)
 
 /** Makes a tilt reader for `balanceLoop`: noisy, biased MPU-6050 through the chosen filter; `log` collects the raw accel tilt per step. */
-export function imuReader(c: ImuCfg, log?: number[]) {
+function imuReader(c: ImuCfg, log?: number[]) {
   return () => {
     let prev: Cart | null = null
     let est = 0
@@ -148,7 +148,7 @@ export function tiltReadRun(c: ImuCfg) {
 // --- Tune the loop: the real robot (IMU through the filter, battery a little off-centre), gains added one stage at a time. ---
 
 /** Comp filter τ = 1 s, calibrated gyro, IMU low on the front. */
-export const TUNE_IMU: ImuCfg = { filter: 'comp', tau: 1, r: BAL_IMU.low, biasDps: gyroBias(true) }
+const TUNE_IMU: ImuCfg = { filter: 'comp', tau: 1, r: BAL_IMU.low, biasDps: gyroBias(true) }
 export const TUNE = { seconds: 8, start: 3 * DEG, push: 4, kick: 1, battShift: 0.005 }
 export type TuneStage = 'p' | 'pd' | 'speedP' | 'speedPI'
 export const TUNE_STAGES: Record<TuneStage, string> = { p: '1 · Tilt P', pd: '2 · + tilt D', speedP: '3 · + speed P', speedPI: '4 · + speed I' }
@@ -159,7 +159,7 @@ export interface TuneGains {
   si: number
 }
 /** Gains in use at a stage: later terms zeroed. */
-export function stageGains(stage: TuneStage, g: TuneGains): Pick<BalanceSetup, 'tilt' | 'speed'> {
+function stageGains(stage: TuneStage, g: TuneGains): Pick<BalanceSetup, 'tilt' | 'speed'> {
   const k = Object.keys(TUNE_STAGES).indexOf(stage)
   const tilt = { kp: g.kp, ki: 0, kd: k >= 1 ? g.kd : 0 }
   return k >= 2 ? { tilt, speed: { kp: g.sp, ki: k >= 3 ? g.si : 0, kd: 0 } } : { tilt }
@@ -178,7 +178,7 @@ export const tuneOffset = () => {
   const b = balBody(2)
   return Math.atan((BAL_KIT.pack * TUNE.battShift) / (b.m * b.h))
 }
-export interface TuneResult {
+interface TuneResult {
   run: BalanceFrame[]
   fell: number | null
   /** Tilt sign changes before any fall. */

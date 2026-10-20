@@ -1,5 +1,5 @@
 // Legged walking: gait phases (duty factor, stance/swing foot path), support polygon and static margin; ZMP of a cart-table biped with foot roll-over; 2-link leg IK.
-import { G, clamp, frac } from '../common'
+import { G, clamp, frac, smoothstep } from '../common'
 
 type P2 = [number, number]
 
@@ -79,11 +79,10 @@ export function swayAt(g: Gait, s: number, homes?: readonly P2[]): P2 {
   const w = walkerOf(g)
   const sw = 1 - g.duty
   const gap = 1 / g.lift.length - sw
-  const ease = (u: number) => u * u * (3 - 2 * u)
   const c: P2 = [0, 0]
   g.lift.forEach((l, i) => {
     const rel = frac(s - l + gap)
-    const b = rel < gap ? ease(rel / gap) : rel < gap + sw ? 1 : rel < 2 * gap + sw ? 1 - ease((rel - gap - sw) / gap) : 0
+    const b = rel < gap ? smoothstep(rel / gap) : rel < gap + sw ? 1 : rel < 2 * gap + sw ? 1 - smoothstep((rel - gap - sw) / gap) : 0
     const [hx, hy] = homes ? homes[i] : footHome(w, i)
     c[0] -= (b * hx * g.sway!) / (g.lift.length - 1)
     c[1] -= (b * hy * g.sway!) / (g.lift.length - 1)

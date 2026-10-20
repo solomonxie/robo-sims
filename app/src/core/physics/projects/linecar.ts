@@ -31,13 +31,13 @@ export function barRaw(off: number, h: number, gain = 1) {
 }
 
 export type BarCal = 'none' | 'sweep'
-export interface BarLimits {
+interface BarLimits {
   lo: number[]
   hi: number[]
 }
 
 /** Start-up calibration: the car swings the bar over the tape and keeps each sensor's lowest (white) and highest (black) reading. */
-export function barCalibrate(h: number): BarLimits {
+function barCalibrate(h: number): BarLimits {
   const offs = Array.from({ length: 81 }, (_, k) => -0.06 + k * 0.0015)
   const reads = LINE_BAR.gains.map((g, i) => offs.map((o) => barRaw(o - sensorX(i), h, g)))
   return { lo: reads.map((r) => Math.min(...r)), hi: reads.map((r) => Math.max(...r)) }
@@ -93,9 +93,9 @@ export const barPinsReadable = (wifi: boolean) => LINE_BAR.pins.every((p) => adc
 // --- PD controller: the Robo-car on the test loop, duty = base speed, turn splits the duties, loop period holds the output. ---
 
 /** Lost for `lostS` = ran off the track. */
-export const LINE_LAP = { dt: 0.005, seconds: 30, lostS: 0.6 }
+const LINE_LAP = { dt: 0.005, seconds: 30, lostS: 0.6 }
 
-export interface LapCfg {
+interface LapCfg {
   duty: number
   kp: number
   kd: number
@@ -103,7 +103,7 @@ export interface LapCfg {
   periodS: number
 }
 
-export interface LapFrame {
+interface LapFrame {
   t: number
   pose: Pose
   dL: number
@@ -200,7 +200,7 @@ export const gridLines = (): Tape[] => {
 }
 export const GRID_START: Pose = { x: LINE_GRID.cell, y: LINE_GRID.startY + 0.05, th: Math.PI / 2 }
 
-export type GridTurn = 'L' | 'S' | 'R'
+type GridTurn = 'L' | 'S' | 'R'
 export type GridGoal = 'A' | 'B' | 'C'
 export const GRID_GOALS: Record<GridGoal, { name: string; at: [number, number]; turns: GridTurn[] }> = {
   A: { name: 'A: top left', at: [0, 2 * LINE_GRID.cell], turns: ['L', 'R', 'S'] },
@@ -208,10 +208,9 @@ export const GRID_GOALS: Record<GridGoal, { name: string; at: [number, number]; 
   C: { name: 'C: top right', at: [2 * LINE_GRID.cell, 2 * LINE_GRID.cell], turns: ['R', 'L', 'S'] },
 }
 export type TurnEnd = 'sensor' | 'timer'
-export const GRID_STATES = ['follow', 'creep', 'brake', 'spin', 'arrived', 'lost', 'stuck'] as const
-export type GridState = (typeof GRID_STATES)[number]
+export type GridState = 'follow' | 'creep' | 'brake' | 'spin' | 'arrived' | 'lost' | 'stuck'
 
-export interface GridJunction {
+interface GridJunction {
   left: boolean
   right: boolean
   straight: boolean
@@ -219,7 +218,7 @@ export interface GridJunction {
   t: number
   at: Pose
 }
-export interface GridFrame {
+interface GridFrame {
   t: number
   pose: Pose
   dL: number

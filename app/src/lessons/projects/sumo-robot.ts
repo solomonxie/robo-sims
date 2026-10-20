@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import {
   EDGE_THRESHOLD,
+  Pose,
   SUMO_BOT,
   SUMO_BRAIN,
   SUMO_COLORS,
@@ -18,15 +19,15 @@ import {
   SumoState,
   SumoTyre,
   VL53L0X,
-  Pose,
+  clamp01,
   edgeAdc,
   edgeStop,
   sumoEye,
   sumoMatch,
   sumoShove,
   sumoThrust,
-  tofMaxRange,
   toRoom,
+  tofMaxRange,
 } from '../../core/physics'
 import { fixedText, mmText, newtonsText, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
@@ -44,6 +45,7 @@ import {
   addRod,
   chordPath,
   codeListing,
+  commentTint,
   cursorBar,
   floorView,
   forceArrow,
@@ -64,15 +66,16 @@ import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 const RV = { at: [-8.4, -1.6, 0] as V3, k: 19, tilt: -1.0 }
 const US = '#3a8dde'
 const THEM = HIGH_V
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 
-/** Ring, two robots and two header lines over it. */
-function ringStage(scene: THREE.Scene, rivalTeam: string) {
+/** Span-40 stage: ring, two robots and two header lines over it. */
+function ringStage(rivalTeam: string) {
+  const scene = createStage({ span: 40 })
   const g = floorView(scene, RV.at, RV.k, RV.tilt)
   sumoRing(g)
   g.updateWorldMatrix(true, true)
   const v = new THREE.Vector3()
   return {
+    scene,
     g,
     us: sumoBot(g, US),
     them: sumoBot(g, rivalTeam),
@@ -136,8 +139,7 @@ export const sumoRobotWedgeAndWheels: Lesson = {
     { kind: 'choice', key: 'rival', options: opts(RIVAL_NAMES), initial: 'box' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const s = ringStage(scene, THEM)
+    const { scene, ...s } = ringStage(THEM)
     const thrust = [forceArrow(scene, US, { r: 0.07, size: 0.28 }), forceArrow(scene, THEM, { r: 0.07, size: 0.28 })]
     const liftA = forceArrow(scene, RING, { r: 0.07, size: 0.28 })
     const sc = titledScope(scene, WW.sy, WW.sh, 'Tyre push: us · rival', LABEL, 0, WW.sx, WW.sw)
@@ -269,8 +271,7 @@ export const sumoRobotEdgeAndOpponentSensing: Lesson = {
     { kind: 'choice', key: 'start', options: opts(SUMO_STARTS), initial: 'back' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const s = ringStage(scene, '#202226')
+    const { scene, ...s } = ringStage('#202226')
     const trail = chordPath(s.g, 400, US, 0.006, 0.003)
     const beamM = [0, 1].map(() => glowMat(B_FIELD, 1))
     const beams = beamM.map((m) => addRod(s.g, m))
@@ -328,7 +329,7 @@ export const sumoRobotEdgeAndOpponentSensing: Lesson = {
         const line = lineOf(f.state, seen)
         if (line !== st.line) {
           st.line = line
-          code.set(BRAIN(Math.round(q.loop * 1000)), line, (l) => (l.startsWith('//') ? GREY : LABEL))
+          code.set(BRAIN(Math.round(q.loop * 1000)), line, commentTint)
         }
         const last = i === r.frames.length - 1
         const status = last ? (r.result === 'hit' ? `Contact at ${secsText(r.tEnd)}, ${Math.round(r.hitDeg)}° round from its nose` : r.result === 'out' ? `Off the ring at ${secsText(r.tEnd)}` : 'No contact: time up') : `${STATE_TEXT[f.state]} · ${secsText(f.t)}`

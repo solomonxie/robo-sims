@@ -36,7 +36,7 @@ import {
 } from '../../core/physics'
 import { fixedText, mmText, msText, pct } from '../../core/units'
 import { V3 } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   B_FIELD,
   GREY,
@@ -54,16 +54,17 @@ import {
   countBars,
   emptyGroup,
   glowMat,
+  headerStage,
   lapseClock,
   memoBy,
   onBalancer,
   pointCloud,
   scopeLabels,
   sideScope,
-  statusHeader,
   stretchArrow,
   stretchRod,
   textRows,
+  toneColor,
   traceRun,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick, toneOf } from '../types'
@@ -135,8 +136,7 @@ export const selfBalancingRobotBuildTheBase: Lesson = {
     { kind: 'slider', key: 'shove', label: 'Shove J', min: 0, max: 100, step: 5, initial: 40, format: (v) => `${v} mN·s` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const side = balanceFloor(scene, ROBOT, K, 0.26)
     const cues = robotCues(side.g)
     let bot: Bot | null = null
@@ -237,8 +237,7 @@ export const selfBalancingRobotReadTheTilt: Lesson = {
     { kind: 'choice', key: 'cal', options: opts(CALS), initial: 'cal' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const side = balanceFloor(scene, ROBOT, K, 0.26)
     const bot = balanceBot(side.g)
     const cues = robotCues(side.g)
@@ -302,7 +301,6 @@ type TlQ = ReturnType<typeof tlParams>
 const gKey = (g: TuneGains) => `${g.kp}|${g.kd}|${g.sp}|${g.si}`
 const tlRun = memoBy((q: TlQ) => `${q.stage}|${gKey(q.g)}`, (q: TlQ) => tuneRun(q.stage, q.g))
 const tlSheet = memoBy(gKey, tuneSheet)
-const verdictColor = (v: TuneVerdict) => (v === 'holds' ? POWER : v === 'creeps' || v === 'wobbles' ? HEAT : HIGH_V)
 const verdictTone = (v: TuneVerdict) => (v === 'holds' ? 'ok' : v === 'creeps' || v === 'wobbles' ? 'warn' : 'bad')
 const STAGES = Object.keys(TUNE_STAGES) as TuneStage[]
 
@@ -335,8 +333,7 @@ export const selfBalancingRobotTuneTheLoop: Lesson = {
     { kind: 'slider', key: 'si', label: 'Speed Ki', min: 0, max: 6, step: 0.5, initial: 2, format: (v) => `${v}°/m` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const side = balanceFloor(scene, ROBOT, K, 0.26)
     const bot = balanceBot(side.g, { shift: TUNE.battShift })
     const cues = robotCues(side.g)
@@ -364,7 +361,7 @@ export const selfBalancingRobotTuneTheLoop: Lesson = {
           bars.set(
             S.map((s) => s.fell ?? TUNE.seconds),
             S.map((s) => (s.fell !== null ? `${TUNE_VERDICTS[s.verdict].split(':')[0]} at ${fixedText(s.fell, 1)} s` : TUNE_VERDICTS[s.verdict])),
-            S.map((s) => verdictColor(s.verdict)),
+            S.map((s) => toneColor[verdictTone(s.verdict)]),
             TUNE.seconds,
           )
           STAGES.forEach((s, j) => bars.rename(j, TUNE_STAGES[s], s === q.stage ? LABEL : GREY))

@@ -1,5 +1,5 @@
-import * as THREE from 'three/webgpu'
 import {
+  DEG,
   MAZE,
   MAZE_BOT,
   MOUSE_DRIVE,
@@ -36,6 +36,7 @@ import {
   addRod,
   chordPath,
   codeListing,
+  commentTint,
   countBars,
   cursorBar,
   diffBot,
@@ -60,10 +61,12 @@ const TOP = MV.at[1] + N * MAZE.cellM * MV.k * Math.cos(MV.tilt)
 const C = { wall: '#d9dce3', ghost: '#5d626e', goal: '#6b4322', seen: '#1f3d47', bad: '#5a2430', path: '#1f5a3c' }
 const SLOT_NAMES = ['left', 'front', 'right']
 
-/** Maze, trail, robot and two header lines over the maze. */
-function mazeStage(scene: THREE.Scene) {
+/** Span-40 stage: maze, trail, robot and two header lines over the maze. */
+function mazeStage() {
+  const scene = createStage({ span: 40 })
   const g = floorView(scene, MV.at, MV.k, MV.tilt)
   return {
+    scene,
     g,
     mz: mazeModel(g, N, N),
     trail: chordPath(g, 4 * N * N, RING, 0.007, 0.012),
@@ -116,8 +119,7 @@ export const mazeSolverWallSensing: Lesson = {
     { kind: 'slider', key: 'skew', label: 'Heading error', min: -25, max: 25, step: 5, initial: 0, format: (v) => `${v}°` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const s = mazeStage(scene)
+    const { scene, ...s } = mazeStage()
     const pts = cellPts(wsMaze, wsCells)
     const sensorM = glowMat('#2a2c32', 0.2)
     const chips = [0, 1, 2].map(() => flatBox(s.bot.group, [0.014, 0.024, 0.01], sensorM, [0, 0, MAZE_BOT.z]))
@@ -149,7 +151,7 @@ export const mazeSolverWallSensing: Lesson = {
           ;[0, 1, 2].forEach((k) => {
             const sp = k === 1 ? MAZE_BOT.front : MAZE_BOT.sides[q.mount]
             chips[k].position.set(sp.x, k === 0 ? sp.y : k === 2 ? -sp.y : 0, MAZE_BOT.z)
-            chips[k].rotation.z = k === 1 ? 0 : (k === 0 ? 1 : -1) * q.mount * (Math.PI / 180)
+            chips[k].rotation.z = k === 1 ? 0 : (k === 0 ? 1 : -1) * q.mount * DEG
           })
         }
         if (key !== st.key) {
@@ -159,7 +161,7 @@ export const mazeSolverWallSensing: Lesson = {
           tr.forEach((t, k) => t.points(u, r.samples.map((x) => yR(Math.min(x[k], WS.top))), null))
           thrLvl.set(yR(q.thr))
         }
-        const pose = skewPose(r.drive.poses[i], q.off, q.err * (Math.PI / 180))
+        const pose = skewPose(r.drive.poses[i], q.off, q.err * DEG)
         s.bot.set(pose, r.drive.dL[i], r.drive.dR[i])
         const leg = r.drive.leg[i]
         s.trail(pts, leg)
@@ -284,8 +286,7 @@ export const mazeSolverFloodFill: Lesson = {
     { kind: 'slider', key: 'speed', label: 'Fast-run top speed', min: 0.3, max: 1, step: 0.1, initial: 0.6, format: (v) => `${v.toFixed(1)} m/s` },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const s = mazeStage(scene)
+    const { scene, ...s } = mazeStage()
     addLabel(scene, 'Firmware loop', [FF.lx, FF.ly + 1.1, 0.3], LABEL, 0.36, 'left')
     const code = codeListing(scene, [FF.lx, FF.ly, 0.3], 7, FF.lw, 0.3)
     addLabel(scene, 'Time per phase', [FF.lx, FF.by + 1.1, 0.3], LABEL, 0.36, 'left')
@@ -320,7 +321,7 @@ export const mazeSolverFloodFill: Lesson = {
         const line = inFast ? (seg.kind === 'turn' ? 3 : 6) : LINE_OF[seg.kind]
         if (line !== st.line) {
           st.line = line
-          code.set(LOOP(q.v), line, (l) => (l.startsWith('//') ? GREY : LABEL))
+          code.set(LOOP(q.v), line, commentTint)
         }
         if (seg.step === st.step) return
         st.step = seg.step

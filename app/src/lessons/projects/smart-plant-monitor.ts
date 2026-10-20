@@ -18,6 +18,7 @@ import {
   PlantPin,
   PlantProbe,
   PlantStrategy,
+  clamp01,
   doseSeconds,
   fixedStepAt,
   plantBenchMlS,
@@ -30,12 +31,13 @@ import {
   plantSoilPct,
   toppEps,
 } from '../../core/physics'
-import { amps as ampText, fixedText, hoursText, ohms, pct, volts } from '../../core/units'
+import { amps as ampText, dayClock, fixedText, hoursText, ohms, pct, volts } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
-import { createStage } from '../../scene/stage'
+
 import {
   B_FIELD,
   CODE_LEGEND,
+  FACE_VIEW,
   GREY,
   HEAT,
   HIGH_V,
@@ -44,6 +46,7 @@ import {
   RING,
   addLabel,
   addRod,
+  boxScope,
   cableRun,
   codeBlock,
   cursorBar,
@@ -51,18 +54,17 @@ import {
   fetPart,
   frac,
   glowMat,
+  headerStage,
   liveLabel,
   memoBy,
   relayPart,
   scope,
   setGlow,
   shellMat,
-  statusHeader,
   stretchRod,
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: Math.PI / 2, azimuth: 0 }
 const DRY_SOIL = new THREE.Color('#a8825a')
 const WET_SOIL = new THREE.Color('#2e1f14')
 const COPPER = '#c98a4b'
@@ -85,7 +87,7 @@ function plantPot(parent: THREE.Object3D, at: V3, w: number, h: number) {
     group: g,
     stem,
     set(f: number) {
-      soilMat.color.copy(DRY_SOIL).lerp(WET_SOIL, Math.min(1, Math.max(0, f)))
+      soilMat.color.copy(DRY_SOIL).lerp(WET_SOIL, clamp01(f))
     },
   }
 }
@@ -142,8 +144,7 @@ export const smartPlantMonitorMoistureProbe: Lesson = {
     { kind: 'choice', key: 'pin', options: opts(PIN_NAMES), initial: 'adc1' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const pot = plantPot(scene, [POT.x, POT.y, 0], POT.w, POT.h)
     const probeAt: V3 = [POT.x + 1.2, POT.y + POT.h / 2 - 0.4, 1.4]
     const fork = add(scene, new THREE.Group(), probeAt)
@@ -175,24 +176,14 @@ export const smartPlantMonitorMoistureProbe: Lesson = {
       for (let i = 0; i < pts.length - 1; i++) stretchRod(addRod(sigWire, sig), pts[i], pts[i + 1], 0.07)
     }
 
-    const rp = scope(scene, RP.w, RP.h, { divs: [9, 4], zeroAt: 0 })
-    rp.group.position.set(RP.x, RP.y, 0)
-    addLabel(scene, 'Raw ADC reading vs soil water', [RP.x - RP.w / 2, RP.y + RP.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const rawTag = liveLabel(scene, [RP.x + RP.w / 2, RP.y + RP.h / 2 + 0.9, 0.3], { size: 0.3, align: 'right' })
-    addLabel(scene, '4095', [RP.x - RP.w / 2 - 0.4, RP.y + RP.h / 2, 0.3], GREY, 0.24, 'right')
-    addLabel(scene, '0', [RP.x - RP.w / 2 - 0.4, RP.y - RP.h / 2, 0.3], GREY, 0.24, 'right')
+    const { s: rp, tag: rawTag } = boxScope(scene, RP, 'Raw ADC reading vs soil water', [9, 4], { tag: 0.3, axis: ['4095', '0'] })
     const rawTr = rp.trace(RING, { samples: 120, radius: 0.07 })
     const dryLv = rp.level(POWER)
     const wetLv = rp.level(POWER)
     const dryTag = liveLabel(rp.group, [-RP.w / 2 + 0.3, 0, 0.2], { size: 0.24, align: 'left', color: POWER })
     const wetTag = liveLabel(rp.group, [-RP.w / 2 + 0.3, 0, 0.2], { size: 0.24, align: 'left', color: POWER })
     const rpCursor = cursorBar(rp, LABEL, 0.06)
-    const pp = scope(scene, PCT.w, PCT.h, { divs: [9, 4], zeroAt: 0 })
-    pp.group.position.set(PCT.x, PCT.y, 0)
-    addLabel(scene, 'Moisture % shown vs true', [PCT.x - PCT.w / 2, PCT.y + PCT.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const pctTag = liveLabel(scene, [PCT.x + PCT.w / 2, PCT.y + PCT.h / 2 + 0.9, 0.3], { size: 0.3, align: 'right' })
-    addLabel(scene, '100 %', [PCT.x - PCT.w / 2 - 0.4, PCT.y + PCT.h / 2, 0.3], GREY, 0.24, 'right')
-    addLabel(scene, '0', [PCT.x - PCT.w / 2 - 0.4, PCT.y - PCT.h / 2, 0.3], GREY, 0.24, 'right')
+    const { s: pp, tag: pctTag } = boxScope(scene, PCT, 'Moisture % shown vs true', [9, 4], { tag: 0.3, axis: ['100 %', '0'] })
     for (const th of [0.05, 0.15, 0.25, 0.35, 0.45]) addLabel(scene, `${Math.round(th * 100)}`, [PCT.x - PCT.w / 2 + (th / TH_MAX) * PCT.w, PCT.y - PCT.h / 2 - 0.6, 0.3], GREY, 0.24)
     addLabel(scene, 'θ, % vol', [PCT.x + PCT.w / 2, PCT.y - PCT.h / 2 - 1.2, 0.3], GREY, 0.24, 'right')
     const trueTr = pp.trace(GREY, { samples: 100, radius: 0.05 })
@@ -204,7 +195,7 @@ export const smartPlantMonitorMoistureProbe: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = mpParams(p)
         const r = plantProbe(q.probe, q.theta, q.pin, q.cal)
@@ -227,7 +218,7 @@ export const smartPlantMonitorMoistureProbe: Lesson = {
           wetTag.set(`wet ${r.wetRaw}`, POWER)
           rpCursor(u)
           ppCursor(u)
-          trueTr.draw((x) => py(Math.min(1, Math.max(0, plantSoilPct(x * TH_MAX)))), u)
+          trueTr.draw((x) => py(clamp01(plantSoilPct(x * TH_MAX))), u)
           shownTr.group.visible = r.raw !== null
           shownTr.draw((x) => py(plantCalPct(plantProbeRaw(q.probe, Math.max(0.01, x * TH_MAX)), r.dryRaw, r.wetRaw)), u)
           rawTag.set(r.raw === null ? 'ADC2 busy (Wi-Fi)' : `${volts(r.volts)} → ${r.raw}`, r.raw === null ? HIGH_V : RING)
@@ -291,10 +282,6 @@ const SP = { x: 4.8, y: 0.6, w: 12.6, h: 4.4 }
 const TP = { x: 4.8, y: -5.6, w: 12.6, h: 2.6 }
 const TANK = { x: -15.2, y: -5.6, w: 3.2, h: 3.4 }
 const POT2 = { x: -8.6, y: -3.4, w: 4.6, h: 4.4 }
-const dayText = (tH: number) => {
-  const h = ((tH % 24) + 24) % 24
-  return `day ${Math.floor(tH / 24) + 1}, ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`
-}
 const STRAT_CODE: Record<PlantStrategy, string[]> = {
   until: ['if (pct < 30) pumpOn();', 'if (pct > 60) pumpOff();  // probe lags the water'],
   dose: ['if (pct < 30) { pump(150 mL); soak(30 min); }', 'if (rise < 5 %) alert("tank empty?");'],
@@ -331,8 +318,7 @@ export const smartPlantMonitorPumpControl: Lesson = {
     { kind: 'choice', key: 'tank', options: opts(PLANT_TANKS), initial: '1000' },
   ],
   build(): Stage {
-    const scene = createStage({ span: 40 })
-    const { status, sub, event } = statusHeader(scene)
+    const { scene, status, sub, event } = headerStage()
     const water = new THREE.MeshStandardMaterial({ color: B_FIELD, emissive: B_FIELD, emissiveIntensity: 0.3, transparent: true, opacity: 0.8, roughness: 0.2 })
     box(scene, [TANK.w, TANK.h, 2.4], shellMat('#dfe9f5', 0.16), [TANK.x, TANK.y, 0]).castShadow = false
     const tankWater = box(scene, [TANK.w - 0.2, 1, 2.2], water, [TANK.x, TANK.y, 0])
@@ -360,12 +346,7 @@ export const smartPlantMonitorPumpControl: Lesson = {
     relayPart(relay, [-8.4, 1.6, 0], { scale: 0.24 })
     const drvTag = liveLabel(scene, [-6.8, 1.5, 0.3], { size: 0.26, align: 'left' })
     cableRun(scene, [[espAt[0] + 2, espAt[1] - 1.2, 0.8], [-8, espAt[1] - 1.2, 0.8], [-8, 1.6, 0.6]], RING, 0.06)
-    const sp = scope(scene, SP.w, SP.h, { divs: [14, 4], zeroAt: 0 })
-    sp.group.position.set(SP.x, SP.y, 0)
-    addLabel(scene, 'Soil moisture, two weeks', [SP.x - SP.w / 2, SP.y + SP.h / 2 + 0.9, 0.3], LABEL, 0.3, 'left')
-    const nowTag = liveLabel(scene, [SP.x + SP.w / 2, SP.y + SP.h / 2 + 0.9, 0.3], { size: 0.28, align: 'right' })
-    addLabel(scene, '100 %', [SP.x - SP.w / 2 - 0.4, SP.y + SP.h / 2, 0.3], GREY, 0.22, 'right')
-    addLabel(scene, '0', [SP.x - SP.w / 2 - 0.4, SP.y - SP.h / 2, 0.3], GREY, 0.22, 'right')
+    const { s: sp, tag: nowTag } = boxScope(scene, SP, 'Soil moisture, two weeks', [14, 4], { axis: ['100 %', '0'], axisSize: 0.22 })
     const spY = (f: number) => (Math.min(1.05, Math.max(0, f)) - 0.5) * SP.h
     for (const d of [PLANT_POT.heatFrom, PLANT_POT.heatTo]) {
       const x = sp.xAt(d / PLANT_POT.days)
@@ -388,7 +369,7 @@ export const smartPlantMonitorPumpControl: Lesson = {
     const st = { key: '', t: 0 }
     return {
       scene,
-      view: VIEW,
+      view: FACE_VIEW,
       frame(dt, p) {
         const q = pcParams(p)
         const R = pcRun(q)
@@ -448,17 +429,17 @@ export const smartPlantMonitorPumpControl: Lesson = {
           d.visible = draining
           d.position.set(POT2.x - 0.6, drainY - f * 0.9, 0.6)
         })
-        pot.set(Math.min(1, Math.max(0, s.truePct)) * 0.8)
+        pot.set(clamp01(s.truePct) * 0.8)
         pot.stem.rotation.z = s.truePct < PLANT_CTRL.alertPct ? -0.5 : 0
         potTag.set(`reads ${pct(s.readPct)}`, s.readPct < PLANT_CTRL.alertPct ? HIGH_V : RING)
         tankTag.set(`${Math.round(s.tankMl)} mL`, dry ? HIGH_V : B_FIELD)
         nowTag.set(`true ${pct(Math.max(0, s.truePct))} · read ${pct(s.readPct)}`, LABEL)
         code([...STRAT_CODE[q.strategy], `digitalWrite(PUMP, on);  // gate ${GPIO_VDD} V`])
-        status.set(`${dayText(tH)} · ${dryRun ? 'pump running dry' : flowing ? 'watering' : R.pump.rpm > 0 ? 'waiting' : 'pump never starts'}`, dryRun ? HIGH_V : LABEL)
+        status.set(`${dayClock(tH)} · ${dryRun ? 'pump running dry' : flowing ? 'watering' : R.pump.rpm > 0 ? 'waiting' : 'pump never starts'}`, dryRun ? HIGH_V : LABEL)
         sub.set(`14 days in ${LAPSE_S} s (${Math.round((DAYS_H * 3600) / LAPSE_S).toLocaleString('en')}× faster) · ${PLANT_STRATEGIES[q.strategy].name}`, GREY)
         const lastAlert = shown[shown.length - 1]
         if (R.pump.rpm === 0) event.set(lastAlert?.kind === 'tank' ? 'no rise after a dose: alert sent, the dead pump driver is found' : 'the gate sees 3.3 V, the FET stays off: the pot just dries out', HIGH_V)
-        else if (dryRun) event.set(`tank empty since ${dayText(R.tankEmptyH!)}; the probe never reads wet, so the pump runs dry`, HIGH_V)
+        else if (dryRun) event.set(`tank empty since ${dayClock(R.tankEmptyH!)}; the probe never reads wet, so the pump runs dry`, HIGH_V)
         else if (lastAlert && tH - lastAlert.t < 24) event.set(lastAlert.kind === 'tank' ? 'a dose raised nothing: "refill the tank" alert sent' : 'soil below 15 %: "water me" alert sent', HIGH_V)
         else if (draining) event.set('still pumping after the pot is full: the extra runs out of the drain hole', HEAT)
         else if (tH / 24 >= PLANT_POT.heatFrom && tH / 24 < PLANT_POT.heatTo) event.set('heatwave: the plant drinks 2.5× as much', HEAT)
