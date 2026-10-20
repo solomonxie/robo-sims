@@ -233,6 +233,7 @@ import { sensorNoiseFloatingInput, sensorNoiseMissingDecoupling } from '../lesso
 import { busNotRespondingMissingPullUps, busNotRespondingWrongAddress } from '../lessons/debugging/bus-not-responding'
 import { robotDriftsMotorMismatch, robotDriftsWheelSizeError } from '../lessons/debugging/robot-drifts'
 import { usingAMultimeterContinuityTest, usingAMultimeterCurrentTest, usingAMultimeterVoltageTest } from '../lessons/debugging/using-a-multimeter'
+import { solderingDesoldering, solderingGoodVsColdJoints, solderingIronAndFlux } from '../lessons/workshop/soldering'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -913,6 +914,9 @@ const READY: Record<string, Lesson> = {
   'debugging/using-a-multimeter/continuity-test': usingAMultimeterContinuityTest,
   'debugging/using-a-multimeter/voltage-test': usingAMultimeterVoltageTest,
   'debugging/using-a-multimeter/current-test': usingAMultimeterCurrentTest,
+  'workshop/soldering/iron-and-flux': solderingIronAndFlux,
+  'workshop/soldering/good-vs-cold-joints': solderingGoodVsColdJoints,
+  'workshop/soldering/desoldering': solderingDesoldering,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
