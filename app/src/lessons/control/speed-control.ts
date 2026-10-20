@@ -1,5 +1,5 @@
 import { EncoderKind, SpeedCfg, SpeedFrame, WHEEL, fixedStepAt, rampSp, wheelSpeedRun, speedStats, speedStep, stepMetrics, stepSp, wheelFf } from '../../core/physics'
-import { pct, secsText } from '../../core/units'
+import { pct, rpmText, secsText } from '../../core/units'
 import { V3 } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { B_FIELD, DATA_COLOR, GREY, HEAT, HIGH_V, LABEL, MEAS_COLOR, PID_COLORS, POWER, RING, SIDE_SCOPE, controlLoop, memoBy, scope, scopeLabels, speedWheel, statusHeader, termBars, traceRun, lapseClock, sideScope } from '../fx'
@@ -12,7 +12,6 @@ const RIG = { at: [-13.6, 0.2, 0] as V3, r: 2.4, bars: [-11.2, -6.5, 0] as V3, s
 const SECONDS = 3
 const MAX = WHEEL.maxRpm
 const dtL = WHEEL.loopS
-const rpmText = (v: number) => `${Math.round(v)} rpm`
 const signedRpm = (v: number) => `${v < -0.5 ? '−' : v > 0.5 ? '+' : ''}${Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0)} rpm`
 const LEGEND = {
   rpm: { color: RING, label: `Wheel speed (scope top: 0…${MAX} rpm)`, shape: 'dot' as const },

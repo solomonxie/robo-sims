@@ -4,13 +4,13 @@ import { GEARBOXES, RPM_PER_RADS, TT_CAR, TT_GEAR, TT_MOTOR, backEmf, freeSpeed,
 import { audible, ledcResolution } from '../mcu/pwm'
 import { ROLL_FLOORS, wheelSpeedSs } from '../control/loop'
 import { drvMode } from '../projects/robocar'
-import { G, clamp01 } from '../common'
-import { puzzleVerdict, windowMiss } from './verdict'
+import { G, bisectEdge, clamp01 } from '../common'
+import { puzzleVerdict, targetWindow, windowMiss } from './verdict'
 
 // --- Truth table challenge ---
 
 export type BridgeChip = DriverChip | 'fets'
-/** Pins 1–4 per chip (null = not on this chip); `en` = the pin that switches the whole channel off. */
+/** Pins 1–4 per chip (null = not on this chip). */
 export const BRIDGE_PINS: Record<BridgeChip, { name: string; pins: (string | null)[] }> = {
   l298n: { name: 'L298N', pins: ['IN1', 'IN2', 'ENA', null] },
   tb6612: { name: 'TB6612FNG', pins: ['AIN1', 'AIN2', 'PWMA', 'STBY'] },
@@ -45,7 +45,7 @@ export function pinBridge(chip: BridgeChip, p: Pins): { c: Closed; mode: BridgeM
 }
 
 /** Pack behind the bridge less the chip's drop at the motor's no-load current. */
-export const bridgeVolts = (chip: BridgeChip) => HBRIDGE.vs - (chip === 'fets' ? 0 : DRIVERS[chip].drop(TT_MOTOR.noLoadA))
+const bridgeVolts = (chip: BridgeChip) => HBRIDGE.vs - (chip === 'fets' ? 0 : DRIVERS[chip].drop(TT_MOTOR.noLoadA))
 
 const STOPS = new Map<number, { brakeS: number; coastS: number }>()
 /** From free speed at `vs`: time to stop shorted (brake) vs open (coast); cached per voltage. */
@@ -55,7 +55,7 @@ function stopTimes(vs: number) {
   return s
 }
 
-export type TruthFail = 'shoot' | 'off' | 'mode'
+type TruthFail = 'shoot' | 'off' | 'mode'
 const isStop = (m: BridgeMode) => m === 'brake' || m === 'coast'
 
 /** Set the pins for `goal`: short through a leg fails first, then a switched-off channel, then the wrong mode. */
@@ -93,7 +93,7 @@ export const PWM_TARGETS = { crawl: { name: 'Crawl 40 rpm', rpm: 40 }, cruise: {
 export type PwmTarget = keyof typeof PWM_TARGETS
 
 /** Motor current while rolling: friction plus the load reflected through 1:48 (the same at any speed). */
-export function rollingAmps(load: PwmLoad) {
+function rollingAmps(load: PwmLoad) {
   const l = PWM_LOADS[load]
   const g = GEARBOXES.tt48
   const loadNm = ((TT_CAR.massKg + l.payloadKg) * G * l.crr * TT_CAR.wheelM) / TT_CAR.driven / (gearRatio(g) * gearEfficiency(g))
@@ -111,14 +111,7 @@ export function pwmRpm(chip: DriverChip, pack: PwmPack, load: PwmLoad, duty: num
 /** Smallest duty whose speed passes `rpm` (bisection; 1 if it never does). */
 function dutyFor(chip: DriverChip, pack: PwmPack, load: PwmLoad, rpm: number) {
   if (pwmRpm(chip, pack, load, 1).rpm <= rpm) return 1
-  let lo = 0
-  let hi = 1
-  for (let k = 0; k < 30; k++) {
-    const mid = (lo + hi) / 2
-    if (pwmRpm(chip, pack, load, mid).rpm > rpm) hi = mid
-    else lo = mid
-  }
-  return hi
+  return bisectEdge((d) => pwmRpm(chip, pack, load, d).rpm > rpm, 1, 0, 30)
 }
 
 /** One PWM period of motor current (slow decay) at wheel `rpm`: samples from the on-edge, mean and peak-to-peak ripple. */
@@ -127,12 +120,12 @@ function pwmWave(volts: number, duty: number, hz: number, rpm: number) {
   return { wave: w.amps, meanA: w.mean, rippleA: w.ripple }
 }
 
-export type PwmFail = 'reach' | 'stall' | 'slow' | 'fast' | 'headroom' | 'whine'
+type PwmFail = 'reach' | 'stall' | 'slow' | 'fast' | 'headroom' | 'whine'
 
 /** Hit the target ±5 % open loop, leave headroom (≤ 90 %) for sag and slopes, and switch above hearing. */
 export function pwmTarget(chip: DriverChip, pack: PwmPack, load: PwmLoad, target: PwmTarget, duty: number, hz: number) {
   const want = PWM_TARGETS[target].rpm
-  const [lo, hi] = [want * (1 - PWM_PUZZLE.tol), want * (1 + PWM_PUZZLE.tol)]
+  const [lo, hi] = targetWindow(want, PWM_PUZZLE.tol)
   const now = pwmRpm(chip, pack, load, duty)
   const maxRpm = pwmRpm(chip, pack, load, 1).rpm
   const amps = now.rpm > 0 ? rollingAmps(load) : now.motorV / TT_MOTOR.ohms

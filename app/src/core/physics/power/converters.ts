@@ -1,6 +1,7 @@
 // DC-DC modules as bought: LM2596 buck, MT3608 boost, XL6009 SEPIC buck-boost. Trim-pot set point, losses, limits.
 import { Chemistry } from './batteries'
 import { cellVolts } from './packs'
+import { bisectEdge } from '../common'
 import { Switcher } from '../regulators'
 
 export type Topology = 'buck' | 'boost' | 'sepic'
@@ -144,15 +145,7 @@ function atDuty(m: DcdcModule, vin: number, d: number, iout: number) {
 }
 
 /** Largest x in [lo, hi] with ok(x), for ok true below some threshold. */
-function bisect(ok: (x: number) => boolean, lo: number, hi: number) {
-  if (ok(hi)) return hi
-  for (let k = 0; k < 50; k++) {
-    const mid = (lo + hi) / 2
-    if (ok(mid)) lo = mid
-    else hi = mid
-  }
-  return lo
-}
+const bisect = (ok: (x: number) => boolean, lo: number, hi: number) => (ok(hi) ? hi : bisectEdge(ok, lo, hi, 50))
 
 /** Steady state of a module set to `vset`, fed `vin`, loaded with `iout`. The loop picks the duty that hits `vset`; it runs out
  *  at max duty (dropout), at the switch current limit, or (boost) can't go below Vin − Vd, so the input passes straight through. */

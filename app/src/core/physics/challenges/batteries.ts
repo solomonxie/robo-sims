@@ -6,6 +6,7 @@ import { DCDC_MODULES, DcdcModule, dcdcPoint, regulatedShare } from '../power/co
 import { cellVolts, packRating } from '../power/packs'
 import { DRIVERS, DriverChip } from '../actuators/hbridge'
 import { TT_MOTOR } from '../actuators/dcmotor'
+import { bisectEdge } from '../common'
 import { puzzleVerdict } from './verdict'
 
 // --- Runtime target ---
@@ -29,7 +30,7 @@ export const RUNTIME_MISSIONS = {
 } satisfies Record<string, { name: string; parts: [number, RobotState][]; peak: RobotState; hours: number; maxGrams: number }>
 export type RuntimeMission = keyof typeof RUNTIME_MISSIONS
 
-export type RuntimeFail = 'peak' | 'short' | 'heavy' | 'margin'
+type RuntimeFail = 'peak' | 'short' | 'heavy' | 'margin'
 
 /** Average pack power of the mission at nominal volts → runtime to cutoff (sag-derated Wh), peak cell current, weight. */
 export function runtimeTarget(chem: ChemistryId, parallel: number, mission: RuntimeMission) {
@@ -77,7 +78,7 @@ export function runtimeTarget(chem: ChemistryId, parallel: number, mission: Runt
 export function runtimeVolts(c: Chemistry, series: number, cellA: number, hours: number, t: number) {
   const usable = usableFraction(c, cellA)
   const soc = 1 - usable * Math.min(1, Math.max(0, t / hours))
-  return { soc, volts: series * terminalVolts(c, soc, cellA), mAhUsed: (1 - soc) * c.cell.mAh }
+  return { soc, volts: series * terminalVolts(c, soc, cellA) }
 }
 
 /** Smallest parallel count (1…max) that passes, or null. */
@@ -89,7 +90,7 @@ export function runtimeAnswer(chem: ChemistryId, mission: RuntimeMission) {
 // --- Series count ---
 
 /** 12 V gearmotor (37 mm class): winding resistance and running current under load. */
-export const GEARMOTOR_12V = { ohms: 4, runA: 0.6 }
+const GEARMOTOR_12V = { ohms: 4, runA: 0.6 }
 
 export interface SeriesRobot {
   name: string
@@ -136,14 +137,7 @@ export function regulatorSpan(robot: SeriesRobotId): [number, number] {
   if (hit) return hit
   const r: SeriesRobot = SERIES_ROBOTS[robot]
   const m = DCDC_MODULES[r.reg]
-  const boundary = (good: number, bad: number) => {
-    for (let k = 0; k < 40; k++) {
-      const mid = (good + bad) / 2
-      if (regOk(m, mid, r)) good = mid
-      else bad = mid
-    }
-    return good
-  }
+  const boundary = (good: number, bad: number) => bisectEdge((v) => regOk(m, v, r), good, bad, 40)
   const span: [number, number] = [boundary(r.seedV, 0), boundary(r.seedV, m.vinMax + 1)]
   REG_SPANS.set(robot, span)
   return span
@@ -157,7 +151,7 @@ export function seriesStallA(robot: SeriesRobotId, vpack: number) {
   return mo.count * one
 }
 
-export type SeriesFail = 'over' | 'motorHi' | 'regulate' | 'weak' | 'brownout'
+type SeriesFail = 'over' | 'motorHi' | 'regulate' | 'weak' | 'brownout'
 
 /** `series` cells of `chem` from full to cutoff: absolute max, motor window after the driver drop, regulator holding the
  *  rail all the way down, and the motor-start + Wi-Fi spike on an empty pack. */
@@ -187,7 +181,7 @@ export function seriesCount(robot: SeriesRobotId, chem: ChemistryId, series: num
     { id: 'weak', ok: !mo || motorEmpty >= mo.min, near: !!mo && motorEmpty >= 0.85 * mo.min },
     { id: 'brownout', ok: spike.regulating, near: true },
   ])
-  return { full, empty, nominal: series * c.nominal, drop, motorFull, motorEmpty, share: reg.share, failAt: reg.failAt, spikeV, spikeRail: spike.vout, need, regLo, regHi, verdict }
+  return { full, empty, drop, motorFull, motorEmpty, share: reg.share, failAt: reg.failAt, spikeV, spikeRail: spike.vout, need, verdict }
 }
 
 /** Rest pack volts at state of charge `soc`, the regulated rail and the motor's volts behind the driver. */

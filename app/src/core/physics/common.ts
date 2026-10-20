@@ -26,6 +26,24 @@ export const smoothstep = (u: number) => {
 export const dist3 = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 /** `n` evenly spaced values lo…hi (both ends included). */
 export const sweep = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
+/** Edge between `yes` (ok) and `no` (not ok) after `n` halvings; returns the last point found ok. */
+export function bisectEdge(ok: (x: number) => boolean, yes: number, no: number, n = 40) {
+  for (let k = 0; k < n; k++) {
+    const mid = (yes + no) / 2
+    if (ok(mid)) yes = mid
+    else no = mid
+  }
+  return yes
+}
+/** Root of `f` (positive below it) in [lo, hi] after `n` halvings. */
+export function bisectRoot(f: (x: number) => number, lo: number, hi: number, n = 60) {
+  for (let k = 0; k < n; k++) {
+    const m = (lo + hi) / 2
+    if (f(m) > 0) lo = m
+    else hi = m
+  }
+  return (lo + hi) / 2
+}
 
 /** Sample of a fixed-step run (`dt` apart) at time `t`, held at the ends. */
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]

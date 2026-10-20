@@ -1,5 +1,6 @@
 // LED puzzles: pick the resistor for one LED, two LEDs on one supply, a brightness target.
 import { LEDS, LED_LEAK_OHMS, LED_MAX_A, LED_RATED_A, Led, diodeAmps, diodeNode, diodeVolts, fitDiode } from '../semiconductors'
+import { bisectRoot } from '../common'
 import { puzzleVerdict, targetWindow, windowMiss } from './verdict'
 
 export const LED_PUZZLE = {
@@ -45,7 +46,7 @@ const dimOk = (a: number) => ({ ok: a >= P.loA * (1 - EPS), near: windowMiss(a, 
 
 // --- Safe LED current ---
 
-export type SafeLedFail = 'headroom' | 'over' | 'dim' | 'heat'
+type SafeLedFail = 'headroom' | 'over' | 'dim' | 'heat'
 
 export function safeLed(c: LedColour, vs: number, ohms: number) {
   const d = LEDS[c]
@@ -82,14 +83,7 @@ export function pairParts(pair: LedPair): [Led, Led] {
   return [ledPart(a), ledPart(b, a === b ? P.batchV : 0)]
 }
 
-const bisect = (f: (x: number) => number, lo: number, hi: number) => {
-  for (let k = 0; k < 80; k++) {
-    const m = (lo + hi) / 2
-    if (f(m) > 0) lo = m
-    else hi = m
-  }
-  return (lo + hi) / 2
-}
+const bisect = (f: (x: number) => number, lo: number, hi: number) => bisectRoot(f, lo, hi, 80)
 const branchA = (v: number, d: Led) => diodeAmps(v, d) + v / LED_LEAK_OHMS
 
 /** Both LEDs from `vs`: series string through `r1`, parallel sharing `r1`, or parallel with `r1`, `r2` each. */
@@ -107,7 +101,7 @@ export function ledPairAt(wiring: LedWiring, [a, b]: [Led, Led], vs: number, r1:
   return { amps: [s1.amps, s2.amps], vf: [s1.vf, s2.vf], supplyA: s1.amps + s2.amps, rW: [s1.rW, s2.rW] }
 }
 
-export type TwoLedFail = 'headroom' | 'over' | 'dim' | 'match' | 'heat'
+type TwoLedFail = 'headroom' | 'over' | 'dim' | 'match' | 'heat'
 
 export function twoLeds(wiring: LedWiring, pair: LedPair, vs: number, r1: number, r2: number) {
   const parts = pairParts(pair)
@@ -135,7 +129,7 @@ export const LED_TARGETS = {
 }
 export type LedTarget = keyof typeof LED_TARGETS
 
-export type BrightFail = 'low' | 'high' | 'spread' | 'heat'
+type BrightFail = 'low' | 'high' | 'spread' | 'heat'
 
 /** Hit the target current within ±`brightTol`; `worst` also needs every R ±5 %, Vf ±0.1 V corner inside. */
 export function brightnessTarget(target: LedTarget, vs: number, ohms: number, worst: boolean) {

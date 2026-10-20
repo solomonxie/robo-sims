@@ -1,6 +1,6 @@
 // Puzzle verdicts: ordered checks; the first failing one is the reason (lessons word it).
 
-export interface PuzzleCheck<K extends string = string> {
+interface PuzzleCheck<K extends string = string> {
   id: K
   ok: boolean
   /** Failing, but a close miss (warn tone). */

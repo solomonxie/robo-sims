@@ -29,7 +29,7 @@ export const DIVIDER_JOBS = {
 }
 export type DividerJob = keyof typeof DIVIDER_JOBS
 
-export type LogicFail = 'over' | 'low' | 'waste' | 'spread' | 'slow'
+type LogicFail = 'over' | 'low' | 'waste' | 'spread' | 'slow'
 
 /** 5 V through R1 / R2 into the job's load: pin HIGH, tolerance corners, edge time to VIH, divider heat. */
 export function shiftDivider(job: DividerJob, r1: number, r2: number) {
@@ -65,7 +65,6 @@ export const ADC_PUZZLE = {
   drainA: 100e-6,
   /** Source impedance the sampling cap tolerates without a pin cap. */
   sourceOhms: 10e3,
-  capF: 100e-9,
 }
 const A = ADC_PUZZLE
 
@@ -84,7 +83,7 @@ export function adcTapRead(vIn: number, r1: number, r2: number, atten: AttenKey)
   return { vpin, raw, readV: calibratedVolts(raw, atten) / k }
 }
 
-export type AdcFail = 'abs' | 'clip' | 'toe' | 'range' | 'drain' | 'source'
+type AdcFail = 'abs' | 'clip' | 'toe' | 'range' | 'drain' | 'source'
 
 /** Scale the source into the attenuation's linear lo…hi; keep the drain low and the source impedance low (or add a pin cap). */
 export function adcMatch(source: AdcSource, r1: number, r2: number, atten: AttenKey, cap: boolean) {
@@ -105,5 +104,5 @@ export function adcMatch(source: AdcSource, r1: number, r2: number, atten: Atten
     { id: 'drain', ok: drainA <= A.drainA, near: drainA <= 2 * A.drainA },
     { id: 'source', ok: cap || rth <= A.sourceOhms, near: rth <= 2 * A.sourceOhms },
   ])
-  return { k, pinLo, pinHi, drainA, rth, worstErr, tau: cap ? rth * A.capF : 0, window: [a.lo, a.hi] as [number, number], verdict }
+  return { k, pinLo, pinHi, drainA, rth, worstErr, window: [a.lo, a.hi] as [number, number], verdict }
 }

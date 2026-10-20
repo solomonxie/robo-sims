@@ -19,13 +19,11 @@ import {
 import { fixedText, hoursText, pct, si, volts, watts } from '../../core/units'
 import {
   FACE_VIEW,
-  GAUGE_CAPTION_Y,
   GREY,
   HEAT,
-  HIGH_V,
   LABEL,
   POWER,
-  RING,
+  columnGauge,
   countBars,
   dcdcModule,
   emptyGroup,
@@ -35,23 +33,15 @@ import {
   packBench,
   puzzleStage,
   simClock,
+  verdictLegend,
   verdictTint,
   wire,
-  windowGauge,
 } from '../fx'
+import { V3 } from '../../models/kit'
 import { Lesson, Params, Stage, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
-const GX = 8
-const GW = 7.6
-const GY = [1.4, -3, -7.4]
-const PACK = { at: [-12.2, 0, 0] as [number, number, number], w: 8, h: 4 }
-const LEGEND = [
-  { color: POWER, label: 'Target window / pass', shape: 'dot' as const },
-  { color: RING, label: 'Close miss', shape: 'dot' as const },
-  { color: HIGH_V, label: 'Fail / over a limit', shape: 'dot' as const },
-  { color: LABEL, label: 'Voltmeter across the pack', shape: 'dot' as const },
-]
-const liveCaption = (scene: THREE.Object3D, y: number) => liveLabel(scene, [GX - GW / 2, y + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' })
+const PACK = { at: [-12.2, 0, 0] as V3, w: 8, h: 4 }
+const LEGEND = [...verdictLegend('Fail / over a limit'), { color: LABEL, label: 'Voltmeter across the pack', shape: 'dot' as const }]
 const grams = (g: number) => `${Math.round(g)} g`
 const hrs = (h: number) => (h < 48 ? hoursText(h) : `${+(h / 24).toFixed(1)} days`)
 const CHEM_SHORT: Record<ChemistryId, string> = { liion: 'Li-ion', lfp: 'LiFePO4', nimh: 'NiMH', alkaline: 'alkaline' }
@@ -102,32 +92,26 @@ export const batteryPuzzlesRuntimeTarget: Lesson = {
     const timeTag = liveLabel(scene, [PACK.at[0] - PACK.w / 2, -3.6, 0.3], { size: 0.3, align: 'left' })
     const barsTitle = liveLabel(scene, [-16.4, -4.6, 0.3], { size: 0.3, align: 'left' })
     const bars = countBars(scene, [-13.2, -5.5, 0], ITEMS.map((id) => ITEM_NAME[id]), 6, { row: 0.62, size: 0.28, color: HEAT })
-    const tG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const tG = columnGauge(scene, 0, {
       min: 1,
       max: 100,
       log: true,
       window: [8, 100],
-      caption: '',
       ticks: [[1, '1 h'], [3, '3'], [10, '10'], [30, '30'], [100, '100 h']],
     })
-    const tCap = liveCaption(scene, GY[0])
-    const aG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const aG = columnGauge(scene, 1, {
       min: 0.05,
       max: 20,
       log: true,
       window: [0.05, 10],
-      caption: '',
       ticks: [[0.1, '0.1'], [1, '1'], [10, '10 A']],
     })
-    const aCap = liveCaption(scene, GY[1])
-    const wG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const wG = columnGauge(scene, 2, {
       min: 0,
       max: 700,
       window: [0, 250],
-      caption: '',
       ticks: [[0, '0'], [200, '200'], [400, '400'], [600, '600 g']],
     })
-    const wCap = liveCaption(scene, GY[2])
     const clock = simClock(LAPSE.slowS, LAPSE.holdS)
     const st = { key: '', t: 0 }
     return {
@@ -142,11 +126,11 @@ export const batteryPuzzlesRuntimeTarget: Lesson = {
           st.key = key
           bench.setPack(q.chem, s.series, q.parallel, `${packName(q)} · ${fixedText(s.volts, 1)} V · ${s.mAh} mAh`)
           tG.setWindow(s.target, 100)
-          tCap.set(`Runtime, goal ${hrs(s.target)} (bar: −20 %)`, LABEL)
+          tG.caption.set(`Runtime, goal ${hrs(s.target)} (bar: −20 %)`, LABEL)
           aG.setWindow(0.05, s.cellMaxA)
-          aCap.set(`Peak per cell, rated ${si(s.cellMaxA, 'A', 2)}`, LABEL)
+          aG.caption.set(`Peak per cell, rated ${si(s.cellMaxA, 'A', 2)}`, LABEL)
           wG.setWindow(0, s.maxGrams)
-          wCap.set(`Pack weight, budget ${grams(s.maxGrams)}`, LABEL)
+          wG.caption.set(`Pack weight, budget ${grams(s.maxGrams)}`, LABEL)
           const w = ITEMS.map((id) => s.items.find((it) => it.id === id)?.watts ?? 0)
           bars.set(w, w.map((x) => si(x, 'W', 2)), undefined, Math.max(...w))
           barsTitle.set(`Average ${watts(s.avgW)} from the pack`, LABEL)
@@ -201,8 +185,8 @@ const scParams = (p: Params) => ({
 type ScQ = ReturnType<typeof scParams>
 const scSolve = memoBy((q: ScQ) => `${q.robot}|${q.chem}|${q.series}`, (q: ScQ) => seriesCount(q.robot, q.chem, q.series))
 const LIMIT_TEXT = { off: 'below its minimum input', 'over-voltage': 'over its input max', dropout: 'drops out (runs out of duty)', 'pass-through': 'passes it straight through (a boost can’t step down)', 'current-limit': 'hits its current limit' }
-const MOD_AT: [number, number, number] = [-12.2, -6.9, 0]
-const MOTOR_AT: [number, number, number] = [-4.4, -6.4, 0]
+const MOD_AT: V3 = [-12.2, -6.9, 0]
+const MOTOR_AT: V3 = [-4.4, -6.4, 0]
 const robotOf = (id: SeriesRobotId): SeriesRobot => SERIES_ROBOTS[id]
 
 export const batteryPuzzlesSeriesCount: Lesson = {
@@ -236,24 +220,20 @@ export const batteryPuzzlesSeriesCount: Lesson = {
     scene.add(loads)
     const railTag = liveLabel(scene, [MOD_AT[0], MOD_AT[1] + 2.25, 0.3], { size: 0.3 })
     const motorTag = liveLabel(scene, [MOTOR_AT[0], MOTOR_AT[1] + 2.2, 0.3], { size: 0.3 })
-    const pG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const pG = columnGauge(scene, 0, {
       min: 1,
       max: 50,
       log: true,
       window: [5, 10],
-      caption: '',
       ticks: [[1, '1 V'], [2, '2'], [5, '5'], [10, '10'], [20, '20'], [50, '50 V']],
     })
-    const pCap = liveCaption(scene, GY[0])
-    const mG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const mG = columnGauge(scene, 1, {
       min: 0,
       max: 20,
       window: [3, 9],
-      caption: '',
       ticks: [[0, '0'], [5, '5'], [10, '10'], [15, '15'], [20, '20 V']],
     })
-    const mCap = liveCaption(scene, GY[1])
-    const rG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const rG = columnGauge(scene, 2, {
       min: 0,
       max: 10,
       window: [4.75, 5.25],
@@ -280,7 +260,7 @@ export const batteryPuzzlesSeriesCount: Lesson = {
           st.motor = r.motor ? motorCan(loads, MOTOR_AT, { r: 1.3 }) : null
           if (st.motor) wire(loads, [[x, low, 0], [st.motor.pins[0][0], low, 0], st.motor.pins[0]], 0.1)
           mG.setWindow(r.motor?.min ?? 0, r.motor?.max ?? 0)
-          mCap.set(r.motor ? `Motor volts, ${r.motor.min}–${r.motor.max} V` : 'Motor volts: no motor', r.motor ? LABEL : GREY)
+          mG.caption.set(r.motor ? `Motor volts, ${r.motor.min}–${r.motor.max} V` : 'Motor volts: no motor', r.motor ? LABEL : GREY)
           motorTag.set(r.motor ? `${r.motor.count} × ${r.motor.name}` : '', LABEL)
         }
         const key = `${q.robot}|${q.chem}|${q.series}`
@@ -288,24 +268,24 @@ export const batteryPuzzlesSeriesCount: Lesson = {
           st.key = key
           bench.setPack(q.chem, q.series, 1, `${q.series}S ${CHEM_SHORT[q.chem]} · ${fixedText(s.full, 1)} → ${fixedText(s.empty, 1)} V`)
           pG.setWindow(Math.max(1, s.need[0]), Math.max(1, s.need[1]))
-          pCap.set(`Pack volts, needs ${fixedText(s.need[0], 1)}–${fixedText(s.need[1], 1)} V`, LABEL)
+          pG.caption.set(`Pack volts, needs ${fixedText(s.need[0], 1)}–${fixedText(s.need[1], 1)} V`, LABEL)
         }
         const tick = clock(dt, key, LAPSE.ticks)
         st.soc = 1 - tick / LAPSE.ticks
         const a = seriesSweepAt(q.robot, q.chem, q.series, st.soc)
         const packOk = a.vpack >= s.need[0] && a.vpack <= s.need[1]
-        bench.set(a.vpack, st.soc, packOk ? POWER : HIGH_V)
+        bench.set(a.vpack, st.soc, verdictTint(packOk, false))
         lapseTag.set(`Charge ${pct(st.soc)} · full → empty in ${LAPSE.ticks * LAPSE.slowS} s`, GREY)
-        pG.set(Math.max(1, a.vpack), volts(a.vpack), packOk ? POWER : HIGH_V, [Math.max(1, s.empty), Math.max(1, s.full)])
+        pG.set(Math.max(1, a.vpack), volts(a.vpack), verdictTint(packOk, false), [Math.max(1, s.empty), Math.max(1, s.full)])
         if (r.motor) {
           const mOk = a.motorV >= r.motor.min && a.motorV <= r.motor.max
-          mG.set(a.motorV, volts(a.motorV), mOk ? POWER : HIGH_V, [s.motorEmpty, s.motorFull])
+          mG.set(a.motorV, volts(a.motorV), verdictTint(mOk, false), [s.motorEmpty, s.motorFull])
           st.motor?.spin(dt, mOk || a.motorV > r.motor.max ? 30 * a.motorV : 4 * a.motorV)
         } else mG.set(0, '—', GREY)
         const railOk = a.limit === null
-        rG.set(a.rail, volts(a.rail), railOk ? POWER : HIGH_V)
+        rG.set(a.rail, volts(a.rail), verdictTint(railOk, false))
         st.mod?.set(railOk ? 0.3 : 0, railOk ? 0.6 : 0)
-        railTag.set(`${r.reg.toUpperCase()} → ${r.vset} V${a.limit ? `: ${a.limit}` : ''}`, railOk ? POWER : HIGH_V)
+        railTag.set(`${r.reg.toUpperCase()} → ${r.vset} V${a.limit ? `: ${a.limit}` : ''}`, verdictTint(railOk, false))
         const v = s.verdict
         const c = CHEMISTRIES[q.chem]
         const why = {

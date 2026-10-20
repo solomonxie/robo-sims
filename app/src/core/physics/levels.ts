@@ -1,5 +1,6 @@
 // Logic levels between supply rails: input thresholds, divider down-shifting, the BSS138 bidirectional shifter.
 import { dividerOut } from './circuits'
+import { bisectRoot } from './common'
 import { Diode, Mosfet, diodeAmps, fitDiode, mosfetDrain } from './semiconductors'
 
 /** Input thresholds: CMOS inputs scale with VCC (fractions), TTL-compatible ones are fixed volts. */
@@ -65,16 +66,7 @@ export function shifterSolve(s: Shifter) {
   const diode = (vl: number, vh: number) => diodeAmps(vl - vh, BODY_DIODE)
   const lowKcl = (vl: number, vh: number) => (s.lowRail - vl) / s.lowPull + channel(vl, vh) - diode(vl, vh) - (s.pullLow ? vl / rd : 0)
   const highKcl = (vh: number, vl: number) => (s.highRail - vh) / s.highPull - channel(vl, vh) + diode(vl, vh) - (s.pullHigh ? vh / rd : 0)
-  const bisect = (f: (v: number) => number) => {
-    let lo = 0
-    let hi = top
-    for (let k = 0; k < 60; k++) {
-      const v = (lo + hi) / 2
-      if (f(v) > 0) lo = v
-      else hi = v
-    }
-    return (lo + hi) / 2
-  }
+  const bisect = (f: (v: number) => number) => bisectRoot(f, 0, top, 60)
   let vl = s.lowRail
   let vh = s.highRail
   for (let k = 0; k < 400; k++) {

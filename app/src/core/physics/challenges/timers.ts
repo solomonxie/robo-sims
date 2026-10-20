@@ -19,7 +19,7 @@ export const NE555 = {
   minR1: 1e3,
 }
 
-export const BLINK_PUZZLE = {
+const BLINK_PUZZLE = {
   tol: 0.1,
   /** Metal-film resistors. */
   rTol: 0.01,
@@ -56,7 +56,7 @@ export function astable555(r1: number, r2: number, farads: number, diode: boolea
   const period = tH + tL
   return { vcc, vd, vt, tauC, tauD, vLo, vHi, tH, tL, tFirst, period, hz: 1 / period, duty: tH / period, chargeA: (vt - vHi) / (diode ? r1 : r1 + r2) }
 }
-export type Astable = ReturnType<typeof astable555>
+type Astable = ReturnType<typeof astable555>
 
 /** Cap voltage and output at time t after power-up: the first charge starts from 0 V (so the first HIGH is longer). */
 export function astableAt(a: Astable, t: number) {
@@ -66,7 +66,7 @@ export function astableAt(a: Astable, t: number) {
   return { vc: a.vt - (a.vt - a.vLo) * Math.exp(-(u - a.tL) / a.tauC), high: true }
 }
 
-export type BlinkFail = 'discharge' | 'slow' | 'fast' | 'duty' | 'leak' | 'bulky' | 'spread' | 'led'
+type BlinkFail = 'discharge' | 'slow' | 'fast' | 'duty' | 'leak' | 'bulky' | 'spread' | 'led'
 
 /** Blink the LED at the goal ±10 %, with its duty, on any parts in tolerance; a red LED off the output through `rLed`. */
 export function blinkChallenge(goal: BlinkGoal, r1: number, r2: number, farads: number, cap: BlinkCap, diode: boolean, rLed: number) {
@@ -176,7 +176,7 @@ export function debounceRun(goal: DebounceGoal, input: DebounceInput, pullOhms: 
   return { part, make, brk, releaseS, n, vc, made, pressed, presses, pressLag, releaseLag, dwellS }
 }
 
-export type DebounceFail = 'level' | 'missed' | 'bounce' | 'slow' | 'chatter'
+type DebounceFail = 'level' | 'missed' | 'bounce' | 'slow' | 'chatter'
 
 /** One clean press per press, read within the goal's response time; a plain pin also needs fast edges. */
 export function debounceChallenge(goal: DebounceGoal, input: DebounceInput, pullOhms: number, farads: number) {

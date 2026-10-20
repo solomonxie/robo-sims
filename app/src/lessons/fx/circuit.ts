@@ -70,6 +70,19 @@ export function swapResistor(holder: THREE.Group, ohms: number, a: V3, b: V3, sc
   resistorAlong(holder, ohms, a, b, scale)
 }
 
+/** A resistor a → b in its own holder; `set(Ω)` rebuilds it only on a new value and returns whether it did. */
+export function resistorSlot(parent: THREE.Object3D, a: V3, b: V3) {
+  const holder = new THREE.Group()
+  parent.add(holder)
+  let shown = NaN
+  return (ohms: number) => {
+    if (ohms === shown) return false
+    shown = ohms
+    swapResistor(holder, ohms, a, b)
+    return true
+  }
+}
+
 /** Cell (+ up) on the left, resistor down the right, + charges in front coloured by potential.
  *  `set(volts, ohms)` swaps the resistor and recolours (full red at `maxVolts`); `flow.step` moves the charges. */
 export function resistorLoop(parent: THREE.Object3D, { w = 11, h = 6, cellH = 5, scale = 1.8, maxVolts = 12 } = {}) {

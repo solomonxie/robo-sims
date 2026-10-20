@@ -14,29 +14,19 @@ import {
   shiftDivider,
 } from '../../core/physics'
 import { E12, E24 } from '../../core/resistorColors'
-import { fixedText, ohms, pct, si, volts } from '../../core/units'
+import { fixedText, ohms, pct, si, timeText as time, volts } from '../../core/units'
 import { V3 } from '../../models/kit'
-import { FACE_VIEW, GAUGE_CAPTION_Y, HIGH_V, LABEL, POWER, RING, dividerBench, liveLabel, memoBy, puzzleStage, verdictTint, windowGauge } from '../fx'
+import { FACE_VIEW, HIGH_V, LABEL, RING, columnGauge, dividerBench, liveLabel, memoBy, puzzleStage, verdictLegend, verdictTint } from '../fx'
 import { Lesson, Params, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf, verdictReadout } from '../types'
 
 // --- Shared layout: divider bench on the left, three gauges on the right. ---
 
 const BENCH = { x0: -15.5, xd: -10.5, xt: -5, top: 2.6, tap: -2.6, bottom: -9.2 }
-const GX = 8
-const GW = 7.6
-const GY = [1.4, -3, -7.4]
 const D = DIVIDER_PUZZLE
 const AP = ADC_PUZZLE
-const LEGEND = [
-  { color: POWER, label: 'Target window / pass', shape: 'dot' as const },
-  { color: RING, label: 'Close miss', shape: 'dot' as const },
-  { color: HIGH_V, label: 'Fail / absolute limit', shape: 'dot' as const },
-  { color: LABEL, label: 'Voltmeter across the tap', shape: 'dot' as const },
-]
+const VERDICTS = verdictLegend('Fail / absolute limit')
 const watts = (w: number) => si(w, 'W', 2)
 const errPct = (f: number) => `${fixedText(f * 100, 1)} %`
-const time = (s: number) => (Number.isFinite(s) ? si(s, 's', 2) : 'never')
-const liveCaption = (scene: THREE.Object3D, y: number) => liveLabel(scene, [GX - GW / 2, y + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' })
 const tagAt = (scene: THREE.Object3D, at: V3) => liveLabel(scene, at, { size: 0.3, align: 'left' })
 
 // --- 3.3 V from 5 V: pick R1 / R2 so a 5 V HIGH lands safely in the ESP32's window, fast and cool. ---
@@ -59,7 +49,7 @@ export const dividerPuzzles3v3From5v: Lesson = {
     const bottom = Number.isFinite(load) ? `R2 ∥ ${ohms(load)}` : 'R2'
     return `V_pin = 5 V × ${bottom} / (R1 + ${bottom}) = ${volts(s.vout)} · τ = R_th × 15 pF = ${time(s.tau)} · P = ${watts(s.wasteW)} · goal 2.8–3.6 V`
   },
-  legend: LEGEND,
+  legend: [...VERDICTS, { color: LABEL, label: 'Voltmeter across the tap', shape: 'dot' }],
   points: [
     'The puzzle: a 5 V part (HC-SR04 echo, an Arduino’s TX) drives an ESP32 input, which is not 5 V tolerant: absolute max 3.6 V. Pick R1 (top) and R2 (bottom) from E12 so the pin HIGH lands in 2.8–3.6 V, VIH (2.48 V) plus a 0.3 V noise margin (Digital › Level shifting › Logic thresholds).',
     'Start from the ratio: V_pin = 5 × R2 / (R1 + R2), so R2 ≈ 2 × R1 gives 3.33 V. 10 k over 22 k gives 3.44 V (Electricity › Voltage divider › The divider formula).',
@@ -77,7 +67,7 @@ export const dividerPuzzles3v3From5v: Lesson = {
     const bench = dividerBench(scene, { ...BENCH, vmax: 5, fullA: 0.001 })
     tagAt(scene, [BENCH.x0 - 1.2, BENCH.top + 0.8, 0.3]).set('5 V HIGH in', LABEL)
     const loadTag = tagAt(scene, [BENCH.xt - 0.3, BENCH.tap + 0.9, 0.3])
-    const vG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const vG = columnGauge(scene, 0, {
       min: 0,
       max: 5,
       window: [D.lo, D.hi],
@@ -85,16 +75,14 @@ export const dividerPuzzles3v3From5v: Lesson = {
       marks: [[2.475, 'VIH', RING], [D.hi, 'max', HIGH_V]],
       ticks: [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5 V']],
     })
-    const eG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const eG = columnGauge(scene, 1, {
       min: 1e-8,
       max: 1e-4,
       log: true,
       window: [1e-8, 1e-4],
-      caption: '',
       ticks: [[1e-8, '10 ns'], [1e-7, '100 ns'], [1e-6, '1 µs'], [1e-5, '10 µs'], [1e-4, '100 µs']],
     })
-    const eCap = liveCaption(scene, GY[1])
-    const wG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const wG = columnGauge(scene, 2, {
       min: 1e-4,
       max: 0.1,
       log: true,
@@ -116,7 +104,7 @@ export const dividerPuzzles3v3From5v: Lesson = {
           bench.setLoad(module ? { kind: 'R', ohms: j.load } : { kind: 'C' })
           loadTag.set(module ? '3.3 V module ≈ 330 Ω' : 'ESP32 pin ≈ 15 pF', LABEL)
           eG.setWindow(1e-8, Math.min(j.edgeS, 1e-4))
-          eCap.set(module ? 'Edge time (no budget: it’s power)' : `Edge to VIH (≤ ${time(j.edgeS)})`, LABEL)
+          eG.caption.set(module ? 'Edge time (no budget: it’s power)' : `Edge to VIH (≤ ${time(j.edgeS)})`, LABEL)
         }
         bench.setR1(q.r1)
         bench.setR2(q.r2)
@@ -191,7 +179,7 @@ export const dividerPuzzlesAdcRangeMatching: Lesson = {
     const [vLo, vHi] = ADC_SOURCES[q.src].range
     return `k = R2 / (R1 + R2) = ${fixedText(m.k, 3)}: ${volts(vLo)} … ${volts(vHi)} → ${volts(m.pinLo)} … ${volts(m.pinHi)} vs linear ${volts(m.window[0])} … ${volts(m.window[1])} · drain ${si(m.drainA, 'A', 2)} · R1 ∥ R2 = ${ohms(m.rth)}`
   },
-  legend: [...LEGEND.slice(0, 3), { color: LABEL, label: 'Battery span on the pin (bar)', shape: 'dot' }],
+  legend: [...VERDICTS, { color: LABEL, label: 'Battery span on the pin (bar)', shape: 'dot' }],
   points: [
     'The puzzle: the ESP32 should read its own battery. The battery is far above 3.3 V, so a divider scales it down, and the whole span (empty … full) must land in the ADC’s linear range for the attenuation you pick.',
     'The original ESP32 ADC bends at both ends: dead near 0 V, flat near the top. Espressif’s calibration (eFuse Vref) is only exact between lo and hi, e.g. 0.15–2.45 V at 11 dB (Microcontrollers › ADC › ESP32 ADC quirks).',
@@ -212,7 +200,7 @@ export const dividerPuzzlesAdcRangeMatching: Lesson = {
     const srcTag = tagAt(scene, [BENCH.x0 - 1.2, BENCH.top + 0.8, 0.3])
     tagAt(scene, [BENCH.xt - 0.3, BENCH.tap + 0.9, 0.3]).set('ESP32 ADC pin', LABEL)
     const readTag = tagAt(scene, [BENCH.xd + 0.8, BENCH.top + 0.8, 0.3])
-    const pG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const pG = columnGauge(scene, 0, {
       min: 0,
       max: 3.8,
       window: [0.15, 2.45],
@@ -220,7 +208,7 @@ export const dividerPuzzlesAdcRangeMatching: Lesson = {
       marks: [[ESP32_ABS_MAX, 'max', HIGH_V]],
       ticks: [[0, '0'], [1, '1'], [2, '2'], [3, '3 V']],
     })
-    const dG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const dG = columnGauge(scene, 1, {
       min: 1e-6,
       max: 1e-2,
       log: true,
@@ -228,15 +216,13 @@ export const dividerPuzzlesAdcRangeMatching: Lesson = {
       caption: 'Battery drain, always on (≤ 100 µA)',
       ticks: [[1e-6, '1 µA'], [1e-5, '10'], [1e-4, '100'], [1e-3, '1 mA'], [1e-2, '10 mA']],
     })
-    const sG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const sG = columnGauge(scene, 2, {
       min: 100,
       max: 1e6,
       log: true,
       window: [100, AP.sourceOhms],
-      caption: '',
       ticks: [[100, '100'], [1e3, '1k'], [1e4, '10k'], [1e5, '100k'], [1e6, '1 MΩ']],
     })
-    const sCap = liveCaption(scene, GY[2])
     const st = { key: '', cap: '', t: 0 }
     return {
       scene,
@@ -257,7 +243,7 @@ export const dividerPuzzlesAdcRangeMatching: Lesson = {
           st.cap = capKey
           bench.setLoad(q.cap ? { kind: 'C' } : null)
           sG.setWindow(100, q.cap ? 1e6 : AP.sourceOhms)
-          sCap.set(q.cap ? 'Source impedance (the cap feeds it)' : 'Source impedance (≤ 10 kΩ, or a cap)', LABEL)
+          sG.caption.set(q.cap ? 'Source impedance (the cap feeds it)' : 'Source impedance (≤ 10 kΩ, or a cap)', LABEL)
         }
         st.t = (st.t + dt) % SWEEP_S
         const u = 0.5 - 0.5 * Math.cos((2 * Math.PI * st.t) / SWEEP_S)

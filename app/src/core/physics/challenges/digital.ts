@@ -8,10 +8,10 @@ import { puzzleVerdict } from './verdict'
 /** A frame slot: a gate, or a plain wire passing its first input on. */
 export type GateSlot = GateName | 'WIRE'
 /** Slot inputs: g0 = f(A, B), g1 = f(g0, A), g2 = f(g0, B), g3 = f(g1, g2), g4 = f(g3, g3) (tied: NAND/NOR invert). */
-export const XOR_FRAME: Src[][] = [['A', 'B'], [0, 'A'], [0, 'B'], [1, 2], [3, 3]]
+const XOR_FRAME: Src[][] = [['A', 'B'], [0, 'A'], [0, 'B'], [1, 2], [3, 3]]
 
 /** 74HC package per gate type and gates in it. */
-export const HC_CHIPS: Record<GateName, { part: string; per: number }> = {
+const HC_CHIPS: Record<GateName, { part: string; per: number }> = {
   NAND: { part: '74HC00', per: 4 },
   NOR: { part: '74HC02', per: 4 },
   AND: { part: '74HC08', per: 4 },
@@ -22,7 +22,7 @@ export const HC_CHIPS: Record<GateName, { part: string; per: number }> = {
 }
 
 const ALL_GATES = Object.keys(GATES) as GateName[]
-export type GateKit = 'nand' | 'nor' | 'any'
+type GateKit = 'nand' | 'nor' | 'any'
 export const GATE_KITS: Record<GateKit, { name: string; gates: GateName[] }> = {
   nand: { name: 'NAND only (74HC00)', gates: ['NAND'] },
   nor: { name: 'NOR only (74HC02)', gates: ['NOR'] },
@@ -108,7 +108,7 @@ export function rowSteps(net: Net, out: number, from: number, to: number): Bit[]
 /** Row order the inputs cycle through: 00 → 11 → 01 → 10 → 00, two of the steps flip both inputs at once. */
 export const GATE_CYCLE = [0, 3, 1, 2]
 
-export type GateFail = 'kit' | 'table' | 'gates'
+type GateFail = 'kit' | 'table' | 'gates'
 
 /** Fill the frame: a gate outside the kit fails first, then wrong rows (3 of 4 right is close), then more gates than needed. */
 export function gateChallenge(goal: GateGoal, slots: GateSlot[]) {
@@ -175,7 +175,7 @@ export const COUNTER_GOALS: Record<CounterGoal, { name: string; seq: number[] }>
 export const COUNTER_CLOCKS = { '1': 1, '1e7': 1e7, '2.5e7': 2.5e7, '4e7': 4e7, '5e7': 5e7 }
 
 /** D value of `d` in state s. */
-export function dValue(d: DLogic, s: number): Bit {
+function dValue(d: DLogic, s: number): Bit {
   const q = { Q1: bit(s >= 2), Q0: bit(s % 2) }
   const l = D_LOGIC[d]
   const a = q[l.in[0]]
@@ -183,9 +183,9 @@ export function dValue(d: DLogic, s: number): Bit {
 }
 
 /** State after one clock edge: each flip-flop loads its D. */
-export const counterNext = (d0: DLogic, d1: DLogic, s: number) => 2 * dValue(d1, s) + dValue(d0, s)
+const counterNext = (d0: DLogic, d1: DLogic, s: number) => 2 * dValue(d1, s) + dValue(d0, s)
 
-export type CounterFail = 'sequence' | 'timing'
+type CounterFail = 'sequence' | 'timing'
 
 /** Next-state logic for `goal`, clocked at `hz`: the wrong sequence fails first (one bit right is close), then a Q → D path
  *  longer than the period less setup (74HC: t_clk→Q + gate t_pd + t_su; within 30 % of the period is close). */

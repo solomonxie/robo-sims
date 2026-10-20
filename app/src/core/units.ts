@@ -69,6 +69,9 @@ export const hpaText = (pa: number, digits = 1) => `${(pa / 100).toFixed(digits)
 export const hexByte = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 /** Whole ms from 10 ms up, `digits` decimals below. */
 export const msText = (s: number, digits = 1) => `${+(s * 1000).toFixed(s < 0.01 ? digits : 0)} ms`
+/** Two significant digits, 'never' when infinite. */
+export const timeText = (s: number) => (Number.isFinite(s) ? si(s, 's', 2) : 'never')
+export const rpmText = (rpm: number) => `${Math.round(rpm)} rpm`
 export const mAText = (a: number) => `${(a * 1000).toFixed(a < 0.01 ? 1 : 0)} mA`
 export const dbmText = (x: number) => `${x < -0.5 ? '−' : ''}${Math.abs(Math.round(x))} dBm`
 export const pct = (f: number) => `${Math.round(f * 100)} %`

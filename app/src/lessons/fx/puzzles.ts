@@ -5,8 +5,8 @@ import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { fixedText, ohms as ohmsText, pct } from '../../core/units'
 import { cellPackModel } from './cells'
-import { ceramicAlong, cell, junction, ledLamp, swapResistor } from './circuit'
-import { GREY, INK, LABEL, POWER, glowMat, setGlow, verdictTint } from './colors'
+import { ceramicAlong, cell, junction, ledLamp, resistorSlot, swapResistor } from './circuit'
+import { GREY, HIGH_V, INK, LABEL, POWER, RING, glowMat, setGlow, verdictTint } from './colors'
 import { multimeter } from './displays'
 import { plusFlow } from './flows'
 import { CELL_H, LANE, RS, cableRun, wire } from './layout'
@@ -19,7 +19,7 @@ export const puzzleTint = (v: PuzzleVerdict) => verdictTint(v.pass, v.near)
 const BADGE = (v: PuzzleVerdict) => (v.pass ? 'PASS' : v.near ? 'CLOSE' : 'FAIL')
 
 /** Top-left: goal line, a tinted PASS / CLOSE / FAIL badge and the reason beside it. */
-export function puzzleHeader(scene: THREE.Object3D, at: V3 = [-17, 6.6, 0.3]) {
+function puzzleHeader(scene: THREE.Object3D, at: V3 = [-17, 6.6, 0.3]) {
   const goal = liveLabel(scene, at, { size: 0.42, align: 'left' })
   const plate = glowMat(POWER, 0.8)
   flatBox(scene, [2.9, 0.9, 0.08], plate, [at[0] + 1.45, at[1] - 1.15, 0.1])
@@ -44,10 +44,27 @@ export function puzzleStage() {
   return { scene, header: puzzleHeader(scene) }
 }
 
-/** Caption height above a `windowGauge` centre. */
-export const GAUGE_CAPTION_Y = 2.05
+/** Legend: pass / close miss / fail dots (`fail` wording per lesson). */
+export const verdictLegend = (fail: string, pass = 'Target window / pass', close = 'Close miss') => [
+  { color: POWER, label: pass, shape: 'dot' as const },
+  { color: RING, label: close, shape: 'dot' as const },
+  { color: HIGH_V, label: fail, shape: 'dot' as const },
+]
 
-export interface GaugeOpts {
+const CAPTION_Y = 2.05
+const trackMat = () => new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 })
+const RED_LEAD = '#d23b3b'
+const BLACK_LEAD = '#202226'
+
+/** A `multimeter` scaled by `k` at (mx, my), pushed back 0.4; `jack(j)` = a jack in `g` coordinates. */
+function benchMeter(g: THREE.Object3D, mx: number, my: number, k: number) {
+  const meter = multimeter()
+  add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
+  const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
+  return { meter, jack }
+}
+
+interface GaugeOpts {
   min: number
   max: number
   log?: boolean
@@ -55,19 +72,20 @@ export interface GaugeOpts {
   window: [number, number]
   /** Extra marks [value, text, colour]. */
   marks?: [number, string, string][]
-  caption: string
+  /** Fixed caption; or set `caption` on the returned gauge. */
+  caption?: string
   ticks: [number, string][]
 }
 
-/** Horizontal gauge centred at `at`, `w` long: green target window, needle + value label, optional spread bar.
- *  `set(v, text, colour, spread?)`; `setWindow(lo, hi)` moves the band. */
+/** Horizontal gauge centred at `at`, `w` long: green target window, needle + value label, optional spread bar, caption above.
+ *  `set(v, text, colour, spread?)`; `setWindow(lo, hi)` moves the band; `caption` is a live label. */
 export function windowGauge(parent: THREE.Object3D, at: V3, w: number, o: GaugeOpts) {
   const g = add(parent, new THREE.Group(), at)
   const u = (v: number) => {
     const f = o.log ? Math.log(v / o.min) / Math.log(o.max / o.min) : (v - o.min) / (o.max - o.min)
     return (clamp01(Number.isFinite(f) ? f : 0) - 0.5) * w
   }
-  flatBox(g, [w + 0.3, 0.7, 0.06], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [0, 0, 0])
+  flatBox(g, [w + 0.3, 0.7, 0.06], trackMat(), [0, 0, 0])
   const band = flatBox(g, [1, 0.7, 0.08], glowMat(POWER, 0.35), [0, 0, 0.04])
   const spread = flatBox(g, [1, 0.24, 0.1], glowMat(LABEL, 0.6), [0, 0, 0.1])
   spread.visible = false
@@ -81,7 +99,8 @@ export function windowGauge(parent: THREE.Object3D, at: V3, w: number, o: GaugeO
     flatBox(g, [0.1, 1.0, 0.1], glowMat(c, 0.6), [u(v), 0, 0.08])
     liveLabel(g, [u(v), 0.72, 0.2], { size: 0.22 }).set(text, c)
   }
-  if (o.caption) liveLabel(g, [-w / 2, GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' }).set(o.caption, LABEL)
+  const caption = liveLabel(g, [-w / 2, CAPTION_Y, 0.2], { size: 0.3, align: 'left' })
+  if (o.caption) caption.set(o.caption, LABEL)
   const value = liveLabel(g, [0, 1.25, 0.2], { size: 0.34 })
   const setWindow = (lo: number, hi: number) => {
     const [a, b] = [u(lo), u(hi)]
@@ -91,6 +110,7 @@ export function windowGauge(parent: THREE.Object3D, at: V3, w: number, o: GaugeO
   setWindow(...o.window)
   return {
     group: g,
+    caption,
     setWindow,
     set(v: number, text: string, color: string, sp?: [number, number]) {
       needle.position.x = u(v)
@@ -107,9 +127,15 @@ export function windowGauge(parent: THREE.Object3D, at: V3, w: number, o: GaugeO
   }
 }
 
-export type BenchPart = { kind: 'R' } | { kind: 'LED'; color: string }
+/** The right-hand gauge column: x, width, row centres top to bottom. */
+const COLUMN = { x: 8, w: 7.6, y: [1.4, -3, -7.4] }
 
-export interface BenchOpts {
+/** `windowGauge` in row `row` of the right-hand column. */
+export const columnGauge = (scene: THREE.Object3D, row: number, o: GaugeOpts) => windowGauge(scene, [COLUMN.x, COLUMN.y[row], 0], COLUMN.w, o)
+
+type BenchPart = { kind: 'R' } | { kind: 'LED'; color: string }
+
+interface BenchOpts {
   /** Cell x; left and right rails. */
   x0: number
   xa: number
@@ -153,9 +179,7 @@ export function railBench(parent: THREE.Object3D, o: BenchOpts) {
 
   const span = (p: BenchPart) => (p.kind === 'R' ? RS : leg)
   const slots = o.rows.map((r) => r.parts.map((_, k) => o.xa + (r.at?.[k] ?? (k + 0.5) / r.parts.length) * (o.xb - o.xa)))
-  const resistors = o.rows.map((r, i) =>
-    r.parts.map((p, k) => (p.kind === 'R' ? { holder: add(g, new THREE.Group()), at: slots[i][k], shown: NaN } : null)),
-  )
+  const resistors = o.rows.map((r, i) => r.parts.map((p, k) => (p.kind === 'R' ? resistorSlot(g, [slots[i][k] - 1, r.y, 0], [slots[i][k] + 1, r.y, 0]) : null)))
   const leds = o.rows.map((r, i) =>
     r.parts.flatMap((p, k) => (p.kind === 'LED' ? [ledLamp(g, p.color, [slots[i][k], r.y, 0], { scale: ls, anodeRight: false })] : [])),
   )
@@ -168,17 +192,14 @@ export function railBench(parent: THREE.Object3D, o: BenchOpts) {
     })
     wire(g, [[x, r.y, 0], [o.xb, r.y, 0]])
   })
-  const feedHolder = o.feed ? add(g, new THREE.Group()) : null
-  let feedShown = NaN
+  const feed = o.feed ? resistorSlot(g, [o.xa, fy + 1, 0], [o.xa, fy - 1, 0]) : null
 
-  const meter = o.meter ? multimeter() : null
-  if (meter) {
-    const k = 0.42
-    const mx = o.xb + 2.6
-    add(g, meter.group, [mx, meterY + 1.2, -0.4]).scale.setScalar(k)
-    const jack = (j: V3): V3 => [mx + j[0] * k, meterY + 1.2 + j[1] * k, -0.4 + j[2] * k]
-    cableRun(g, [[o.xb, mTop, 0], [o.xb + 0.9, mTop, 0.3], jack(meter.red)], '#d23b3b', 0.12)
-    cableRun(g, [jack(meter.black), [o.xb + 0.9, mBot, 0.3], [o.xb, mBot, 0]], '#202226', 0.12)
+  let meter: ReturnType<typeof multimeter> | null = null
+  if (o.meter) {
+    const m = benchMeter(g, o.xb + 2.6, meterY + 1.2, 0.42)
+    meter = m.meter
+    cableRun(g, [[o.xb, mTop, 0], [o.xb + 0.9, mTop, 0.3], m.jack(meter.red)], RED_LEAD, 0.12)
+    cableRun(g, [m.jack(meter.black), [o.xb + 0.9, mBot, 0.3], [o.xb, mBot, 0]], BLACK_LEAD, 0.12)
   }
 
   // Potential along a row: rail level, then a linear drop across each part.
@@ -208,17 +229,8 @@ export function railBench(parent: THREE.Object3D, o: BenchOpts) {
     group: g,
     leds,
     meter,
-    setOhms(i: number, k: number, ohms: number) {
-      const r = resistors[i][k]
-      if (!r || r.shown === ohms) return
-      r.shown = ohms
-      swapResistor(r.holder, ohms, [r.at - 1, o.rows[i].y, 0], [r.at + 1, o.rows[i].y, 0])
-    },
-    setFeed(ohms: number) {
-      if (!feedHolder || feedShown === ohms) return
-      feedShown = ohms
-      swapResistor(feedHolder, ohms, [o.xa, fy + 1, 0], [o.xa, fy - 1, 0])
-    },
+    setOhms: (i: number, k: number, ohms: number) => resistors[i][k]?.(ohms),
+    setFeed: (ohms: number) => feed?.(ohms),
     set(vs: number, vFeed: number, rowNodes: number[][]) {
       live.vs = vs
       live.feed = vFeed
@@ -234,7 +246,7 @@ export function railBench(parent: THREE.Object3D, o: BenchOpts) {
   }
 }
 
-export interface DividerBenchOpts {
+interface DividerBenchOpts {
   /** Cell x, divider column x, load column x. */
   x0: number
   xd: number
@@ -269,23 +281,17 @@ export function dividerBench(parent: THREE.Object3D, o: DividerBenchOpts) {
   wire(g, [[o.xd, o.bottom, 0], [o.xt, o.bottom, 0]])
   const tapDot = junction(g, [o.xd, o.tap, 0], 0.45)
   junction(g, [o.xd, o.bottom, 0], 0.35).set(0)
-  const r1 = add(g, new THREE.Group())
-  const r2 = add(g, new THREE.Group())
+  const rs = [y1, y2].map((y) => resistorSlot(g, [o.xd, y + 1, 0], [o.xd, y - 1, 0]))
   const loadHolder = add(g, new THREE.Group())
   const tags = [y1, y2].map((y) => liveLabel(g, [o.xd - 1.4, y, 0.3], { size: 0.34, align: 'right' }))
-  const shown = [NaN, NaN]
   let loadKey = ''
 
-  const meter = multimeter()
-  const k = 0.42
   const mx = o.xt + 2.8
-  const my = o.tap - 3.4
-  add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
-  const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
+  const { meter, jack } = benchMeter(g, mx, o.tap - 3.4, 0.42)
   const [red, black] = [jack(meter.red), jack(meter.black)]
   const side = mx + 2.4
-  cableRun(g, [[o.xt, o.tap, 0], [side, o.tap, 0.3], [side, red[1] - 0.9, 0.3], [red[0], red[1] - 0.9, 0.3], red], '#d23b3b', 0.12)
-  cableRun(g, [black, [black[0], o.bottom + 0.6, 0.3], [o.xt + 0.6, o.bottom, 0.2], [o.xt, o.bottom, 0]], '#202226', 0.12)
+  cableRun(g, [[o.xt, o.tap, 0], [side, o.tap, 0.3], [side, red[1] - 0.9, 0.3], [red[0], red[1] - 0.9, 0.3], red], RED_LEAD, 0.12)
+  cableRun(g, [black, [black[0], o.bottom + 0.6, 0.3], [o.xt + 0.6, o.bottom, 0.2], [o.xt, o.bottom, 0]], BLACK_LEAD, 0.12)
 
   const columnV = (y: number) => (y > o.tap ? drop(y, y1, live.vs, live.tap) : drop(y, y2, live.tap, 0))
   const feed = plusFlow(g, [[o.x0, o.bottom, LANE], [o.x0, o.top, LANE], [o.xd, o.top, LANE], [o.xd, o.tap, LANE]], (at) =>
@@ -296,17 +302,14 @@ export function dividerBench(parent: THREE.Object3D, o: DividerBenchOpts) {
     at.y > o.tap - 0.01 ? f(live.tap) : at.y < o.bottom + 0.01 ? 0 : live.load ? f(drop(at.y, y2, live.tap, 0)) : f(live.tap),
   )
 
-  const setR = (i: number, holder: THREE.Group, y: number, r: number) => {
-    if (shown[i] === r) return
-    shown[i] = r
-    swapResistor(holder, r, [o.xd, y + 1, 0], [o.xd, y - 1, 0])
-    tags[i].set(`R${i + 1} ${ohmsText(r)}`, LABEL)
+  const setR = (i: number, r: number) => {
+    if (rs[i](r)) tags[i].set(`R${i + 1} ${ohmsText(r)}`, LABEL)
   }
   return {
     group: g,
     meter,
-    setR1: (r: number) => setR(0, r1, y1, r),
-    setR2: (r: number) => setR(1, r2, y2, r),
+    setR1: (r: number) => setR(0, r),
+    setR2: (r: number) => setR(1, r),
     setLoad(load: { kind: 'R'; ohms: number } | { kind: 'C' } | null) {
       const key = load ? (load.kind === 'R' ? `R${load.ohms}` : 'C') : ''
       if (key === loadKey) return
@@ -335,9 +338,9 @@ export function dividerBench(parent: THREE.Object3D, o: DividerBenchOpts) {
 }
 
 /** Cell wrap per chemistry: Li-ion blue, LiFePO4 purple, NiMH green, alkaline black. */
-export const CELL_WRAP: Record<ChemistryId, string> = { liion: '#2856c8', lfp: '#7a4bc4', nimh: '#2f8f5a', alkaline: '#34302c' }
+const CELL_WRAP: Record<ChemistryId, string> = { liion: '#2856c8', lfp: '#7a4bc4', nimh: '#2f8f5a', alkaline: '#34302c' }
 
-export interface PackBenchOpts {
+interface PackBenchOpts {
   /** Centre of the pack box, its width and height. */
   at: V3
   w: number
@@ -352,16 +355,11 @@ export function packBench(parent: THREE.Object3D, o: PackBenchOpts) {
   const holder = add(g, new THREE.Group())
   const title = liveLabel(g, [0, o.h / 2 + 1, 0.3], { size: 0.36 })
   const barY = -o.h / 2 - 0.9
-  flatBox(g, [o.w, 0.5, 0.06], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [0, barY, 0])
+  flatBox(g, [o.w, 0.5, 0.06], trackMat(), [0, barY, 0])
   const fillMat = glowMat(POWER, 0.8)
   const fill = flatBox(g, [1, 0.36, 0.08], fillMat, [0, barY, 0.05])
   const socTag = liveLabel(g, [o.w / 2 + 0.3, barY, 0.2], { size: 0.28, align: 'left' })
-  const meter = multimeter()
-  const k = 0.36
-  const mx = o.w / 2 + 2.6
-  const my = 0.9
-  add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
-  const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
+  const { meter, jack } = benchMeter(g, o.w / 2 + 2.6, 0.9, 0.36)
   let key = ''
   return {
     group: g,
@@ -387,8 +385,8 @@ export function packBench(parent: THREE.Object3D, o: PackBenchOpts) {
         const x = o.w / 2 + 0.5 + 0.35 * edge
         cableRun(holder, [[p.x, p.y, p.z], [p.x, y, front], [x, y, front], [x, to[1] - 0.7 - 0.3 * side, front], [to[0], to[1] - 0.7 - 0.3 * side, to[2]], to], color, 0.1)
       }
-      end(pk.plus, 0, 0, '#d23b3b', jack(meter.red))
-      end(pk.minus, 1, 1, '#202226', jack(meter.black))
+      end(pk.plus, 0, 0, RED_LEAD, jack(meter.red))
+      end(pk.minus, 1, 1, BLACK_LEAD, jack(meter.black))
     },
     set(volts: number, soc: number, color: string) {
       meter.display.set(fixedText(volts, volts < 9.995 ? 2 : 1))

@@ -20,12 +20,9 @@ import { fixedText, ohms, pct, si, tiny, volts } from '../../core/units'
 import { V3 } from '../../models/kit'
 import {
   FACE_VIEW,
-  GAUGE_CAPTION_Y,
   GREY,
   HIGH_V,
   LABEL,
-  POWER,
-  RING,
   emptyGroup,
   ease,
   ledLamp,
@@ -34,6 +31,7 @@ import {
   puzzleStage,
   puzzleTint,
   railBench,
+  verdictLegend,
   verdictTint,
   windowGauge,
 } from '../fx'
@@ -74,8 +72,9 @@ const heatGauge = (scene: THREE.Object3D, at: V3) =>
     marks: [[P.ratingW, '¼ W', HIGH_V]],
     ticks: [[0, '0'], [0.125, '0.125'], [0.25, '0.25'], [0.5, '0.5 W']],
   })
-const heatTint = (w: number) => (w <= P.ratingW * P.derate ? POWER : w <= P.ratingW ? RING : HIGH_V)
-const ampTint = (a: number) => (a > P.hiA * 1.000001 ? (a > P.maxA ? HIGH_V : RING) : a < P.loA * 0.999999 ? RING : POWER)
+const heatTint = (w: number) => verdictTint(w <= P.ratingW * P.derate, w <= P.ratingW)
+const ampTint = (a: number) => verdictTint(a >= P.loA * 0.999999 && a <= P.hiA * 1.000001, a <= P.maxA)
+const VERDICTS = verdictLegend('Fail / absolute limit')
 
 // --- Safe LED current: one LED, one resistor, keep the current in 5–20 mA and the resistor cool. ---
 
@@ -96,12 +95,7 @@ export const ledPuzzlesSafeLedCurrent: Lesson = {
     const s = slSolve(q)
     return `I = (Vs − Vf) / R = (${volts(q.vs)} − ${volts(s.vf)}) / ${ohms(q.r)} = ${mA(s.amps)} · P_R = I²R = ${si(tiny(s.rW, 1e-6), 'W', 2)} · goal 5–20 mA, P_R ≤ 0.125 W`
   },
-  legend: [
-    { color: POWER, label: 'Target window / pass', shape: 'dot' },
-    { color: RING, label: 'Close miss', shape: 'dot' },
-    { color: HIGH_V, label: 'Fail / absolute limit', shape: 'dot' },
-    { color: LABEL, label: 'Ammeter in series: mA', shape: 'dot' },
-  ],
+  legend: [...VERDICTS, { color: LABEL, label: 'Ammeter in series: mA', shape: 'dot' }],
   points: [
     'The puzzle: light the LED at 5–20 mA (visible … rated) from the supply you’re given, with a standard E12 resistor, and keep the ¼ W resistor under half its rating so it stays cool.',
     'Work it out first: R = (Vs − Vf) / I (Components › LED › Current-limiting resistor). Vf comes from the colour: red 2.0 V, yellow 2.2 V, green 3.0 V, blue 3.1 V, white 3.2 V (Components › LED › Forward voltage and colour).',
@@ -204,12 +198,7 @@ export const ledPuzzlesTwoLedsOneSupply: Lesson = {
     if (q.wiring === 'shared') return `node = ${volts(s.vf[0])}: I = (${volts(q.vs)} − ${volts(s.vf[0])}) / ${ohms(q.r1)} = ${mA(s.supplyA)} splits ${mA(s.amps[0])} + ${mA(s.amps[1])} (Vf ${fixedText(a.vf, 2)} vs ${fixedText(b.vf, 2)} V at 20 mA)`
     return `I1 = (${volts(q.vs)} − ${volts(s.vf[0])}) / ${ohms(q.r1)} = ${mA(s.amps[0])} · I2 = (${volts(q.vs)} − ${volts(s.vf[1])}) / ${ohms(q.r2)} = ${mA(s.amps[1])} · ratio ${fixedText(s.ratio, 2)} (≤ 1.25)`
   },
-  legend: [
-    { color: POWER, label: 'Target window / pass', shape: 'dot' },
-    { color: RING, label: 'Close miss', shape: 'dot' },
-    { color: HIGH_V, label: 'Fail / absolute limit', shape: 'dot' },
-    { color: LABEL, label: 'Ammeter: total supply mA', shape: 'dot' },
-  ],
+  legend: [...VERDICTS, { color: LABEL, label: 'Ammeter: total supply mA', shape: 'dot' }],
   points: [
     'The puzzle: both LEDs at 5–20 mA and within 25 % of each other, so they look equally bright, from one supply. R2 only counts when each LED has its own resistor.',
     'Series: one current flows through both, so they match by construction. But the supply must cover both drops plus some for the resistor: two reds need over 4.3 V, two whites over 6.7 V (Electricity › Series & parallel).',
@@ -230,7 +219,6 @@ export const ledPuzzlesTwoLedsOneSupply: Lesson = {
     scene.add(holder)
     let bench: ReturnType<typeof railBench> | null = null
     const gauges = [GX, GX2].map((at) => currentGauge(scene, at, '', [P.loA, P.hiA]))
-    const captions = [GX, GX2].map((at) => liveLabel(scene, [at[0] - GW / 2, at[1] + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' }))
     const st = { key: '', vs: 5 }
     return {
       scene,
@@ -251,7 +239,7 @@ export const ledPuzzlesTwoLedsOneSupply: Lesson = {
                   parts: q.wiring === 'own' ? [{ kind: 'R' as const }, { kind: 'LED' as const, color }] : [{ kind: 'LED' as const, color }],
                 }))
           bench = railBench(holder, { ...BENCH, rows, feed: q.wiring === 'shared', meter: true, vmax: 9, ledScale: q.wiring === 'series' ? 1.15 : 0.95 })
-          captions.forEach((c, k) => c.set(ledName(q.pair, k), LABEL))
+          gauges.forEach((g, k) => g.caption.set(ledName(q.pair, k), LABEL))
         }
         const s = tlSolve(q)
         st.vs += (q.vs - st.vs) * ease(dt, 6)
@@ -343,12 +331,7 @@ export const ledPuzzlesBrightnessTarget: Lesson = {
     const spread = q.worst ? ` · worst case ${mA(b.lo)} … ${mA(b.hi)}` : ''
     return `I = (${volts(q.vs)} − ${volts(b.vf)}) / ${ohms(q.r)} = ${mA(b.amps)} vs target ${mA(t.amps)} ± 20 % (${mA(b.window[0])} … ${mA(b.window[1])})${spread}`
   },
-  legend: [
-    { color: POWER, label: 'Target ±20 % / pass', shape: 'dot' },
-    { color: RING, label: 'Close miss', shape: 'dot' },
-    { color: HIGH_V, label: 'Fail', shape: 'dot' },
-    { color: LABEL, label: 'Worst-case spread (bar)', shape: 'dot' },
-  ],
+  legend: [...verdictLegend('Fail', 'Target ±20 % / pass'), { color: LABEL, label: 'Worst-case spread (bar)', shape: 'dot' }],
   points: [
     'The puzzle: make the LED glow like the target beside it, within ±20 % of its current. Light output follows current, and the eye barely notices 20 % (it judges brightness on a log scale).',
     'R = (Vs − Vf) / I_target, then pick the nearest E24 value: 24 per decade, steps of ~10 %, so one always lands within ±5 % (Components › Resistor › Value and tolerance).',

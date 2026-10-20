@@ -15,7 +15,7 @@ import {
   counterChallenge,
   gateChallenge,
 } from '../../core/physics'
-import { si } from '../../core/units'
+import { si, timeText as ns } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import {
   FACE_VIEW,
@@ -41,18 +41,13 @@ import {
   puzzleStage,
   segmentDisplay,
   signalWire,
+  verdictLegend,
   verdictTint,
   windowGauge,
 } from '../fx'
 import { Lesson, Params, Stage, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
-const LEGEND = [
-  { color: POWER, label: 'Pass / right row', shape: 'dot' as const },
-  { color: RING, label: 'Close miss', shape: 'dot' as const },
-  { color: HIGH_V, label: 'Fail / wrong row', shape: 'dot' as const },
-  LOGIC_WIRES,
-]
-const ns = (s: number) => si(s, 's', 2)
+const LEGEND = [...verdictLegend('Fail / wrong row', 'Pass / right row'), LOGIC_WIRES]
 const plural = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`
 
 // --- Build XOR: fill a five-slot gate frame from a kit so the output matches a truth table, in as few gates as possible. ---
@@ -131,10 +126,8 @@ export const logicPuzzlesBuildXor: Lesson = {
       min: 0,
       max: 8,
       window: [0, 4],
-      caption: '',
       ticks: [[0, '0'], [2, '2'], [4, '4'], [6, '6'], [8, '8 gates']],
     })
-    const gCap = liveLabel(scene, [5.4 - 3.6, -6.2 + 2.05, 0.2], { size: 0.3, align: 'left' })
     const live = { key: '', net: null as ReturnType<typeof gateNet> | null, sim: netSettler([], GATE_DELAY_S), t: 0, bar: 0 }
     return {
       scene,
@@ -151,7 +144,7 @@ export const logicPuzzlesBuildXor: Lesson = {
           live.net = gateNet(holder, net, gxLayout(s.slot, net, s.out))
           live.sim = netSettler(net, GATE_DELAY_S)
           gG.setWindow(0, s.best.gates)
-          gCap.set(`Gates (fewest that work: ${s.best.gates})`, LABEL)
+          gG.caption.set(`Gates (fewest that work: ${s.best.gates})`, LABEL)
           head.set('A  B   want   got', LABEL)
           s.rows.forEach((r, i) => rows[i].set(`${r.a}  ${r.b}      ${r.want}       ${r.got}   ${r.want === r.got ? 'ok' : 'wrong'}`, r.want === r.got ? POWER : HIGH_V))
           slotTags.forEach((t, i) => t.set(s.slot.includes(i) ? '' : `G${i + 1}: ${q.slots[i] === 'WIRE' ? 'wire' : 'unused'}`, GREY))
@@ -292,10 +285,8 @@ export const logicPuzzlesDesignA2BitCounter: Lesson = {
       min: 0,
       max: 50e-9,
       window: [0, 25e-9],
-      caption: '',
       ticks: [[0, '0'], [10e-9, '10'], [20e-9, '20'], [30e-9, '30'], [40e-9, '40'], [50e-9, '50 ns']],
     })
-    const tCap = liveLabel(scene, [7.2 - 4, -6.2 + 2.05, 0.2], { size: 0.3, align: 'left' })
     const st = { key: '', logicKey: '', t: 0, state: 0, edges: 0, lv: [0, 0], clk: 0, draw: [] as ((q: Record<'Q1' | 'Q0', number>, dv: number) => void)[] }
     return {
       scene,
@@ -313,10 +304,10 @@ export const logicPuzzlesDesignA2BitCounter: Lesson = {
             st.draw = [dLogic(holder, q.d1, ffs[0].pins.d), dLogic(holder, q.d0, ffs[1].pins.d)]
           }
           tG.setWindow(0, Math.min(s.period, 50e-9))
-          tCap.set(`Q → D + setup ≤ period (${ns(s.period)})`, LABEL)
+          tG.caption.set(`Q → D + setup ≤ period (${ns(s.period)})`, LABEL)
           wantTag.set(`Want: ${seqText([...COUNTER_GOALS[q.goal].seq, 0])}`, LABEL)
           const got = s.run.slice(0, 5)
-          gotTag.set(`Got:  ${seqText(got)}`, s.verdict.fail === 'sequence' ? (s.verdict.near ? RING : HIGH_V) : POWER)
+          gotTag.set(`Got:  ${seqText(got)}`, verdictTint(s.verdict.fail !== 'sequence', s.verdict.near))
         }
         st.t += dt
         const edges = Math.floor(st.t / EDGE_S)

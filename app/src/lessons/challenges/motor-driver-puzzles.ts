@@ -19,10 +19,9 @@ import {
   pwmTarget,
   truthChallenge,
 } from '../../core/physics'
-import { fixedText, msText, pct, si, volts } from '../../core/units'
+import { fixedText, msText, pct, rpmText, si, volts } from '../../core/units'
 import {
   FACE_VIEW,
-  GAUGE_CAPTION_Y,
   GREY,
   HEAT,
   HIGH_V,
@@ -32,28 +31,20 @@ import {
   POWER,
   RING,
   boxScope,
+  columnGauge,
   hBridgeDiagram,
   liveLabel,
   memoBy,
   puzzleStage,
   simClock,
   speedWheel,
+  verdictLegend,
   verdictTint,
-  windowGauge,
 } from '../fx'
 import { Lesson, Params, Stage, bitChoice, n, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
-const GX = 8
-const GW = 7.6
-const GY = [1.4, -3, -7.4]
-const LEGEND = [
-  { color: POWER, label: 'Target window / pass', shape: 'dot' as const },
-  { color: RING, label: 'Close miss', shape: 'dot' as const },
-  { color: HIGH_V, label: 'Fail / short', shape: 'dot' as const },
-]
-const rpmText = (rpm: number) => `${Math.round(rpm)} rpm`
+const LEGEND = verdictLegend('Fail / short')
 const wheelRpm = (radS: number) => (radS * RPM_PER_RADS) / TT_GEAR
-const liveCaption = (y: number, scene: Parameters<typeof liveLabel>[0]) => liveLabel(scene, [GX - GW / 2, y + GAUGE_CAPTION_Y, 0.2], { size: 0.3, align: 'left' })
 
 // --- Truth table challenge: set the driver's pins for forward / reverse / brake / coast without shorting the supply. ---
 
@@ -112,14 +103,14 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
     const chipTag = liveLabel(scene, [-10.2, 2.4, 0.3], { size: 0.34 })
     const pinTags = [0, 1, 2, 3].map((k) => liveLabel(scene, [-16.6 + k * 3.2, -7.6, 0.3], { size: 0.32, align: 'left' }))
     const modeTag = liveLabel(scene, [-10.2, -8.8, 0.3], { size: 0.32 })
-    const sG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const sG = columnGauge(scene, 0, {
       min: -220,
       max: 220,
       window: [-5, 5],
       caption: 'Wheel speed (replayed 15× slower)',
       ticks: [[-200, '−200'], [-100, '−100'], [0, '0'], [100, '100'], [200, '200 rpm']],
     })
-    const aG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const aG = columnGauge(scene, 1, {
       min: 0.01,
       max: 30,
       log: true,
@@ -127,15 +118,13 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
       caption: 'Peak current (≤ 2 A)',
       ticks: [[0.01, '10 mA'], [0.1, '0.1'], [1, '1'], [10, '10 A']],
     })
-    const tG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const tG = columnGauge(scene, 2, {
       min: 0.01,
       max: 1,
       log: true,
       window: [0.01, 0.01],
-      caption: '',
       ticks: [[0.01, '10 ms'], [0.1, '100 ms'], [1, '1 s']],
     })
-    const tCap = liveCaption(GY[2], scene)
     const clock = simClock(SLOW / 1000, 2)
     const st = { key: '', angle: 0, ms: 0 }
     return {
@@ -151,7 +140,7 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
           const stop = q.goal === 'brake' || q.goal === 'coast'
           sG.setWindow(...((q.goal === 'forward' ? [0.8 * free, 1.05 * free] : q.goal === 'reverse' ? [-1.05 * free, -0.8 * free] : [-5, 5]) as [number, number]))
           tG.setWindow(...((q.goal === 'brake' ? [0.01, 1.3 * s.brakeS] : q.goal === 'coast' ? [0.8 * s.coastS, 1] : [0.01, 0.01]) as [number, number]))
-          tCap.set(stop ? `Stop from full speed (${q.goal === 'brake' ? 'brake' : 'coast'}: ${msText(q.goal === 'brake' ? s.brakeS : s.coastS)})` : 'Stop time (only for brake / coast)', LABEL)
+          tG.caption.set(stop ? `Stop from full speed (${q.goal === 'brake' ? 'brake' : 'coast'}: ${msText(q.goal === 'brake' ? s.brakeS : s.coastS)})` : 'Stop time (only for brake / coast)', LABEL)
         }
         const ms = clock(dt, `${key}|${q.pins.map(Number).join('')}`, RUN_MS)
         st.ms = ms
@@ -174,7 +163,7 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
         BRIDGE_PINS[q.chip].pins.forEach((name, k) =>
           pinTags[k].set(name ? `${name} = ${Number(q.pins[k])}` : `pin ${k + 1}: —`, name ? (q.pins[k] ? PIN_COLOR : GREY) : GREY),
         )
-        modeTag.set(`Bridge: ${MODE_NAMES[s.mode]}${s.off ? ' (chip off)' : ''}`, short ? HIGH_V : s.mode === q.goal ? POWER : RING)
+        modeTag.set(`Bridge: ${MODE_NAMES[s.mode]}${s.off ? ' (chip off)' : ''}`, verdictTint(s.mode === q.goal, !short))
         const w = wheelRpm(f.radS)
         const inSpeed = q.goal === 'forward' ? w >= 0.8 * free : q.goal === 'reverse' ? w <= -0.8 * free : Math.abs(w) <= 5
         sG.set(w, rpmText(w), verdictTint(inSpeed && s.mode === q.goal, s.mode === q.goal))
@@ -183,7 +172,6 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
         const stopS = Number.isFinite(s.stopS) ? s.stopS : 0.01
         tG.set(stopS, Number.isFinite(s.stopS) ? msText(s.stopS) : '—', Number.isFinite(s.stopS) ? verdictTint(s.mode === q.goal, true) : GREY)
         const v = s.verdict
-        const goal = q.goal
         const why = {
           shoot: `Both switches of one leg on: ${fixedText(s.shootA, 1)} A straight from the pack, ${Math.round(s.fetW)} W per FET. Never both in one leg`,
           off:
@@ -193,7 +181,7 @@ export const motorDriverPuzzlesTruthTableChallenge: Lesson = {
           mode:
             (s.mode === 'brake' || s.mode === 'coast') && (q.goal === 'brake' || q.goal === 'coast')
               ? `That pattern ${s.mode === 'brake' ? 'brakes' : 'coasts'}: it stops in ${msText(s.stopS)}, the goal ${q.goal === 'brake' ? 'brakes' : 'coasts'} in ${msText(q.goal === 'brake' ? s.brakeS : s.coastS)}`
-              : `That pattern gives ${MODE_NAMES[s.mode]}, not ${goal}`,
+              : `That pattern gives ${MODE_NAMES[s.mode]}, not ${q.goal}`,
         }
         header.set(
           `${GOAL_TEXT[q.goal]} with the ${BRIDGE_PINS[q.chip].name}`,
@@ -271,15 +259,13 @@ export const motorDriverPuzzlesPwmSpeedTarget: Lesson = {
     const sc = boxScope(scene, SCOPE, 'PWM pin + current', [6, 4], { tag: 0.26 })
     const pin = sc.s.trace(PIN_COLOR, { samples: 6 * PERIODS + 2, radius: 0.06 })
     const cur = sc.s.trace(HEAT, { samples: 60 * PERIODS, radius: 0.07 })
-    const sG = windowGauge(scene, [GX, GY[0], 0], GW, {
+    const sG = columnGauge(scene, 0, {
       min: 0,
       max: 250,
       window: [100, 120],
-      caption: '',
       ticks: [[0, '0'], [50, '50'], [100, '100'], [150, '150'], [200, '200'], [250, '250 rpm']],
     })
-    const sCap = liveCaption(GY[0], scene)
-    const dG = windowGauge(scene, [GX, GY[1], 0], GW, {
+    const dG = columnGauge(scene, 1, {
       min: 0,
       max: 1,
       window: [0, PWM_PUZZLE.maxDuty],
@@ -287,7 +273,7 @@ export const motorDriverPuzzlesPwmSpeedTarget: Lesson = {
       marks: [[PWM_PUZZLE.maxDuty, '90 %', RING]],
       ticks: [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100 %']],
     })
-    const fG = windowGauge(scene, [GX, GY[2], 0], GW, {
+    const fG = columnGauge(scene, 2, {
       min: 50,
       max: 50e3,
       log: true,
@@ -308,7 +294,7 @@ export const motorDriverPuzzlesPwmSpeedTarget: Lesson = {
         if (key !== st.key) {
           st.key = key
           sG.setWindow(lo, hi)
-          sCap.set(`Wheel speed (100 % gives ${rpmText(s.maxRpm)})`, LABEL)
+          sG.caption.set(`Wheel speed (100 % gives ${rpmText(s.maxRpm)})`, LABEL)
           dG.setWindow(s.startDuty, PWM_PUZZLE.maxDuty)
           const iMax = Math.max(0.05, ...s.wave) * 1.15
           const us = Array.from({ length: s.wave.length * PERIODS }, (_, k) => k / (s.wave.length * PERIODS - 1))

@@ -17,12 +17,11 @@ import {
   debounceChallenge,
 } from '../../core/physics'
 import { E12, E24, E6 } from '../../core/resistorColors'
-import { fixedText, ohms, pct, si, volts } from '../../core/units'
+import { fixedText, ohms, pct, si, timeText as time, volts } from '../../core/units'
 import { V3, add, box, cylinder, mat, rod, STEEL } from '../../models/kit'
 import {
   FACE_VIEW,
   GREY,
-  HIGH_V,
   LABEL,
   POWER,
   RING,
@@ -38,8 +37,10 @@ import {
   memoBy,
   partLetter,
   puzzleStage,
+  resistorSlot,
   swapResistor,
   tactSwitch,
+  verdictLegend,
   verdictTint,
   windowGauge,
   wire,
@@ -49,7 +50,6 @@ import {
 import { Lesson, Params, Stage, namesOf, opts, pick, seriesOhms, seriesSlider, toneOf, verdictReadout } from '../types'
 
 const farads = (f: number) => si(f, 'F', 2)
-const time = (s: number) => (Number.isFinite(s) ? si(s, 's', 2) : 'never')
 const amps = (a: number) => si(a, 'A', 2)
 const hzText = (f: number) => `${fixedText(f, f < 10 ? 2 : 1)} Hz`
 const tag = (scene: THREE.Object3D, at: V3, size = 0.3, align: 'left' | 'right' | 'center' = 'left') => liveLabel(scene, at, { size, align })
@@ -109,12 +109,7 @@ export const timingPuzzlesBlinkAt1Hz: Lesson = {
     const charge = q.diode ? `R1·C·ln(…) (diode ${fixedText(s.vd, 2)} V)` : 'ln2·(R1 + R2)·C'
     return `t_H = ${charge} = ${time(s.tH)} · t_L = ln2·R2·C = ${time(s.tL)} · f = 1 / (t_H + t_L) = ${hzText(s.hz)} · duty = ${pct(s.duty)}`
   },
-  legend: [
-    { color: POWER, label: 'Target window / pass; 555 output', shape: 'dot' },
-    { color: RING, label: 'Close miss; ⅓ and ⅔ VCC', shape: 'dot' },
-    { color: HIGH_V, label: 'Fail', shape: 'dot' },
-    { color: '#ffffff', label: 'Cap voltage (real time)', shape: 'dot' },
-  ],
+  legend: [...verdictLegend('Fail', 'Target window / pass; 555 output', 'Close miss; ⅓ and ⅔ VCC'), { color: '#ffffff', label: 'Cap voltage (real time)', shape: 'dot' }],
   points: [
     'The puzzle: a 555 in astable mode blinks an LED. The cap charges through R1 + R2 until it hits ⅔ VCC (output HIGH), then the DIS pin empties it through R2 down to ⅓ VCC (output LOW), and again. Pick R1, R2 and C to blink at 1 Hz ±10 % with the duty the goal asks for (Components › Capacitor › RC time constant).',
     'Each half is an RC curve between ⅓ and ⅔ of the supply, so it takes ln 2 ≈ 0.693 time constants: t_H = 0.693·(R1 + R2)·C, t_L = 0.693·R2·C, f ≈ 1.44 / ((R1 + 2·R2)·C). The supply cancels out, which is why the 555 is so steady. The first HIGH is longer: the cap starts from 0 V.',
@@ -160,7 +155,10 @@ export const timingPuzzlesBlinkAt1Hz: Lesson = {
     const nodeA = junction(scene, [B.xr, B.ya, 0], 0.42)
     const nodeB = junction(scene, [B.xr, B.yb, 0], 0.42)
 
-    const holders = { r1: add(scene, new THREE.Group()), r2: add(scene, new THREE.Group()), c: add(scene, new THREE.Group()), d: add(scene, new THREE.Group()), led: add(scene, new THREE.Group()) }
+    const r1 = resistorSlot(scene, [B.xr, y1 + 1, 0], [B.xr, y1 - 1, 0])
+    const r2 = resistorSlot(scene, [B.xr, y2 + 1, 0], [B.xr, y2 - 1, 0])
+    const holders = { c: add(scene, new THREE.Group()), d: add(scene, new THREE.Group()) }
+    const rLed = resistorSlot(scene, [B.xl, -1.4, 0], [B.xl, -3.4, 0])
     const rTags = [y1, y2].map((y) => tag(scene, [B.xr + 1.2, y, 0.3], 0.28))
     const cTag = tag(scene, [B.xr + 1.2, y3, 0.3], 0.28)
     const led = ledLamp(scene, LEDS.red.color, [B.xl, -4.5, 0], { scale: 1, anodeRight: false })
@@ -193,7 +191,7 @@ export const timingPuzzlesBlinkAt1Hz: Lesson = {
       marks: [[0.5, 'no diode', RING]],
       ticks: [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100 %']],
     })
-    const st = { key: '', t: 0, goal: '', shown: { r1: NaN, r2: NaN, c: '', rLed: NaN, diode: '' } }
+    const st = { key: '', t: 0, goal: '', shown: { c: '', diode: '' } }
     return {
       scene,
       view: FACE_VIEW,
@@ -211,16 +209,8 @@ export const timingPuzzlesBlinkAt1Hz: Lesson = {
           dG.setWindow(...BLINK_GOALS[q.goal].duty)
         }
         const sh = st.shown
-        if (sh.r1 !== q.r1) {
-          sh.r1 = q.r1
-          swapResistor(holders.r1, q.r1, [B.xr, y1 + 1, 0], [B.xr, y1 - 1, 0])
-          rTags[0].set(`R1 ${ohms(q.r1)}`, LABEL)
-        }
-        if (sh.r2 !== q.r2) {
-          sh.r2 = q.r2
-          swapResistor(holders.r2, q.r2, [B.xr, y2 + 1, 0], [B.xr, y2 - 1, 0])
-          rTags[1].set(`R2 ${ohms(q.r2)}`, LABEL)
-        }
+        if (r1(q.r1)) rTags[0].set(`R1 ${ohms(q.r1)}`, LABEL)
+        if (r2(q.r2)) rTags[1].set(`R2 ${ohms(q.r2)}`, LABEL)
         const cKey = `${q.c}|${q.cap}`
         if (sh.c !== cKey) {
           sh.c = cKey
@@ -228,10 +218,7 @@ export const timingPuzzlesBlinkAt1Hz: Lesson = {
           timingCap(holders.c, [B.xr, y3 + 1.4, 0], [B.xr, y3 - 1.4, 0], q.cap)
           cTag.set(`C ${farads(q.c)} ${q.cap === 'film' ? 'film' : 'elec.'}`, LABEL)
         }
-        if (sh.rLed !== q.rLed) {
-          sh.rLed = q.rLed
-          swapResistor(holders.led, q.rLed, [B.xl, -1.4, 0], [B.xl, -3.4, 0])
-        }
+        rLed(q.rLed)
         const dKey = String(q.diode)
         if (sh.diode !== dKey) {
           sh.diode = dKey
@@ -370,7 +357,7 @@ export const timingPuzzlesDebounceTime: Lesson = {
     const outTag = tag(scene, [D.ic + 2.8, D.yn, 0.3], 0.3)
     const yr = (D.top + D.yn) / 2
     const yc = (D.yn + D.bottom) / 2
-    const rHold = add(scene, new THREE.Group())
+    const rSlot = resistorSlot(scene, [D.ax, yr + 1, 0], [D.ax, yr - 1, 0])
     const cHold = add(scene, new THREE.Group())
     const rTag = tag(scene, [D.ax - 0.9, yr + 0.4, 0.3], 0.3, 'right')
     const cTag = tag(scene, [D.ax + 1.6, yc, 0.3], 0.3)
@@ -401,7 +388,7 @@ export const timingPuzzlesDebounceTime: Lesson = {
       ticks: [[1e-4, '0.1'], [1e-3, '1'], [1e-2, '10'], [0.1, '100 ms']],
     })
     const slow = [0, 1].map((i) => tag(scene, [3.5, -2.6 - 0.7 * i, 0.3], 0.28))
-    const st = { t: 0, key: '', goal: '', r: NaN, c: NaN, input: '' }
+    const st = { t: 0, key: '', goal: '', c: NaN, input: '' }
     return {
       scene,
       view: FACE_VIEW,
@@ -423,11 +410,7 @@ export const timingPuzzlesDebounceTime: Lesson = {
             pn.lo.set(vy(s.levels.lo))
           }
         }
-        if (q.r !== st.r) {
-          st.r = q.r
-          swapResistor(rHold, q.r, [D.ax, yr + 1, 0], [D.ax, yr - 1, 0])
-          rTag.set(`R ${ohms(q.r)}`, LABEL)
-        }
+        if (rSlot(q.r)) rTag.set(`R ${ohms(q.r)}`, LABEL)
         if (q.c !== st.c) {
           st.c = q.c
           emptyGroup(cHold)
