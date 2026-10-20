@@ -218,6 +218,7 @@ import { mazeSolverFloodFill, mazeSolverWallSensing } from '../lessons/projects/
 import { sumoRobotEdgeAndOpponentSensing, sumoRobotWedgeAndWheels } from '../lessons/projects/sumo-robot'
 import { cameraTrackerColourTrackingLoop, cameraTrackerPanTiltRig } from '../lessons/projects/camera-tracker'
 import { weatherStationSendOverWiFi, weatherStationWireTheSensors } from '../lessons/projects/weather-station'
+import { smartPlantMonitorMoistureProbe, smartPlantMonitorPumpControl } from '../lessons/projects/smart-plant-monitor'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -864,6 +865,8 @@ const READY: Record<string, Lesson> = {
   'projects/camera-tracker/colour-tracking-loop': cameraTrackerColourTrackingLoop,
   'projects/weather-station/wire-the-sensors': weatherStationWireTheSensors,
   'projects/weather-station/send-over-wi-fi': weatherStationSendOverWiFi,
+  'projects/smart-plant-monitor/moisture-probe': smartPlantMonitorMoistureProbe,
+  'projects/smart-plant-monitor/pump-control': smartPlantMonitorPumpControl,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
