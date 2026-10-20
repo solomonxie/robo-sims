@@ -5,13 +5,15 @@ import { FaultHunt, MeterRead, PuzzleVerdict, caseFaults, decisiveProbe, huntVer
 import { fixedText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { diodeAlong, glowHalo } from './circuit'
-import { GREY, HEAT, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
-import { dcdcModule, esp32Board } from './modules'
+import { diodeAlong, glowHalo, motorCan } from './circuit'
+import { buildElectrolyticCap } from '../../models/passives'
+import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
+import { dcdcModule, esp32Board, i2cBreakout } from './modules'
 import { probe } from './displays'
 import { cableRun, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
+import { boxScope } from './rigs'
 import { flatBox } from './shapes'
 import { addLabel, liveLabel } from './text'
 import { emptyGroup } from './util'
@@ -47,8 +49,9 @@ export const HUNT_HOWTO =
 
 const shown = (v: number) => (Math.abs(v) < 0.005 ? 0 : v)
 
-/** Four-digit meter text for a reading (`flip` shows the flicker value); OL for open. */
+/** Four-digit meter text for a reading (`flip` shows the flicker value); OL for open, dashes for a firmware log line. */
 export function meterText(r: MeterRead, flip = false) {
+  if (r.unit === 'log') return '----'
   if (r.open) return '0L'
   const v = shown(flip && r.alt !== undefined ? r.alt : r.value)
   const a = Math.abs(v)
@@ -56,8 +59,10 @@ export function meterText(r: MeterRead, flip = false) {
   return fixedText(v, digits).replace('−', '-')
 }
 
-/** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "149 °C lead". */
-export function readingText(r: MeterRead) {
+/** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "149 °C lead", "min 2.19 V", a log line. */
+export function readingText(r: MeterRead): string {
+  if (r.unit === 'log') return r.label ?? ''
+  if (r.hold) return `${r.hold} ${readingText({ ...r, hold: undefined })}`
   if (r.open) return 'OL'
   const one = (v: number) => {
     const x = shown(v)
@@ -70,27 +75,33 @@ export function readingText(r: MeterRead) {
 }
 
 /** Multimeter (scale `k`) at `at` with red / black probes; `aim(red, black)` moves the tips (rebuilds only on change),
- *  `show(r, t)` writes the reading, flickering between `value` and `alt` every ½ s. Cables drop to `laneY` and run over. */
+ *  `park()` lays them down beside the meter, `show(r, t)` writes the reading, flickering between `value` and `alt` every
+ *  ½ s, with a MIN / MAX tag for a held reading. Cables drop to `laneY` and run over. */
 export function probeMeter(parent: THREE.Object3D, at: V3, k = 0.42, laneY = -3) {
   const g = add(parent, new THREE.Group())
   const { meter, jack } = benchMeter(g, at[0], at[1], k)
   const leads = add(g, new THREE.Group())
+  const holdTag = liveLabel(g, [at[0] - 2.2 * k, at[1] + 6.9 * k, 0.4], { size: 0.32, align: 'left' })
   let key = ''
+  const parked: [V3, V3] = [[at[0] - 1.4, laneY - 0.3, 0.4], [at[0] - 2.4, laneY - 0.3, 0.4]]
+  const aim = (red: V3, black: V3) => {
+    const next = `${red}|${black}`
+    if (next === key) return
+    key = next
+    emptyGroup(leads)
+    for (const [tip, color, to, dx] of [[red, PROBE_RED, jack(meter.red), 0.2], [black, PROBE_BLACK, jack(meter.black), -0.2]] as const) {
+      const end = probe(leads, tip, [dx, tip[1] < 0 ? 0.45 : -0.45, 1], color)
+      cableRun(leads, [end, [end[0], laneY, end[2]], [to[0], laneY - (color === PROBE_RED ? 0 : 0.3), to[2] + 0.6], [to[0], to[1] - 0.6, to[2] + 0.4], to], color, 0.09)
+    }
+  }
   return {
     meter,
-    aim(red: V3, black: V3) {
-      const next = `${red}|${black}`
-      if (next === key) return
-      key = next
-      emptyGroup(leads)
-      for (const [tip, color, to, dx] of [[red, PROBE_RED, jack(meter.red), 0.2], [black, PROBE_BLACK, jack(meter.black), -0.2]] as const) {
-        const end = probe(leads, tip, [dx, tip[1] < 0 ? 0.45 : -0.45, 1], color)
-        cableRun(leads, [end, [end[0], laneY, end[2]], [to[0], laneY - (color === PROBE_RED ? 0 : 0.3), to[2] + 0.6], [to[0], to[1] - 0.6, to[2] + 0.4], to], color, 0.09)
-      }
-    },
+    aim,
+    park: () => aim(...parked),
     show(r: MeterRead, t: number) {
-      meter.dial(r.unit)
+      if (r.unit !== 'log') meter.dial(r.unit)
       meter.display.set(meterText(r, r.alt !== undefined && Math.floor(t * 2) % 2 === 1))
+      holdTag.set(r.hold ? `${r.hold.toUpperCase()} HOLD` : '', RING)
     },
   }
 }
@@ -434,7 +445,8 @@ export function huntRig<F extends string, P extends string, T extends string, S 
       st.seen = track(q)
       const tip = s.tips[q.probe]
       const read = s.hunt.read(q.truth, q.probe)
-      meter.aim(spot(tip.red, read), bench.tp[tip.black])
+      if (read.unit === 'log') meter.park()
+      else meter.aim(spot(tip.red, read), bench.tp[tip.black])
       meter.show(read, st.t)
       bench.clearGlow()
       const hp = hotPart(read)
@@ -613,4 +625,180 @@ export function driverBench(parent: THREE.Object3D, o: { chip: DriverBenchChip }
     glow: (part: string, f: number, c = HEAT) => halos[part].set(f, c),
     clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
   }
+}
+
+// --- Rail capture: what a meter can't catch (a scope trace of a rail, the firmware's reset reason) ---
+
+/** Small scope at `at` (centre) for a rail between `lo`…`hi` V: `levels` = dashed lines [volts, text, colour] (BOD, 3.0 V; the top label above its line, the rest below);
+ *  `set(healthy, got, span)` draws the healthy trace in grey and the measured one in cyan (null hides; samples spread over
+ *  the width), `span` = the timebase text; `log(text, colour)` writes a serial-monitor line under it. */
+export function railCapture(parent: THREE.Object3D, at: V3, w: number, h: number, o: { lo: number; hi: number; title: string; levels: [number, string, string][] }) {
+  const g = add(parent, new THREE.Group())
+  const { s, tag } = boxScope(g, { x: at[0], y: at[1], w, h }, o.title, [6, 4], { axis: [`${o.hi} V`, `${o.lo} V`], axisSize: 0.22 })
+  const y = (v: number) => ((v - o.lo) / (o.hi - o.lo)) * h - h / 2
+  const top = Math.max(...o.levels.map(([v]) => v))
+  for (const [v, text, color] of o.levels) {
+    s.level(color, 0.3).set(y(v))
+    addLabel(g, text, [at[0] + w / 2 - 0.1, at[1] + y(v) + (v === top ? 0.25 : -0.25), 0.3], color, 0.2, 'right')
+  }
+  const traces = [s.trace(GREY, { samples: 160, radius: 0.035 }), s.trace(B_FIELD, { samples: 160, radius: 0.06 })]
+  const line = liveLabel(g, [at[0] + w / 2, at[1] - h / 2 - 0.85, 0.3], { size: 0.22, align: 'right' })
+  const draw = (k: number, d: readonly number[] | null) => {
+    traces[k].group.visible = !!d
+    if (d) traces[k].draw((u) => y(d[Math.min(d.length - 1, Math.round(u * (d.length - 1)))]), null)
+  }
+  return {
+    group: g,
+    set(healthy: readonly number[] | null, got: readonly number[] | null, span: string) {
+      draw(0, healthy)
+      draw(1, got)
+      tag.set(span, GREY)
+    },
+    log: (text: string, color = LABEL) => line.set(text, color),
+  }
+}
+
+// --- The reset bench: a pack or buck → lead → (driver + 4 TT motors, Schottky + hold-up cap) → ESP32 VIN, AMS1117 → 3.3 V ---
+
+export type ResetSource = '4aa' | 'buck' | '3s' | 'hidden'
+export type ResetTp = 'pack' | 'packGnd' | 'rail' | 'gnd' | 'vin' | 'v33' | 'usb'
+export type ResetPart = 'source' | 'lead' | 'driver' | 'motors' | 'cap' | 'esp' | 'ldo' | 'decoupling' | 'sensors'
+
+const RB = { yt: 3.4, yb: -3.1, src: [-14.8, 0.8, 0] as V3, railX: -11, esp: [-1.6, -1.2, 0] as V3, espK: 0.3, holdX: -8.6 }
+
+/** Face-on reset bench between a + rail (top) and GND (bottom): the source (`'4aa'` holder, `'buck'` LM2596 at 5 V or
+ *  `'3s'` 18650 pack, `'hidden'` a box marked ?; `source(kind)`), its lead (`lead(thin)`: a long thin coil), with `motors` a DRV8833 + four TT
+ *  motors on the rail and a Schottky + 10 mF hold-up cap into VIN (`holdup(on)`), the ESP32 DevKit (AMS1117, 3.3 V
+ *  decoupling cap `decoupling(on)`), with `sensors` a 3.3 V sensor board, a USB lead to the serial monitor. `spin(dt, f)`
+ *  turns the motors, `glow`/`clearGlow` per part. */
+export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensors?: boolean }) {
+  const g = add(parent, new THREE.Group())
+  const r = 0.1
+  const [sx, sy] = [RB.src[0], RB.src[1]]
+  // Sources: three looks, one shown.
+  const looks = Object.fromEntries((['4aa', 'buck', '3s', 'hidden'] as const).map((k) => [k, add(g, new THREE.Group())])) as Record<ResetSource, THREE.Group>
+  box(looks.hidden, [2.8, 3.8, 0.6], mat('#3a3d45', { rough: 0.7 }), [sx, sy, -0.3])
+  addLabel(looks.hidden, '?', [sx, sy, 0.2], LABEL, 0.9)
+  addLabel(looks.hidden, 'power in', [sx, sy - 2.4, 0.2], GREY, 0.26)
+  box(looks['4aa'], [2.4, 3.8, 0.6], mat('#1a1b1f', { rough: 0.7 }), [sx, sy, -0.3])
+  for (let i = 0; i < 4; i++) {
+    const up = i % 2 === 0 ? 1 : -1
+    const c = add(looks['4aa'], new THREE.Group(), [sx - 0.75 + i * 0.5, sy, 0.25])
+    cylinder(c, 0.23, 2.5, mat('#26272c', { rough: 0.4 }), [0, -0.35 * up, 0], 'y', 20)
+    cylinder(c, 0.235, 0.8, mat('#c9772b', { metal: 0.3, rough: 0.35 }), [0, 0.85 * up, 0], 'y', 20)
+  }
+  addLabel(looks['4aa'], '4 × AA', [sx, sy - 2.4, 0.2], GREY, 0.26)
+  dcdcModule(looks.buck, [sx, sy, 0], 'lm2596', 0.1)
+  addLabel(looks.buck, 'buck → 5 V', [sx, sy - 2.4, 0.2], GREY, 0.26)
+  box(looks['3s'], [2.8, 3.8, 0.5], mat('#1a1b1f', { rough: 0.7 }), [sx, sy, -0.3])
+  for (const dx of [-0.85, 0, 0.85]) cylinder(looks['3s'], 0.38, 3.3, mat('#2a6fb0', { rough: 0.45 }), [sx + dx, sy, 0.15], 'y', 20)
+  addLabel(looks['3s'], '3S Li-ion 12 V', [sx, sy - 2.4, 0.2], GREY, 0.26)
+  const packP: V3 = [sx + 0.6, sy + 2, 0]
+  const packM: V3 = [sx - 0.6, sy - 2, 0]
+  // Lead: short and thick, or a long thin coil.
+  const leads = { thick: add(g, new THREE.Group()), thin: add(g, new THREE.Group()) }
+  cableRun(leads.thick, [packP, [packP[0], RB.yt, 0], [RB.railX, RB.yt, 0]], PROBE_RED, 0.13)
+  cableRun(leads.thick, [packM, [packM[0], RB.yb, 0], [RB.railX, RB.yb, 0]], PROBE_BLACK, 0.13)
+  const coil = (y0: number, from: V3, color: string, dy: number) => {
+    const pts: V3[] = [from, [from[0], y0, 0]]
+    for (let k = 0; k < 5; k++) {
+      const x = from[0] + 0.5 + k * 0.6
+      pts.push([x, y0, 0.2], [x + 0.15, y0 + dy, 0.4], [x + 0.3, y0, 0.2])
+    }
+    pts.push([RB.railX, y0, 0])
+    cableRun(leads.thin, pts, color, 0.05)
+  }
+  coil(RB.yt, packP, PROBE_RED, -0.9)
+  coil(RB.yb, packM, PROBE_BLACK, 0.9)
+  addLabel(g, 'lead', [(packP[0] + RB.railX) / 2, RB.yt + 0.6, 0.2], GREY, 0.22)
+  // Rails.
+  const [ex, ey] = [RB.esp[0], RB.esp[1]]
+  const usbEnd: V3 = [ex + 10 * RB.espK, ey, 0.3]
+  const vinPin: V3 = [ex - 4.3, ey - 0.9, 0.4]
+  const gndPin: V3 = [ex - 4.3, ey - 1.4, 0.4]
+  wire(g, [[RB.railX, RB.yb, 0], [ex - 4.8, RB.yb, 0], [ex - 4.8, gndPin[1], 0], gndPin], r)
+  const spots: Record<ResetPart, V3> = {
+    source: [sx, sy, 0.8],
+    lead: [(packP[0] + RB.railX) / 2, RB.yt, 0.5],
+    driver: [-6, RB.yt, 0.6],
+    motors: [1.6, RB.yt + 0.3, 0.8],
+    cap: [RB.holdX + 1.6, 0, 0.8],
+    esp: [ex, ey, 0.8],
+    ldo: [ex + 2.2, ey + 1.05, 0.6],
+    decoupling: [ex + 1.2, ey + 1.05, 0.6],
+    sensors: [5.6, 1.6, 0.6],
+  }
+  const motorCans: ReturnType<typeof motorCan>[] = []
+  const holdG = add(g, new THREE.Group())
+  if (o.motors) {
+    // DRV8833 on the rail, four TT motors.
+    wire(g, [[RB.railX, RB.yt, 0], [-7.2, RB.yt, 0]], r)
+    box(g, [2.4, 1.1, 0.3], mat('#5a2a82', { rough: 0.55 }), [-6, RB.yt, 0])
+    addLabel(g, 'DRV8833', [-6, RB.yt, 0.25], LABEL, 0.22)
+    for (let k = 0; k < 4; k++) {
+      const m = motorCan(g, [-1.4 + k * 2, RB.yt + 0.3, 0], { r: 0.7, legs: 0.3 })
+      motorCans.push(m)
+      cableRun(g, [[-4.8, RB.yt - 0.2 - k * 0.08, 0.1], [m.pins[0][0], RB.yt - 0.2 - k * 0.08, 0.1], m.pins[0]], '#e0e0e0', 0.05)
+    }
+    addLabel(g, '4 × TT', [5.5, RB.yt + 0.3, 0.2], GREY, 0.22, 'left')
+    // Schottky down from the rail, the hold-up cap to GND, on to VIN.
+    wire(g, [[RB.holdX, RB.yt, 0], [RB.holdX, 2.2, 0]], r)
+    diodeAlong(g, [RB.holdX, 2.2, 0.2], [RB.holdX, 0.6, 0.2], { scale: 0.6 })
+    wire(g, [[RB.holdX, 0.6, 0], [RB.holdX, vinPin[1], 0], vinPin], r)
+    addLabel(g, 'SS34', [RB.holdX - 0.4, 1.4, 0.2], GREY, 0.2, 'right')
+    wire(holdG, [[RB.holdX, 0.1, 0], [RB.holdX + 1.6, 0.1, 0]], r)
+    const cap = add(holdG, buildElectrolyticCap(), [RB.holdX + 1.6, -2.5, 0])
+    cap.scale.setScalar(0.5)
+    addLabel(holdG, '10 mF', [RB.holdX + 2.6, -1.2, 0.3], POWER, 0.22, 'left')
+  } else {
+    wire(g, [[RB.railX, RB.yt, 0], [RB.holdX, RB.yt, 0], [RB.holdX, vinPin[1], 0], vinPin], r)
+  }
+  // ESP32 DevKit, its AMS1117 and 3.3 V decoupling, the USB lead to the serial monitor.
+  esp32Board(g, RB.esp, RB.espK)
+  addLabel(g, 'ESP32', [ex - 1.5, ey + 2.1, 0.2], GREY, 0.24)
+  addLabel(g, 'VIN', [vinPin[0] + 0.3, vinPin[1] + 0.4, 0.4], LABEL, 0.18, 'left')
+  box(g, [0.9, 0.6, 0.3], mat('#1c1d22', { rough: 0.6 }), [spots.ldo[0], spots.ldo[1], 0.4])
+  addLabel(g, 'AMS1117', [spots.ldo[0], spots.ldo[1] + 0.55, 0.5], LABEL, 0.17)
+  const decoupG = add(g, new THREE.Group())
+  box(decoupG, [0.45, 0.3, 0.3], mat('#c9a46a', { rough: 0.5 }), [spots.decoupling[0], spots.decoupling[1], 0.4])
+  addLabel(decoupG, '10 µF', [spots.decoupling[0] - 0.2, spots.decoupling[1] + 0.55, 0.5], LABEL, 0.17)
+  const v33: V3 = [ex + 2.2, ey + 0.3, 0.6]
+  addLabel(g, '3V3', [v33[0] + 0.5, v33[1], 0.6], LABEL, 0.17, 'left')
+  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -2.6, 0.3]], '#9aa0aa', 0.12)
+  addLabel(g, 'USB: serial', [usbEnd[0] + 1.5, -2.2, 0.2], GREY, 0.2, 'left')
+  if (o.sensors) {
+    i2cBreakout(g, [spots.sensors[0], spots.sensors[1], 0], { name: 'ToF + OLED', k: 0.18 })
+    cableRun(g, [v33, [v33[0], 1.6, 0.6], [spots.sensors[0] - 2.2, 1.6, 0.4]], '#d8322c', 0.06)
+    addLabel(g, '60 mA on 3.3 V', [spots.sensors[0], spots.sensors[1] + 2, 0.2], GREY, 0.2)
+  }
+  const tp: Record<ResetTp, V3> = {
+    pack: [packP[0], packP[1] + 0.4, 0.3],
+    packGnd: [packM[0], packM[1] - 0.4, 0.3],
+    rail: [RB.railX + 0.2, RB.yt, 0.3],
+    gnd: [RB.railX + 0.6, RB.yb, 0.3],
+    vin: vinPin,
+    v33,
+    usb: usbEnd,
+  }
+  const halos = Object.fromEntries((Object.keys(spots) as ResetPart[]).map((k) => [k, glowHalo(g, spots[k], k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4)])) as Record<ResetPart, ReturnType<typeof glowHalo>>
+  const bench = {
+    group: g,
+    tp,
+    spots,
+    source(kind: ResetSource) {
+      for (const k of Object.keys(looks) as ResetSource[]) looks[k].visible = k === kind
+    },
+    lead(thin: boolean) {
+      leads.thin.visible = thin
+      leads.thick.visible = !thin
+    },
+    holdup: (on: boolean) => (holdG.visible = on),
+    decoupling: (on: boolean) => (decoupG.visible = on),
+    spin: (dt: number, f: number) => motorCans.forEach((m) => m.spin(dt, 400 * f)),
+    glow: (part: ResetPart, f: number, c = HEAT) => halos[part].set(f, c),
+    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+  }
+  bench.source('4aa')
+  bench.lead(false)
+  return bench
 }

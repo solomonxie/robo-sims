@@ -3,16 +3,18 @@
 import { seededRng } from '../common'
 import { PuzzleVerdict, puzzleVerdict } from '../challenges/verdict'
 
-export type MeterUnit = 'V' | 'A' | 'Ω' | '°C'
+/** `log` = not a meter: a line the firmware prints (`label`, e.g. a reset reason). */
+export type MeterUnit = 'V' | 'A' | 'Ω' | '°C' | 'log'
 
 /** What the meter shows: a value, or `open` (OL); `alt` = a second value it flickers to (a supply hiccuping);
- *  `label` = what it is on (a thermal camera's hottest part). */
+ *  `label` = what it is on (a thermal camera's hottest part); `hold` = the lowest / highest value it caught (MIN/MAX). */
 export interface MeterRead {
   value: number
   unit: MeterUnit
   open?: boolean
   alt?: number
   label?: string
+  hold?: 'min' | 'max'
 }
 
 export interface FaultHunt<F extends string, P extends string> {
@@ -23,12 +25,12 @@ export interface FaultHunt<F extends string, P extends string> {
 }
 
 /** Absolute tolerance per unit a hobby meter tells apart (plus 5 % of the value). */
-const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5 }
+const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5, log: 0 }
 
 /** Two readings a person with a meter can't tell apart. */
 export function sameReading(a: MeterRead, b: MeterRead): boolean {
-  if (a.unit !== b.unit || !!a.open !== !!b.open || a.label !== b.label) return false
-  if (a.open) return true
+  if (a.unit !== b.unit || !!a.open !== !!b.open || a.label !== b.label || a.hold !== b.hold) return false
+  if (a.open || a.unit === 'log') return true
   if ((a.alt === undefined) !== (b.alt === undefined)) return false
   const near = (x: number, y: number) => Math.abs(x - y) <= TOL[a.unit] + 0.05 * Math.max(Math.abs(x), Math.abs(y))
   return near(a.value, b.value) && (a.alt === undefined || near(a.alt, b.alt!))

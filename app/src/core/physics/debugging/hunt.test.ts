@@ -7,13 +7,16 @@ const TABLE: Record<F | 'ok', Record<P, number>> = { ok: { x: 5, y: 3.3 }, a: { 
 const H: FaultHunt<F, P> = { faults: ['a', 'b', 'c'], probes: ['x', 'y'], read: (f, p) => V(TABLE[f][p]) }
 
 describe('fault hunt', () => {
-  it('readings within a meter’s tolerance are the same; units, OL, flicker and label tell apart', () => {
+  it('readings within a meter’s tolerance are the same; units, OL, flicker, label, hold and log lines tell apart', () => {
     expect(sameReading(V(5), V(5.1))).toBe(true)
     expect(sameReading(V(5), V(4))).toBe(false)
     expect(sameReading(V(5), { value: 5, unit: 'A' })).toBe(false)
     expect(sameReading({ value: 0, unit: 'Ω', open: true }, { value: 0.1, unit: 'Ω' })).toBe(false)
     expect(sameReading(V(4.5), { ...V(4.5), alt: 8 })).toBe(false)
     expect(sameReading({ value: 150, unit: '°C', label: 'buck' }, { value: 150, unit: '°C', label: 'LDO' })).toBe(false)
+    expect(sameReading({ ...V(2.2), hold: 'min' }, V(2.2))).toBe(false)
+    expect(sameReading({ value: 0, unit: 'log', label: 'BROWNOUT' }, { value: 3, unit: 'log', label: 'BROWNOUT' })).toBe(true)
+    expect(sameReading({ value: 0, unit: 'log', label: 'BROWNOUT' }, { value: 0, unit: 'log', label: 'PANIC' })).toBe(false)
   })
   it('table, ruled-out suspects, the probe that splits two, and the shortest probe list', () => {
     expect(faultTable(H).ok.y.value).toBe(3.3)

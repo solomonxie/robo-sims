@@ -228,6 +228,7 @@ import { logicPuzzlesBuildXor, logicPuzzlesDesignA2BitCounter } from '../lessons
 import { timingPuzzlesBlinkAt1Hz, timingPuzzlesDebounceTime } from '../lessons/challenges/timing-puzzles'
 import { wontPowerOnDeadBattery, wontPowerOnReversePolarity, wontPowerOnShortCircuit } from '../lessons/debugging/wont-power-on'
 import { motorDoesNothingCommonGroundMissing, motorDoesNothingMissingEnablePin, motorDoesNothingStalledGearbox } from '../lessons/debugging/motor-does-nothing'
+import { randomResetsMotorSpikeResets, randomResetsWeakRegulator } from '../lessons/debugging/random-resets'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -897,6 +898,8 @@ const READY: Record<string, Lesson> = {
   'debugging/motor-does-nothing/missing-enable-pin': motorDoesNothingMissingEnablePin,
   'debugging/motor-does-nothing/common-ground-missing': motorDoesNothingCommonGroundMissing,
   'debugging/motor-does-nothing/stalled-gearbox': motorDoesNothingStalledGearbox,
+  'debugging/random-resets/motor-spike-resets': randomResetsMotorSpikeResets,
+  'debugging/random-resets/weak-regulator': randomResetsWeakRegulator,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
