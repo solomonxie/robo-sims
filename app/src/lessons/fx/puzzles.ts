@@ -1,9 +1,10 @@
-// Circuit challenges: goal + verdict header, target-window gauge, rail-and-rows schematic bench.
+// Circuit challenges: goal + verdict header, target-window gauge, rail-and-rows and divider schematic benches, battery pack bench.
 import * as THREE from 'three/webgpu'
-import { PuzzleVerdict } from '../../core/physics'
+import { ChemistryId, PuzzleVerdict } from '../../core/physics'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { ohms as ohmsText } from '../../core/units'
+import { fixedText, ohms as ohmsText, pct } from '../../core/units'
+import { cellPackModel } from './cells'
 import { ceramicAlong, cell, junction, ledLamp, swapResistor } from './circuit'
 import { GREY, INK, LABEL, POWER, glowMat, setGlow, verdictTint } from './colors'
 import { multimeter } from './displays'
@@ -329,6 +330,73 @@ export function dividerBench(parent: THREE.Object3D, o: DividerBenchOpts) {
       feed.step(s(a1))
       down.step(s(a2))
       loadFlow.step(s(aLoad))
+    },
+  }
+}
+
+/** Cell wrap per chemistry: Li-ion blue, LiFePO4 purple, NiMH green, alkaline black. */
+export const CELL_WRAP: Record<ChemistryId, string> = { liion: '#2856c8', lfp: '#7a4bc4', nimh: '#2f8f5a', alkaline: '#34302c' }
+
+export interface PackBenchOpts {
+  /** Centre of the pack box, its width and height. */
+  at: V3
+  w: number
+  h: number
+}
+
+/** Battery bench: an S×P pack (`CELL_WRAP` tint) fitted into w × h at `at`, tilted to show parallel rows; title above,
+ *  charge bar below, a multimeter (DC volts) on the right wired to + / −. `setPack(chem, series, parallel, title)` rebuilds
+ *  on change; `set(volts, soc, colour)` updates the meter and the bar. */
+export function packBench(parent: THREE.Object3D, o: PackBenchOpts) {
+  const g = add(parent, new THREE.Group(), o.at)
+  const holder = add(g, new THREE.Group())
+  const title = liveLabel(g, [0, o.h / 2 + 1, 0.3], { size: 0.36 })
+  const barY = -o.h / 2 - 0.9
+  flatBox(g, [o.w, 0.5, 0.06], new THREE.MeshStandardMaterial({ color: '#23262d', roughness: 0.8 }), [0, barY, 0])
+  const fillMat = glowMat(POWER, 0.8)
+  const fill = flatBox(g, [1, 0.36, 0.08], fillMat, [0, barY, 0.05])
+  const socTag = liveLabel(g, [o.w / 2 + 0.3, barY, 0.2], { size: 0.28, align: 'left' })
+  const meter = multimeter()
+  const k = 0.36
+  const mx = o.w / 2 + 2.6
+  const my = 0.9
+  add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
+  const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
+  let key = ''
+  return {
+    group: g,
+    meter,
+    setPack(chem: ChemistryId, series: number, parallel: number, text: string) {
+      title.set(text, LABEL)
+      const next = `${chem}|${series}|${parallel}`
+      if (next === key) return
+      key = next
+      emptyGroup(holder)
+      const [dx, dz] = [2.3, 2.6]
+      const pk = cellPackModel(holder, series, parallel, { r: 1, dx, dz, wrap: CELL_WRAP[chem] })
+      const [rx, ry] = [0.28, parallel > 1 ? 0.5 : 0.12]
+      const wide = (series - 1) * dx + 2
+      const deep = (parallel - 1) * dz + 2
+      const s = Math.min(o.w / (wide * Math.cos(ry) + deep * Math.sin(ry)), o.h / (pk.h * Math.cos(rx) + deep * Math.sin(rx)))
+      pk.group.rotation.set(rx, ry, 0)
+      pk.group.scale.setScalar(s)
+      const front = (deep / 2) * s + 0.4
+      const end = (v: V3, edge: number, side: number, color: string, to: V3) => {
+        const p = new THREE.Vector3(...v).applyEuler(pk.group.rotation).multiplyScalar(s)
+        const y = Math.sign(p.y || 1) * (o.h / 2 + 0.25 + 0.3 * edge)
+        const x = o.w / 2 + 0.5 + 0.35 * edge
+        cableRun(holder, [[p.x, p.y, p.z], [p.x, y, front], [x, y, front], [x, to[1] - 0.7 - 0.3 * side, front], [to[0], to[1] - 0.7 - 0.3 * side, to[2]], to], color, 0.1)
+      }
+      end(pk.plus, 0, 0, '#d23b3b', jack(meter.red))
+      end(pk.minus, 1, 1, '#202226', jack(meter.black))
+    },
+    set(volts: number, soc: number, color: string) {
+      meter.display.set(fixedText(volts, volts < 9.995 ? 2 : 1))
+      const f = clamp01(soc)
+      fill.scale.x = Math.max(0.01, f * o.w)
+      fill.position.x = -o.w / 2 + (f * o.w) / 2
+      setGlow(fillMat, color, 0.8)
+      socTag.set(pct(f), color)
     },
   }
 }

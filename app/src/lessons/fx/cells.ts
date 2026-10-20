@@ -109,12 +109,12 @@ export function cellCutaway(parent: THREE.Object3D, at: V3, w = 13, h = 7) {
 /** Height of a bare 18650 of radius `r` (18 × 65 mm). */
 export const cell18650Height = (r: number) => (r * 65) / 9
 
-/** Bare 18650 standing on the origin's centre, axis y: blue wrap, + cap up (or down when `flipped`). */
-export function cell18650(parent: THREE.Object3D, at: V3, r = 1, flipped = false) {
+/** Bare 18650 standing on the origin's centre, axis y: blue wrap (or `wrap`), + cap up (or down when `flipped`). */
+export function cell18650(parent: THREE.Object3D, at: V3, r = 1, flipped = false, wrap = '#2856c8') {
   const h = cell18650Height(r)
   const g = add(parent, new THREE.Group(), at)
   if (flipped) g.rotation.z = Math.PI
-  cylinder(g, r, h - 0.1, mat('#2856c8', { rough: 0.35 }), [0, 0, 0], 'y', 32)
+  cylinder(g, r, h - 0.1, mat(wrap, { rough: 0.35 }), [0, 0, 0], 'y', 32)
   cylinder(g, r * 1.004, h * 0.12, mat('#e9eef8', { rough: 0.4 }), [0, h * 0.3, 0], 'y', 32)
   cylinder(g, r * 0.4, 0.12, STEEL(), [0, h / 2, 0], 'y', 20)
   cylinder(g, r * 0.85, 0.04, STEEL(), [0, -h / 2 + 0.03, 0], 'y', 24)
@@ -151,17 +151,17 @@ function nickelStrip(parent: THREE.Object3D, at: V3, w: number, d: number, dots:
   }
 }
 
-/** `series` groups of `parallel` 18650s centred on the origin, alternating + up / + down so nickel strips zig-zag the string.
+/** `series` groups of `parallel` 18650s (`wrap` colour) centred on the origin, alternating + up / + down so nickel strips zig-zag the string.
  *  `chain` runs − terminal → each cell → + terminal (y at the cell ends); `potentialAt(x, y)` is the 0…1 level along it.
  *  `weld(progress)` sparks the dots in build order, one per unit of progress. */
-export function cellPackModel(parent: THREE.Object3D, series: number, parallel: number, { r = 1, dx = 2.3, dz = 2.3 } = {}) {
+export function cellPackModel(parent: THREE.Object3D, series: number, parallel: number, { r = 1, dx = 2.3, dz = 2.3, wrap = '#2856c8' } = {}) {
   const group = add(parent, new THREE.Group())
   const h = cell18650Height(r)
   const e = h / 2
   const xs = Array.from({ length: series }, (_, i) => (i - (series - 1) / 2) * dx)
   const zs = Array.from({ length: parallel }, (_, j) => (j - (parallel - 1) / 2) * dz)
   const plusUp = (i: number) => i % 2 === 0
-  xs.forEach((x, i) => zs.forEach((z) => cell18650(group, [x, 0, z], r, !plusUp(i))))
+  xs.forEach((x, i) => zs.forEach((z) => cell18650(group, [x, 0, z], r, !plusUp(i), wrap)))
   const depth = (parallel - 1) * dz + 1.3 * r
   const strip = (from: number, to: number, top: boolean) => {
     const cx = (xs[from] + xs[to]) / 2

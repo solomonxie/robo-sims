@@ -223,6 +223,7 @@ import { deskLampTrackerLdrPair, deskLampTrackerServoFollow } from '../lessons/p
 import { ledPuzzlesBrightnessTarget, ledPuzzlesSafeLedCurrent, ledPuzzlesTwoLedsOneSupply } from '../lessons/challenges/led-puzzles'
 import { dividerPuzzles3v3From5v, dividerPuzzlesAdcRangeMatching } from '../lessons/challenges/divider-puzzles'
 import { motorDriverPuzzlesPwmSpeedTarget, motorDriverPuzzlesTruthTableChallenge } from '../lessons/challenges/motor-driver-puzzles'
+import { batteryPuzzlesRuntimeTarget, batteryPuzzlesSeriesCount } from '../lessons/challenges/battery-puzzles'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -880,6 +881,8 @@ const READY: Record<string, Lesson> = {
   'challenges/divider-puzzles/adc-range-matching': dividerPuzzlesAdcRangeMatching,
   'challenges/motor-driver-puzzles/truth-table-challenge': motorDriverPuzzlesTruthTableChallenge,
   'challenges/motor-driver-puzzles/pwm-speed-target': motorDriverPuzzlesPwmSpeedTarget,
+  'challenges/battery-puzzles/runtime-target': batteryPuzzlesRuntimeTarget,
+  'challenges/battery-puzzles/series-count': batteryPuzzlesSeriesCount,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
