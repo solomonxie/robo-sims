@@ -1,4 +1,5 @@
 import {
+  E6,
   E96,
   GRADES,
   bandValue,
@@ -76,6 +77,8 @@ describe('E-series and grades', () => {
   it('snaps to a series and steps to its neighbours across decades', () => {
     expect(nearestIn(GRADES[5].series, 4600)).toBe(4700)
     expect(nearestIn(GRADES[1].series, 4700)).toBe(4750)
+    expect(nearestIn(E6, 4e-6)).toBe(4.7e-6)
+    expect(nearestIn(E6, 8.5e-8)).toBe(1e-7)
     expect(seriesStep(GRADES[5].series, 4700, -1)).toBe(4300)
     expect(seriesStep(GRADES[5].series, 4700, 1)).toBe(5100)
     expect(seriesStep(GRADES[10].series, 1000, -1)).toBe(820)

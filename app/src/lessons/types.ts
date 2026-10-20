@@ -94,9 +94,9 @@ export const resistorSlider = (key: string, label: string, initial: number) =>
 /** Param `k` snapped to the nearest value of an E-series (E12, E24, …). */
 export const seriesOhms = (p: Params, k: string, series: number[]) => nearestIn(series, n(p, k))
 
-/** Log resistor slider that snaps to `series` (E12, E24, …) over `min`…`max` Ω. */
-export const seriesSlider = (key: string, label: string, series: number[], min: number, max: number, initial: number) =>
-  ({ kind: 'slider', key, label, min, max, initial, log: true, format: (v: number) => ohms(nearestIn(series, v)) }) as const
+/** Log slider that snaps to `series` (E6, E12, E24, …) over `min`…`max`; shown in Ω unless `fmt` (e.g. farads). */
+export const seriesSlider = (key: string, label: string, series: number[], min: number, max: number, initial: number, fmt = ohms) =>
+  ({ kind: 'slider', key, label, min, max, initial, log: true, format: (v: number) => fmt(nearestIn(series, v)) }) as const
 
 /** 0/1 choice for a logic input. */
 export const bitChoice = (key: string, label: string, initial: number) => ({

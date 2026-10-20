@@ -69,6 +69,8 @@ export function e12Below(ohms: number): number {
 /** Range a part can really measure within ±`percent`. */
 export const toleranceRange = (ohms: number, percent: number): [number, number] => [ohms * (1 - percent / 100), ohms * (1 + percent / 100)]
 
+/** Capacitor values (±20 % parts). */
+export const E6 = [10, 15, 22, 33, 47, 68]
 export const E24 = [10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30, 33, 36, 39, 43, 47, 51, 56, 62, 68, 75, 82, 91]
 export const E96 = Array.from({ length: 96 }, (_, i) => Math.round(100 * 10 ** (i / 96)) / 10)
 
