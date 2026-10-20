@@ -2,3 +2,4 @@
 export * from './verdict'
 export * from './leds'
 export * from './dividers'
+export * from './motordrivers'

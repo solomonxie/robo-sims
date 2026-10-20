@@ -7,7 +7,6 @@ import {
   Decay,
   DriverChip,
   HBRIDGE,
-  HSwitch,
   LEG,
   RPM_PER_RADS,
   TT_MOTOR,
@@ -25,134 +24,40 @@ import {
   stopTime,
 } from '../../core/physics'
 import { msText } from '../../core/units'
-import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
+import { add, mesh } from '../../models/kit'
 import { buildL298n } from '../../models/modules'
 import { createStage } from '../../scene/stage'
 import {
   B_FIELD,
+  DRIVER_BOARD_COLOR,
+  HB_LX,
+  HbRoute,
+  driverBreakout,
+  hBridgeDiagram,
   CODE_LEGEND,
   GREY,
   HEAT,
   HIGH_V,
-  IDLE,
   LABEL,
   PIN_COLOR,
   POWER,
   RING,
   addLabel,
-  brushedMotor,
-  cell,
   codeBlock,
   cursorBar,
-  diodeSymbol,
-  fetSymbol,
   glowMat,
   heatGlow,
   heatWaves,
-  lane,
-  lit,
-  litWire,
   liveLabel,
-  loopBeads,
   memoBy,
   meterBar,
   scope,
   setGlow,
   simClock,
-  wire,
 } from '../fx'
 import { Lesson, Params, Stage, n, opts, pick } from '../types'
 
 const rpm = (radS: number) => Math.round(radS * RPM_PER_RADS)
-const SW: HSwitch[] = ['q1', 'q2', 'q3', 'q4']
-
-// --- Shared H diagram: Q1/Q2 left leg, Q3/Q4 right leg (P-FET high, N-FET low), motor across the middle. ---
-
-const LX = 7
-const TOP = 7
-const CX = -13
-const DX = 2.8
-const PIN = 2.02
-type Route = 'fwd' | 'rev' | 'brakeLo' | 'brakeHi' | 'shootL' | 'shootR' | 'fastOff' | 'diodeLo'
-const IN_CELL: V3[] = [[CX, 2.9, 0], [CX, TOP, 0]]
-const OUT_CELL: V3[] = [[CX, -TOP, 0], [CX, -2.6, 0]]
-const ROUTES: Record<Route, V3[]> = {
-  fwd: [...IN_CELL, [-LX, TOP, 0], [-LX, 0, 0], [LX, 0, 0], [LX, -TOP, 0], ...OUT_CELL],
-  rev: [...IN_CELL, [LX, TOP, 0], [LX, 0, 0], [-LX, 0, 0], [-LX, -TOP, 0], ...OUT_CELL],
-  brakeLo: [[-LX, 0, 0], [LX, 0, 0], [LX, -TOP, 0], [-LX, -TOP, 0]],
-  brakeHi: [[-LX, 0, 0], [LX, 0, 0], [LX, TOP, 0], [-LX, TOP, 0]],
-  shootL: [...IN_CELL, [-LX, TOP, 0], [-LX, -TOP, 0], ...OUT_CELL],
-  shootR: [...IN_CELL, [LX, TOP, 0], [LX, -TOP, 0], ...OUT_CELL],
-  fastOff: [[-LX, 0, 0], [LX, 0, 0], [LX + DX, 0, 0], [LX + DX, TOP, 0], [CX, TOP, 0], [CX, 2.9, 0], [CX, -2.6, 0], [CX, -TOP, 0], [-LX + DX, -TOP, 0], [-LX + DX, 0, 0]],
-  diodeLo: [[-LX, 0, 0], [LX, 0, 0], [LX, -TOP, 0], [-LX + DX, -TOP, 0], [-LX + DX, 0, 0]],
-}
-
-/** The H at `at`, scaled by `s`: `fets` light per switch, `route(key, level, color)` lights a current path, beads ride it. */
-function hDiagram(scene: THREE.Object3D, at: V3, s: number, { volts = HBRIDGE.vs, diodes = false } = {}) {
-  const g = add(scene, new THREE.Group(), at)
-  g.scale.setScalar(s)
-  add(g, cell(5, 1.5), [CX, 0, 0])
-  wire(g, [[CX, 2.9, 0], [CX, TOP, 0], [LX, TOP, 0]], 0.2)
-  wire(g, [[CX, -2.6, 0], [CX, -TOP, 0], [LX, -TOP, 0]], 0.2)
-  addLabel(g, `+${volts} V`, [CX - 0.4, TOP + 1, 0.3], HIGH_V, 0.7, 'left')
-  addLabel(g, '0 V', [CX - 0.4, -TOP - 1, 0.3], GREY, 0.7, 'left')
-  const fets = {
-    q1: fetSymbol(g, [-LX, TOP, 0], [-LX, 0, 0], 'P', 'Q1'),
-    q2: fetSymbol(g, [-LX, 0, 0], [-LX, -TOP, 0], 'N', 'Q2'),
-    q3: fetSymbol(g, [LX, TOP, 0], [LX, 0, 0], 'P', 'Q3'),
-    q4: fetSymbol(g, [LX, 0, 0], [LX, -TOP, 0], 'N', 'Q4'),
-  }
-  const dots = SW.map((k) => {
-    const m = glowMat(IDLE, 0.4)
-    add(g, mesh(new THREE.SphereGeometry(0.42, 16, 12), m), fets[k].gate)
-    return m
-  })
-  if (diodes)
-    for (const x of [-LX, LX])
-      for (const sy of [1, -1]) {
-        const dx = x + DX
-        const d = add(g, diodeSymbol(1.2, '#c9ced8'), [dx, (sy * TOP) / 2, 0])
-        d.rotation.z = Math.PI / 2
-        wire(g, [[dx, (sy * TOP) / 2 + 1.2, 0], [dx, sy > 0 ? TOP : 0, 0], [x, sy > 0 ? TOP : 0, 0]], 0.14)
-        wire(g, [[dx, (sy * TOP) / 2 - 1.2, 0], [dx, sy > 0 ? 0 : -TOP, 0], [x, sy > 0 ? 0 : -TOP, 0]], 0.14)
-      }
-  wire(g, [[-LX, 0, 0], [-PIN, 0, 0], [-PIN, 0, 1.56]], 0.2)
-  wire(g, [[LX, 0, 0], [PIN, 0, 0], [PIN, 0, 1.56]], 0.2)
-  const motor = brushedMotor(g, [0, 0, 0], 1.3)
-  motor.group.rotation.z = Math.PI / 2
-  const glows = Object.fromEntries((Object.keys(ROUTES) as Route[]).map((k) => [k, litWire(g, ROUTES[k], 0.34)])) as Record<Route, ReturnType<typeof litWire>>
-  const beads = { motor: loopBeads(g, 16, HEAT, { r: 0.26 }), short: loopBeads(g, 16, HIGH_V, { r: 0.26 }) }
-  const on = { motor: '', short: '' }
-  return {
-    g,
-    motor,
-    /** Switch states 0..1 with heat 0..1, gate dots lit when driven. */
-    set(c: Record<HSwitch, number>, heat: Partial<Record<HSwitch, number>> = {}) {
-      SW.forEach((k, i) => {
-        fets[k].set(c[k], heat[k] ?? 0)
-        setGlow(dots[i], c[k] > 0.5 ? PIN_COLOR : IDLE, c[k] > 0.5 ? 1.2 : 0.4)
-      })
-    },
-    /** Lit routes this frame, `[route, level 0..1, colour]`. */
-    routes(list: [Route, number, string][]) {
-      for (const k of Object.keys(glows) as Route[]) {
-        const hit = list.find((r) => r[0] === k)
-        glows[k].set(hit ? hit[1] : 0, lit(hit ? hit[2] : HEAT))
-      }
-    },
-    /** Beads on route `r` (null hides them), moved by `du` of the loop. */
-    flow(kind: 'motor' | 'short', r: Route | null, du: number) {
-      const b = beads[kind]
-      b.show(r !== null)
-      if (r === null) return
-      if (on[kind] !== r) {
-        b.setPath(lane(ROUTES[r], 0.9))
-        on[kind] = r
-      }
-      b.step(du)
-    },
-  }
-}
 
 // --- Four switches: close two diagonal switches to drive, two on one side to brake, none to coast; never two in one leg. ---
 
@@ -223,9 +128,9 @@ export const fourSwitches: Lesson = {
   controls: [{ kind: 'choice', key: 'combo', options: opts(COMBOS), initial: 'fwd' }],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const h = hDiagram(scene, [-8.6, 1.6, 0], 0.66)
+    const h = hBridgeDiagram(scene, [-8.6, 1.6, 0], 0.66)
     const waves = heatWaves(h.g, 1.6, { count: 3, rise: 4 })
-    waves.group.position.set(-LX + 1.6, 1.2, 0.6)
+    waves.group.position.set(-HB_LX + 1.6, 1.2, 0.6)
     const speedTag = liveLabel(scene, [-8.6, -4.3, 0.3], { size: 0.36 })
     const modeTag = liveLabel(scene, [-2, -5.6, 0.3], { size: 0.44 })
 
@@ -274,11 +179,11 @@ export const fourSwitches: Lesson = {
         st.angle += (dt * f.radS) / RUN.slow / 10
         const level = Math.min(1, Math.abs(f.motorA) / 1.2)
         h.motor.set(st.angle, level)
-        const motorRoute: Route | null = a.mode === 'forward' ? 'fwd' : a.mode === 'reverse' ? 'rev' : a.mode === 'brake' ? (sw.q2 ? 'brakeLo' : 'brakeHi') : null
+        const motorRoute: HbRoute | null = a.mode === 'forward' ? 'fwd' : a.mode === 'reverse' ? 'rev' : a.mode === 'brake' ? (sw.q2 ? 'brakeLo' : 'brakeHi') : null
         h.routes([
-          ...(motorRoute ? [[motorRoute, Math.min(1, 0.25 + level), HEAT] as [Route, number, string]] : []),
-          ...(sw.q1 && sw.q2 ? [['shootL', 1, HIGH_V] as [Route, number, string]] : []),
-          ...(sw.q3 && sw.q4 ? [['shootR', 1, HIGH_V] as [Route, number, string]] : []),
+          ...(motorRoute ? [[motorRoute, Math.min(1, 0.25 + level), HEAT] as [HbRoute, number, string]] : []),
+          ...(sw.q1 && sw.q2 ? [['shootL', 1, HIGH_V] as [HbRoute, number, string]] : []),
+          ...(sw.q3 && sw.q4 ? [['shootR', 1, HIGH_V] as [HbRoute, number, string]] : []),
         ])
         const loop = motorRoute === 'brakeLo' || motorRoute === 'brakeHi' ? 1.6 : 1
         h.flow('motor', motorRoute && Math.abs(f.motorA) > 0.01 ? motorRoute : null, (dt * f.motorA * 0.5 * loop) / 1.2)
@@ -320,23 +225,11 @@ const DRIVER_CODE: Record<DriverChip, string[]> = {
   tb6612: ['digitalWrite(STBY, HIGH); digitalWrite(AIN1, HIGH);', 'digitalWrite(AIN2, LOW); ledcWrite(PWMA, duty);'],
   drv8833: ['ledcWrite(IN1, duty); ledcWrite(IN2, 0);', '// 2 pins per motor: PWM straight on the inputs'],
 }
-const BOARD_COLOR: Record<Modern, string> = { tb6612: '#1f4fa0', drv8833: '#5a2a82' }
 const driverParams = (p: Params) => {
   const chip = pick(MODERN, p.chip, 'tb6612')
   const amps = n(p, 'amps')
   const vs = n(p, 'volts')
   return { chip, amps, vs, old: driverLoss('l298n', amps, vs), modern: driverLoss(chip, amps, vs) }
-}
-
-/** Small breakout board, chip on top; returns the chip material for heat glow. */
-function breakout(parent: THREE.Object3D, at: V3, color: string) {
-  const g = add(parent, new THREE.Group(), at)
-  box(g, [7, 0.4, 5], mat(color, { rough: 0.5 }), [0, 0.2, 0])
-  const chip = new THREE.MeshStandardMaterial({ color: '#1b1c20', roughness: 0.6 })
-  box(g, [2.2, 0.4, 1.8], chip, [0, 0.6, 0])
-  for (const z of [-2, 2]) for (let k = 0; k < 8; k++) cylinder(g, 0.18, 0.5, mat('#d4b25a', { metal: 0.4, rough: 0.35 }), [-2.8 + k * 0.8, 0.6, z], 'y', 8)
-  for (let k = 0; k < 6; k++) for (const s of [-1, 1]) box(g, [0.12, 0.06, 0.3], mat('#c9ced8'), [-0.6 + k * 0.24, 0.43, s * 1.05])
-  return { g, chip }
 }
 
 export const l298nVsModernDrivers: Lesson = {
@@ -371,7 +264,7 @@ export const l298nVsModernDrivers: Lesson = {
     l298.scale.setScalar(0.5)
     l298.rotation.x = 0.45
     const boards = (Object.keys(MODERN) as Modern[]).map((k) => {
-      const b = breakout(scene, [8, -0.4, 0], BOARD_COLOR[k])
+      const b = driverBreakout(scene, [8, -0.4, 0], DRIVER_BOARD_COLOR[k])
       b.g.rotation.x = 0.45
       b.g.scale.setScalar(0.7)
       return { k, ...b }
@@ -474,7 +367,7 @@ export const decayModes: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const h = hDiagram(scene, [-8.8, 1.6, 0], 0.62, { diodes: true })
+    const h = hBridgeDiagram(scene, [-8.8, 1.6, 0], 0.62, { diodes: true })
     const speedTag = liveLabel(scene, [-8.8, -4, 0.3], { size: 0.34 })
     const phaseTag = liveLabel(scene, [-8.8, -5.1, 0.3], { size: 0.4 })
 
@@ -536,7 +429,7 @@ export const decayModes: Lesson = {
         const on = st.u < q.duty
         const slow = q.mode === 'slow'
         h.set({ q1: +on, q2: +(!on && slow), q3: 0, q4: +(on || slow) })
-        const route: Route = on ? 'fwd' : slow ? 'brakeLo' : 'fastOff'
+        const route: HbRoute = on ? 'fwd' : slow ? 'brakeLo' : 'fastOff'
         const color = on ? HEAT : slow ? B_FIELD : HIGH_V
         const level = Math.min(1, Math.abs(i) / 0.8)
         h.routes(Math.abs(i) > 0.005 ? [[route, Math.min(1, 0.25 + level), color]] : [])
@@ -601,9 +494,9 @@ export const shootThroughLesson: Lesson = {
   ],
   build(): Stage {
     const scene = createStage({ span: 40 })
-    const h = hDiagram(scene, [-8.8, 1.6, 0], 0.62, { volts: LEG.vs, diodes: true })
+    const h = hBridgeDiagram(scene, [-8.8, 1.6, 0], 0.62, { volts: LEG.vs, diodes: true })
     const waves = heatWaves(h.g, 1.2, { count: 3, rise: 4 })
-    waves.group.position.set(-LX, 1.2, 1)
+    waves.group.position.set(-HB_LX, 1.2, 1)
     const stateTag = liveLabel(scene, [-8.8, -4.2, 0.3], { size: 0.4 })
 
     const PX = 6.6
@@ -654,8 +547,8 @@ export const shootThroughLesson: Lesson = {
         const s = legAt(t, q.dead)
         const spike = s.amps / SHOOT_MAX_A
         h.set({ q1: s.hi, q2: s.lo, q3: 0, q4: 1 }, { q1: spike * 1.5, q2: spike * 1.5 })
-        const motorRoute: Route = s.hi > 0.5 ? 'fwd' : s.lo > 0.5 ? 'brakeLo' : 'diodeLo'
-        h.routes([[motorRoute, 0.5, HEAT], ...(s.amps > 0 ? [['shootL', Math.min(1, 0.3 + spike), HIGH_V] as [Route, number, string]] : [])])
+        const motorRoute: HbRoute = s.hi > 0.5 ? 'fwd' : s.lo > 0.5 ? 'brakeLo' : 'diodeLo'
+        h.routes([[motorRoute, 0.5, HEAT], ...(s.amps > 0 ? [['shootL', Math.min(1, 0.3 + spike), HIGH_V] as [HbRoute, number, string]] : [])])
         h.flow('motor', motorRoute, dt * 0.3)
         h.flow('short', s.amps > 0 ? 'shootL' : null, dt * (0.4 + spike * 2))
         waves.step(dt, Math.min(1, q.watts / 2))

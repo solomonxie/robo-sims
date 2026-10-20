@@ -222,6 +222,7 @@ import { smartPlantMonitorMoistureProbe, smartPlantMonitorPumpControl } from '..
 import { deskLampTrackerLdrPair, deskLampTrackerServoFollow } from '../lessons/projects/desk-lamp-tracker'
 import { ledPuzzlesBrightnessTarget, ledPuzzlesSafeLedCurrent, ledPuzzlesTwoLedsOneSupply } from '../lessons/challenges/led-puzzles'
 import { dividerPuzzles3v3From5v, dividerPuzzlesAdcRangeMatching } from '../lessons/challenges/divider-puzzles'
+import { motorDriverPuzzlesPwmSpeedTarget, motorDriverPuzzlesTruthTableChallenge } from '../lessons/challenges/motor-driver-puzzles'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -877,6 +878,8 @@ const READY: Record<string, Lesson> = {
   'challenges/led-puzzles/brightness-target': ledPuzzlesBrightnessTarget,
   'challenges/divider-puzzles/3-3-v-from-5-v': dividerPuzzles3v3From5v,
   'challenges/divider-puzzles/adc-range-matching': dividerPuzzlesAdcRangeMatching,
+  'challenges/motor-driver-puzzles/truth-table-challenge': motorDriverPuzzlesTruthTableChallenge,
+  'challenges/motor-driver-puzzles/pwm-speed-target': motorDriverPuzzlesPwmSpeedTarget,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
