@@ -3,14 +3,15 @@ import * as THREE from 'three/webgpu'
 import { PuzzleVerdict } from '../../core/physics'
 import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { cell, ledLamp, swapResistor } from './circuit'
+import { ohms as ohmsText } from '../../core/units'
+import { ceramicAlong, cell, junction, ledLamp, swapResistor } from './circuit'
 import { GREY, INK, LABEL, POWER, glowMat, setGlow, verdictTint } from './colors'
 import { multimeter } from './displays'
 import { plusFlow } from './flows'
 import { CELL_H, LANE, RS, cableRun, wire } from './layout'
 import { flatBox } from './shapes'
 import { liveLabel } from './text'
-import { clamp01 } from './util'
+import { clamp01, emptyGroup } from './util'
 
 /** Verdict → tint: pass green, close miss yellow, fail red. */
 export const puzzleTint = (v: PuzzleVerdict) => verdictTint(v.pass, v.near)
@@ -228,6 +229,106 @@ export function railBench(parent: THREE.Object3D, o: BenchOpts) {
       back.step(k(supplyA))
       rowFlows.forEach((fl, i) => fl.step(k(rowAmps[i])))
       leds.forEach((row) => row.forEach((l) => l.step(dt)))
+    },
+  }
+}
+
+export interface DividerBenchOpts {
+  /** Cell x, divider column x, load column x. */
+  x0: number
+  xd: number
+  xt: number
+  top: number
+  tap: number
+  bottom: number
+  vmax: number
+  /** Cell height (default CELL_H). */
+  cellH?: number
+  /** Current that moves the charges at full speed. */
+  fullA: number
+}
+
+/** Divider schematic: cell (+ up) at x0, R1 / R2 down the column at xd, the tap out to a load column at xt (R, C or open)
+ *  and a voltmeter across the load; + charges by potential, R1 / R2 tagged with their values.
+ *  `setR1`/`setR2(Ω)`, `setLoad({ kind: 'R', ohms } | { kind: 'C' } | null)`, `set(vs, vTap)`, `step(dt, a1, a2, aLoad)`. */
+export function dividerBench(parent: THREE.Object3D, o: DividerBenchOpts) {
+  const g = add(parent, new THREE.Group())
+  const ch = o.cellH ?? CELL_H
+  const cy = (o.top + o.bottom) / 2
+  const y1 = (o.top + o.tap) / 2
+  const y2 = (o.tap + o.bottom) / 2
+  const live = { vs: 0, tap: 0, load: false }
+  const f = (v: number) => clamp01(v / o.vmax)
+  const drop = (y: number, yc: number, hi: number, lo: number) =>
+    y > yc + RS ? hi : y < yc - RS ? lo : lo + ((hi - lo) * (y - yc + RS)) / (2 * RS)
+
+  add(g, cell(ch, 1.5), [o.x0, cy, 0])
+  wire(g, [[o.x0, o.bottom, 0], [o.x0, o.top, 0], [o.xd, o.top, 0], [o.xd, o.bottom, 0], [o.x0, o.bottom, 0]])
+  wire(g, [[o.xd, o.tap, 0], [o.xt, o.tap, 0]])
+  wire(g, [[o.xd, o.bottom, 0], [o.xt, o.bottom, 0]])
+  const tapDot = junction(g, [o.xd, o.tap, 0], 0.45)
+  junction(g, [o.xd, o.bottom, 0], 0.35).set(0)
+  const r1 = add(g, new THREE.Group())
+  const r2 = add(g, new THREE.Group())
+  const loadHolder = add(g, new THREE.Group())
+  const tags = [y1, y2].map((y) => liveLabel(g, [o.xd - 1.4, y, 0.3], { size: 0.34, align: 'right' }))
+  const shown = [NaN, NaN]
+  let loadKey = ''
+
+  const meter = multimeter()
+  const k = 0.42
+  const mx = o.xt + 2.8
+  const my = o.tap - 3.4
+  add(g, meter.group, [mx, my, -0.4]).scale.setScalar(k)
+  const jack = (j: V3): V3 => [mx + j[0] * k, my + j[1] * k, -0.4 + j[2] * k]
+  const [red, black] = [jack(meter.red), jack(meter.black)]
+  const side = mx + 2.4
+  cableRun(g, [[o.xt, o.tap, 0], [side, o.tap, 0.3], [side, red[1] - 0.9, 0.3], [red[0], red[1] - 0.9, 0.3], red], '#d23b3b', 0.12)
+  cableRun(g, [black, [black[0], o.bottom + 0.6, 0.3], [o.xt + 0.6, o.bottom, 0.2], [o.xt, o.bottom, 0]], '#202226', 0.12)
+
+  const columnV = (y: number) => (y > o.tap ? drop(y, y1, live.vs, live.tap) : drop(y, y2, live.tap, 0))
+  const feed = plusFlow(g, [[o.x0, o.bottom, LANE], [o.x0, o.top, LANE], [o.xd, o.top, LANE], [o.xd, o.tap, LANE]], (at) =>
+    at.x < o.x0 + 0.01 ? f(live.vs) * clamp01((at.y - cy + ch / 2) / ch) : at.y > o.top - 0.01 ? f(live.vs) : f(columnV(at.y)),
+  )
+  const down = plusFlow(g, [[o.xd, o.tap, LANE], [o.xd, o.bottom, LANE], [o.x0, o.bottom, LANE]], (at) => (at.y > o.bottom + 0.01 ? f(columnV(at.y)) : 0))
+  const loadFlow = plusFlow(g, [[o.xd, o.tap, LANE], [o.xt, o.tap, LANE], [o.xt, o.bottom, LANE], [o.xd, o.bottom, LANE]], (at) =>
+    at.y > o.tap - 0.01 ? f(live.tap) : at.y < o.bottom + 0.01 ? 0 : live.load ? f(drop(at.y, y2, live.tap, 0)) : f(live.tap),
+  )
+
+  const setR = (i: number, holder: THREE.Group, y: number, r: number) => {
+    if (shown[i] === r) return
+    shown[i] = r
+    swapResistor(holder, r, [o.xd, y + 1, 0], [o.xd, y - 1, 0])
+    tags[i].set(`R${i + 1} ${ohmsText(r)}`, LABEL)
+  }
+  return {
+    group: g,
+    meter,
+    setR1: (r: number) => setR(0, r1, y1, r),
+    setR2: (r: number) => setR(1, r2, y2, r),
+    setLoad(load: { kind: 'R'; ohms: number } | { kind: 'C' } | null) {
+      const key = load ? (load.kind === 'R' ? `R${load.ohms}` : 'C') : ''
+      if (key === loadKey) return
+      loadKey = key
+      emptyGroup(loadHolder)
+      live.load = !!load
+      if (load?.kind === 'R') swapResistor(loadHolder, load.ohms, [o.xt, y2 + 1, 0], [o.xt, y2 - 1, 0])
+      if (load?.kind === 'C') ceramicAlong(loadHolder, [o.xt, y2 + 1.2, 0], [o.xt, y2 - 1.2, 0], 1.3)
+      if (load) {
+        wire(loadHolder, [[o.xt, o.tap, 0], [o.xt, y2 + (load.kind === 'R' ? RS : 1.2), 0]])
+        wire(loadHolder, [[o.xt, y2 - (load.kind === 'R' ? RS : 1.2), 0], [o.xt, o.bottom, 0]])
+      }
+    },
+    set(vs: number, vTap: number) {
+      live.vs = vs
+      live.tap = vTap
+      tapDot.set(f(vTap))
+    },
+    step(dt: number, a1: number, a2: number, aLoad: number) {
+      const s = (a: number) => dt * 2.4 * Math.min(a / o.fullA, 2.5)
+      feed.step(s(a1))
+      down.step(s(a2))
+      loadFlow.step(s(aLoad))
     },
   }
 }
