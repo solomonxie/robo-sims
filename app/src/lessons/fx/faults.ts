@@ -5,11 +5,11 @@ import { FaultHunt, MeterRead, PuzzleVerdict, caseFaults, decisiveProbe, huntVer
 import { fixedText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
-import { diodeAlong, glowHalo, motorCan } from './circuit'
+import { diodeAlong, glowHalo, motorCan, resistorAlong } from './circuit'
 import { buildElectrolyticCap } from '../../models/passives'
 import { B_FIELD, GREY, HEAT, HIGH_V, LABEL, POWER, RING, glowMat, setGlow } from './colors'
 import { dcdcModule, esp32Board, i2cBreakout } from './modules'
-import { probe } from './displays'
+import { DialUnit, probe } from './displays'
 import { cableRun, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
@@ -49,24 +49,33 @@ export const HUNT_HOWTO =
 
 const shown = (v: number) => (Math.abs(v) < 0.005 ? 0 : v)
 
+/** Read off the multimeter (V, A, Ω, °C), not a scope (`mV`) or the serial monitor (`log`, `cnt`). */
+export const onMeter = (r: MeterRead) => r.unit !== 'log' && r.unit !== 'mV' && r.unit !== 'cnt'
+
 /** Four-digit meter text for a reading (`flip` shows the flicker value); OL for open, dashes for a firmware log line. */
 export function meterText(r: MeterRead, flip = false) {
-  if (r.unit === 'log') return '----'
+  if (!onMeter(r)) return '----'
   if (r.open) return '0L'
-  const v = shown(flip && r.alt !== undefined ? r.alt : r.value)
+  const raw = shown(flip && r.alt !== undefined ? r.alt : r.value)
+  // Ω above 1 k shows on the kΩ range.
+  const v = r.unit === 'Ω' && Math.abs(raw) >= 1000 ? raw / 1000 : raw
   const a = Math.abs(v)
   const digits = r.unit === '°C' || a >= 99.95 ? 0 : a >= 9.995 ? 1 : r.unit === 'A' && a < 1 ? 3 : 2
   return fixedText(v, digits).replace('−', '-')
 }
 
-/** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "149 °C lead", "min 2.19 V", a log line. */
+/** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "10.0 kΩ", "149 °C lead", "min 2.19 V", a log
+ *  line, "62.2 mV p-p", "48 presses". */
 export function readingText(r: MeterRead): string {
   if (r.unit === 'log') return r.label ?? ''
+  if (r.unit === 'cnt') return `${Math.round(r.value)} ${r.label ?? 'cnt'}`
+  if (r.unit === 'mV') return `${fixedText(shown(r.value), r.value >= 99.5 ? 0 : 1)} mV p-p`
   if (r.hold) return `${r.hold} ${readingText({ ...r, hold: undefined })}`
   if (r.open) return 'OL'
   const one = (v: number) => {
     const x = shown(v)
     if (r.unit === 'A') return Math.abs(x) < 1 ? `${Math.round(x * 1000)} m` : `${fixedText(x, 2)} `
+    if (r.unit === 'Ω' && Math.abs(x) >= 1000) return Math.abs(x) >= 1e6 ? `${fixedText(x / 1e6, 2)} M` : `${fixedText(x / 1000, 1)} k`
     return r.unit === '°C' ? `${Math.round(x)} ` : `${fixedText(x, r.unit === 'Ω' ? 1 : 2)} `
   }
   const unit = r.unit === 'A' ? 'A' : r.unit
@@ -99,7 +108,7 @@ export function probeMeter(parent: THREE.Object3D, at: V3, k = 0.42, laneY = -3)
     aim,
     park: () => aim(...parked),
     show(r: MeterRead, t: number) {
-      if (r.unit !== 'log') meter.dial(r.unit)
+      if (onMeter(r)) meter.dial(r.unit as DialUnit)
       meter.display.set(meterText(r, r.alt !== undefined && Math.floor(t * 2) % 2 === 1))
       holdTag.set(r.hold ? `${r.hold.toUpperCase()} HOLD` : '', RING)
     },
@@ -445,7 +454,7 @@ export function huntRig<F extends string, P extends string, T extends string, S 
       st.seen = track(q)
       const tip = s.tips[q.probe]
       const read = s.hunt.read(q.truth, q.probe)
-      if (read.unit === 'log') meter.park()
+      if (!onMeter(read)) meter.park()
       else meter.aim(spot(tip.red, read), bench.tp[tip.black])
       meter.show(read, st.t)
       bench.clearGlow()
@@ -800,5 +809,216 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
   }
   bench.source('4aa')
   bench.lead(false)
+  return bench
+}
+
+// --- Serial plot: readings off the serial monitor (or a scope trace) in any range, healthy grey vs this case cyan ---
+
+export interface PlotView {
+  lo: number
+  hi: number
+  /** Axis label text for `lo` / `hi`. */
+  axis: [string, string]
+  span: string
+  /** Dashed levels [value, text]; colours come from `serialPlot`'s `levels`. */
+  marks?: [number, string][]
+}
+
+/** Arduino-style serial plot at `at` (centre), `w` × `h`: `show(healthy, got, view)` draws the healthy run grey and this
+ *  case cyan (null hides) between `view.lo`…`view.hi` with live axis labels, dashed marks (one per `levels` colour) and a
+ *  corner tag; `stats(text, colour)` and `log(text, colour)` write two lines under it (e.g. min / max / p-p). */
+export function serialPlot(parent: THREE.Object3D, at: V3, w: number, h: number, title: string, levels: string[] = [HIGH_V, RING]) {
+  const g = add(parent, new THREE.Group())
+  const { s, tag } = boxScope(g, { x: at[0], y: at[1], w, h }, title, [6, 4])
+  const axis = [h / 2, -h / 2].map((dy) => liveLabel(g, [at[0] - w / 2 - 0.15, at[1] + dy, 0.3], { size: 0.22, align: 'right' }))
+  const marks = levels.map((c) => ({ c, line: s.level(c, 0.3), text: liveLabel(g, [at[0] + w / 2 - 0.1, 0, 0.3], { size: 0.2, align: 'right' }) }))
+  const traces = [s.trace(GREY, { samples: 200, radius: 0.035 }), s.trace(B_FIELD, { samples: 200, radius: 0.055 })]
+  const rows = [0.75, 1.25].map((dy) => liveLabel(g, [at[0] + w / 2, at[1] - h / 2 - dy, 0.3], { size: 0.22, align: 'right' }))
+  return {
+    group: g,
+    show(healthy: readonly number[] | null, got: readonly number[] | null, v: PlotView) {
+      const y = (x: number) => ((x - v.lo) / (v.hi - v.lo)) * h - h / 2
+      ;[healthy, got].forEach((d, k) => {
+        traces[k].group.visible = !!d
+        if (d) traces[k].draw((u) => y(d[Math.min(d.length - 1, Math.round(u * (d.length - 1)))]), null)
+      })
+      axis[0].set(v.axis[1], GREY)
+      axis[1].set(v.axis[0], GREY)
+      marks.forEach((m, i) => {
+        const at2 = v.marks?.[i]
+        m.line.set(at2 ? y(at2[0]) : 1e9)
+        m.text.set(at2 ? at2[1] : '', m.c)
+        if (at2) m.text.group.position.y = at[1] + y(at2[0]) - 0.25
+      })
+      tag.set(v.span, GREY)
+    },
+    stats: (text: string, color = LABEL) => rows[0].set(text, color),
+    log: (text: string, color = GREY) => rows[1].set(text, color),
+  }
+}
+
+// --- Noise bench: a start button on GPIO 27 next to the motor wiring, or a 5 V analog sensor into GPIO 34 ---
+
+export type NoiseKind = 'button' | 'analog'
+export type NoiseTp = 'gpio27' | 'gpio26' | 'v33' | 'gnd' | 'usb' | 's5v' | 'sgnd' | 'egnd' | 'pin34'
+export type NoisePart = 'button' | 'lead' | 'pull' | 'pull26' | 'esp' | 'driver' | 'motors' | 'source' | 'sensor' | 'caps' | 'divider' | 'ground'
+
+const NB = { yt: 3.3, yb: -3.4, esp: [-1.6, -1.4, 0] as V3, espK: 0.3, src: [-15, 1.2, 0] as V3, drv: [-6.4, 3.6, 0] as V3 }
+
+/** Face-on bench. Both: a source (`button`: 2 × 18650; `analog`: buck → 5 V) feeding a DRV8833 + four TT motors across
+ *  the top (`spin`), the ESP32 DevKit with a USB lead to the serial monitor. `button`: a start button to GND whose lead
+ *  runs to GPIO 27, short and clear or long and taped along the motor wires (`lead(long)`), a 10 kΩ pull-up from 3V3 on
+ *  GPIO 27, on GPIO 26 or missing (`pull(pin)`), `press(f)`. `analog`: a 5 V analog sensor on the motor rail with its
+ *  470 µF (`caps(on)`) + 10 µF + 100 nF, a divider on its board into GPIO 34 (`divider(ohms)`), its GND on its own wire
+ *  or sharing the motor return (`ground(shared)`). `tp` / `spots` / `glow` as every hunt bench. */
+export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
+  const g = add(parent, new THREE.Group())
+  const r = 0.1
+  const [ex, ey] = [NB.esp[0], NB.esp[1]]
+  const pin = esp32Board(g, NB.esp, NB.espK)
+  addLabel(g, 'ESP32', [ex + 2.4, ey + 2.1, 0.2], GREY, 0.24)
+  const usbEnd: V3 = [ex + 10 * NB.espK, ey, 0.3]
+  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -3, 0.3]], '#9aa0aa', 0.12)
+  addLabel(g, 'USB: serial', [usbEnd[0] + 1.5, -2.6, 0.2], GREY, 0.2, 'left')
+  const pinLabel = (p: V3, text: string, up: boolean) => addLabel(g, text, [p[0], p[1] + (up ? 0.45 : -0.45), p[2] + 0.3], LABEL, 0.15)
+  const gndPin = pin(-6, false)
+  const v33Pin = pin(-7, true)
+  pinLabel(gndPin, 'GND', false)
+  // Driver + motors across the top, fed from the source on the left.
+  const [sx, sy] = [NB.src[0], NB.src[1]]
+  if (kind === 'button') {
+    box(g, [2.4, 3.6, 0.5], mat('#1a1b1f', { rough: 0.7 }), [sx, sy, -0.3])
+    for (const dx of [-0.5, 0.5]) cylinder(g, 0.4, 3.1, mat('#2a6fb0', { rough: 0.45 }), [sx + dx, sy, 0.15], 'y', 20)
+    addLabel(g, '2 × 18650', [sx, sy - 2.3, 0.2], GREY, 0.24)
+  } else {
+    dcdcModule(g, [sx, sy, 0], 'lm2596', 0.1)
+    addLabel(g, 'buck → 5 V', [sx, sy - 1.6, 0.2], GREY, 0.24)
+  }
+  const srcP: V3 = [sx + 0.6, sy + 1.9, 0]
+  const srcM: V3 = [sx - 0.6, sy - 1.9, 0]
+  wire(g, [srcP, [srcP[0], NB.yt, 0], [NB.drv[0] - 1.2, NB.yt, 0]], r)
+  box(g, [2.4, 1.1, 0.3], mat('#5a2a82', { rough: 0.55 }), NB.drv)
+  addLabel(g, 'DRV8833', [NB.drv[0], NB.drv[1], 0.25], LABEL, 0.22)
+  const motorCans: ReturnType<typeof motorCan>[] = []
+  for (let k = 0; k < 4; k++) {
+    const m = motorCan(g, [-0.6 + k * 1.9, NB.yt + 0.4, 0], { r: 0.65, legs: 0.3 })
+    motorCans.push(m)
+    cableRun(g, [[NB.drv[0] + 1.2, NB.yt - 0.15 - k * 0.08, 0.1], [m.pins[0][0], NB.yt - 0.15 - k * 0.08, 0.1], m.pins[0]], '#e0e0e0', 0.05)
+  }
+  addLabel(g, '4 × TT', [6.6, NB.yt + 0.4, 0.2], GREY, 0.22, 'left')
+  // Motor return: driver GND down to the bottom rail, back to the source.
+  const retX = NB.drv[0] - 0.8
+  wire(g, [[retX, NB.yt - 0.55, 0], [retX, NB.yb, 0]], r)
+  wire(g, [srcM, [srcM[0], NB.yb, 0], [retX, NB.yb, 0]], r)
+  wire(g, [gndPin, [gndPin[0], NB.yb + 0.4, 0.3], [srcM[0] + 0.6, NB.yb + 0.4, 0.3], [srcM[0] + 0.6, NB.yb, 0]], r)
+
+  const spots: Partial<Record<NoisePart, V3>> = { esp: [ex, ey, 0.8], driver: [NB.drv[0], NB.drv[1], 0.6], motors: [2.2, NB.yt + 0.4, 0.8], source: [sx, sy, 0.8] }
+  const tp: Partial<Record<NoiseTp, V3>> = { usb: usbEnd, gnd: [gndPin[0], NB.yb + 0.4, 0.3], egnd: gndPin }
+  const looks: Record<string, THREE.Group> = {}
+  const look = (k: string) => (looks[k] = add(g, new THREE.Group()))
+  let setDivider = (_ohms: number) => {}
+  let buttonCap: THREE.Object3D | null = null
+
+  if (kind === 'button') {
+    // 3V3 rail over the board, the pull-up looks, the button and its two leads.
+    const p27 = pin(0, true)
+    const p26 = pin(1, true)
+    pinLabel(p27, '27', false)
+    pinLabel(p26, '26', false)
+    pinLabel(v33Pin, '3V3', false)
+    const railY = 1.6
+    wire(g, [v33Pin, [v33Pin[0], railY, 0.3], [p26[0] + 0.5, railY, 0.3]], r * 0.8)
+    addLabel(g, '3V3 rail', [v33Pin[0] - 0.2, railY + 0.4, 0.3], LABEL, 0.18, 'left')
+    for (const [key, p] of [['pull27', p27], ['pull26', p26]] as const) {
+      const lg = look(key)
+      resistorAlong(lg, 10e3, [p[0], railY, p[2]], [p[0], p[1] + 0.25, p[2]], 0.55)
+      addLabel(lg, '10 kΩ', [p[0] + (key === 'pull26' ? 0.45 : -0.45), (railY + p[1]) / 2, 0.6], LABEL, 0.17, key === 'pull26' ? 'left' : 'right')
+    }
+    const bt: V3 = [-11.6, -0.6, 0]
+    box(g, [1.4, 1.4, 0.4], mat('#1c1d22', { rough: 0.65 }), bt)
+    buttonCap = add(g, new THREE.Group(), [bt[0], bt[1], 0.3])
+    cylinder(buttonCap, 0.42, 0.4, mat('#d23b3b', { rough: 0.5 }), [0, 0, 0.2], 'z', 20)
+    addLabel(g, 'START', [bt[0], bt[1] - 1.1, 0.2], GREY, 0.2)
+    const legA: V3 = [bt[0] - 0.5, bt[1] - 0.7, 0.1]
+    const legB: V3 = [bt[0] + 0.7, bt[1] + 0.3, 0.1]
+    wire(g, [legA, [legA[0], NB.yb, 0], [srcM[0], NB.yb, 0]], r)
+    const tie: V3 = [p27[0], p27[1] + 0.25, p27[2]]
+    cableRun(look('short'), [legB, [p27[0] - 1.2, legB[1], 0.3], [p27[0] - 1.2, tie[1], 0.4], tie], '#e8c547', 0.07)
+    const runY = NB.yt - 0.6
+    cableRun(look('long'), [legB, [legB[0] + 0.6, legB[1], 0.3], [legB[0] + 0.6, runY, 0.3], [p26[0] + 1.6, runY, 0.2], [p26[0] + 1.6, tie[1] + 0.9, 0.4], [p27[0] - 1.2, tie[1] + 0.9, 0.4], [p27[0] - 1.2, tie[1], 0.4], tie], '#e8c547', 0.07)
+    addLabel(looks.long, '1.5 m, taped to the motor wires', [-8.4, runY - 0.35, 0.3], RING, 0.18)
+    Object.assign(spots, { button: [bt[0], bt[1], 0.8], lead: [legB[0] + 0.45, legB[1], 0.5], pull: [p27[0], (railY + p27[1]) / 2, 0.6], pull26: [p26[0], (railY + p26[1]) / 2, 0.6] })
+    Object.assign(tp, { gpio27: tie, gpio26: [p26[0], p26[1] + 0.25, p26[2]], v33: [v33Pin[0], railY, 0.3] })
+  } else {
+    // Sensor on the motor rail, caps by it, divider on its board into GPIO 34, two ground routes.
+    const p34 = pin(4, true)
+    pinLabel(p34, '34', false)
+    const sb = i2cBreakout(g, [-8.9, 0.3, 0], { name: 'ANALOG 5 V', color: '#1f6f4a', k: 0.2, pins: ['VCC', 'GND', 'OUT'] })
+    const vcc = sb.pin('VCC')
+    const sg = sb.pin('GND')
+    const out = sb.pin('OUT')
+    wire(g, [vcc, [vcc[0], NB.yt, 0]], r * 0.8)
+    // Caps from the rail to the bottom rail, left of the sensor: the 470 µF (`caps`) and the two ceramics.
+    const capX = -12.4
+    wire(g, [[capX, NB.yt, 0], [capX, 1.6, 0], [capX + 1, 1.6, 0], [capX + 1, 1.35, 0]], r * 0.6)
+    box(g, [0.45, 0.3, 0.3], mat('#c9a46a', { rough: 0.5 }), [capX + 1, 1.2, 0.2])
+    box(g, [0.35, 0.25, 0.3], mat('#c9a46a', { rough: 0.5 }), [capX + 1, 0.5, 0.2])
+    wire(g, [[capX + 1, 1.05, 0], [capX + 1, NB.yb, 0]], r * 0.6)
+    addLabel(g, '+ 10 µF, 100 nF', [capX - 0.35, -1.85, 0.3], LABEL, 0.16, 'right')
+    const cg = look('caps')
+    wire(cg, [[capX, 1.6, 0], [capX, 0.6, 0]], r * 0.8)
+    const e = add(cg, buildElectrolyticCap(), [capX, -1.6, 0])
+    e.scale.setScalar(0.35)
+    wire(cg, [[capX, -2.6, 0], [capX, NB.yb, 0]], r * 0.8)
+    addLabel(cg, '470 µF', [capX - 0.35, -1.4, 0.3], POWER, 0.17, 'right')
+    // Divider: R1 from OUT down to the tap, R2 to the sensor's GND; the tap runs to GPIO 34.
+    const dx = -6.3
+    const tap: V3 = [dx, -0.9, 0.2]
+    wire(g, [out, [out[0], out[1] + 0.5, 0.3], [dx, out[1] + 0.5, 0.3], [dx, 0.9, 0.2]], r * 0.6)
+    const divG = add(g, new THREE.Group())
+    let divOhms = NaN
+    setDivider = (ohms: number) => {
+      if (ohms === divOhms) return
+      divOhms = ohms
+      emptyGroup(divG)
+      resistorAlong(divG, ohms, [dx, 0.9, 0.2], tap, 0.55)
+      resistorAlong(divG, ohms, tap, [dx, -2.6, 0.2], 0.55)
+      addLabel(divG, `2 × ${Math.round(ohms / 1000)} kΩ`, [dx + 0.45, 0, 0.5], LABEL, 0.17, 'left')
+    }
+    setDivider(10e3)
+    wire(g, [tap, [p34[0], tap[1], 0.3], [p34[0], p34[1], 0.3]], r * 0.6)
+    wire(g, [[dx, -2.6, 0.2], [sg[0], -2.6, 0.3], [sg[0], sg[1], 0.3]], r * 0.6)
+    // Ground: own wire to the ESP32's GND, or onto the motor return by the driver.
+    cableRun(look('star'), [sg, [sg[0] + 0.25, sg[1] + 0.6, 0.4], [-5.2, sg[1] + 0.6, 0.4], [-5.2, gndPin[1] - 0.3, 0.4], [gndPin[0], gndPin[1] - 0.3, 0.4], gndPin], PROBE_BLACK, 0.07)
+    cableRun(look('shared'), [sg, [sg[0] + 0.25, sg[1] + 0.6, 0.4], [retX, sg[1] + 0.6, 0.4], [retX, sg[1] + 0.6, 0.1]], PROBE_BLACK, 0.07)
+    addLabel(looks.shared, 'GND via the motor return', [retX + 0.3, sg[1] + 1, 0.3], RING, 0.18, 'left')
+    Object.assign(spots, { sensor: [-8.9, 0.3, 0.6], caps: [capX, -1.2, 0.8], divider: [dx, -0.9, 0.6], ground: [-6.2, sg[1] + 0.6, 0.6] })
+    Object.assign(tp, { s5v: [vcc[0], vcc[1] + 0.5, 0.3], sgnd: [sg[0], sg[1] + 0.25, 0.3], pin34: [p34[0], p34[1], 0.3] })
+  }
+  const halos = Object.fromEntries(Object.entries(spots).map(([k, v]) => [k, glowHalo(g, v as V3, k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4)])) as Record<NoisePart, ReturnType<typeof glowHalo>>
+  const showLook = (on: string, off: string) => {
+    if (looks[on]) looks[on].visible = true
+    if (looks[off]) looks[off].visible = false
+  }
+  const bench = {
+    group: g,
+    tp: tp as Record<NoiseTp, V3>,
+    spots: spots as Record<NoisePart, V3>,
+    lead: (long: boolean) => showLook(long ? 'long' : 'short', long ? 'short' : 'long'),
+    pull(at: 27 | 26 | null) {
+      if (looks.pull27) looks.pull27.visible = at === 27
+      if (looks.pull26) looks.pull26.visible = at === 26
+    },
+    press: (f: number) => buttonCap?.position.setZ(0.3 - 0.25 * f),
+    caps: (on: boolean) => looks.caps && (looks.caps.visible = on),
+    divider: (ohms: number) => setDivider(ohms),
+    ground: (shared: boolean) => showLook(shared ? 'shared' : 'star', shared ? 'star' : 'shared'),
+    spin: (dt: number, f: number) => motorCans.forEach((m) => m.spin(dt, 400 * f)),
+    glow: (part: NoisePart, f: number, c = HEAT) => halos[part]?.set(f, c),
+    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+  }
+  bench.lead(false)
+  bench.pull(27)
+  bench.ground(false)
   return bench
 }

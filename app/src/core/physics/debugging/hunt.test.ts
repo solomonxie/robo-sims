@@ -17,6 +17,9 @@ describe('fault hunt', () => {
     expect(sameReading({ ...V(2.2), hold: 'min' }, V(2.2))).toBe(false)
     expect(sameReading({ value: 0, unit: 'log', label: 'BROWNOUT' }, { value: 3, unit: 'log', label: 'BROWNOUT' })).toBe(true)
     expect(sameReading({ value: 0, unit: 'log', label: 'BROWNOUT' }, { value: 0, unit: 'log', label: 'PANIC' })).toBe(false)
+    expect(sameReading({ value: 12, unit: 'cnt' }, { value: 14, unit: 'cnt' })).toBe(true)
+    expect(sameReading({ value: 12, unit: 'cnt' }, { value: 19, unit: 'cnt' })).toBe(false)
+    expect(sameReading({ value: 60, unit: 'mV' }, { value: 0, unit: 'mV' })).toBe(false)
   })
   it('table, ruled-out suspects, the probe that splits two, and the shortest probe list', () => {
     expect(faultTable(H).ok.y.value).toBe(3.3)

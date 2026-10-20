@@ -3,8 +3,9 @@
 import { seededRng } from '../common'
 import { PuzzleVerdict, puzzleVerdict } from '../challenges/verdict'
 
-/** `log` = not a meter: a line the firmware prints (`label`, e.g. a reset reason). */
-export type MeterUnit = 'V' | 'A' | 'Ω' | '°C' | 'log'
+/** `log` = not a meter: a line the firmware prints (`label`, e.g. a reset reason); `mV` = a scope's peak-to-peak;
+ *  `cnt` = a count off the serial monitor (events, or the spread of ADC readings; `label` names it). */
+export type MeterUnit = 'V' | 'A' | 'Ω' | '°C' | 'log' | 'mV' | 'cnt'
 
 /** What the meter shows: a value, or `open` (OL); `alt` = a second value it flickers to (a supply hiccuping);
  *  `label` = what it is on (a thermal camera's hottest part); `hold` = the lowest / highest value it caught (MIN/MAX). */
@@ -24,8 +25,8 @@ export interface FaultHunt<F extends string, P extends string> {
   read: (fault: F | 'ok', probe: P) => MeterRead
 }
 
-/** Absolute tolerance per unit a hobby meter tells apart (plus 5 % of the value). */
-const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5, log: 0 }
+/** Absolute tolerance per unit a hobby meter (scope, serial count) tells apart (plus 5 % of the value). */
+const TOL: Record<MeterUnit, number> = { V: 0.15, A: 0.02, 'Ω': 0.5, '°C': 5, log: 0, mV: 3, cnt: 2 }
 
 /** Two readings a person with a meter can't tell apart. */
 export function sameReading(a: MeterRead, b: MeterRead): boolean {

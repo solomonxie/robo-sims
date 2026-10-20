@@ -229,6 +229,7 @@ import { timingPuzzlesBlinkAt1Hz, timingPuzzlesDebounceTime } from '../lessons/c
 import { wontPowerOnDeadBattery, wontPowerOnReversePolarity, wontPowerOnShortCircuit } from '../lessons/debugging/wont-power-on'
 import { motorDoesNothingCommonGroundMissing, motorDoesNothingMissingEnablePin, motorDoesNothingStalledGearbox } from '../lessons/debugging/motor-does-nothing'
 import { randomResetsMotorSpikeResets, randomResetsWeakRegulator } from '../lessons/debugging/random-resets'
+import { sensorNoiseFloatingInput, sensorNoiseMissingDecoupling } from '../lessons/debugging/sensor-noise'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -900,6 +901,8 @@ const READY: Record<string, Lesson> = {
   'debugging/motor-does-nothing/stalled-gearbox': motorDoesNothingStalledGearbox,
   'debugging/random-resets/motor-spike-resets': randomResetsMotorSpikeResets,
   'debugging/random-resets/weak-regulator': randomResetsWeakRegulator,
+  'debugging/sensor-noise/floating-input': sensorNoiseFloatingInput,
+  'debugging/sensor-noise/missing-decoupling': sensorNoiseMissingDecoupling,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
