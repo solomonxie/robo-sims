@@ -8,7 +8,6 @@ import {
   DeadProbe,
   FaultHunt,
   LM2596,
-  MeterRead,
   REVERSE_FAULTS,
   REVERSE_HUNT,
   REVERSE_PROBES,
@@ -29,8 +28,7 @@ import {
   shortedLdoRun,
 } from '../../core/physics'
 import { fixedText, si, volts } from '../../core/units'
-import { V3 } from '../../models/kit'
-import { FACE_VIEW, HEAT, HIGH_V, HUNT_LEGEND, POWER, SupplyPart, SupplyTp, huntKit, huntStage, probeMeter, readingText, supplyBench } from '../fx'
+import { FACE_VIEW, HUNT_HOWTO, HUNT_LEGEND, SupplyPart, SupplyTp, huntKit, huntRig, huntStage, readingText, supplyBench } from '../fx'
 import { Lesson, Stage } from '../types'
 
 const W = (w: number) => si(w, 'W', 3)
@@ -65,45 +63,21 @@ const HOT: Record<string, SupplyPart> = { 'pack lead': 'lead', LM2596: 'buck', A
 function huntBuild<F extends string, P extends string>(s: HuntSpec<F, P>, colW: number): Stage {
   const { scene, header } = huntStage()
   const bench = supplyBench(scene, { guard: s.guard, driver: s.driver })
-  const meter = probeMeter(scene, [9.8, 0.4, 0])
-  const table = s.kit.table(scene, [-17, -3.9, 0], { colW, nameW: 5.4 })
-  const track = s.kit.track()
-  const st = { t: 0, seen: [] as P[] }
-  const spot = (k: SupplyTp | SupplyPart, read: MeterRead): V3 => {
-    if (k in bench.tp) return bench.tp[k as SupplyTp]
-    const part = read.label ? HOT[read.label] : undefined
-    return bench.spots[part ?? (k as SupplyPart)]
-  }
-  return {
-    scene,
-    view: FACE_VIEW,
-    frame(dt, p) {
-      st.t += dt
-      const q = s.kit.params(p)
-      st.seen = track(q)
-      const tip = s.tips[q.probe]
-      const read = s.hunt.read(q.truth, q.probe)
-      meter.aim(spot(tip.red, read), bench.tp[tip.black])
-      meter.show(read, st.t)
+  const rig = huntRig(scene, header, {
+    ...s,
+    bench,
+    hot: HOT,
+    table: { colW },
+    extra({ q, tip, t, found }) {
       bench.setSwitch(tip.on)
       const lit = s.hunt.read(q.truth, s.led)
-      const blink = lit.alt !== undefined ? Math.floor(st.t * 2) % 2 : lit.value > 3 ? 1 : 0
+      const blink = lit.alt !== undefined ? Math.floor(t * 2) % 2 : lit.value > 3 ? 1 : 0
       bench.setLed(tip.on ? blink : 0)
-      bench.clearGlow()
-      if (read.unit === '°C' && read.label && HOT[read.label]) bench.glow(HOT[read.label], Math.min(1.6, (read.value - 25) / 90), HEAT)
-      const found = q.guess === q.truth
-      if (q.guess) bench.glow(s.parts[q.guess], 0.8, found ? POWER : HIGH_V)
       s.reveal?.(bench, q.truth, found)
-      const [why, hint] = s.kit.words(q, st.seen, s.fixes, s.hint)
-      header.set(s.symptom, s.kit.verdict(q), why, hint)
-      s.kit.fill(table, q, st.seen)
     },
-    readouts: (p) => s.kit.readouts(s.kit.params(p), st.seen),
-  }
+  })
+  return { scene, view: FACE_VIEW, ...rig }
 }
-
-const POINTS_HUNT =
-  'The hunt: each case hides one suspect (shuffled). Pick a test point: the probes jump there and the meter reads it. Compare with the Healthy row; when one suspect fits everything you measured, pick it. A wrong pick says which reading rules it out; the right one opens the table: green fits, red rules out.'
 
 // --- Dead battery ---
 
@@ -130,7 +104,7 @@ export const wontPowerOnDeadBattery: Lesson = {
   },
   legend: HUNT_LEGEND,
   points: [
-    POINTS_HUNT,
+    HUNT_HOWTO,
     'Measure at rest and under load. With nothing drawing, a meter reads the open-circuit voltage, which says little about health: worn alkaline cells rest at a normal-looking 1.4 V each. Under load the internal resistance shows: V = OCV − I·R (Power › Battery chemistry › Internal resistance).',
     `A weak source can’t feed a regulator at all. A buck draws constant power, so as its input sags it pulls more current, which sags it more. A source gives at most OCV² / 4R (Electricity › Thevenin & Norton › Maximum power transfer); if that’s under the ${W(dead('ok').needW)} the boot burst needs, the input falls to the buck’s ${volts(LM2596.vinMin)} minimum, it quits, the pack recovers, repeat: the LED blinks and the meter flickers.`,
     'Walk the chain from the source: pack at rest, pack under load, buck input, 5 V rail. The fault is where the voltage goes missing: a sag at the pack terminals is the cells; full volts at the pack but a collapse at the buck input is the path between them (Power › Wiring & gauge › Voltage drop).',
@@ -179,7 +153,7 @@ export const wontPowerOnReversePolarity: Lesson = {
     `No guard: ${si(GUARDS.noneA, 'A', 2)} through the substrate diodes · 1N4007: ${volts(GUARDS.diodeV)}, ${W(GUARDS.diodeW)} lost · P-FET: ${si(GUARDS.pfetV, 'V', 2)}, ${W(GUARDS.pfetW)}`,
   legend: HUNT_LEGEND,
   points: [
-    POINTS_HUNT,
+    HUNT_HOWTO,
     `This board has a series 1N4007 guard: the right way round it drops ${volts(GUARDS.diodeV)} and passes ${si(okRev.boot!.amps, 'A', 2)}; backwards it blocks. A negative reading means the red probe sits on the lower side: on a plug, the crimps are swapped (Electricity › Voltage › Measuring with a multimeter).`,
     'Across a diode, red on the pack side: ~0.8 V with current flowing is normal; the whole pack voltage across it means it’s blocking, either because the pack is backwards (reads negative) or the diode is (stripe = cathode).',
     `What fails without a guard: backwards, every chip’s substrate (ESD) diodes conduct straight across the cells, ${si(GUARDS.noneA, 'A', 2)} here, ${W(GUARDS.noneW)} in silicon. A P-MOSFET guard costs only ${si(GUARDS.pfetV, 'V', 2)} where the diode costs ${volts(GUARDS.diodeV)} (Components › Fuses & protection › Reverse-polarity protection).`,
@@ -238,7 +212,7 @@ export const wontPowerOnShortCircuit: Lesson = {
   },
   legend: HUNT_LEGEND,
   points: [
-    POINTS_HUNT,
+    HUNT_HOWTO,
     `A short draws whatever the source can give: I = OCV / (R_cells + R_wire + R_short). Six alkaline AAs (0.15 Ω each) limit it to ~${si(sh('lead').amps, 'A', 2)}; a Li-ion 18650 would push ~${si(LI_SHORT_A, 'A', 2)} (Power › Battery chemistry › Internal resistance).`,
     `A fuse guards only what’s after it. A short in the pack lead, before the fuse, just heats the wire: ${C(sh('lead').reads.heat.value)} on 22 AWG, past PVC’s 80 °C (Power › Wiring & gauge › Voltage drop). Fuse at the pack.`,
     `After the fuse, the T1A melts in ${si(sh('blown').meltS, 's', 2)} at ${si(sh('blown').amps, 'A', 2)} and reads OL, power off (Components › Fuses & protection › Fuse ratings). It blew for a reason: find the short before fitting a new one. A polyfuse would reset once it cools.`,

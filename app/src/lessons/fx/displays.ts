@@ -66,7 +66,12 @@ export function segmentDisplay(cells: number, height = 1.6, color = '#16181c', g
   return display
 }
 
-/** Handheld multimeter facing +z, on the V⎓ range (Ω with `ohms`); jacks at the bottom (red V, black COM). */
+export type DialUnit = 'V' | 'A' | 'Ω' | '°C'
+/** Dial stops (of 8, clockwise from the top) per range. */
+const DIAL_STOPS: Record<DialUnit, number> = { V: 1, A: 3, '°C': 5, 'Ω': 7 }
+
+/** Handheld multimeter facing +z, on the V⎓ range (Ω with `ohms`); `dial(unit)` turns it to V / A / Ω / °C. Jacks at the
+ *  bottom (red V, black COM). */
 export function multimeter({ ohms = false } = {}) {
   const group = new THREE.Group()
   box(group, [8.4, 12.4, 1.6], mat('#f2c230', { rough: 0.7 }), [0, 0, 0])
@@ -75,25 +80,39 @@ export function multimeter({ ohms = false } = {}) {
   const display = segmentDisplay(4, 1.9)
   display.group.position.set(0.1, 3.7, 1.2)
   group.add(display.group)
-  const dial = cylinder(group, 1.9, 0.5, mat('#3a3d45', { rough: 0.5 }), [0, -0.6, 1.2], 'z', 40)
-  dial.castShadow = true
-  const dc = ((ohms ? 7 : 1) / 8) * Math.PI * 2
-  box(group, [0.3, 1.6, 0.2], mat('#f4f4f4', { emissive: '#555555' }), [Math.sin(dc) * 0.8, -0.6 + Math.cos(dc) * 0.8, 1.5]).rotation.z = -dc
-  for (let i = 0; i < 8; i++) {
+  const knobBase = cylinder(group, 1.9, 0.5, mat('#3a3d45', { rough: 0.5 }), [0, -0.6, 1.2], 'z', 40)
+  knobBase.castShadow = true
+  const knob = add(group, new THREE.Group(), [0, -0.6, 1.5])
+  box(knob, [0.3, 1.6, 0.2], mat('#f4f4f4', { emissive: '#555555' }), [0, 0.8, 0])
+  const ticks = Array.from({ length: 8 }, (_, i) => {
     const a = (i / 8) * Math.PI * 2
-    box(group, [0.12, 0.45, 0.1], mat(a === dc ? RING : '#8a8f99', { emissive: a === dc ? '#aa8800' : '#000000' }), [
-      Math.sin(a) * 2.6,
-      -0.6 + Math.cos(a) * 2.6,
-      1.05,
-    ]).rotation.z = -a
+    const m = new THREE.MeshStandardMaterial({ color: '#8a8f99', emissive: '#000000' })
+    box(group, [0.12, 0.45, 0.1], m, [Math.sin(a) * 2.6, -0.6 + Math.cos(a) * 2.6, 1.05]).rotation.z = -a
+    return m
+  })
+  for (const [unit, i] of Object.entries(DIAL_STOPS)) {
+    const a = (i / 8) * Math.PI * 2
+    add(group, label(unit, { size: 0.55, color: '#c9ced8' }), [Math.sin(a) * 3.25, -0.6 + Math.cos(a) * 3.25, 1.05])
   }
+  let stop = -1
+  const dial = (unit: DialUnit) => {
+    const i = DIAL_STOPS[unit]
+    if (i === stop) return
+    stop = i
+    knob.rotation.z = -(i / 8) * Math.PI * 2
+    ticks.forEach((m, k) => {
+      m.color.set(k === i ? RING : '#8a8f99')
+      m.emissive.set(k === i ? '#aa8800' : '#000000')
+    })
+  }
+  dial(ohms ? 'Ω' : 'V')
   const red: V3 = [1.7, -4.3, 1.1]
   const black: V3 = [-1.7, -4.3, 1.1]
   for (const [at, color] of [[red, '#d23b3b'], [black, '#202226']] as const) {
     cylinder(group, 0.6, 0.3, mat(color, { rough: 0.4 }), at, 'z', 24)
     cylinder(group, 0.25, 0.32, mat('#111'), [at[0], at[1], at[2] + 0.02], 'z', 16)
   }
-  return { group, display, red, black }
+  return { group, display, red, black, dial }
 }
 
 /** Test probe touching `tip`, handle pointing along `dir`; returns where its cable leaves. */
