@@ -20,6 +20,8 @@ describe('fault hunt', () => {
     expect(sameReading({ value: 12, unit: 'cnt' }, { value: 14, unit: 'cnt' })).toBe(true)
     expect(sameReading({ value: 12, unit: 'cnt' }, { value: 19, unit: 'cnt' })).toBe(false)
     expect(sameReading({ value: 60, unit: 'mV' }, { value: 0, unit: 'mV' })).toBe(false)
+    expect(sameReading({ value: 211, unit: 'ns' }, { value: 1095, unit: 'ns' })).toBe(false)
+    expect(sameReading({ value: Infinity, unit: 'ns', open: true }, { value: 2020, unit: 'ns' })).toBe(false)
   })
   it('table, ruled-out suspects, the probe that splits two, and the shortest probe list', () => {
     expect(faultTable(H).ok.y.value).toBe(3.3)

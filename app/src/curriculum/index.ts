@@ -230,6 +230,7 @@ import { wontPowerOnDeadBattery, wontPowerOnReversePolarity, wontPowerOnShortCir
 import { motorDoesNothingCommonGroundMissing, motorDoesNothingMissingEnablePin, motorDoesNothingStalledGearbox } from '../lessons/debugging/motor-does-nothing'
 import { randomResetsMotorSpikeResets, randomResetsWeakRegulator } from '../lessons/debugging/random-resets'
 import { sensorNoiseFloatingInput, sensorNoiseMissingDecoupling } from '../lessons/debugging/sensor-noise'
+import { busNotRespondingMissingPullUps, busNotRespondingWrongAddress } from '../lessons/debugging/bus-not-responding'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -903,6 +904,8 @@ const READY: Record<string, Lesson> = {
   'debugging/random-resets/weak-regulator': randomResetsWeakRegulator,
   'debugging/sensor-noise/floating-input': sensorNoiseFloatingInput,
   'debugging/sensor-noise/missing-decoupling': sensorNoiseMissingDecoupling,
+  'debugging/bus-not-responding/wrong-address': busNotRespondingWrongAddress,
+  'debugging/bus-not-responding/missing-pull-ups': busNotRespondingMissingPullUps,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 

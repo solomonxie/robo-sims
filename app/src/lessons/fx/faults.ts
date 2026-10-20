@@ -1,7 +1,7 @@
 // Debug it: fault-hunt stage (symptom + PROBE / FOUND / WRONG), a meter whose probes jump to test points, the suspect
 // table, and the robo-car supply bench (6 × AA holder → plug → switch → fuse or guard diode → LM2596 → ESP32).
 import * as THREE from 'three/webgpu'
-import { FaultHunt, MeterRead, PuzzleVerdict, caseFaults, decisiveProbe, huntVerdict, sameReading, stillSuspect } from '../../core/physics'
+import { FaultHunt, I2cEvent, MeterRead, PuzzleVerdict, caseFaults, decisiveProbe, huntVerdict, sameReading, stillSuspect } from '../../core/physics'
 import { fixedText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
@@ -14,6 +14,7 @@ import { cableRun, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
 import { boxScope } from './rigs'
+import { I2C_TEXT, captureScreen } from './screens'
 import { flatBox } from './shapes'
 import { addLabel, liveLabel } from './text'
 import { emptyGroup } from './util'
@@ -49,8 +50,8 @@ export const HUNT_HOWTO =
 
 const shown = (v: number) => (Math.abs(v) < 0.005 ? 0 : v)
 
-/** Read off the multimeter (V, A, Ω, °C), not a scope (`mV`) or the serial monitor (`log`, `cnt`). */
-export const onMeter = (r: MeterRead) => r.unit !== 'log' && r.unit !== 'mV' && r.unit !== 'cnt'
+/** Read off the multimeter (V, A, Ω, °C), not a scope (`mV`, `ns`) or the serial monitor (`log`, `cnt`). */
+export const onMeter = (r: MeterRead) => r.unit === 'V' || r.unit === 'A' || r.unit === 'Ω' || r.unit === '°C'
 
 /** Four-digit meter text for a reading (`flip` shows the flicker value); OL for open, dashes for a firmware log line. */
 export function meterText(r: MeterRead, flip = false) {
@@ -65,9 +66,10 @@ export function meterText(r: MeterRead, flip = false) {
 }
 
 /** Table text for a reading: "8.40 V", "4.50↔8.40 V" (flickering), "OL", "10.0 kΩ", "149 °C lead", "min 2.19 V", a log
- *  line, "62.2 mV p-p", "48 presses". */
+ *  line, "62.2 mV p-p", "48 presses", "211 ns" / "2.02 µs" (`open`: never 70 %). */
 export function readingText(r: MeterRead): string {
   if (r.unit === 'log') return r.label ?? ''
+  if (r.unit === 'ns') return r.open ? 'never 70 %' : r.value >= 999.5 ? `${fixedText(r.value / 1000, 2)} µs` : `${Math.round(r.value)} ns`
   if (r.unit === 'cnt') return `${Math.round(r.value)} ${r.label ?? 'cnt'}`
   if (r.unit === 'mV') return `${fixedText(shown(r.value), r.value >= 99.5 ? 0 : 1)} mV p-p`
   if (r.hold) return `${r.hold} ${readingText({ ...r, hold: undefined })}`
@@ -1020,5 +1022,205 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
   bench.lead(false)
   bench.pull(27)
   bench.ground(false)
+  return bench
+}
+
+// --- Bus capture: a logic analyser on SCL / SDA (analog levels, so slow edges show) with the I²C decoder strip ---
+
+/** One capture: SCL / SDA volts per sample and the decoded events (sample indices). */
+export interface BusTrace {
+  scl: readonly number[]
+  sda: readonly number[]
+  events: readonly I2cEvent[]
+}
+
+/** Logic analyser at `at` (centre), `w` × `h`: SCL and SDA rows drawn as levels (0…`vdd`), healthy grey and this case
+ *  cyan, and a decoder strip (S, address + R/W, data, A / N, P) for this case. `show(got, healthy, span, range?)` (null
+ *  hides; `range` = [first, last) sample to zoom on); `stats` / `log` write two lines under it (e.g. a scanner's list). */
+export function busCapture(parent: THREE.Object3D, at: V3, w: number, h: number, title = 'Logic analyser', vdd = 3.3) {
+  const g = add(parent, new THREE.Group())
+  const k = 0.3
+  const inner = add(g, new THREE.Group(), at)
+  inner.scale.setScalar(k)
+  const cap = captureScreen(inner, [0, 0, 0], [{ label: 'SCL', color: LABEL }, { label: 'SDA', color: LABEL }], { width: w / k, rowH: h / k / 3, decoder: true })
+  addLabel(g, title, [at[0] - w / 2, at[1] + h / 2 + 0.45, 0.3], LABEL, 0.26, 'left')
+  const tag = liveLabel(g, [at[0] + w / 2, at[1] + h / 2 + 0.45, 0.3], { size: 0.22, align: 'right' })
+  const ghost = [0, 1].map((r) => cap.channel(r, { color: GREY, samples: 400, radius: 0.1 }))
+  const live = [0, 1].map((r) => cap.channel(r, { color: B_FIELD, samples: 400, radius: 0.17 }))
+  const rows = [0.55, 1.05].map((dy) => liveLabel(g, [at[0] + w / 2, at[1] - h / 2 - dy, 0.3], { size: 0.22, align: 'right' }))
+  const draw = (tr: typeof live, d: BusTrace | null, a: number, b: number) => {
+    tr.forEach((c, r) => {
+      c.group.visible = !!d
+      if (!d) return
+      const xs = r === 0 ? d.scl : d.sda
+      c.draw((u) => xs[Math.min(xs.length - 1, Math.round(a + u * (b - 1 - a)))] / vdd)
+    })
+  }
+  return {
+    group: g,
+    show(got: BusTrace | null, healthy: BusTrace | null, span: string, range?: [number, number]) {
+      const n = Math.max(got?.scl.length ?? 0, healthy?.scl.length ?? 0, 2)
+      const [a, b] = range ?? [0, n]
+      draw(live, got, a, b)
+      draw(ghost, healthy, a, b)
+      const u = (i: number) => (i - a) / (b - 1 - a)
+      const segs = (got?.events ?? [])
+        .filter((e) => e.from >= a && e.to < b)
+        .map((e) => {
+          const [text, color] = I2C_TEXT[e.kind](e)
+          const point = e.from === e.to
+          return { u0: point ? u(e.from) - 0.012 : u(e.from) - 0.01, u1: point ? u(e.from) + 0.012 : u(e.to) + 0.01, text, color }
+        })
+      cap.annotate(segs)
+      tag.set(span, GREY)
+    },
+    stats: (text: string, color = LABEL) => rows[0].set(text, color),
+    log: (text: string, color = GREY) => rows[1].set(text, color),
+  }
+}
+
+// --- I²C bench: ESP32 + a 4.7 kΩ pull-up pair, an MPU-6050 breakout on a lead, an optional OLED on the same bus ---
+
+export type BusTp = 'gpio21' | 'gpio22' | 'v33' | 'gnd' | 'usb' | 'sVcc' | 'sGnd' | 'sScl' | 'sSda' | 'sAd0'
+export type BusPart = 'esp' | 'sensor' | 'oled' | 'pulls' | 'pullSda' | 'pullScl' | 'ad0' | 'vcc' | 'wires' | 'cable'
+
+const IB = { esp: [1.4, -1.6, 0] as V3, espK: 0.3, lane: { gnd: 1.3, scl: 1.9, v33: 2.5, sda: 3.1 }, imu: [-9.5, -0.8, 0] as V3, oled: [-15, -0.8, 0] as V3, cable: [-7, -4.2] }
+const BUS_TINT = { gnd: PROBE_BLACK, scl: '#e8c547', v33: '#d8322c', sda: '#3a7bd5' }
+type Lane = keyof typeof IB.lane
+
+/** Face-on I²C bench: the ESP32 DevKit (USB to the serial monitor) with GND, SCL (22), 3V3, SDA (21) run as four lanes to
+ *  the left, a 4.7 kΩ pull-up from 3V3 to each of SCL / SDA (`pulls(sda, scl)` shows them), a lead section (`cable(long)`:
+ *  a 4 m coil), the GY-521 MPU-6050 (VCC GND SCL SDA AD0; `swap(on)` crosses SCL / SDA at it, `power(on)` its VCC
+ *  jumper + LED, `ad0(high)` a jumper AD0 → 3V3), with `oled` an SSD1306 further left. `tp` / `spots` / `glow` as every
+ *  hunt bench. */
+export function busBench(parent: THREE.Object3D, o: { oled?: boolean } = {}) {
+  const g = add(parent, new THREE.Group())
+  const r = 0.07
+  const L = IB.lane
+  const [ex, ey] = [IB.esp[0], IB.esp[1]]
+  const pin = esp32Board(g, IB.esp, IB.espK)
+  addLabel(g, 'ESP32', [ex + 2.2, ey + 2, 0.2], GREY, 0.24)
+  const usbEnd: V3 = [ex + 10 * IB.espK, ey, 0.3]
+  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -3.2, 0.3]], '#9aa0aa', 0.12)
+  addLabel(g, 'USB', [usbEnd[0] + 1.35, -2.9, 0.2], GREY, 0.2, 'left')
+  const dot = (p: V3, c: string) => add(g, new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat(c, { rough: 0.5 })), p)
+  // ESP32 header: GND, 22, 3V3, 21 left to right, each rising to its lane (lowest lane leftmost: no crossings).
+  const espPins: Record<Lane, V3> = { gnd: pin(-7, true), scl: pin(-4, true), v33: pin(-1, true), sda: pin(2, true) }
+  const pinText: Record<Lane, string> = { gnd: 'GND', scl: '22', v33: '3V3', sda: '21' }
+  const left = o.oled ? IB.oled[0] - 1.5 : IB.imu[0] - 2.2
+  const [c0, c1] = IB.cable
+  for (const k of Object.keys(L) as Lane[]) {
+    const p = espPins[k]
+    addLabel(g, pinText[k], [p[0] + 0.12, L[k] - 0.22, 0.4], LABEL, 0.15, 'left')
+    cableRun(g, [p, [p[0], L[k], 0.3], [c1, L[k], 0.3]], BUS_TINT[k], r)
+    cableRun(g, [[c0, L[k], 0.3], [left, L[k], 0.3]], BUS_TINT[k], r)
+    addLabel(g, k === 'v33' ? '3V3' : k.toUpperCase(), [left - 0.15, L[k], 0.3], BUS_TINT[k] === PROBE_BLACK ? GREY : BUS_TINT[k], 0.2, 'right')
+  }
+  // Lead section between the ESP32 and the sensor: straight, or a 4 m coil.
+  const looks = { short: add(g, new THREE.Group()), long: add(g, new THREE.Group()), swapOk: add(g, new THREE.Group()), swapX: add(g, new THREE.Group()) }
+  for (const k of Object.keys(L) as Lane[]) {
+    cableRun(looks.short, [[c0, L[k], 0.3], [c1, L[k], 0.3]], BUS_TINT[k], r)
+    const pts: V3[] = [[c0, L[k], 0.3]]
+    for (let i = 0; i < 4; i++) {
+      const x = c0 + 0.3 + i * 0.6
+      pts.push([x, L[k], 0.3], [x + 0.15, L[k] + 0.28, 0.6], [x + 0.3, L[k], 0.3])
+    }
+    pts.push([c1, L[k], 0.3])
+    cableRun(looks.long, pts, BUS_TINT[k], r * 0.8)
+  }
+  addLabel(looks.short, '0.3 m lead', [(c0 + c1) / 2, L.sda + 0.45, 0.3], GREY, 0.2)
+  addLabel(looks.long, '4 m lead', [(c0 + c1) / 2, L.sda + 0.55, 0.3], RING, 0.22)
+  // Pull-ups at the ESP32: 3V3 lane down to SCL, up to SDA.
+  const pullG = { scl: add(g, new THREE.Group()), sda: add(g, new THREE.Group()) }
+  const pullX = { scl: -2.6, sda: -3.6 }
+  for (const k of ['scl', 'sda'] as const) {
+    const x = pullX[k]
+    resistorAlong(pullG[k], 4.7e3, [x, L.v33, 0.5], [x, L[k], 0.5], 0.3)
+    dot([x, L.v33, 0.35], BUS_TINT.v33)
+    addLabel(pullG[k], '4.7 kΩ', [x + 0.15, (L.v33 + L[k]) / 2, 0.7], LABEL, 0.15, 'left')
+  }
+  // The IMU: risers from its header to the lanes.
+  const imu = i2cBreakout(g, IB.imu, { name: 'MPU-6050', color: '#1f4fa0', k: 0.22, pins: ['VCC', 'GND', 'SCL', 'SDA', 'AD0'] })
+  const ip = (n: string) => imu.pin(n)
+  const riser = (parentG: THREE.Object3D, from: V3, lane: Lane, jogTo?: number) => {
+    const x = jogTo ?? from[0]
+    const pts: V3[] = jogTo === undefined ? [from, [x, L[lane], 0.3]] : [from, [from[0], from[1] + 0.35, 0.5], [x, from[1] + 0.35, 0.5], [x, L[lane], 0.3]]
+    cableRun(parentG, pts, BUS_TINT[lane], r)
+    dot([x, L[lane], 0.35], BUS_TINT[lane])
+  }
+  riser(g, ip('GND'), 'gnd')
+  const vccOn = add(g, new THREE.Group())
+  riser(vccOn, ip('VCC'), 'v33')
+  const vccOff = add(g, new THREE.Group())
+  const vp = ip('VCC')
+  cableRun(vccOff, [[vp[0], L.v33, 0.3], [vp[0], L.v33 - 0.7, 0.4], [vp[0] - 0.5, L.v33 - 1.1, 0.8]], BUS_TINT.v33, r)
+  addLabel(vccOff, 'loose', [vp[0] - 0.6, L.v33 - 1.45, 0.8], RING, 0.18, 'right')
+  riser(looks.swapOk, ip('SCL'), 'scl')
+  riser(looks.swapOk, ip('SDA'), 'sda')
+  // Crossed: the SCL pin rises to the SDA lane and the SDA pin to the SCL lane.
+  riser(looks.swapX, ip('SCL'), 'sda', ip('SCL')[0] + 0.3)
+  riser(looks.swapX, ip('SDA'), 'scl', ip('SDA')[0] - 0.3)
+  const ad0G = add(g, new THREE.Group())
+  riser(ad0G, ip('AD0'), 'v33')
+  addLabel(ad0G, 'AD0 → 3V3', [ip('AD0')[0] + 0.2, L.gnd - 0.15, 0.6], RING, 0.17, 'left')
+  if (o.oled) {
+    const ol = i2cBreakout(g, IB.oled, { name: 'SSD1306', color: '#202a3a', k: 0.2, pins: ['GND', 'VCC', 'SCL', 'SDA'] })
+    ol.led(1)
+    for (const [n, lane] of [['GND', 'gnd'], ['VCC', 'v33'], ['SCL', 'scl'], ['SDA', 'sda']] as const) riser(g, ol.pin(n), lane)
+  }
+  const tp: Record<BusTp, V3> = {
+    gpio21: espPins.sda,
+    gpio22: espPins.scl,
+    v33: espPins.v33,
+    gnd: [espPins.gnd[0] - 0.6, L.gnd, 0.3],
+    usb: usbEnd,
+    sVcc: ip('VCC'),
+    sGnd: ip('GND'),
+    sScl: ip('SCL'),
+    sSda: ip('SDA'),
+    sAd0: ip('AD0'),
+  }
+  const spots: Record<BusPart, V3> = {
+    esp: [ex, ey, 0.8],
+    sensor: [IB.imu[0], IB.imu[1] - 0.4, 0.8],
+    oled: [IB.oled[0], IB.oled[1], 0.8],
+    pulls: [(pullX.scl + pullX.sda) / 2, L.v33, 0.7],
+    pullSda: [pullX.sda, (L.v33 + L.sda) / 2, 0.7],
+    pullScl: [pullX.scl, (L.v33 + L.scl) / 2, 0.7],
+    ad0: [ip('AD0')[0], (ip('AD0')[1] + L.v33) / 2, 0.6],
+    vcc: [vp[0], (vp[1] + L.v33) / 2, 0.6],
+    wires: [(ip('SCL')[0] + ip('SDA')[0]) / 2, ip('SDA')[1] + 0.5, 0.6],
+    cable: [(c0 + c1) / 2, (L.gnd + L.sda) / 2, 0.6],
+  }
+  const halos = Object.fromEntries((Object.keys(spots) as BusPart[]).map((k) => [k, glowHalo(g, spots[k], k === 'esp' || k === 'sensor' || k === 'oled' || k === 'cable' ? 0.6 : 0.4)])) as Record<BusPart, ReturnType<typeof glowHalo>>
+  const bench = {
+    group: g,
+    tp,
+    spots,
+    cable(long: boolean) {
+      looks.long.visible = long
+      looks.short.visible = !long
+    },
+    swap(on: boolean) {
+      looks.swapX.visible = on
+      looks.swapOk.visible = !on
+    },
+    power(on: boolean) {
+      vccOn.visible = on
+      vccOff.visible = !on
+      imu.led(on ? 1 : 0)
+    },
+    ad0: (high: boolean) => (ad0G.visible = high),
+    pulls(sda: boolean, scl: boolean) {
+      pullG.sda.visible = sda
+      pullG.scl.visible = scl
+    },
+    glow: (part: BusPart, f: number, c = HEAT) => halos[part].set(f, c),
+    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+  }
+  bench.cable(false)
+  bench.swap(false)
+  bench.power(true)
+  bench.ad0(false)
   return bench
 }

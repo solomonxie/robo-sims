@@ -15,6 +15,8 @@ export const LOGIC_INPUTS = {
   atmega328: { vil: 0.3, vih: 0.6, ratio: true },
   ws2812: { vil: 0.3, vih: 0.7, ratio: true },
   hct: { vil: 0.8, vih: 2, ratio: false },
+  /** I²C spec inputs (an MPU-6050, a logic analyser set to I²C levels). */
+  i2c: { vil: 0.3, vih: 0.7, ratio: true },
 } satisfies Record<string, LogicInput>
 
 /** ESP32 pins are not 5 V tolerant: absolute maximum is VDD + 0.3 V. */
