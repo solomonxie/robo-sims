@@ -8,25 +8,9 @@ import { GPIO_VDD, INTERNAL_PULL_OHMS } from '../mcu/gpio'
 import { I2C_CHIPS, I2C_MODES, SINK_OHMS, chipAddress, i2cRiseTime, i2cScan, lowVolts, openDrainClock } from '../mcu/i2c'
 import { I2cEvent, i2cDecode, i2cRegisterSteps, i2cSteps } from '../signals/buses'
 import { ohmsPerMetre } from '../power/wiring'
-import { FaultHunt, MeterRead } from './hunt'
+import { memoize } from '../common'
+import { MeterRead, OL, huntOf, logRead, ohm, volt } from './hunt'
 
-const volt = (value: number): MeterRead => ({ value, unit: 'V' })
-const ohm = (value: number): MeterRead => ({ value, unit: 'Ω' })
-const OL: MeterRead = { value: Infinity, unit: 'Ω', open: true }
-const line = (label: string): MeterRead => ({ value: 0, unit: 'log', label })
-const memo = <K extends string, V>(f: (k: K) => V) => {
-  const m = new Map<K, V>()
-  return (k: K) => {
-    let hit = m.get(k)
-    if (!hit) m.set(k, (hit = f(k)))
-    return hit
-  }
-}
-const hunt = <F extends string, P extends string>(faults: Record<F, unknown>, probes: Record<P, unknown>, read: (f: F | 'ok', p: P) => MeterRead): FaultHunt<F, P> => ({
-  faults: Object.keys(faults) as F[],
-  probes: Object.keys(probes) as P[],
-  read,
-})
 const hex2 = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, '0')}`
 
 /** The byte Wire puts on the bus for `address`: (address << 1) | R/W in 8 bits, so an 8-bit datasheet address loses its top bit. */
@@ -86,7 +70,7 @@ export function i2cBits(volts: readonly number[], vdd = BUS_BOT.vdd): Bit[] {
 
 /** A bus build: pull-ups per line (Ω), capacitance, clock, and the target. `swap` = SDA/SCL crossed at the sensor;
  *  `held` = the sensor holds SDA low; `sensor` = the address it answers to (null: unpowered). */
-export interface BusSetup {
+interface BusSetup {
   sclOhms: number
   sdaOhms: number
   farads: number
@@ -123,7 +107,7 @@ export function frameText(events: readonly I2cEvent[]) {
 }
 
 /** Whether the sensor ACKs a call to `address`: it decodes the address byte from the lines as it sees them (crossed if `swap`). */
-export function sensorAcks(address: number, b: BusSetup) {
+function sensorAcks(address: number, b: BusSetup) {
   if (b.sensor === null || b.held) return false
   const c = capture(i2cSteps({ addr: address, data: [], ack: false }), b)
   const ev = b.swap ? fromStart(i2cDecode(c.sdaBits, c.sclBits)) : c.events
@@ -167,7 +151,7 @@ export const ADDR_PROBES: Record<AddrProbe, { name: string }> = {
 }
 
 /** The short bus at 100 kHz (Wire's default) with an OLED beside the IMU, with `fault`. */
-export function addrSetup(fault: AddrFault | 'ok'): BusSetup {
+function addrSetup(fault: AddrFault | 'ok'): BusSetup {
   const b = BUS_BOT
   return {
     sclOhms: b.pullOhms,
@@ -180,7 +164,7 @@ export function addrSetup(fault: AddrFault | 'ok'): BusSetup {
 }
 
 /** Wrong address with `fault`: the firmware's frame, the scanner's list and the readings. */
-export const wrongAddress = memo((fault: AddrFault | 'ok') => {
+export const wrongAddress = memoize((fault: AddrFault | 'ok') => {
   const b = BUS_BOT
   const s = addrSetup(fault)
   const frame = busFrame(fault === 'eight' ? b.datasheet8bit : b.imu, s)
@@ -189,8 +173,8 @@ export const wrongAddress = memo((fault: AddrFault | 'ok') => {
   const present = [b.oled, ...(imuAt !== null && sensorAcks(imuAt, s) ? [imuAt] : [])]
   const scan = i2cScan(present).found
   const reads: Record<AddrProbe, MeterRead> = {
-    scan: line(scan.length ? scan.map(hex2).join(' ') : 'none'),
-    frame: line(frame.text),
+    scan: logRead(scan.length ? scan.map(hex2).join(' ') : 'none'),
+    frame: logRead(frame.text),
     ad0: volt(fault === 'ad0' ? b.vdd : 0),
     vcc: volt(fault === 'vcc' ? 0 : b.vdd),
     // Power off, crossed: GPIO 21 reaches the IMU's SDA pin only through both pull-ups via 3V3.
@@ -199,7 +183,7 @@ export const wrongAddress = memo((fault: AddrFault | 'ok') => {
   return { setup: s, frame, scan, reads }
 })
 
-export const ADDR_HUNT = hunt(ADDR_FAULTS, ADDR_PROBES, (f, p) => wrongAddress(f).reads[p])
+export const ADDR_HUNT = huntOf(ADDR_FAULTS, ADDR_PROBES, (f, p) => wrongAddress(f).reads[p])
 
 // --- Missing pull-ups: the bus dies at 400 kHz ---
 
@@ -234,7 +218,7 @@ export function pullSetup(fault: PullFault | 'ok', hz: number): BusSetup {
 }
 
 /** Missing pull-ups with `fault`: frames at 400 and 100 kHz, the scope's SCL rise (at 100 kHz, where it completes) and the readings. */
-export const missingPullups = memo((fault: PullFault | 'ok') => {
+export const missingPullups = memoize((fault: PullFault | 'ok') => {
   const b = BUS_BOT
   const fastSetup = pullSetup(fault, I2C_MODES.fast.hz)
   const slowSetup = pullSetup(fault, I2C_MODES.standard.hz)
@@ -248,10 +232,10 @@ export const missingPullups = memo((fault: PullFault | 'ok') => {
     rSda: rOff(fastSetup.sdaOhms),
     rScl: rOff(fastSetup.sclOhms),
     rise: nsRead(rise),
-    fast: line(fast.text),
-    slow: line(slow.text),
+    fast: logRead(fast.text),
+    slow: logRead(slow.text),
   }
   return { fastSetup, slowSetup, fast, slow, rise, reads }
 })
 
-export const PULL_HUNT = hunt(PULL_FAULTS, PULL_PROBES, (f, p) => missingPullups(f).reads[p])
+export const PULL_HUNT = huntOf(PULL_FAULTS, PULL_PROBES, (f, p) => missingPullups(f).reads[p])

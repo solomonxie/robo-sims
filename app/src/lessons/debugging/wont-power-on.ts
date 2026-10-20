@@ -6,7 +6,6 @@ import {
   DEAD_PROBES,
   DeadFault,
   DeadProbe,
-  FaultHunt,
   LM2596,
   REVERSE_FAULTS,
   REVERSE_HUNT,
@@ -27,12 +26,11 @@ import {
   shortCircuitAmps,
   shortedLdoRun,
 } from '../../core/physics'
-import { fixedText, si, volts } from '../../core/units'
-import { FACE_VIEW, HUNT_HOWTO, HUNT_LEGEND, SupplyPart, SupplyTp, huntKit, huntRig, huntStage, readingText, supplyBench } from '../fx'
+import { celsiusText, fixedText, si, volts } from '../../core/units'
+import { HUNT_HOWTO, HUNT_LEGEND, ProbeCase, SupplyPart, SupplyTp, huntKit, huntRig, huntStage, readingText, supplyBench } from '../fx'
 import { Lesson, Stage } from '../types'
 
 const W = (w: number) => si(w, 'W', 3)
-const C = (c: number) => `${Math.round(c)} °C`
 
 interface Tip {
   red: SupplyTp | SupplyPart
@@ -41,18 +39,11 @@ interface Tip {
   on: boolean
 }
 
-interface HuntSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
+interface HuntSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip, SupplyPart> {
   guard: 'fuse' | 'diode'
   driver?: boolean
-  tips: Record<P, Tip>
   /** Probe whose reading says whether the ESP32's power LED is lit. */
   led: P
-  parts: Record<F, SupplyPart>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
   /** Extra visuals once the fault is found (cells turned round, a melted fuse…). */
   reveal?: (bench: ReturnType<typeof supplyBench>, truth: F, found: boolean) => void
 }
@@ -61,9 +52,9 @@ const HOT: Record<string, SupplyPart> = { 'pack lead': 'lead', LM2596: 'buck', A
 
 /** Shared stage: supply bench, meter on the chosen test points, suspect table, hunt header. */
 function huntBuild<F extends string, P extends string>(s: HuntSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
-  const bench = supplyBench(scene, { guard: s.guard, driver: s.driver })
-  const rig = huntRig(scene, header, {
+  const stage = huntStage()
+  const bench = supplyBench(stage.scene, { guard: s.guard, driver: s.driver })
+  return huntRig(stage, {
     ...s,
     bench,
     hot: HOT,
@@ -76,7 +67,6 @@ function huntBuild<F extends string, P extends string>(s: HuntSpec<F, P>, colW: 
       s.reveal?.(bench, q.truth, found)
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
 // --- Dead battery ---
@@ -194,10 +184,10 @@ const sh = (f: ShortFault) => shortCircuit(f)
 const LDO = shortedLdoRun(SUPPLY_BOT.rail)
 const LI_SHORT_A = shortCircuitAmps(CHEMISTRIES.liion, SUPPLY_BOT.soc)
 const SHORT_FIX: Record<ShortFault, string> = {
-  lead: `Pinched pack lead, before the fuse: ${si(sh('lead').amps, 'A', 2)} heats it to ${C(sh('lead').reads.heat.value)}. Re-route, sleeve, fuse at the pack`,
+  lead: `Pinched pack lead, before the fuse: ${si(sh('lead').amps, 'A', 2)} heats it to ${celsiusText(sh('lead').reads.heat.value)}. Re-route, sleeve, fuse at the pack`,
   blown: `Motor rail short blew the T1A in ${si(sh('blown').meltS, 's', 2)}: OL across it. Clear the short first, then a new fuse`,
-  rail5: `Solder bridge on 5 V: the LM2596 sits at its current limit (${si(sh('rail5').amps, 'A', 2)}) at ${C(sh('rail5').reads.heat.value)}. Remove the bridge`,
-  rail33: `Shorted 3.3 V cap: the AMS1117 trips at ${C(AMS1117_33.tOff)}, restarts at ${C(AMS1117_33.tOn)}, every ${si(LDO.period, 's', 2)}. Replace the cap`,
+  rail5: `Solder bridge on 5 V: the LM2596 sits at its current limit (${si(sh('rail5').amps, 'A', 2)}) at ${celsiusText(sh('rail5').reads.heat.value)}. Remove the bridge`,
+  rail33: `Shorted 3.3 V cap: the AMS1117 trips at ${celsiusText(AMS1117_33.tOff)}, restarts at ${celsiusText(AMS1117_33.tOn)}, every ${si(LDO.period, 's', 2)}. Replace the cap`,
 }
 
 export const wontPowerOnShortCircuit: Lesson = {
@@ -214,9 +204,9 @@ export const wontPowerOnShortCircuit: Lesson = {
   points: [
     HUNT_HOWTO,
     `A short draws whatever the source can give: I = OCV / (R_cells + R_wire + R_short). Six alkaline AAs (0.15 Ω each) limit it to ~${si(sh('lead').amps, 'A', 2)}; a Li-ion 18650 would push ~${si(LI_SHORT_A, 'A', 2)} (Power › Battery chemistry › Internal resistance).`,
-    `A fuse guards only what’s after it. A short in the pack lead, before the fuse, just heats the wire: ${C(sh('lead').reads.heat.value)} on 22 AWG, past PVC’s 80 °C (Power › Wiring & gauge › Voltage drop). Fuse at the pack.`,
+    `A fuse guards only what’s after it. A short in the pack lead, before the fuse, just heats the wire: ${celsiusText(sh('lead').reads.heat.value)} on 22 AWG, past PVC’s 80 °C (Power › Wiring & gauge › Voltage drop). Fuse at the pack.`,
     `After the fuse, the T1A melts in ${si(sh('blown').meltS, 's', 2)} at ${si(sh('blown').amps, 'A', 2)} and reads OL, power off (Components › Fuses & protection › Fuse ratings). It blew for a reason: find the short before fitting a new one. A polyfuse would reset once it cools.`,
-    `Regulators protect themselves: the LM2596 holds its switch current limit and runs hot; the AMS1117 into a short burns ${W(SUPPLY_BOT.rail * AMS1117_33.maxAmps)}, trips at ${C(AMS1117_33.tOff)}, restarts at ${C(AMS1117_33.tOn)} (Components › Voltage regulators › Dropout and heat). A thermal camera or a fingertip finds them fast.`,
+    `Regulators protect themselves: the LM2596 holds its switch current limit and runs hot; the AMS1117 into a short burns ${W(SUPPLY_BOT.rail * AMS1117_33.maxAmps)}, trips at ${celsiusText(AMS1117_33.tOff)}, restarts at ${celsiusText(AMS1117_33.tOn)} (Components › Voltage regulators › Dropout and heat). A thermal camera or a fingertip finds them fast.`,
   ],
   controls: shortKit.controls,
   build: () =>

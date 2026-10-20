@@ -1,7 +1,7 @@
 // Motor does nothing: the robo-car's drive chain (2S 18650 pack → TB6612FNG or DRV8833 → TT gear motor, ESP32 on USB
 // driving the logic pins) and the faults that leave the wheel still: an enable pin low, no common ground, a jammed gearbox.
 import { solveNodal } from '../../nodal'
-import { once } from '../common'
+import { memoize, once } from '../common'
 import { ROOM_C } from '../dc'
 import { DRIVERS, DriverChip, driverLoss } from '../actuators/hbridge'
 import { GEARBOXES, TT_MOTOR, TT_THERMAL, stallRun, wheelDrive } from '../actuators/dcmotor'
@@ -9,7 +9,7 @@ import { pinBridge } from '../challenges/motordrivers'
 import { GPIO_VDD } from '../mcu/gpio'
 import { LogicInput, readInput } from '../levels'
 import { carPower, drvMode } from '../projects/robocar'
-import { FaultHunt, MeterRead } from './hunt'
+import { MeterRead, OL, amp, huntOf, ohm, volt } from './hunt'
 
 /** The bench: robo-car 2S pack, PWM at 80 % (204 of 255, 8-bit LEDC), the ESP32 on a laptop's USB (its ground isolated
  *  from the pack by ~50 MΩ), a 10 MΩ meter, a Dupont ground jumper, the thermal camera after 30 s of trying. */
@@ -25,7 +25,7 @@ export const drivePack = once(() => {
   return { ocv: p.ocv, ohms: p.ohms }
 })
 
-export type MotorLoad = 'run' | 'stall' | 'open'
+type MotorLoad = 'run' | 'stall' | 'open'
 
 /** One TT motor behind `chip` at PWM `duty` (slow decay: both low sides on in the off-time, so the motor current is
  *  continuous and the pack sees duty × I). `run` = on the floor (stalls by itself if the volts can't start it), `stall` =
@@ -71,23 +71,6 @@ export function floatingInput(high: number, pullOhms: number, isolationOhms = DR
   return v[1]
 }
 
-const volt = (value: number): MeterRead => ({ value, unit: 'V' })
-const amp = (value: number): MeterRead => ({ value, unit: 'A' })
-const ohm = (value: number): MeterRead => ({ value, unit: 'Ω' })
-const OL: MeterRead = { value: Infinity, unit: 'Ω', open: true }
-const hunt = <F extends string, P extends string>(faults: Record<F, unknown>, probes: Record<P, unknown>, read: (f: F | 'ok', p: P) => MeterRead): FaultHunt<F, P> => ({
-  faults: Object.keys(faults) as F[],
-  probes: Object.keys(probes) as P[],
-  read,
-})
-const memo = <K extends string, V>(f: (k: K) => V) => {
-  const m = new Map<K, V>()
-  return (k: K) => {
-    let hit = m.get(k)
-    if (!hit) m.set(k, (hit = f(k)))
-    return hit
-  }
-}
 
 // --- Missing enable pin: TB6612FNG, AIN1 high, AIN2 low, PWMA at 80 %, STBY from a GPIO ---
 
@@ -108,7 +91,7 @@ export const ENABLE_PROBES: Record<EnableProbe, { name: string }> = {
 }
 
 /** Pins as the TB6612 sees them, the bridge mode with PWMA high and low, and the motor's averages. */
-export const missingEnable = memo((fault: EnableFault | 'ok') => {
+export const missingEnable = memoize((fault: EnableFault | 'ok') => {
   const d = DRIVE_BOT.duty
   const pins = { ain1: true, ain2: fault === 'same', pwm: fault !== 'pwm', stby: fault !== 'stby' }
   const hi = pinBridge('tb6612', [pins.ain1, pins.ain2, pins.pwm, pins.stby])
@@ -128,7 +111,7 @@ export const missingEnable = memo((fault: EnableFault | 'ok') => {
   return { pins, modes: [hi.mode, lo.mode] as const, off: hi.off, fwd, run, reads }
 })
 
-export const ENABLE_HUNT = hunt(ENABLE_FAULTS, ENABLE_PROBES, (f, p) => missingEnable(f).reads[p])
+export const ENABLE_HUNT = huntOf(ENABLE_FAULTS, ENABLE_PROBES, (f, p) => missingEnable(f).reads[p])
 
 // --- Common ground missing: DRV8833, IN1 high, IN2 low, ESP32 on USB, driver and motor on the pack ---
 
@@ -152,7 +135,7 @@ export const GROUND_PROBES: Record<GroundProbe, { name: string }> = {
 /** IN1 at both ends of its jumper, as the DRV8833 reads it, and the motor. GPIO 34 is input-only: it can't drive, so the
  *  driver's pull-down holds the wire low. A broken jumper leaves the driver end on its pull-down. No common ground: the
  *  ESP32's 3.3 V is over its own ground, which floats ~50 MΩ from the driver's. */
-export const commonGround = memo((fault: GroundFault | 'ok') => {
+export const commonGround = memoize((fault: GroundFault | 'ok') => {
   const pull = DRIVER_PULL_OHMS.drv8833
   const gpio = fault === 'gpio34' ? 0 : GPIO_VDD
   const inEsp = fault === 'jumper' ? 0 : gpio
@@ -171,7 +154,7 @@ export const commonGround = memo((fault: GroundFault | 'ok') => {
   return { inDrv, seen, mode, run, reads }
 })
 
-export const GROUND_HUNT = hunt(GROUND_FAULTS, GROUND_PROBES, (f, p) => commonGround(f).reads[p])
+export const GROUND_HUNT = huntOf(GROUND_FAULTS, GROUND_PROBES, (f, p) => commonGround(f).reads[p])
 
 // --- Stalled gearbox: TB6612FNG at 80 %, the wheel won't turn ---
 
@@ -194,7 +177,7 @@ export const STALL_PROBES: Record<StallProbe, { name: string }> = {
 }
 
 /** Motor averages and temperatures with `fault` in the build; a dead channel never switches its outputs on. */
-export const stalledGearbox = memo((fault: StallFault | 'ok') => {
+export const stalledGearbox = memoize((fault: StallFault | 'ok') => {
   const run = fault === 'dead' ? drivePoint('tb6612', 0, 'open') : drivePoint('tb6612', fault === 'duty' ? LOW_DUTY : DRIVE_BOT.duty, fault === 'jammed' ? 'stall' : fault === 'open' ? 'open' : 'run')
   const reads: Record<StallProbe, MeterRead> = {
     term: volt(run.term),
@@ -205,4 +188,4 @@ export const stalledGearbox = memo((fault: StallFault | 'ok') => {
   return { run, overA: run.amps > DRIVERS.tb6612.maxA, reads }
 })
 
-export const STALL_HUNT = hunt(STALL_FAULTS, STALL_PROBES, (f, p) => stalledGearbox(f).reads[p])
+export const STALL_HUNT = huntOf(STALL_FAULTS, STALL_PROBES, (f, p) => stalledGearbox(f).reads[p])

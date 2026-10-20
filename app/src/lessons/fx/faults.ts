@@ -2,7 +2,7 @@
 // table, and the robo-car supply bench (6 × AA holder → plug → switch → fuse or guard diode → LM2596 → ESP32).
 import * as THREE from 'three/webgpu'
 import { FaultHunt, I2cEvent, MeterRead, Pose, PuzzleVerdict, caseFaults, decisiveProbe, huntVerdict, sameReading, stillSuspect } from '../../core/physics'
-import { fixedText } from '../../core/units'
+import { degWhole, fixedText, rpmText } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import { diodeAlong, glowHalo, motorCan, resistorAlong } from './circuit'
@@ -17,12 +17,12 @@ import { DialUnit, MeterJack, probe } from './displays'
 import { addRod, cableRun, stretchRod, wire } from './layout'
 import { glassFuse } from './parts'
 import { benchMeter, puzzleHeader } from './puzzles'
-import { boxScope } from './rigs'
+import { FACE_VIEW, boxScope } from './rigs'
 import { I2C_TEXT, captureScreen } from './screens'
 import { flatBox } from './shapes'
 import { addLabel, liveLabel } from './text'
-import { emptyGroup } from './util'
-import { Control, Params, Readout, huntReadout, namesOf, opts, pick } from '../types'
+import { emptyGroup, sampleFrac } from './util'
+import { Control, Params, Readout, Stage, huntReadout, namesOf, opts, pick } from '../types'
 
 /** Span-40 stage with the fault-hunt header: `set(symptom, verdict, why, hint, badge?)`, badge PROBE / FOUND / WRONG. */
 export function huntStage() {
@@ -37,8 +37,8 @@ export function huntStage() {
   }
 }
 
-export const PROBE_RED = '#d23b3b'
-export const PROBE_BLACK = '#202226'
+const PROBE_RED = '#d23b3b'
+const PROBE_BLACK = '#202226'
 
 /** Legend: found / probing / ruled out, plus the probe colours. */
 export const HUNT_LEGEND = [
@@ -55,10 +55,10 @@ export const HUNT_HOWTO =
 const shown = (v: number) => (Math.abs(v) < 0.005 ? 0 : v)
 
 /** Read off the multimeter (V, A, Ω, °C), not a scope (`mV`, `ns`) or the serial monitor (`log`, `cnt`). */
-export const onMeter = (r: MeterRead) => r.unit === 'V' || r.unit === 'A' || r.unit === 'Ω' || r.unit === '°C'
+const onMeter = (r: MeterRead) => r.unit === 'V' || r.unit === 'A' || r.unit === 'Ω' || r.unit === '°C'
 
 /** Four-digit meter text for a reading (`flip` shows the flicker value); OL for open, dashes for a firmware log line. */
-export function meterText(r: MeterRead, flip = false) {
+function meterText(r: MeterRead, flip = false) {
   if (!onMeter(r)) return '----'
   if (r.open) return '0L'
   const raw = shown(flip && r.alt !== undefined ? r.alt : r.value)
@@ -73,8 +73,9 @@ export function meterText(r: MeterRead, flip = false) {
  *  line, "62.2 mV p-p", "48 presses", "211 ns" / "2.02 µs" (`open`: never 70 %), "312 mm", "178 rpm", "334°". */
 export function readingText(r: MeterRead): string {
   if (r.unit === 'log') return r.label ?? ''
-  if (r.unit === 'mm' || r.unit === 'rpm') return `${Math.round(shown(r.value))} ${r.unit}`
-  if (r.unit === '°') return `${Math.round(r.value)}°`
+  if (r.unit === 'mm') return `${Math.round(r.value)} mm`
+  if (r.unit === 'rpm') return rpmText(r.value)
+  if (r.unit === '°') return degWhole(r.value)
   if (r.unit === 'ns') return r.open ? 'never 70 %' : r.value >= 999.5 ? `${fixedText(r.value / 1000, 2)} µs` : `${Math.round(r.value)} ns`
   if (r.unit === 'cnt') return `${Math.round(r.value)} ${r.label ?? 'cnt'}`.trim()
   if (r.unit === 'mV') return `${fixedText(shown(r.value), r.value >= 99.5 ? 0 : 1)} mV p-p`
@@ -86,8 +87,7 @@ export function readingText(r: MeterRead): string {
     if (r.unit === 'Ω' && Math.abs(x) >= 1000) return Math.abs(x) >= 1e6 ? `${fixedText(x / 1e6, 2)} M` : `${fixedText(x / 1000, 1)} k`
     return r.unit === '°C' ? `${Math.round(x)} ` : `${fixedText(x, r.unit === 'Ω' ? 1 : 2)} `
   }
-  const unit = r.unit === 'A' ? 'A' : r.unit
-  const v = r.alt !== undefined ? `${one(r.value).trim()}↔${one(r.alt)}${unit}` : `${one(r.value)}${unit}`
+  const v = r.alt !== undefined ? `${one(r.value).trim()}↔${one(r.alt)}${r.unit}` : `${one(r.value)}${r.unit}`
   return r.label ? `${v} ${r.label}` : v
 }
 
@@ -137,7 +137,7 @@ interface TableOpts {
 
 /** Suspect table at `at` (top-left): a header row of probe names, then named rows. `cell(i, j, text, colour)`,
  *  `name(i, text, colour)`, `markCol(j | null)` lights a column, `markRow(i, colour | null)` a row. */
-export function suspectTable(parent: THREE.Object3D, at: V3, o: TableOpts) {
+function suspectTable(parent: THREE.Object3D, at: V3, o: TableOpts) {
   const g = add(parent, new THREE.Group(), at)
   const nameW = o.nameW ?? 4.8
   const colW = o.colW ?? 3.3
@@ -178,6 +178,50 @@ export function suspectTable(parent: THREE.Object3D, at: V3, o: TableOpts) {
   }
 }
 
+// --- Bench parts every hunt bench shares ---
+
+type Halo = ReturnType<typeof glowHalo>
+
+/** A halo per glow spot (`radius(name)`): `glow(part, f, colour)`, `clearGlow()`. */
+function benchHalos<S extends string>(parent: THREE.Object3D, spots: Record<S, V3>, radius: (k: S) => number) {
+  const halos = Object.fromEntries((Object.keys(spots) as S[]).map((k) => [k, glowHalo(parent, spots[k], radius(k))])) as Record<S, Halo>
+  return {
+    glow: (part: S, f: number, color = HEAT) => halos[part]?.set(f, color),
+    clearGlow: () => Object.values<Halo>(halos).forEach((h) => h.set(0, HEAT)),
+  }
+}
+
+/** An AA cell standing in a holder, + end up (`up` = 1) or down (−1). */
+function aaCell(parent: THREE.Object3D, at: V3, up: number) {
+  const c = add(parent, new THREE.Group(), at)
+  cylinder(c, 0.23, 2.5, mat('#26272c', { rough: 0.4 }), [0, -0.35 * up, 0], 'y', 20)
+  cylinder(c, 0.235, 0.8, mat('#c9772b', { metal: 0.3, rough: 0.35 }), [0, 0.85 * up, 0], 'y', 20)
+  return c
+}
+
+/** The DevKit's USB lead at `end`: out `dx`, down to `y`, `text` beside it (`label` = offset from the lead's foot). */
+function usbLead(g: THREE.Object3D, end: V3, y: number, text: string, o: { dx?: number; label?: [number, number]; align?: 'left' | 'center' } = {}) {
+  const dx = o.dx ?? 1.2
+  const [lx, ly] = o.label ?? [1.5, 0.4]
+  cableRun(g, [end, [end[0] + dx, end[1], 0.3], [end[0] + dx, y, 0.3]], '#9aa0aa', 0.12)
+  addLabel(g, text, [end[0] + lx, y + ly, 0.2], GREY, 0.2, o.align ?? 'left')
+}
+
+/** A DRV8833 at `drv` with four TT motors in a row (from `x0`, `pitch` apart, at `y`, can radius `r`), leads at `leadY`
+ *  down; `4 × TT` at `labelX`. Returns `spin(dt, f)`. */
+function motorRow(g: THREE.Object3D, drv: V3, o: { x0: number; pitch: number; y: number; r: number; leadY: number; labelX: number }) {
+  box(g, [2.4, 1.1, 0.3], mat('#5a2a82', { rough: 0.55 }), drv)
+  addLabel(g, 'DRV8833', [drv[0], drv[1], 0.25], LABEL, 0.22)
+  const cans = [0, 1, 2, 3].map((k) => {
+    const m = motorCan(g, [o.x0 + k * o.pitch, o.y, 0], { r: o.r, legs: 0.3 })
+    const ly = o.leadY - k * 0.08
+    cableRun(g, [[drv[0] + 1.2, ly, 0.1], [m.pins[0][0], ly, 0.1], m.pins[0]], '#e0e0e0', 0.05)
+    return m
+  })
+  addLabel(g, '4 × TT', [o.labelX, o.y, 0.2], GREY, 0.22, 'left')
+  return (dt: number, f: number) => cans.forEach((m) => m.spin(dt, 400 * f))
+}
+
 // --- The robo-car supply bench ---
 
 export type SupplyTp = 'pack' | 'gndPack' | 'swIn' | 'swOut' | 'guardIn' | 'guardOut' | 'buckIn' | 'rail5' | 'rail33' | 'gnd'
@@ -206,10 +250,8 @@ export function supplyBench(parent: THREE.Object3D, o: { guard: 'fuse' | 'diode'
   box(g, [3.3, 3.8, 0.6], mat('#1a1b1f', { rough: 0.7 }), [HOLDER[0], HOLDER[1], -0.3])
   const cells = add(g, new THREE.Group())
   const cellAt = (i: number, flip: boolean) => {
-    const c = add(cells, new THREE.Group(), [HOLDER[0] - 1.25 + i * 0.5, HOLDER[1], 0.25])
     const up = (i % 2 === 0) !== flip ? 1 : -1
-    cylinder(c, 0.23, 2.5, mat('#26272c', { rough: 0.4 }), [0, -0.35 * up, 0], 'y', 20)
-    cylinder(c, 0.235, 0.8, mat('#c9772b', { metal: 0.3, rough: 0.35 }), [0, 0.85 * up, 0], 'y', 20)
+    const c = aaCell(cells, [HOLDER[0] - 1.25 + i * 0.5, HOLDER[1], 0.25], up)
     cylinder(c, 0.08, 0.12, mat('#c4c8cf', { metal: 0.5 }), [0, 1.3 * up, 0], 'y', 12)
   }
   let flipped = -1
@@ -297,11 +339,12 @@ export function supplyBench(parent: THREE.Object3D, o: { guard: 'fuse' | 'diode'
     ldo: [ex - 0.9, ey + 0.75, 0.6],
     esp: [ex, ey, 0.6],
   }
-  const halos = Object.fromEntries((Object.keys(spots) as SupplyPart[]).map((k) => [k, glowHalo(g, spots[k], k === 'holder' || k === 'esp' ? 0.6 : 0.45)])) as Record<SupplyPart, ReturnType<typeof glowHalo>>
+  const halos = benchHalos(g, spots, (k) => (k === 'holder' || k === 'esp' ? 0.6 : 0.45))
   return {
     group: g,
     tp,
     spots,
+    ...halos,
     get fuse() {
       return fuse
     },
@@ -314,8 +357,6 @@ export function supplyBench(parent: THREE.Object3D, o: { guard: 'fuse' | 'diode'
       setGlow(ledMat, '#ff3030', 1.4 * f)
       ledHalo.set(0.8 * f, '#ff3030')
     },
-    glow: (part: SupplyPart, f: number, color = HEAT) => halos[part].set(f, color),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
   }
 }
 
@@ -349,16 +390,16 @@ export function huntKit<F extends string, P extends string>(h: FaultHunt<F, P>, 
       { kind: 'choice', key: 'guess', options: opts(GUESS), initial: 'none' },
     ] as Control[],
     verdict: (q: Q) => huntVerdict(q.truth, q.guess),
-    /** Probes visited in this case (resets when the case changes). */
+    /** Probes visited in this case (resets when the case changes); `fair` = false leaves this one out. */
     track() {
       let c = ''
       const seen: P[] = []
-      return (q: Q) => {
+      return (q: Q, fair = true) => {
         if (q.c !== c) {
           c = q.c
           seen.length = 0
         }
-        if (!seen.includes(q.probe)) seen.push(q.probe)
+        if (fair && !seen.includes(q.probe)) seen.push(q.probe)
         return [...seen]
       }
     },
@@ -421,42 +462,65 @@ export interface HuntBench<T extends string, S extends string> {
   clearGlow: () => void
 }
 
-type Kit<F extends string, P extends string> = ReturnType<typeof huntKit<F, P>>
-type HuntQ<F extends string, P extends string> = ReturnType<Kit<F, P>['params']>
+export type HuntKit<F extends string, P extends string> = ReturnType<typeof huntKit<F, P>>
+export type HuntQ<F extends string, P extends string> = ReturnType<HuntKit<F, P>['params']>
+/** Where a rig puts the suspect table: column widths, top-left corner. */
+export interface RigTable {
+  colW: number
+  nameW?: number
+  at?: V3
+}
 
-export interface HuntRigSpec<F extends string, P extends string, T extends string, S extends string, Tip extends { red: T | S; black: T }> {
+export const rigTable = <F extends string, P extends string>(scene: THREE.Object3D, kit: HuntKit<F, P>, t: RigTable) =>
+  kit.table(scene, t.at ?? [-17, -3.9, 0], { colW: t.colW, nameW: t.nameW ?? 5.4 })
+
+/** Marks the picked suspect's part: green when it's the fault, red when not. True when found. */
+export function glowGuess<F extends string, S extends string>(bench: HuntBench<string, S>, parts: Record<F, S>, q: { truth: F; guess: F | null }) {
+  const found = q.guess === q.truth
+  if (q.guess) bench.glow(parts[q.guess], 0.8, found ? POWER : HIGH_V)
+  return found
+}
+
+/** What every hunt lesson states: the hunt, its kit, a part to mark per suspect when it's picked, symptom, hint, fixes. */
+export interface HuntCase<F extends string, P extends string, S extends string = string> {
   hunt: FaultHunt<F, P>
-  kit: Kit<F, P>
-  bench: HuntBench<T, S>
-  /** Where the probes sit per test point (red on a part = on its glow spot). */
-  tips: Record<P, Tip>
-  /** Part to mark per suspect when it's picked. */
+  kit: HuntKit<F, P>
   parts: Record<F, S>
-  /** Thermal-camera reading label → part it glows. */
-  hot?: Record<string, S>
   symptom: string
   hint: string
   fixes: Record<F, string>
-  table: { colW: number; nameW?: number; at?: V3 }
+}
+
+/** A hunt case with where the probes sit per test point (red on a part = on its glow spot). */
+export interface ProbeCase<F extends string, P extends string, Tip, S extends string = string> extends HuntCase<F, P, S> {
+  tips: Record<P, Tip>
+}
+
+interface HuntRigSpec<F extends string, P extends string, T extends string, S extends string, Tip extends { red: T | S; black: T }> extends ProbeCase<F, P, Tip, S> {
+  bench: HuntBench<T, S>
+  /** Thermal-camera reading label → part it glows. */
+  hot?: Record<string, S>
+  table: RigTable
   meterAt?: V3
   /** Extras each frame (switch, LEDs, spinning parts, reveals once found). */
   extra?: (s: { q: HuntQ<F, P>; read: MeterRead; tip: Tip; t: number; dt: number; found: boolean }) => void
 }
 
-/** Shared frame for a fault hunt: probe meter aimed at the chosen test point, heat and diagnosis glows, header, table. */
+/** A fault hunt's stage: probe meter aimed at the chosen test point, heat and diagnosis glows, header, table. */
 export function huntRig<F extends string, P extends string, T extends string, S extends string, Tip extends { red: T | S; black: T }>(
-  scene: THREE.Object3D,
-  header: ReturnType<typeof huntStage>['header'],
+  { scene, header }: ReturnType<typeof huntStage>,
   s: HuntRigSpec<F, P, T, S, Tip>,
-) {
+): Stage {
   const { bench, kit } = s
   const meter = probeMeter(scene, s.meterAt ?? [9.8, 0.4, 0])
-  const table = kit.table(scene, s.table.at ?? [-17, -3.9, 0], { colW: s.table.colW, nameW: s.table.nameW ?? 5.4 })
+  const table = rigTable(scene, kit, s.table)
   const track = kit.track()
   const st = { t: 0, seen: [] as P[] }
   const hotPart = (read: MeterRead) => (read.unit === '°C' && read.label ? s.hot?.[read.label] : undefined)
   const spot = (k: T | S, read: MeterRead): V3 => (k in bench.tp ? bench.tp[k as T] : bench.spots[hotPart(read) ?? (k as S)])
   return {
+    scene,
+    view: FACE_VIEW,
     frame(dt: number, p: Params) {
       st.t += dt
       const q = kit.params(p)
@@ -469,8 +533,7 @@ export function huntRig<F extends string, P extends string, T extends string, S 
       bench.clearGlow()
       const hp = hotPart(read)
       if (hp) bench.glow(hp, Math.min(1.6, (read.value - 25) / 90), HEAT)
-      const found = q.guess === q.truth
-      if (q.guess) bench.glow(s.parts[q.guess], 0.8, found ? POWER : HIGH_V)
+      const found = glowGuess(bench, s.parts, q)
       s.extra?.({ q, read, tip, t: st.t, dt, found })
       const [why, hint] = kit.words(q, st.seen, s.fixes, s.hint)
       header.set(s.symptom, kit.verdict(q), why, hint)
@@ -482,9 +545,9 @@ export function huntRig<F extends string, P extends string, T extends string, S 
 
 // --- The robo-car drive bench: 2S pack → driver breakout → TT gear motor, ESP32 on USB driving the logic pins ---
 
-export type DriverBenchChip = 'tb6612' | 'drv8833'
+type DriverBenchChip = 'tb6612' | 'drv8833'
 /** Bottom (logic) header per chip, left to right; each is jumpered to the ESP32 in order. */
-export const DRIVER_LOGIC: Record<DriverBenchChip, string[]> = {
+const DRIVER_LOGIC: Record<DriverBenchChip, string[]> = {
   tb6612: ['PWMA', 'AIN2', 'AIN1', 'STBY', 'VCC', 'GND'],
   drv8833: ['IN1', 'IN2', 'GND'],
 }
@@ -573,9 +636,7 @@ export function driverBench(parent: THREE.Object3D, o: { chip: DriverBenchChip }
   // ESP32 DevKit on USB.
   const espPin = esp32Board(g, ESPB, ESP_K)
   addLabel(g, 'ESP32', [ESPB[0] + 5.4, ESPB[1] - 0.6, 0.2], GREY, 0.24)
-  const usbEnd: V3 = [ESPB[0] + 10 * ESP_K, ESPB[1], 0.3]
-  cableRun(g, [usbEnd, [usbEnd[0] + 0.9, usbEnd[1], 0.3], [usbEnd[0] + 0.9, -2.9, 0.3]], '#9aa0aa', 0.12)
-  addLabel(g, 'USB', [usbEnd[0] + 1.5, -2.5, 0.2], GREY, 0.2)
+  usbLead(g, [ESPB[0] + 10 * ESP_K, ESPB[1], 0.3], -2.9, 'USB', { dx: 0.9, align: 'center' })
   const espAt = (k: number) => espPin(-6 + 2 * k, true)
 
   // Wires, each from its driver end; three prebuilt looks per wire.
@@ -622,12 +683,12 @@ export function driverBench(parent: THREE.Object3D, o: { chip: DriverBenchChip }
     gpio: espAt(0),
     ...bot,
   }
-  const halos = Object.fromEntries(Object.keys(spots).map((k) => [k, glowHalo(g, spots[k], k.startsWith('w:') ? 0.35 : 0.6)]))
+  const halos = benchHalos(g, spots, (k) => (k.startsWith('w:') ? 0.35 : 0.6))
   return {
     group: g,
     tp,
     spots,
-    logic,
+    ...halos,
     wire(key: string, state: 'ok' | 'off' | 'cut') {
       const w = wires[key]
       w.ok.visible = state === 'ok'
@@ -640,10 +701,11 @@ export function driverBench(parent: THREE.Object3D, o: { chip: DriverBenchChip }
     hum(f: number, t: number) {
       motorG.position.set(MOTOR[0] + 0.03 * f * Math.sin(t * 190), MOTOR[1] + 0.03 * f * Math.sin(t * 230 + 1), 0)
     },
-    glow: (part: string, f: number, c = HEAT) => halos[part].set(f, c),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
   }
 }
+
+/** Caption under a capture: healthy vs this case. */
+export const CASE_LOG = 'grey healthy · cyan this case'
 
 // --- Rail capture: what a meter can't catch (a scope trace of a rail, the firmware's reset reason) ---
 
@@ -663,7 +725,7 @@ export function railCapture(parent: THREE.Object3D, at: V3, w: number, h: number
   const line = liveLabel(g, [at[0] + w / 2, at[1] - h / 2 - 0.85, 0.3], { size: 0.22, align: 'right' })
   const draw = (k: number, d: readonly number[] | null) => {
     traces[k].group.visible = !!d
-    if (d) traces[k].draw((u) => y(d[Math.min(d.length - 1, Math.round(u * (d.length - 1)))]), null)
+    if (d) traces[k].draw((u) => y(sampleFrac(d, u)), null)
   }
   return {
     group: g,
@@ -679,8 +741,8 @@ export function railCapture(parent: THREE.Object3D, at: V3, w: number, h: number
 // --- The reset bench: a pack or buck → lead → (driver + 4 TT motors, Schottky + hold-up cap) → ESP32 VIN, AMS1117 → 3.3 V ---
 
 export type ResetSource = '4aa' | 'buck' | '3s' | 'hidden'
-export type ResetTp = 'pack' | 'packGnd' | 'rail' | 'gnd' | 'vin' | 'v33' | 'usb'
-export type ResetPart = 'source' | 'lead' | 'driver' | 'motors' | 'cap' | 'esp' | 'ldo' | 'decoupling' | 'sensors'
+type ResetTp = 'pack' | 'packGnd' | 'rail' | 'gnd' | 'vin' | 'v33' | 'usb'
+type ResetPart = 'source' | 'lead' | 'driver' | 'motors' | 'cap' | 'esp' | 'ldo' | 'decoupling' | 'sensors'
 
 const RB = { yt: 3.4, yb: -3.1, src: [-14.8, 0.8, 0] as V3, railX: -11, esp: [-1.6, -1.2, 0] as V3, espK: 0.3, holdX: -8.6 }
 
@@ -699,12 +761,7 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
   addLabel(looks.hidden, '?', [sx, sy, 0.2], LABEL, 0.9)
   addLabel(looks.hidden, 'power in', [sx, sy - 2.4, 0.2], GREY, 0.26)
   box(looks['4aa'], [2.4, 3.8, 0.6], mat('#1a1b1f', { rough: 0.7 }), [sx, sy, -0.3])
-  for (let i = 0; i < 4; i++) {
-    const up = i % 2 === 0 ? 1 : -1
-    const c = add(looks['4aa'], new THREE.Group(), [sx - 0.75 + i * 0.5, sy, 0.25])
-    cylinder(c, 0.23, 2.5, mat('#26272c', { rough: 0.4 }), [0, -0.35 * up, 0], 'y', 20)
-    cylinder(c, 0.235, 0.8, mat('#c9772b', { metal: 0.3, rough: 0.35 }), [0, 0.85 * up, 0], 'y', 20)
-  }
+  for (let i = 0; i < 4; i++) aaCell(looks['4aa'], [sx - 0.75 + i * 0.5, sy, 0.25], i % 2 === 0 ? 1 : -1)
   addLabel(looks['4aa'], '4 × AA', [sx, sy - 2.4, 0.2], GREY, 0.26)
   dcdcModule(looks.buck, [sx, sy, 0], 'lm2596', 0.1)
   addLabel(looks.buck, 'buck → 5 V', [sx, sy - 2.4, 0.2], GREY, 0.26)
@@ -746,19 +803,12 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
     decoupling: [ex + 1.2, ey + 1.05, 0.6],
     sensors: [5.6, 1.6, 0.6],
   }
-  const motorCans: ReturnType<typeof motorCan>[] = []
+  let spin = (_dt: number, _f: number) => {}
   const holdG = add(g, new THREE.Group())
   if (o.motors) {
     // DRV8833 on the rail, four TT motors.
     wire(g, [[RB.railX, RB.yt, 0], [-7.2, RB.yt, 0]], r)
-    box(g, [2.4, 1.1, 0.3], mat('#5a2a82', { rough: 0.55 }), [-6, RB.yt, 0])
-    addLabel(g, 'DRV8833', [-6, RB.yt, 0.25], LABEL, 0.22)
-    for (let k = 0; k < 4; k++) {
-      const m = motorCan(g, [-1.4 + k * 2, RB.yt + 0.3, 0], { r: 0.7, legs: 0.3 })
-      motorCans.push(m)
-      cableRun(g, [[-4.8, RB.yt - 0.2 - k * 0.08, 0.1], [m.pins[0][0], RB.yt - 0.2 - k * 0.08, 0.1], m.pins[0]], '#e0e0e0', 0.05)
-    }
-    addLabel(g, '4 × TT', [5.5, RB.yt + 0.3, 0.2], GREY, 0.22, 'left')
+    spin = motorRow(g, [-6, RB.yt, 0], { x0: -1.4, pitch: 2, y: RB.yt + 0.3, r: 0.7, leadY: RB.yt - 0.2, labelX: 5.5 })
     // Schottky down from the rail, the hold-up cap to GND, on to VIN.
     wire(g, [[RB.holdX, RB.yt, 0], [RB.holdX, 2.2, 0]], r)
     diodeAlong(g, [RB.holdX, 2.2, 0.2], [RB.holdX, 0.6, 0.2], { scale: 0.6 })
@@ -782,8 +832,7 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
   addLabel(decoupG, '10 µF', [spots.decoupling[0] - 0.2, spots.decoupling[1] + 0.55, 0.5], LABEL, 0.17)
   const v33: V3 = [ex + 2.2, ey + 0.3, 0.6]
   addLabel(g, '3V3', [v33[0] + 0.5, v33[1], 0.6], LABEL, 0.17, 'left')
-  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -2.6, 0.3]], '#9aa0aa', 0.12)
-  addLabel(g, 'USB: serial', [usbEnd[0] + 1.5, -2.2, 0.2], GREY, 0.2, 'left')
+  usbLead(g, usbEnd, -2.6, 'USB: serial')
   if (o.sensors) {
     i2cBreakout(g, [spots.sensors[0], spots.sensors[1], 0], { name: 'ToF + OLED', k: 0.18 })
     cableRun(g, [v33, [v33[0], 1.6, 0.6], [spots.sensors[0] - 2.2, 1.6, 0.4]], '#d8322c', 0.06)
@@ -798,11 +847,12 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
     v33,
     usb: usbEnd,
   }
-  const halos = Object.fromEntries((Object.keys(spots) as ResetPart[]).map((k) => [k, glowHalo(g, spots[k], k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4)])) as Record<ResetPart, ReturnType<typeof glowHalo>>
+  const halos = benchHalos(g, spots, (k) => (k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4))
   const bench = {
     group: g,
     tp,
     spots,
+    ...halos,
     source(kind: ResetSource) {
       for (const k of Object.keys(looks) as ResetSource[]) looks[k].visible = k === kind
     },
@@ -812,9 +862,7 @@ export function resetBench(parent: THREE.Object3D, o: { motors?: boolean; sensor
     },
     holdup: (on: boolean) => (holdG.visible = on),
     decoupling: (on: boolean) => (decoupG.visible = on),
-    spin: (dt: number, f: number) => motorCans.forEach((m) => m.spin(dt, 400 * f)),
-    glow: (part: ResetPart, f: number, c = HEAT) => halos[part].set(f, c),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+    spin: (dt: number, f: number) => spin(dt, f),
   }
   bench.source('4aa')
   bench.lead(false)
@@ -849,7 +897,7 @@ export function serialPlot(parent: THREE.Object3D, at: V3, w: number, h: number,
       const y = (x: number) => ((x - v.lo) / (v.hi - v.lo)) * h - h / 2
       ;[healthy, got].forEach((d, k) => {
         traces[k].group.visible = !!d
-        if (d) traces[k].draw((u) => y(d[Math.min(d.length - 1, Math.round(u * (d.length - 1)))]), null)
+        if (d) traces[k].draw((u) => y(sampleFrac(d, u)), null)
       })
       axis[0].set(v.axis[1], GREY)
       axis[1].set(v.axis[0], GREY)
@@ -868,7 +916,7 @@ export function serialPlot(parent: THREE.Object3D, at: V3, w: number, h: number,
 
 // --- Noise bench: a start button on GPIO 27 next to the motor wiring, or a 5 V analog sensor into GPIO 34 ---
 
-export type NoiseKind = 'button' | 'analog'
+type NoiseKind = 'button' | 'analog'
 export type NoiseTp = 'gpio27' | 'gpio26' | 'v33' | 'gnd' | 'usb' | 's5v' | 'sgnd' | 'egnd' | 'pin34'
 export type NoisePart = 'button' | 'lead' | 'pull' | 'pull26' | 'esp' | 'driver' | 'motors' | 'source' | 'sensor' | 'caps' | 'divider' | 'ground'
 
@@ -887,8 +935,7 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
   const pin = esp32Board(g, NB.esp, NB.espK)
   addLabel(g, 'ESP32', [ex + 2.4, ey + 2.1, 0.2], GREY, 0.24)
   const usbEnd: V3 = [ex + 10 * NB.espK, ey, 0.3]
-  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -3, 0.3]], '#9aa0aa', 0.12)
-  addLabel(g, 'USB: serial', [usbEnd[0] + 1.5, -2.6, 0.2], GREY, 0.2, 'left')
+  usbLead(g, usbEnd, -3, 'USB: serial')
   const pinLabel = (p: V3, text: string, up: boolean) => addLabel(g, text, [p[0], p[1] + (up ? 0.45 : -0.45), p[2] + 0.3], LABEL, 0.15)
   const gndPin = pin(-6, false)
   const v33Pin = pin(-7, true)
@@ -906,15 +953,7 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
   const srcP: V3 = [sx + 0.6, sy + 1.9, 0]
   const srcM: V3 = [sx - 0.6, sy - 1.9, 0]
   wire(g, [srcP, [srcP[0], NB.yt, 0], [NB.drv[0] - 1.2, NB.yt, 0]], r)
-  box(g, [2.4, 1.1, 0.3], mat('#5a2a82', { rough: 0.55 }), NB.drv)
-  addLabel(g, 'DRV8833', [NB.drv[0], NB.drv[1], 0.25], LABEL, 0.22)
-  const motorCans: ReturnType<typeof motorCan>[] = []
-  for (let k = 0; k < 4; k++) {
-    const m = motorCan(g, [-0.6 + k * 1.9, NB.yt + 0.4, 0], { r: 0.65, legs: 0.3 })
-    motorCans.push(m)
-    cableRun(g, [[NB.drv[0] + 1.2, NB.yt - 0.15 - k * 0.08, 0.1], [m.pins[0][0], NB.yt - 0.15 - k * 0.08, 0.1], m.pins[0]], '#e0e0e0', 0.05)
-  }
-  addLabel(g, '4 × TT', [6.6, NB.yt + 0.4, 0.2], GREY, 0.22, 'left')
+  const spin = motorRow(g, NB.drv, { x0: -0.6, pitch: 1.9, y: NB.yt + 0.4, r: 0.65, leadY: NB.yt - 0.15, labelX: 6.6 })
   // Motor return: driver GND down to the bottom rail, back to the source.
   const retX = NB.drv[0] - 0.8
   wire(g, [[retX, NB.yt - 0.55, 0], [retX, NB.yb, 0]], r)
@@ -1004,7 +1043,7 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
     Object.assign(spots, { sensor: [-8.9, 0.3, 0.6], caps: [capX, -1.2, 0.8], divider: [dx, -0.9, 0.6], ground: [-6.2, sg[1] + 0.6, 0.6] })
     Object.assign(tp, { s5v: [vcc[0], vcc[1] + 0.5, 0.3], sgnd: [sg[0], sg[1] + 0.25, 0.3], pin34: [p34[0], p34[1], 0.3] })
   }
-  const halos = Object.fromEntries(Object.entries(spots).map(([k, v]) => [k, glowHalo(g, v as V3, k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4)])) as Record<NoisePart, ReturnType<typeof glowHalo>>
+  const halos = benchHalos(g, spots as Record<NoisePart, V3>, (k) => (k === 'esp' || k === 'motors' || k === 'source' ? 0.6 : 0.4))
   const showLook = (on: string, off: string) => {
     if (looks[on]) looks[on].visible = true
     if (looks[off]) looks[off].visible = false
@@ -1013,6 +1052,7 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
     group: g,
     tp: tp as Record<NoiseTp, V3>,
     spots: spots as Record<NoisePart, V3>,
+    ...halos,
     lead: (long: boolean) => showLook(long ? 'long' : 'short', long ? 'short' : 'long'),
     pull(at: 27 | 26 | null) {
       if (looks.pull27) looks.pull27.visible = at === 27
@@ -1022,9 +1062,7 @@ export function noiseBench(parent: THREE.Object3D, kind: NoiseKind) {
     caps: (on: boolean) => looks.caps && (looks.caps.visible = on),
     divider: (ohms: number) => setDivider(ohms),
     ground: (shared: boolean) => showLook(shared ? 'shared' : 'star', shared ? 'star' : 'shared'),
-    spin: (dt: number, f: number) => motorCans.forEach((m) => m.spin(dt, 400 * f)),
-    glow: (part: NoisePart, f: number, c = HEAT) => halos[part]?.set(f, c),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
+    spin,
   }
   bench.lead(false)
   bench.pull(27)
@@ -1108,8 +1146,7 @@ export function busBench(parent: THREE.Object3D, o: { oled?: boolean } = {}) {
   const pin = esp32Board(g, IB.esp, IB.espK)
   addLabel(g, 'ESP32', [ex + 2.2, ey + 2, 0.2], GREY, 0.24)
   const usbEnd: V3 = [ex + 10 * IB.espK, ey, 0.3]
-  cableRun(g, [usbEnd, [usbEnd[0] + 1.2, usbEnd[1], 0.3], [usbEnd[0] + 1.2, -3.2, 0.3]], '#9aa0aa', 0.12)
-  addLabel(g, 'USB', [usbEnd[0] + 1.35, -2.9, 0.2], GREY, 0.2, 'left')
+  usbLead(g, usbEnd, -3.2, 'USB', { label: [1.35, 0.3] })
   const dot = (p: V3, c: string) => add(g, new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat(c, { rough: 0.5 })), p)
   // ESP32 header: GND, 22, 3V3, 21 left to right, each rising to its lane (lowest lane leftmost: no crossings).
   const espPins: Record<Lane, V3> = { gnd: pin(-7, true), scl: pin(-4, true), v33: pin(-1, true), sda: pin(2, true) }
@@ -1199,11 +1236,12 @@ export function busBench(parent: THREE.Object3D, o: { oled?: boolean } = {}) {
     wires: [(ip('SCL')[0] + ip('SDA')[0]) / 2, ip('SDA')[1] + 0.5, 0.6],
     cable: [(c0 + c1) / 2, (L.gnd + L.sda) / 2, 0.6],
   }
-  const halos = Object.fromEntries((Object.keys(spots) as BusPart[]).map((k) => [k, glowHalo(g, spots[k], k === 'esp' || k === 'sensor' || k === 'oled' || k === 'cable' ? 0.6 : 0.4)])) as Record<BusPart, ReturnType<typeof glowHalo>>
+  const halos = benchHalos(g, spots, (k) => (k === 'esp' || k === 'sensor' || k === 'oled' || k === 'cable' ? 0.6 : 0.4))
   const bench = {
     group: g,
     tp,
     spots,
+    ...halos,
     cable(long: boolean) {
       looks.long.visible = long
       looks.short.visible = !long
@@ -1222,8 +1260,6 @@ export function busBench(parent: THREE.Object3D, o: { oled?: boolean } = {}) {
       pullG.sda.visible = sda
       pullG.scl.visible = scl
     },
-    glow: (part: BusPart, f: number, c = HEAT) => halos[part].set(f, c),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
   }
   bench.cable(false)
   bench.swap(false)
@@ -1280,7 +1316,7 @@ export function driftBench(parent: THREE.Object3D) {
   const dim = [0, 1, 2].map(() => addRod(gauge, glowMat(RING, 0.8)))
   const dimText = liveLabel(gauge, [0, 0, 0.3], { size: 0.3 })
   const gaugeNote = liveLabel(gauge, [-2, 0, 0.3], { size: 0.26, align: 'right' })
-  const halos = Object.fromEntries((Object.keys(DRIFT_SPOTS) as DriftPart[]).map((k) => [k, glowHalo(inner, DRIFT_SPOTS[k], (k === 'car' ? 0.8 : 0.45) / (DB.k * DB.carK))])) as Record<DriftPart, ReturnType<typeof glowHalo>>
+  const halos = benchHalos(inner, DRIFT_SPOTS, (k) => (k === 'car' ? 0.8 : 0.45) / (DB.k * DB.carK))
   const place = (p: Pose, dL = 0, dR = 0, lifted = false) => {
     placeAt(car, p, lifted ? DB.lift - 0.004 : 0)
     bot.set({ x: 0, y: 0, th: 0 }, dL / DB.carK, dR / DB.carK)
@@ -1300,6 +1336,7 @@ export function driftBench(parent: THREE.Object3D) {
     floor,
     tp,
     spots,
+    ...halos,
     place,
     trail(path: readonly Pose[] | null, n: number) {
       if (path !== drawn) {
@@ -1338,8 +1375,6 @@ export function driftBench(parent: THREE.Object3D) {
       dimText.set(`Ø ${fixedText(mm, 2)} mm`, RING)
       gaugeNote.set(note, GREY)
     },
-    glow: (part: DriftPart, f: number, c = HEAT) => halos[part].set(f, c),
-    clearGlow: () => Object.values(halos).forEach((h) => h.set(0, HEAT)),
   }
   bench.tyre(null)
   bench.place({ x: 0, y: 0, th: 0 })

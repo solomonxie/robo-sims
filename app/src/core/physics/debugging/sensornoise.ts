@@ -1,7 +1,7 @@
 // Sensor noise: a button that counts presses nobody made (floating input, wrong pin, coupled motor edges, bounce) and an
 // ADC reading that jumps (no decoupling, shared motor ground, high source impedance, a noisy sensor). New probe: a serial
 // plot of readings, judged by their spread.
-import { gaussAt, mean, stdDev } from '../common'
+import { gaussAt, mean, memoize, stdDev } from '../common'
 import { PIN_LEAK_A, floatingPickup, pulledPin } from '../circuits'
 import { METER_INPUT_OHMS } from '../dc'
 import { LOGIC_INPUTS, readInput } from '../levels'
@@ -13,26 +13,10 @@ import { CAPS, Cap, pwmCurrent, railTrace } from '../power/noise'
 import { ohmsPerMetre } from '../power/wiring'
 import { TT_CRUISE_A } from '../power/budget'
 import { drivePack } from './motor'
-import { FaultHunt, MeterRead } from './hunt'
+import { MeterRead, OL, huntOf, ohm, volt } from './hunt'
 
-const volt = (value: number): MeterRead => ({ value, unit: 'V' })
-const ohm = (value: number): MeterRead => ({ value, unit: 'Ω' })
-const OL: MeterRead = { value: Infinity, unit: 'Ω', open: true }
 const mv = (value: number): MeterRead => ({ value, unit: 'mV' })
 const cnt = (value: number, label: string): MeterRead => ({ value, unit: 'cnt', label })
-const memo = <K extends string, V>(f: (k: K) => V) => {
-  const m = new Map<K, V>()
-  return (k: K) => {
-    let hit = m.get(k)
-    if (!hit) m.set(k, (hit = f(k)))
-    return hit
-  }
-}
-const hunt = <F extends string, P extends string>(faults: Record<F, unknown>, probes: Record<P, unknown>, read: (f: F | 'ok', p: P) => MeterRead): FaultHunt<F, P> => ({
-  faults: Object.keys(faults) as F[],
-  probes: Object.keys(probes) as P[],
-  read,
-})
 
 /** Spread of a run of readings: what a serial plot shows at a glance. */
 export function readingSpread(xs: readonly number[]) {
@@ -120,7 +104,7 @@ export function pressCloses() {
 
 /** One run of the button input with `fault`: the falling edges the pin makes, the times the ISR counts, and a trace of
  *  the pin (min per 1 ms bin) for the plot. `motors` PWMs the motors; `press` adds one press. */
-export function buttonRun(fault: FloatFault | 'ok', motors: boolean, press: boolean) {
+function buttonRun(fault: FloatFault | 'ok', motors: boolean, press: boolean) {
   const b = FLOAT_BOT
   const seconds = press ? b.press.window : b.countS
   const vil = LOGIC_INPUTS.esp32.vil * b.vdd
@@ -162,10 +146,10 @@ export function buttonRun(fault: FloatFault | 'ok', motors: boolean, press: bool
 }
 
 /** The three runs per electrically distinct build (a pull-up on the wrong pin floats just like none). */
-const buttonRuns = memo((fault: FloatFault | 'ok') => ({ quiet: buttonRun(fault, false, false), motors: buttonRun(fault, true, false), press: buttonRun(fault, false, true) }))
+const buttonRuns = memoize((fault: FloatFault | 'ok') => ({ quiet: buttonRun(fault, false, false), motors: buttonRun(fault, true, false), press: buttonRun(fault, false, true) }))
 
 /** The button input with `fault`: the three runs and the readings. */
-export const floatingButton = memo((fault: FloatFault | 'ok') => {
+export const floatingButton = memoize((fault: FloatFault | 'ok') => {
   const b = FLOAT_BOT
   const { quiet, motors, press } = buttonRuns(fault === 'wrongpin' ? 'nopull' : fault)
   const pulled = !floats(fault)
@@ -182,7 +166,7 @@ export const floatingButton = memo((fault: FloatFault | 'ok') => {
   return { quiet, motors, press, reads }
 })
 
-export const FLOAT_HUNT = hunt(FLOAT_FAULTS, FLOAT_PROBES, (f, p) => floatingButton(f).reads[p])
+export const FLOAT_HUNT = huntOf(FLOAT_FAULTS, FLOAT_PROBES, (f, p) => floatingButton(f).reads[p])
 
 // --- Missing decoupling: a 5 V analog sensor through a divider into GPIO 34, on the motors' 5 V rail ---
 
@@ -234,10 +218,10 @@ export const ADC_PROBES: Record<AdcProbe, { name: string }> = {
 }
 
 /** Motor current on the 5 V rail at `t`. */
-export const motorDraw = (t: number) => pwmCurrent(t, ADC_BOT.motorA, ADC_BOT.pwm.period, ADC_BOT.pwm.duty, ADC_BOT.pwm.riseS)
+const motorDraw = (t: number) => pwmCurrent(t, ADC_BOT.motorA, ADC_BOT.pwm.period, ADC_BOT.pwm.duty, ADC_BOT.pwm.riseS)
 
 /** One settled PWM period of the sensor's 5 V with all its caps or just the ceramics, every `every` s (motors running). */
-export const sensorRail = memo((key: 'caps' | 'bare') => {
+const sensorRail = memoize((key: 'caps' | 'bare') => {
   const b = ADC_BOT
   const [v] = railTrace([{ vs: b.vs, ...b.rail, caps: key === 'caps' ? b.caps : b.bare }], [(t) => motorDraw(t) + b.sensorA], b.periods * b.pwm.period, b.every)
   const per = Math.round(b.pwm.period / b.every)
@@ -268,7 +252,7 @@ export function adcPinAt(fault: AdcFault | 'ok', t: number, motors: boolean, see
 }
 
 /** The plot: `readings` raw codes, each the mean of `n` back-to-back reads; reading k at k · 13 ms plus loop jitter. */
-export function adcPlot(fault: AdcFault | 'ok', motors: boolean, n = 1) {
+function adcPlot(fault: AdcFault | 'ok', motors: boolean, n = 1) {
   const b = ADC_BOT
   const golden = (Math.sqrt(5) - 1) / 2
   return Array.from({ length: b.readings }, (_, k) => {
@@ -283,7 +267,7 @@ export function adcPlot(fault: AdcFault | 'ok', motors: boolean, n = 1) {
 }
 
 /** The analog sensor with `fault`: the three plots, the rail period and ground drop, the readings. */
-export const jitteryAdc = memo((fault: AdcFault | 'ok') => {
+export const jitteryAdc = memoize((fault: AdcFault | 'ok') => {
   const b = ADC_BOT
   const plot = adcPlot(fault, true)
   const quiet = adcPlot(fault, false)
@@ -301,4 +285,4 @@ export const jitteryAdc = memo((fault: AdcFault | 'ok') => {
   return { plot, quiet, avg, rail, drop, reads }
 })
 
-export const ADC_HUNT = hunt(ADC_FAULTS, ADC_PROBES, (f, p) => jitteryAdc(f).reads[p])
+export const ADC_HUNT = huntOf(ADC_FAULTS, ADC_PROBES, (f, p) => jitteryAdc(f).reads[p])

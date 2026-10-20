@@ -5,7 +5,6 @@ import {
   AddrFault,
   AddrProbe,
   BUS_BOT,
-  FaultHunt,
   I2C_MODES,
   INTERNAL_PULL_OHMS,
   PULL_FAULTS,
@@ -25,7 +24,7 @@ import {
   wrongAddress,
 } from '../../core/physics'
 import { hexByte, millivolts, ohms, si } from '../../core/units'
-import { BusPart, BusTp, BusTrace, FACE_VIEW, GREY, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, POWER, busBench, busCapture, huntKit, huntRig, huntStage } from '../fx'
+import { BusPart, BusTp, BusTrace, CASE_LOG, GREY, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, POWER, ProbeCase, busBench, busCapture, huntKit, huntRig, huntStage } from '../fx'
 import { Lesson, Stage } from '../types'
 
 type Bench = ReturnType<typeof busBench>
@@ -40,15 +39,8 @@ const pF = (c: number) => si(c, 'F', 3)
 const VDD = BUS_BOT.vdd
 const SERIAL = { red: 'usb', black: 'gnd' } as const
 
-interface BusSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
+interface BusSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip, BusPart> {
   oled: boolean
-  tips: Record<P, Tip>
-  parts: Record<F, BusPart>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
   /** Capture for the probe: this case and healthy, the span, an optional zoom, two text lines; null = a meter probe. */
   capture: (truth: F, probe: P) => { got: BusTrace | null; ok: BusTrace | null; span: string; range?: [number, number]; stats: string; log: string; tone?: string } | null
   extra: (bench: Bench, truth: F, found: boolean) => void
@@ -56,11 +48,12 @@ interface BusSpec<F extends string, P extends string> {
 
 /** Shared stage: I²C bench, meter, suspect table, and a logic analyser for what the meter can't show. */
 function busBuild<F extends string, P extends string>(s: BusSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
+  const stage = huntStage()
+  const { scene } = stage
   const bench = busBench(scene, { oled: s.oled })
   const cap = busCapture(scene, [9.5, -6.2, 0], 4.4, 2.6)
   let shown = ''
-  const rig = huntRig<F, P, BusTp, BusPart, Tip>(scene, header, {
+  return huntRig<F, P, BusTp, BusPart, Tip>(stage, {
     ...s,
     bench,
     table: { colW, nameW: 4.6 },
@@ -81,7 +74,6 @@ function busBuild<F extends string, P extends string>(s: BusSpec<F, P>, colW: nu
       cap.log(c.log)
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
 // --- Wrong address ---
@@ -136,7 +128,7 @@ export const busNotRespondingWrongAddress: Lesson = {
           }
           if (probe !== 'frame') return null
           const f = wa(truth).frame
-          return { got: f, ok: wa('ok').frame, span: '100 kHz', range: ADDR_RANGE, stats: `endTransmission() = ${f.acks ? 0 : 2} · ${f.text}`, log: 'grey healthy · cyan this case', tone: f.acks ? POWER : HIGH_V }
+          return { got: f, ok: wa('ok').frame, span: '100 kHz', range: ADDR_RANGE, stats: `endTransmission() = ${f.acks ? 0 : 2} · ${f.text}`, log: CASE_LOG, tone: f.acks ? POWER : HIGH_V }
         },
         extra(bench, truth, found) {
           bench.ad0(found && truth === 'ad0')
@@ -220,7 +212,7 @@ export const busNotRespondingMissingPullUps: Lesson = {
               span: '100 kHz',
               range: RISE_RANGE,
               stats: `SCL rise ${m.rise === null ? 'never' : T(m.rise)} · 400 kHz: ≤ 300 ns`,
-              log: 'grey healthy · cyan this case',
+              log: CASE_LOG,
               tone: m.rise !== null && m.rise <= I2C_MODES.fast.trMax ? POWER : HIGH_V,
             }
           }
@@ -233,7 +225,7 @@ export const busNotRespondingMissingPullUps: Lesson = {
             ok: ok[probe],
             span: probe === 'fast' ? '400 kHz' : '100 kHz',
             stats: `${f.text} · SCL top ${V(top)} / ${V(0.7 * VDD)}`,
-            log: 'grey healthy · cyan this case',
+            log: CASE_LOG,
             tone: f.acks ? POWER : HIGH_V,
           }
         },

@@ -1,6 +1,6 @@
 // Random resets: brownouts on a shared pack when the motors start, and a weak 3.3 V regulator. Resets are transient, so
 // the probes include MIN/MAX hold, a scope on the 3.3 V rail and esp_reset_reason().
-import { mean } from '../common'
+import { mean, memoize } from '../common'
 import { CHEMISTRIES } from '../power/batteries'
 import { cellVolts } from '../power/packs'
 import { TT_CRUISE_A } from '../power/budget'
@@ -11,27 +11,12 @@ import { CAPS, Cap, railTrace } from '../power/noise'
 import { loopOhms } from '../power/wiring'
 import { AMS1117_33, ldoThermalStep, linearReg } from '../regulators'
 import { ROOM_C } from '../dc'
-import { FaultHunt, MeterRead } from './hunt'
+import { MeterRead, huntOf, logRead, volt } from './hunt'
 
 /** What `esp_reset_reason()` returns after the last reset (ESP_RST_…). */
-export type ResetReason = 'POWERON' | 'BROWNOUT' | 'PANIC' | 'TASK_WDT'
+type ResetReason = 'POWERON' | 'BROWNOUT' | 'PANIC' | 'TASK_WDT'
 
-const volt = (value: number, hold?: 'min' | 'max'): MeterRead => (hold ? { value, unit: 'V', hold } : { value, unit: 'V' })
-const reason = (r: ResetReason): MeterRead => ({ value: 0, unit: 'log', label: r })
 const kindReason = (k: string | undefined): ResetReason => (k === 'brownout' ? 'BROWNOUT' : k === 'panic' ? 'PANIC' : 'POWERON')
-const memo = <K extends string, V>(f: (k: K) => V) => {
-  const m = new Map<K, V>()
-  return (k: K) => {
-    let hit = m.get(k)
-    if (!hit) m.set(k, (hit = f(k)))
-    return hit
-  }
-}
-const hunt = <F extends string, P extends string>(faults: Record<F, unknown>, probes: Record<P, unknown>, read: (f: F | 'ok', p: P) => MeterRead): FaultHunt<F, P> => ({
-  faults: Object.keys(faults) as F[],
-  probes: Object.keys(probes) as P[],
-  read,
-})
 
 // --- Motor spike resets: 4 × AA → DRV8833 + four TT motors, and a Schottky + 10 mF hold-up into the DevKit's VIN ---
 
@@ -82,7 +67,7 @@ export const spikeOhms = (thin = false) => {
 export const stallBurstA = (ocv: number, n: number, srcOhms: number) => ocv / ((TT_MOTOR.ohms + DRIVERS.drv8833.drop(1)) / n + srcOhms)
 
 /** The brownout rig with `fault` in the build: four TT motors starting hard from the shared pack. */
-export function spikeRig(fault: SpikeFault | 'ok'): BrownoutRig {
+function spikeRig(fault: SpikeFault | 'ok'): BrownoutRig {
   const ocv = SPIKE_BOT.series * cellVolts(AA, fault === 'flat' ? SPIKE_BOT.flatSoc : SPIKE_BOT.soc)
   const r = spikeOhms(fault === 'lead')
   return {
@@ -99,7 +84,7 @@ export function spikeRig(fault: SpikeFault | 'ok'): BrownoutRig {
 }
 
 /** One motor start: the run, the pack's terminal volts and the lead drop per sample, the readings. */
-export const motorSpike = memo((fault: SpikeFault | 'ok') => {
+export const motorSpike = memoize((fault: SpikeFault | 'ok') => {
   const rig = spikeRig(fault)
   const { lead } = spikeOhms(fault === 'lead')
   const run = brownoutRun(rig, SPIKE_BOT.window, SPIKE_BOT.dt, ESP32_TIMELINE.motorAt - SPIKE_BOT.pre)
@@ -114,12 +99,12 @@ export const motorSpike = memo((fault: SpikeFault | 'ok') => {
     vin: volt(Math.min(...run.vin), 'min'),
     rail: volt(mean(run.rail)),
     scope: volt(Math.min(...run.rail), 'min'),
-    reason: reason(why),
+    reason: logRead(why),
   }
   return { rig, run, terminals, leadDrop, resets, why, reads }
 })
 
-export const SPIKE_HUNT = hunt(SPIKE_FAULTS, SPIKE_PROBES, (f, p) => motorSpike(f).reads[p])
+export const SPIKE_HUNT = huntOf(SPIKE_FAULTS, SPIKE_PROBES, (f, p) => motorSpike(f).reads[p])
 
 // --- Weak regulator: the DevKit's AMS1117 feeding the ESP32 and 60 mA of sensors, VIN from a 5 V buck ---
 
@@ -163,7 +148,7 @@ export const WEAK_PROBES: Record<WeakProbe, { name: string }> = {
 }
 
 /** VIN source with `fault`: rest volts and resistance. */
-export function weakSupply(fault: WeakFault | 'ok') {
+function weakSupply(fault: WeakFault | 'ok') {
   const pack = (chem: 'alkaline' | 'liion', p: { series: number; soc: number; leadOhms: number }) => {
     const c = CHEMISTRIES[chem]
     return { volts: p.series * cellVolts(c, p.soc), ohms: p.series * c.cell.ohms + p.leadOhms }
@@ -211,7 +196,7 @@ export function ldoHeatRun(vin: number, amps: number) {
 }
 
 /** The weak-regulator board with `fault`: the slow run (2 s from power-on), the TX-burst zoom, the junction, readings. */
-export const weakRegulator = memo((fault: WeakFault | 'ok') => {
+export const weakRegulator = memoize((fault: WeakFault | 'ok') => {
   const b = WEAK_BOT
   const tl = WEAK_TIMELINE
   const sup = weakSupply(fault)
@@ -235,9 +220,9 @@ export const weakRegulator = memo((fault: WeakFault | 'ok') => {
     rail: tripped ? { value: AMS1117_33.vout, unit: 'V', alt: 0 } : volt(dmm),
     scope: volt(railMin, 'min'),
     heat: heat.peakC - ROOM_C < 2 ? { value: ROOM_C, unit: '°C', label: 'nothing' } : { value: heat.peakC, unit: '°C', label: 'AMS1117' },
-    reason: reason(why),
+    reason: logRead(why),
   }
   return { sup, rig, run, zoom, dip, avgA, heat, tripped, zoomMin, why, reads }
 })
 
-export const WEAK_HUNT = hunt(WEAK_FAULTS, WEAK_PROBES, (f, p) => weakRegulator(f).reads[p])
+export const WEAK_HUNT = huntOf(WEAK_FAULTS, WEAK_PROBES, (f, p) => weakRegulator(f).reads[p])

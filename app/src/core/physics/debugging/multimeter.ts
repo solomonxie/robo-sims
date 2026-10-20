@@ -22,7 +22,7 @@ const BUCK_OUT_OHMS = 0.01
  *  each pack lead half of `SUPPLY_BOT.wiringOhms`; the ESP32 draws `ROBOCAR.logicA` (Wi-Fi connected) through its AMS1117. */
 export const METER_BOT = { leakOhms: 1e9, switchOhms: 0.02, coldJointOhms: 40, leakCapOhms: 47, dragA: 0.6, espA: ROBOCAR.logicA, ldoOhms: 0.05 }
 
-export interface MeterBench {
+interface MeterBench {
   /** Cells in the holder, at `soc`. */
   cells: boolean
   soc?: number
@@ -50,7 +50,7 @@ const V = (a: number, b: number, volts: number): Element => ({ kind: 'V', a, b, 
 /** The bench as a netlist, given the last solution (the buck runs only while its input is over its minimum, and draws
  *  its input current at that input voltage; a bridged rail holds the buck at its current limit). Loads are resistors at
  *  their operating point: a running motor = the resistance that draws `runA` from the rested pack. */
-export function meterBenchNet(b: MeterBench) {
+function meterBenchNet(b: MeterBench) {
   return (volts: number[] | null): MeterNet => {
     const ocv = holderVolts(b.soc ?? SUPPLY_BOT.soc)
     const half = SUPPLY_BOT.wiringOhms / 2
@@ -104,7 +104,7 @@ export function meterBenchNet(b: MeterBench) {
 
 /** A probe spot: red and black nodes, what it measures, and the bench while you measure. `series` = the probes bridge a
  *  gap; `inrush` = the bench the instant the meter closes it. */
-export interface MeterSpot {
+interface MeterSpot {
   red: number
   black: number
   want: MeterWant
@@ -118,14 +118,14 @@ export const spotRead = (s: MeterSpot, setup: DmmSetup, black = s.black) =>
   dmmRead(setup, meterBenchNet(s.bench), s.red, black, s.inrush && meterBenchNet(s.inrush))
 
 /** A display result as a hunt reading (V / A / Ω; OL = open, mV in volts). */
-export function dmmMeterRead(r: DmmResult): MeterRead {
+function dmmMeterRead(r: DmmResult): MeterRead {
   const unit = r.unit === 'Ω' ? 'Ω' : r.unit === 'A' ? 'A' : 'V'
   if (r.shown === null) return { value: Infinity, unit, open: true }
   return { value: r.unit === 'mV' ? r.shown / 1000 : r.shown, unit }
 }
 
 /** What the right setup reads on a spot. */
-export const rightRead = (s: MeterSpot) => dmmMeterRead(spotRead(s, DMM_RIGHT[s.want]))
+const rightRead = (s: MeterSpot) => dmmMeterRead(spotRead(s, DMM_RIGHT[s.want]))
 
 const memo = <F extends string, P extends string>(spot: (f: F | 'ok', p: P) => MeterSpot) => {
   const cache = new Map<string, MeterRead>()
@@ -157,7 +157,7 @@ export const CONT_PROBES: Record<ContProbe, { name: string; red: number; black: 
 }
 
 /** The continuity bench with `fault`; `live` = cells in and switched on (the mistake), else the pack is unplugged. */
-export function contBench(fault: ContFault | 'ok', live: boolean): MeterBench {
+function contBench(fault: ContFault | 'ok', live: boolean): MeterBench {
   return {
     cells: live,
     sw: true,
@@ -189,9 +189,9 @@ export const VOLT_PROBES: Record<VoltProbe, { name: string; red: number; black: 
   rail33: { name: '3.3 V rail', red: METER_NODE.rail33, black: 0, ground: true },
 }
 /** A flat pack: drained past cut-off, like Won't power on's. */
-export const FLAT_SOC = -0.015
+const FLAT_SOC = -0.015
 
-export function voltBench(fault: VoltFault | 'ok'): MeterBench {
+function voltBench(fault: VoltFault | 'ok'): MeterBench {
   return { cells: true, soc: fault === 'flat' ? FLAT_SOC : undefined, sw: true, guard: fault === 'fuse' ? 'open' : 'fuse', buckDead: fault === 'buck', ldoDead: fault === 'ldo' }
 }
 export const voltSpot = (f: VoltFault | 'ok', p: VoltProbe): MeterSpot => ({ ...VOLT_PROBES[p], want: 'vdc', bench: voltBench(f) })

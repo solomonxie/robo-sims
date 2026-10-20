@@ -1,6 +1,6 @@
 // Robot drifts: the robo-car told to drive straight curves (open-loop PWM: a slower motor, a lower PWM, a rubbing tyre,
 // uneven weight), or its encoder odometry disagrees with the floor (wheel diameter, ticks per rev, track in the code).
-import { G, once } from '../common'
+import { G, memoize, once } from '../common'
 import { DcMotor, GEARBOXES, RPM_PER_RADS, TT_CAR, TT_MOTOR, frictionNm, gearEfficiency, gearRatio, loadedSpeed, motorK, stallAmps } from '../actuators/dcmotor'
 import { driverLoss } from '../actuators/hbridge'
 import { diffStep } from '../mobility/diffdrive'
@@ -42,17 +42,9 @@ export function driftPath(vL: number, vR: number, seconds: number, track = TT_TR
   return Array.from({ length: samples + 1 }, (_, i) => diffStep(o, vL, vR, track, (seconds * i) / samples))
 }
 
-const memo = <K extends string, V>(f: (k: K) => V) => {
-  const m = new Map<K, V>()
-  return (k: K) => {
-    let hit = m.get(k)
-    if (!hit) m.set(k, (hit = f(k)))
-    return hit
-  }
-}
 const mm = (value: number): MeterRead => ({ value, unit: 'mm' })
 /** A floor run read by eye: start alignment and the floor spread a few cm, so only straight vs curving (and which way) counts. */
-export const trailRead = (offsetMm: number): MeterRead => ({ value: offsetMm, unit: 'log', label: Math.abs(offsetMm) < 10 ? 'straight' : offsetMm > 0 ? 'veers R' : 'veers L' })
+const trailRead = (offsetMm: number): MeterRead => ({ value: offsetMm, unit: 'log', label: Math.abs(offsetMm) < 10 ? 'straight' : offsetMm > 0 ? 'veers R' : 'veers L' })
 
 // --- Motor mismatch: open-loop drive(70, 70), the car curves right ---
 
@@ -73,7 +65,7 @@ export const MISMATCH_PROBES: Record<MismatchProbe, { name: string }> = {
 
 /** Both sides' PWM, the right wheel on the floor and wheels up (left is always healthy), the timed run and the readings:
  *  straight or curving (by eye), right wheel rpm on a block, average volts across and current through the right motor. */
-export const motorMismatch = memo((f: MismatchFault | 'ok') => {
+export const motorMismatch = memoize((f: MismatchFault | 'ok') => {
   const B = DRIFT_BOT
   const pwm = [inoMap(B.speed, 0, 100, 0, B.top), inoMap(B.speed, 0, 100, 0, f === 'pwm' ? B.badTop : B.top)] as const
   const duty = [pwm[0] / 255, pwm[1] / 255] as const
@@ -103,7 +95,7 @@ export const MISMATCH_HUNT = huntOf(MISMATCH_FAULTS, MISMATCH_PROBES, (f, p) => 
 export const ODO_BOT = { smallMm: 63, codeMm: 70, codeTrackM: 0.15, runM: 1, samples: 60 }
 export const tprOf = (gear: number) => ticksPerWheelRev(ENCODERS.hall.ppr, 4, gear)
 
-export interface OdoSetup {
+interface OdoSetup {
   /** Real tyre diameters (mm) and ticks per wheel turn; real track (m). */
   leftMm: number
   rightMm: number
@@ -116,7 +108,7 @@ export interface OdoSetup {
 }
 
 /** Encoder-matched straight drive until odometry reads `distM`: ticks per wheel, real wheel travels, the path, the end. */
-export function odoDrive(s: OdoSetup, distM: number, samples = ODO_BOT.samples) {
+function odoDrive(s: OdoSetup, distM: number, samples = ODO_BOT.samples) {
   const tickM = (Math.PI * s.codeMm) / 1000 / s.codeTpr
   const ticks = Math.ceil(distM / tickM - 1e-9)
   const revs = ticks / s.tpr
@@ -129,7 +121,7 @@ export function odoDrive(s: OdoSetup, distM: number, samples = ODO_BOT.samples) 
 
 /** Spin in place (equal and opposite ticks) until odometry reads `turns` × 360°: the real heading change (°) and its
  *  run from start to stop (`samples` + 1 values, real vs odometry). */
-export function odoSpin(s: OdoSetup, turns = 1, samples = ODO_BOT.samples) {
+function odoSpin(s: OdoSetup, turns = 1, samples = ODO_BOT.samples) {
   const tickM = (Math.PI * s.codeMm) / 1000 / s.codeTpr
   const ticks = Math.ceil((turns * Math.PI * s.codeTrackM) / tickM - 1e-9)
   const revs = ticks / s.tpr
@@ -170,7 +162,7 @@ export function odoSetup(f: WheelSizeFault | 'ok'): OdoSetup {
 
 /** The 1 m drive and the 360° spin by odometry, the right wheel's ticks per metre, and the readings (`ticks` = the right
  *  wheel turned once by hand, counted on the serial monitor). */
-export const wheelSizeError = memo((f: WheelSizeFault | 'ok') => {
+export const wheelSizeError = memoize((f: WheelSizeFault | 'ok') => {
   const s = odoSetup(f)
   const drive = odoDrive(s, ODO_BOT.runM)
   const spin = odoSpin(s)

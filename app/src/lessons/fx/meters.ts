@@ -1,33 +1,33 @@
 // Using the meter itself: dial + red-socket controls, the misuse wording, and a fault-hunt rig where every probe needs the
 // right setup first (a wrong one shows what the meter really does: OL, 0, a short, a blown fuse).
-import * as THREE from 'three/webgpu'
-import { DMM, DmmDial, DmmJack, DmmMiss, DmmResult, DmmSetup, FaultHunt, MeterWant, dmmReading, dmmText, dmmUnitText, sameReading, stillSuspect } from '../../core/physics'
+import { DMM, DmmDial, DmmJack, DmmMiss, DmmResult, DmmSetup, MeterWant, dmmReading, dmmText, dmmUnitText, sameReading, stillSuspect } from '../../core/physics'
 import { si, volts } from '../../core/units'
-import { Control, Params, Readout, huntReadout, opts, pick } from '../types'
+import { Control, Params, Readout, Stage, huntReadout, opts, pick } from '../types'
 import { glowHalo } from './circuit'
 import { GREY, HEAT, HIGH_V, LABEL, POWER, RING } from './colors'
-import { HuntBench, huntKit, huntStage, probeMeter, readingText } from './faults'
+import { HuntBench, HuntCase, HuntQ, RigTable, glowGuess, huntStage, probeMeter, readingText, rigTable } from './faults'
+import { FACE_VIEW } from './rigs'
 import { liveLabel } from './text'
 import { V3 } from '../../models/kit'
 
-export const DMM_DIALS: Record<DmmDial, string> = { vdc: 'V⎓ volts', vac: 'V~ AC volts', mv: 'mV⎓', ohm: 'Ω ohms', beep: '))) beeper', diode: '▷| diode', ma: 'mA', amp: 'A' }
+const DMM_DIALS: Record<DmmDial, string> = { vdc: 'V⎓ volts', vac: 'V~ AC volts', mv: 'mV⎓', ohm: 'Ω ohms', beep: '))) beeper', diode: '▷| diode', ma: 'mA', amp: 'A' }
 /** Dial names for 3D text (the stroke font has no ⎓ or ▷). */
 const DIAL_TEXT: Record<DmmDial, string> = { vdc: 'V DC', vac: 'V~', mv: 'mV DC', ohm: 'Ω', beep: 'beeper', diode: 'diode test', ma: 'mA', amp: 'A' }
-export const DMM_JACKS: Record<DmmJack, string> = { v: 'Red in VΩ', ma: 'Red in mA', a10: 'Red in 10A' }
+const DMM_JACKS: Record<DmmJack, string> = { v: 'Red in VΩ', ma: 'Red in mA', a10: 'Red in 10A' }
 
 /** Dial and red-socket choices. */
 export const dmmControls = (dial: DmmDial, jack: DmmJack): Control[] => [
   { kind: 'choice', key: 'dial', options: opts(DMM_DIALS), initial: dial },
   { kind: 'choice', key: 'jack', options: opts(DMM_JACKS), initial: jack },
 ]
-export const dmmSetupOf = (p: Params): DmmSetup => ({ dial: pick(DMM_DIALS, p.dial, 'vdc'), jack: pick(DMM_JACKS, p.jack, 'v') })
-export const setupText = (s: DmmSetup) => `${DIAL_TEXT[s.dial]}, ${DMM_JACKS[s.jack].replace("Red", "red")}`
+const dmmSetupOf = (p: Params): DmmSetup => ({ dial: pick(DMM_DIALS, p.dial, 'vdc'), jack: pick(DMM_JACKS, p.jack, 'v') })
+const setupText = (s: DmmSetup) => `${DIAL_TEXT[s.dial]}, ${DMM_JACKS[s.jack].replace("Red", "red")}`
 
 const A = (a: number) => si(Math.abs(a), 'A', 2)
 const FUSE_NAME: Record<DmmJack, string> = { v: '', ma: 'F400mA', a10: 'F10A' }
 
 /** Header line for a setup mistake, with the meter's own numbers. */
-export function dmmMissText(miss: DmmMiss, want: MeterWant, s: DmmSetup, r: DmmResult): string {
+function dmmMissText(miss: DmmMiss, want: MeterWant, s: DmmSetup, r: DmmResult): string {
   switch (miss) {
     case 'short':
       return `Dead short: red in ${s.jack === 'ma' ? 'mA' : '10A'} is a ${si(s.jack === 'ma' ? DMM.ma.ohms : DMM.a10.ohms, 'Ω', 2)} shunt on every dial; ${A(r.amps)} through the leads`
@@ -57,11 +57,8 @@ export const METER_LEGEND = [
   { color: LABEL, label: 'Red probe + socket, black COM', shape: 'dot' as const },
 ]
 
-type Kit<F extends string, P extends string> = ReturnType<typeof huntKit<F, P>>
-type Q<F extends string, P extends string> = ReturnType<Kit<F, P>['params']>
-
 /** One measurement: what the meter shows, the mistake (null = fair), the probe spots and where the red lead goes. */
-export interface MeterShot<T extends string> {
+interface MeterShot<T extends string> {
   r: DmmResult
   miss: DmmMiss | null
   want: MeterWant
@@ -69,26 +66,20 @@ export interface MeterShot<T extends string> {
   black: T
 }
 
-export interface MeterRigSpec<F extends string, P extends string, T extends string, S extends string> {
-  hunt: FaultHunt<F, P>
-  kit: Kit<F, P>
+interface MeterRigSpec<F extends string, P extends string, T extends string, S extends string> extends HuntCase<F, P, S> {
   bench: HuntBench<T, S>
   /** The meter on the bench for these params (memoised by the rig). */
-  measure: (q: Q<F, P>, s: DmmSetup, p: Params) => MeterShot<T>
-  /** Part to glow when picked as the diagnosis, and the part a short heats. */
-  parts: Record<F, S>
+  measure: (q: HuntQ<F, P>, s: DmmSetup, p: Params) => MeterShot<T>
+  /** The part a short heats. */
   shorted: S
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
-  table: { colW: number; nameW?: number; at?: V3 }
+  table: RigTable
   meterAt?: V3
-  extra?: (s: { q: Q<F, P>; shot: MeterShot<T>; t: number; dt: number; found: boolean; p: Params }) => void
+  extra?: (s: { q: HuntQ<F, P>; shot: MeterShot<T>; t: number; dt: number; found: boolean; p: Params }) => void
 }
 
 /** Shared frame: full meter (dial, red socket, probes), beeper, blown-fuse mark, short glow, header and table. A probe joins
  *  the "You measured" row only once it was read with a fair setup. */
-export function meterRig<F extends string, P extends string, T extends string, S extends string>(scene: THREE.Object3D, header: ReturnType<typeof huntStage>['header'], s: MeterRigSpec<F, P, T, S>) {
+export function meterRig<F extends string, P extends string, T extends string, S extends string>({ scene, header }: ReturnType<typeof huntStage>, s: MeterRigSpec<F, P, T, S>): Stage {
   const { bench, kit, hunt } = s
   const at = s.meterAt ?? [9.8, 0.4, 0]
   const k = 0.42
@@ -96,10 +87,11 @@ export function meterRig<F extends string, P extends string, T extends string, S
   const unit = liveLabel(scene, [at[0] + 3.2 * k, at[1] + 6.9 * k, 0.4], { size: 0.32, align: 'right' })
   const beep = liveLabel(scene, [at[0] + 4.9 * k, at[1] + 3.7 * k, 0.4], { size: 0.42, align: 'left' })
   const fuse = glowHalo(scene, [at[0] - 2.4 * k, at[1] - 4.6 * k, 0.8], 0.5)
-  const table = kit.table(scene, s.table.at ?? [-17, -3.9, 0], { colW: s.table.colW, nameW: s.table.nameW ?? 5.4 })
+  const table = rigTable(scene, kit, s.table)
+  const track = kit.track()
   const cache = new Map<string, MeterShot<T>>()
-  const st = { t: 0, c: '', seen: [] as P[], shot: null as MeterShot<T> | null }
-  const shotOf = (q: Q<F, P>, p: Params) => {
+  const st = { t: 0, seen: [] as P[], shot: null as MeterShot<T> | null }
+  const shotOf = (q: HuntQ<F, P>, p: Params) => {
     const setup = dmmSetupOf(p)
     const key = `${q.truth}|${JSON.stringify({ ...p, guess: '', case: '' })}`
     let hit = cache.get(key)
@@ -107,17 +99,15 @@ export function meterRig<F extends string, P extends string, T extends string, S
     return hit
   }
   return {
+    scene,
+    view: FACE_VIEW,
     frame(dt: number, p: Params) {
       st.t += dt
       const q = kit.params(p)
       const setup = dmmSetupOf(p)
       const shot = shotOf(q, p)
       st.shot = shot
-      if (q.c !== st.c) {
-        st.c = q.c
-        st.seen = []
-      }
-      if (!shot.miss && !st.seen.includes(q.probe)) st.seen.push(q.probe)
+      st.seen = track(q, !shot.miss)
       meter.aim(bench.tp[shot.red], bench.tp[shot.black], setup.jack)
       meter.meter.dial(setup.dial)
       meter.meter.display.set(dmmText(shot.r).replace('−', '-'))
@@ -127,8 +117,7 @@ export function meterRig<F extends string, P extends string, T extends string, S
       fuse.set(shot.r.blown ? 1 : 0, HIGH_V)
       bench.clearGlow()
       if (shot.miss === 'short') bench.glow(s.shorted, Math.min(1.6, Math.abs(shot.r.amps) / 4), HEAT)
-      const found = q.guess === q.truth
-      if (q.guess) bench.glow(s.parts[q.guess], 0.8, found ? POWER : HIGH_V)
+      const found = glowGuess(bench, s.parts, q)
       s.extra?.({ q, shot, t: st.t, dt, found, p })
       if (shot.miss) header.set(s.symptom, { pass: false, near: false, fail: shot.miss }, dmmMissText(shot.miss, shot.want, setup, shot.r), `${setupText(setup)}: not a fair reading for this test point`, 'MISUSE')
       else {

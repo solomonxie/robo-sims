@@ -9,9 +9,9 @@ import { runPoint } from '../power/wiring'
 import { AMS1117_33, junctionC, linearReg } from '../regulators'
 import { DIODES, diodeVolts } from '../semiconductors'
 import { FUSES, fuseMeltTime, reverseGuard, seriesDiode } from '../protection'
-import { bisectRoot } from '../common'
+import { bisectRoot, memoize } from '../common'
 import { ROOM_C } from '../dc'
-import { FaultHunt, MeterRead } from './hunt'
+import { MeterRead, amp, huntOf, volt } from './hunt'
 
 /** The build: 6 × AA alkaline at 85 %, 50 mΩ of leads, the ESP32's boot Wi-Fi burst on 3.3 V, a T1A glass fuse (0.1 Ω),
  *  22 AWG holder leads 15 cm long; a board that's off (buck under its minimum input) looks like 10 kΩ. */
@@ -27,7 +27,6 @@ export const SUPPLY_BOT = {
   offOhms: 10e3,
 }
 const AA = CHEMISTRIES.alkaline
-const volt = (value: number): MeterRead => ({ value, unit: 'V' })
 const flicker = (value: number, alt: number): MeterRead => ({ value, unit: 'V', alt })
 
 /** Rest voltage of the holder at state of charge `soc` (below 0 = drained past cutoff); `reversed` cells subtract. */
@@ -35,7 +34,7 @@ export const holderVolts = (soc = SUPPLY_BOT.soc, reversed = 0) => (SUPPLY_BOT.s
 /** Internal resistance of the holder's cells plus its leads. */
 export const holderOhms = (cellOhms = AA.cell.ohms) => SUPPLY_BOT.series * cellOhms + SUPPLY_BOT.wiringOhms
 
-export interface BootPoint {
+interface BootPoint {
   /** The ESP32 comes up and stays up. */
   boots: boolean
   /** The buck starts at all (its input is over the minimum with no load). */
@@ -90,9 +89,8 @@ export const DEAD_PROBES: Record<DeadProbe, { name: string }> = {
   rail: { name: '5 V rail' },
 }
 /** Green crust on the springs from a leaked cell: 15 Ω between the cells and the switch. */
-export const CONTACT_OHMS = 15
+const CONTACT_OHMS = 15
 
-const deadCache = new Map<string, ReturnType<typeof deadCase>>()
 function deadCase(fault: DeadFault | 'ok') {
   const f = fault === 'ok' ? { soc: SUPPLY_BOT.soc, cellOhms: AA.cell.ohms } : DEAD_FAULTS[fault]
   const ocv = holderVolts(f.soc)
@@ -111,17 +109,9 @@ function deadCase(fault: DeadFault | 'ok') {
 }
 
 /** The holder's numbers with `fault` in the build (memoised: every input is fixed). */
-export function deadBattery(fault: DeadFault | 'ok') {
-  let hit = deadCache.get(fault)
-  if (!hit) deadCache.set(fault, (hit = deadCase(fault)))
-  return hit
-}
+export const deadBattery = memoize(deadCase)
 
-export const DEAD_HUNT: FaultHunt<DeadFault, DeadProbe> = {
-  faults: Object.keys(DEAD_FAULTS) as DeadFault[],
-  probes: Object.keys(DEAD_PROBES) as DeadProbe[],
-  read: (f, p) => deadBattery(f).reads[p],
-}
+export const DEAD_HUNT = huntOf(DEAD_FAULTS, DEAD_PROBES, (f, p) => deadBattery(f).reads[p])
 
 // --- Reverse polarity: a series 1N4007 guards the board ---
 
@@ -142,12 +132,10 @@ export const REVERSE_PROBES: Record<ReverseProbe, { name: string }> = {
 }
 const GUARD = DIODES['1N4007']
 
-const reverseCache = new Map<string, ReturnType<typeof reverseCase>>()
 function reverseCase(fault: ReverseFault | 'ok') {
   const rs = holderOhms()
   const ocv = holderVolts(SUPPLY_BOT.soc, fault === 'cells' ? 2 : 0)
   const off = rs + SUPPLY_BOT.offOhms
-  const amp = (value: number): MeterRead => ({ value, unit: 'A' })
   if (fault === 'ok') {
     const b = bootPoint(ocv, rs, 0, (a) => diodeVolts(a, GUARD))
     const reads = { plug: volt(b.packV), guard: volt(diodeVolts(b.amps, GUARD)), buckIn: volt(b.buckIn), rail: volt(b.rail), amps: amp(b.amps) }
@@ -164,17 +152,9 @@ function reverseCase(fault: ReverseFault | 'ok') {
 }
 
 /** Readings with `fault` in the build (memoised). */
-export function reversePolarity(fault: ReverseFault | 'ok') {
-  let hit = reverseCache.get(fault)
-  if (!hit) reverseCache.set(fault, (hit = reverseCase(fault)))
-  return hit
-}
+export const reversePolarity = memoize(reverseCase)
 
-export const REVERSE_HUNT: FaultHunt<ReverseFault, ReverseProbe> = {
-  faults: Object.keys(REVERSE_FAULTS) as ReverseFault[],
-  probes: Object.keys(REVERSE_PROBES) as ReverseProbe[],
-  read: (f, p) => reversePolarity(f).reads[p],
-}
+export const REVERSE_HUNT = huntOf(REVERSE_FAULTS, REVERSE_PROBES, (f, p) => reversePolarity(f).reads[p])
 
 /** The same pack and board behind each guard: reversed, how much flows (no guard: the chips' substrate diodes straight
  *  across the cells); the right way round, what the guard costs. */
@@ -262,7 +242,6 @@ function feed(ocv: number, rs: number, rl: number, draw: (vin: number) => number
   return { amps, pack: ocv - rs * amps, fused: ocv - (rs + rl) * amps }
 }
 
-const shortCache = new Map<string, ReturnType<typeof shortCase>>()
 function shortCase(fault: ShortFault | 'ok') {
   const ocv = holderVolts()
   const cellsR = SUPPLY_BOT.series * AA.cell.ohms
@@ -306,14 +285,6 @@ function shortCase(fault: ShortFault | 'ok') {
 }
 
 /** Readings with `fault` in the build (memoised). */
-export function shortCircuit(fault: ShortFault | 'ok') {
-  let hit = shortCache.get(fault)
-  if (!hit) shortCache.set(fault, (hit = shortCase(fault)))
-  return hit
-}
+export const shortCircuit = memoize(shortCase)
 
-export const SHORT_HUNT: FaultHunt<ShortFault, ShortProbe> = {
-  faults: Object.keys(SHORT_FAULTS) as ShortFault[],
-  probes: Object.keys(SHORT_PROBES) as ShortProbe[],
-  read: (f, p) => shortCircuit(f).reads[p],
-}
+export const SHORT_HUNT = huntOf(SHORT_FAULTS, SHORT_PROBES, (f, p) => shortCircuit(f).reads[p])

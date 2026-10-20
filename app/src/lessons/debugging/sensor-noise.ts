@@ -9,7 +9,6 @@ import {
   FLOAT_FAULTS,
   FLOAT_HUNT,
   FLOAT_PROBES,
-  FaultHunt,
   FloatFault,
   FloatProbe,
   LOGIC_INPUTS,
@@ -28,7 +27,7 @@ import {
   readingSpread,
 } from '../../core/physics'
 import { millivolts, msText, ohms, si } from '../../core/units'
-import { FACE_VIEW, GREY, HUNT_HOWTO, HUNT_LEGEND, NoisePart, NoiseTp, PlotView, huntKit, huntRig, huntStage, noiseBench, serialPlot } from '../fx'
+import { CASE_LOG, GREY, HUNT_HOWTO, HUNT_LEGEND, NoisePart, NoiseTp, PlotView, ProbeCase, huntKit, huntRig, huntStage, noiseBench, serialPlot } from '../fx'
 import { Lesson, Stage } from '../types'
 
 type Bench = ReturnType<typeof noiseBench>
@@ -46,15 +45,8 @@ const VDD = FLOAT_BOT.vdd
 const VIL = LOGIC_INPUTS.esp32.vil * VDD
 const VIH = LOGIC_INPUTS.esp32.vih * VDD
 
-interface NoiseSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
+interface NoiseSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip, NoisePart> {
   kind: 'button' | 'analog'
-  tips: Record<P, Tip>
-  parts: Record<F, NoisePart>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
   /** Plot for the probe: healthy and this case, the view, a stats line; null = nothing to plot. */
   plot: (truth: F, probe: P) => { ok: number[] | null; got: number[] | null; view: PlotView; stats: string } | null
   extra: (bench: Bench, truth: F, probe: P, found: boolean, t: number, dt: number) => void
@@ -62,11 +54,12 @@ interface NoiseSpec<F extends string, P extends string> {
 
 /** Shared stage: noise bench, meter, suspect table, and a serial plot for what the meter can't show. */
 function noiseBuild<F extends string, P extends string>(s: NoiseSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
+  const stage = huntStage()
+  const { scene } = stage
   const bench = noiseBench(scene, s.kind)
   const plot: Plot = serialPlot(scene, [9.5, -6.3, 0], 4.4, 2.6, 'Serial plot')
   let shown = ''
-  const rig = huntRig<F, P, NoiseTp, NoisePart, Tip>(scene, header, {
+  return huntRig<F, P, NoiseTp, NoisePart, Tip>(stage, {
     ...s,
     bench,
     table: { colW, nameW: 5 },
@@ -84,10 +77,9 @@ function noiseBuild<F extends string, P extends string>(s: NoiseSpec<F, P>, colW
       }
       plot.show(p.ok, p.got, p.view)
       plot.stats(p.stats)
-      plot.log('grey healthy · cyan this case')
+      plot.log(CASE_LOG)
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
 /** `n` samples of a running count of `times` over 0…`seconds`. */

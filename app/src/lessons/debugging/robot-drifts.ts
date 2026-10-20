@@ -1,7 +1,6 @@
 import {
   DEG,
   DRIFT_BOT,
-  FaultHunt,
   MISMATCH_FAULTS,
   MISMATCH_HUNT,
   MISMATCH_PROBES,
@@ -19,8 +18,8 @@ import {
   motorMismatch,
   wheelSizeError,
 } from '../../core/physics'
-import { fixedText, mpsText, pct, rpmText, si } from '../../core/units'
-import { DriftPart, DriftTp, FACE_VIEW, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, POWER, PlotView, RING, driftBench, huntKit, huntRig, huntStage, serialPlot } from '../fx'
+import { fixedText, mmText, mpsText, pct, rpmText, si } from '../../core/units'
+import { CASE_LOG, DriftPart, DriftTp, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, POWER, PlotView, ProbeCase, RING, driftBench, huntKit, huntRig, huntStage, serialPlot } from '../fx'
 import { Lesson, Stage } from '../types'
 
 type Bench = ReturnType<typeof driftBench>
@@ -44,14 +43,7 @@ interface PlotSpec {
   tone?: string
 }
 
-interface DriftSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
-  tips: Record<P, Tip>
-  parts: Record<F, DriftPart>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
+interface DriftSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip, DriftPart> {
   plotTitle: string
   /** What the serial plot shows for this case and probe; null = a meter reading. */
   plot: (truth: F, probe: P) => PlotSpec | null
@@ -61,12 +53,13 @@ interface DriftSpec<F extends string, P extends string> {
 
 /** Shared stage: floor-test bench, meter, suspect table, and a serial plot for what the tests log. */
 function driftBuild<F extends string, P extends string>(s: DriftSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
+  const stage = huntStage()
+  const { scene } = stage
   const bench = driftBench(scene)
   const plot = serialPlot(scene, [9.5, -6.2, 0], 4.4, 2.6, s.plotTitle, [RING])
   let key = ''
   let t0 = 0
-  const rig = huntRig<F, P, DriftTp, DriftPart, Tip>(scene, header, {
+  return huntRig<F, P, DriftTp, DriftPart, Tip>(stage, {
     ...s,
     bench,
     table: { colW },
@@ -84,13 +77,10 @@ function driftBuild<F extends string, P extends string>(s: DriftSpec<F, P>, colW
       s.show({ bench, truth: q.truth, probe: q.probe, u: Math.min(1, (since % LOOP_S) / RUN_S), t: since, glow: !q.guess })
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
-const mmOf = (m: number) => `${Math.round(m * 1000)} mm`
 const V = (v: number) => `${fixedText(v, 2)} V`
 const A = (a: number) => si(a, 'A', 2)
-const PLOT_LOG = 'grey healthy · cyan this case'
 
 // --- Motor mismatch ---
 
@@ -141,7 +131,7 @@ export const robotDriftsMotorMismatch: Lesson = {
           const m = mm(truth)
           if (probe === 'trail') {
             const d = m.reads.trail.value
-            return { got: offsets(truth), ok: offsets('ok'), view: { lo: 0, hi: 450, axis: ['0 mm', '450 mm'], span: 'offset' }, stats: `${Math.round(d)} mm right of the tape after ${fixedText(m.seconds, 2)} s`, log: PLOT_LOG, tone: Math.abs(d) < 3 ? POWER : HIGH_V }
+            return { got: offsets(truth), ok: offsets('ok'), view: { lo: 0, hi: 450, axis: ['0 mm', '450 mm'], span: 'offset' }, stats: `${Math.round(d)} mm right of the tape after ${fixedText(m.seconds, 2)} s`, log: CASE_LOG, tone: Math.abs(d) < 3 ? POWER : HIGH_V }
           }
           if (probe === 'up') {
             const [l, r] = m.up
@@ -194,7 +184,7 @@ export const robotDriftsWheelSizeError: Lesson = {
     const q = wsKit.params(p)
     if (q.guess === q.truth && q.truth === 'tyre') {
       const d = ws('tyre').drive
-      return `Equal ticks: d_R / d_L = ${ODO_BOT.smallMm} / ${TT_WHEEL_MM} → θ = (d_R − d_L) / b = (${mmOf(d.dR)} − ${mmOf(d.dL)}) / ${TT_TRACK_M * 1000} mm = ${fixedText(d.end.th / DEG, 1)}°, odometry sees 0°`
+      return `Equal ticks: d_R / d_L = ${ODO_BOT.smallMm} / ${TT_WHEEL_MM} → θ = (d_R − d_L) / b = (${mmText(d.dR)} − ${mmText(d.dL)}) / ${TT_TRACK_M * 1000} mm = ${fixedText(d.end.th / DEG, 1)}°, odometry sees 0°`
     }
     return `mm per tick = π × Ø / ticks per rev = π × ${TT_WHEEL_MM} / ${ws('ok').setup.tpr} = ${fixedText(tickMm, 4)} mm · 1 m = ${Math.round(ws('ok').ticksPerM)} ticks · heading = (d_R − d_L) / b`
   },
@@ -221,9 +211,9 @@ export const robotDriftsWheelSizeError: Lesson = {
         plot(truth, probe) {
           const w = ws(truth)
           if (probe === 'trail')
-            return { got: lateral(truth), ok: lateral('ok'), view: { lo: 0, hi: 150, axis: ['0 mm', '150 mm'], span: 'offset' }, stats: `${Math.round(w.drive.offsetMm)} mm right of the tape · odometry: 0°`, log: PLOT_LOG, tone: w.drive.offsetMm < 3 ? POWER : HIGH_V }
+            return { got: lateral(truth), ok: lateral('ok'), view: { lo: 0, hi: 150, axis: ['0 mm', '150 mm'], span: 'offset' }, stats: `${Math.round(w.drive.offsetMm)} mm right of the tape · odometry: 0°`, log: CASE_LOG, tone: w.drive.offsetMm < 3 ? POWER : HIGH_V }
           if (probe === 'tape')
-            return { got: along(truth), ok: along('ok'), view: { lo: 0, hi: 1100, axis: ['0', '1.1 m'], span: 'distance', marks: [[1000, '1 m']] }, stats: `stopped ${Math.round(w.drive.tapeMm)} mm from the start · odometry: ${fixedText(w.drive.odoM, 3)} m`, log: PLOT_LOG, tone: Math.abs(w.drive.tapeMm - 1000) < 11 ? POWER : HIGH_V }
+            return { got: along(truth), ok: along('ok'), view: { lo: 0, hi: 1100, axis: ['0', '1.1 m'], span: 'distance', marks: [[1000, '1 m']] }, stats: `stopped ${Math.round(w.drive.tapeMm)} mm from the start · odometry: ${fixedText(w.drive.odoM, 3)} m`, log: CASE_LOG, tone: Math.abs(w.drive.tapeMm - 1000) < 11 ? POWER : HIGH_V }
           if (probe === 'spin')
             return { got: w.spin.real, ok: w.spin.odo, view: { lo: 0, hi: 450, axis: ['0°', '450°'], span: 'heading', marks: [[360, '360°']] }, stats: `odometry ${Math.round(w.spin.odoDeg)}° · real ${Math.round(w.spin.realDeg)}°`, log: 'grey odometry · cyan real', tone: Math.abs(w.spin.realDeg - 360) < 9 ? POWER : HIGH_V }
           if (probe === 'tyre') return { got: null, ok: null, view: NO_VIEW, stats: `Caliper across the right tyre: ${fixedText(w.setup.rightMm, 2)} mm`, log: `left tyre ${fixedText(w.setup.leftMm, 2)} mm` }

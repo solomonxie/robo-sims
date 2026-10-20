@@ -3,7 +3,6 @@ import {
   ESP32_BOD,
   ESP32_MIN_V,
   ESP32_TIMELINE,
-  FaultHunt,
   SPIKE_BOT,
   SPIKE_FAULTS,
   SPIKE_HUNT,
@@ -26,7 +25,7 @@ import {
   weakRegulator,
 } from '../../core/physics'
 import { celsiusText, fixedText, msText, ohms, si } from '../../core/units'
-import { FACE_VIEW, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, RING, GREY, ResetSource, huntKit, huntRig, huntStage, railCapture, resetBench } from '../fx'
+import { CASE_LOG, GREY, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, ProbeCase, RING, ResetSource, huntKit, huntRig, huntStage, railCapture, resetBench } from '../fx'
 import { Lesson, Stage } from '../types'
 
 type Bench = ReturnType<typeof resetBench>
@@ -46,16 +45,9 @@ const LEVELS: [number, string, string][] = [
   [ESP32_BOD[0], `BOD ${ESP32_BOD[0]} V`, RING],
 ]
 
-interface ResetSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
+interface ResetSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip, Part> {
   bench: { motors?: boolean; sensors?: boolean }
-  tips: Record<P, Tip>
-  parts: Record<F, Part>
   hot?: Record<string, Part>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
   scope: P
   /** Scope traces (healthy, measured) and the timebase text, for the real fault. */
   traces: (truth: F) => [number[], number[], string]
@@ -66,10 +58,11 @@ interface ResetSpec<F extends string, P extends string> {
 
 /** Shared stage: reset bench, meter, suspect table, and a scope + serial line for what the meter can't catch. */
 function resetBuild<F extends string, P extends string>(s: ResetSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
+  const stage = huntStage()
+  const { scene } = stage
   const bench = resetBench(scene, s.bench)
   const cap = railCapture(scene, [9.5, -6.3, 0], 4.4, 2.6, { ...s.capture, title: '3.3 V rail', levels: LEVELS })
-  const rig = huntRig<F, P, Tp, Part, Tip>(scene, header, {
+  return huntRig<F, P, Tp, Part, Tip>(stage, {
     ...s,
     bench,
     table: { colW, nameW: 5 },
@@ -78,14 +71,13 @@ function resetBuild<F extends string, P extends string>(s: ResetSpec<F, P>, colW
       if (q.probe === s.scope) {
         const [ok, got, span] = s.traces(q.truth)
         cap.set(ok, got, span)
-        cap.log('grey healthy · cyan this case', GREY)
+        cap.log(CASE_LOG, GREY)
       } else {
         cap.set(null, null, '')
         cap.log(read.unit === 'log' ? REASON(read.label ?? '') : 'Scope: pick “3.3 V, scope”', read.unit === 'log' ? (read.label === 'POWERON' ? GREY : HIGH_V) : GREY)
       }
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
 // --- Motor spike resets ---

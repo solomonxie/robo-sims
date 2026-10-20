@@ -8,7 +8,6 @@ import {
   ENABLE_PROBES,
   EnableFault,
   EnableProbe,
-  FaultHunt,
   GPIO_VDD,
   GROUND_FAULTS,
   GROUND_HUNT,
@@ -27,8 +26,8 @@ import {
   missingEnable,
   stalledGearbox,
 } from '../../core/physics'
-import { fixedText, ohms, pct, si, volts } from '../../core/units'
-import { FACE_VIEW, HUNT_HOWTO, HUNT_LEGEND, driverBench, huntKit, huntRig, huntStage } from '../fx'
+import { celsiusText, fixedText, ohms, pct, si, volts } from '../../core/units'
+import { HUNT_HOWTO, HUNT_LEGEND, ProbeCase, driverBench, huntKit, huntRig, huntStage } from '../fx'
 import { Lesson, Stage } from '../types'
 
 type Bench = ReturnType<typeof driverBench>
@@ -38,15 +37,8 @@ interface Tip {
   black: string
 }
 
-interface DriveSpec<F extends string, P extends string> {
-  hunt: FaultHunt<F, P>
-  kit: ReturnType<typeof huntKit<F, P>>
+interface DriveSpec<F extends string, P extends string> extends ProbeCase<F, P, Tip> {
   chip: 'tb6612' | 'drv8833'
-  tips: Record<P, Tip>
-  parts: Record<F, string>
-  symptom: string
-  hint: string
-  fixes: Record<F, string>
   /** Wheel rpm and hum (0…1) with the real fault in, before it's fixed. */
   motion?: (truth: F) => { rpm: number; hum: number }
   /** Show the fault on the bench once it's found (a wire off, a cut jumper). */
@@ -57,9 +49,9 @@ const HOT = { 'TT motor': 'motor', TB6612: 'driver' }
 
 /** Shared stage: drive bench, meter on the chosen test points, suspect table, hunt header. */
 function driveBuild<F extends string, P extends string>(s: DriveSpec<F, P>, colW: number): Stage {
-  const { scene, header } = huntStage()
-  const bench = driverBench(scene, { chip: s.chip })
-  const rig = huntRig<F, P, Tp, string, Tip>(scene, header, {
+  const stage = huntStage()
+  const bench = driverBench(stage.scene, { chip: s.chip })
+  return huntRig<F, P, Tp, string, Tip>(stage, {
     ...s,
     bench,
     hot: HOT,
@@ -71,11 +63,9 @@ function driveBuild<F extends string, P extends string>(s: DriveSpec<F, P>, colW
       s.reveal?.(bench, q.truth, found)
     },
   })
-  return { scene, view: FACE_VIEW, ...rig }
 }
 
 const A = (a: number) => si(a, 'A', 2)
-const C = (c: number) => `${Math.round(c)} °C`
 const R_ON = (chip: 'tb6612' | 'drv8833') => DRIVERS[chip].drop(1)
 
 // --- Missing enable pin ---
@@ -197,7 +187,7 @@ const sg = (f: StallFault | 'ok') => stalledGearbox(f)
 const jam = sg('jammed').run
 const okRun = sg('ok').run
 const ST_FIX: Record<StallFault, string> = {
-  jammed: `Locked gearbox: ${A(jam.amps)}, no back-EMF, winding ${C(jam.motorC)} in ${DRIVE_BOT.heatS} s. Cut power, clear the gears`,
+  jammed: `Locked gearbox: ${A(jam.amps)}, no back-EMF, winding ${celsiusText(jam.motorC)} in ${DRIVE_BOT.heatS} s. Cut power, clear the gears`,
   open: `Open winding: volts across it, ${A(0)} through it, OL with power off. Replace the motor`,
   duty: `ledcWrite(204) on 12 bits is ${pct(LOW_DUTY)}: ${volts(sg('duty').run.term)}, too little to start. Use 8 bits or write ${Math.round(DRIVE_BOT.duty * 4095)}`,
   dead: `Dead output stage: logic fine, 0 V on AO1/AO2. Replace the driver, then find what killed it`,
@@ -213,7 +203,7 @@ export const motorDoesNothingStalledGearbox: Lesson = {
   points: [
     HUNT_HOWTO,
     `A turning motor makes back-EMF that cancels most of the supply, so it draws ${A(okRun.amps)} here. Locked, there is no back-EMF: I = V / R = ${A(jam.amps)}, ${fixedText(jam.amps / okRun.amps, 1)}× more (Actuators › DC motor › Stall current).`,
-    `Stall current is heat: ${si(jam.amps * jam.amps * TT_MOTOR.ohms, 'W', 2)} in a winding the size of a thumb reaches ${C(jam.motorC)} in ${DRIVE_BOT.heatS} s; the end cap softens near ${C(TT_THERMAL.maxC)}. The TB6612 is rated ${A(DRIVERS.tb6612.maxA)} per channel; a current limit or a PTC fuse saves both.`,
+    `Stall current is heat: ${si(jam.amps * jam.amps * TT_MOTOR.ohms, 'W', 2)} in a winding the size of a thumb reaches ${celsiusText(jam.motorC)} in ${DRIVE_BOT.heatS} s; the end cap softens near ${celsiusText(TT_THERMAL.maxC)}. The TB6612 is rated ${A(DRIVERS.tb6612.maxA)} per channel; a current limit or a PTC fuse saves both.`,
     'Volts at the terminals alone can’t separate a jam, an open winding and a healthy motor: all read about 6 V. Current can (meter in series), and so can the coil’s resistance with power off: ~5 Ω, OL = open.',
     `Code can stall it too: ledcWrite(204) is ${pct(DRIVE_BOT.duty)} on an 8-bit channel but ${pct(LOW_DUTY)} on a 12-bit one, ${volts(sg('duty').run.term)} average, under what starts the car (Microcontrollers › PWM › Duty cycle).`,
   ],

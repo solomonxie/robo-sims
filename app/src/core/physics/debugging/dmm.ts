@@ -44,7 +44,7 @@ export const DMM_RIGHT: Record<MeterWant, DmmSetup> = {
   amp: { dial: 'amp', jack: 'a10' },
 }
 
-export interface NetDiode {
+interface NetDiode {
   a: number
   b: number
   d: Diode
@@ -88,8 +88,8 @@ export function diodeNetSolve(nodes: number, elements: Element[], diodes: NetDio
   return { ...sol!, diodeA: diodes.map((x, k) => diodeAmps(v[k], x.d)) }
 }
 
-export type DmmUnit = 'V' | 'mV' | 'A' | 'Ω'
-export type DmmBeep = 'on' | 'chirp' | 'off'
+type DmmUnit = 'V' | 'mV' | 'A' | 'Ω'
+type DmmBeep = 'on' | 'chirp' | 'off'
 
 export interface DmmResult {
   /** Display value in `unit`; null = OL. */

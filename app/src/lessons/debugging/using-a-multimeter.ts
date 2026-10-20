@@ -30,7 +30,7 @@ import {
 } from '../../core/physics'
 import { si, volts } from '../../core/units'
 import { V3 } from '../../models/kit'
-import { FACE_VIEW, GREY, HEAT, METER_LEGEND, SupplyPart, SupplyTp, dmmControls, glowHalo, huntKit, huntStage, liveLabel, meterRig, motorCan, readingText, supplyBench, wire } from '../fx'
+import { GREY, HEAT, METER_LEGEND, SupplyPart, SupplyTp, dmmControls, glowHalo, huntKit, huntStage, liveLabel, meterRig, motorCan, readingText, supplyBench, wire } from '../fx'
 import { Control, Lesson, Stage, opts, pick } from '../types'
 
 const A = (a: number) => si(a, 'A', 2)
@@ -75,10 +75,11 @@ export const usingAMultimeterContinuityTest: Lesson = {
   ],
   controls: withMeter(contKit, ['beep', 'v'], [{ kind: 'choice', key: 'power', options: opts(POWER_OPTS), initial: 'off' }]),
   build(): Stage {
-    const { scene, header } = huntStage()
+    const stage = huntStage()
+    const { scene } = stage
     const bench = supplyBench(scene, { guard: 'diode' })
     const tag = liveLabel(scene, [-15.3, 3.2, 0.4], { size: 0.3 })
-    const rig = meterRig<ContFault, ContProbe, SupplyTp, SupplyPart>(scene, header, {
+    return meterRig<ContFault, ContProbe, SupplyTp, SupplyPart>(stage, {
       hunt: CONT_HUNT,
       kit: contKit,
       bench,
@@ -103,7 +104,6 @@ export const usingAMultimeterContinuityTest: Lesson = {
         bench.flipGuard(found && q.truth === 'diode')
       },
     })
-    return { scene, view: FACE_VIEW, ...rig }
   },
 }
 
@@ -156,9 +156,9 @@ export const usingAMultimeterVoltageTest: Lesson = {
   ],
   controls: withMeter(voltKit, ['vdc', 'v'], [{ kind: 'choice', key: 'black', options: opts(COM_OPTS), initial: 'gnd' }]),
   build(): Stage {
-    const { scene, header } = huntStage()
-    const bench = supplyBench(scene, { guard: 'fuse' })
-    const rig = meterRig<VoltFault, VoltProbe, SupplyTp, SupplyPart>(scene, header, {
+    const stage = huntStage()
+    const bench = supplyBench(stage.scene, { guard: 'fuse' })
+    return meterRig<VoltFault, VoltProbe, SupplyTp, SupplyPart>(stage, {
       hunt: VOLT_HUNT,
       kit: voltKit,
       bench,
@@ -181,7 +181,6 @@ export const usingAMultimeterVoltageTest: Lesson = {
         bench.fuse?.set(0, found && q.truth === 'fuse' ? 1 : 0)
       },
     })
-    return { scene, view: FACE_VIEW, ...rig }
   },
 }
 
@@ -229,7 +228,8 @@ export const usingAMultimeterCurrentTest: Lesson = {
   ],
   controls: withMeter(ampKit, ['amp', 'a10']),
   build(): Stage {
-    const { scene, header } = huntStage()
+    const stage = huntStage()
+    const { scene } = stage
     const supply = supplyBench(scene, { guard: 'fuse', driver: true })
     // TT motor on the DRV8833's output.
     const MOTOR: V3 = [6.1, 3.8, 0]
@@ -237,7 +237,7 @@ export const usingAMultimeterCurrentTest: Lesson = {
     wire(scene, [[3.8, 2.6, 0], [motor.pins[0][0], 2.6, 0], motor.pins[0]], 0.09)
     const heat = glowHalo(scene, MOTOR, 0.8)
     const bench = { ...supply, tp: { ...supply.tp, drvOut: [3.9, 2.6, 0.3] as V3, motor: [motor.pins[0][0], motor.pins[0][1], 0.3] as V3 } }
-    const rig = meterRig<AmpFault, AmpProbe, AmpTp, SupplyPart>(scene, header, {
+    return meterRig<AmpFault, AmpProbe, AmpTp, SupplyPart>(stage, {
       hunt: AMP_HUNT,
       kit: ampKit,
       bench,
@@ -261,6 +261,5 @@ export const usingAMultimeterCurrentTest: Lesson = {
         heat.set(running && q.truth === 'drag' ? 0.7 : 0, HEAT)
       },
     })
-    return { scene, view: FACE_VIEW, ...rig }
   },
 }

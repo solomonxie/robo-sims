@@ -53,6 +53,15 @@ export const once = <T>(f: () => T) => {
   let v: T | undefined
   return () => (v ??= f())
 }
+/** `f` cached per key (every key kept). */
+export const memoize = <K extends string, V>(f: (k: K) => V) => {
+  const m = new Map<K, V>()
+  return (k: K) => {
+    let hit = m.get(k)
+    if (!hit) m.set(k, (hit = f(k)))
+    return hit
+  }
+}
 
 export const TAU = 2 * Math.PI
 export const frac = (x: number) => x - Math.floor(x)
