@@ -11,7 +11,6 @@ import {
   FIT_CLASSES,
   FOOT,
   FOOT_FIXES,
-  FitClass,
   FootFix,
   HOLE,
   HOLE_SHAPES,
@@ -36,7 +35,7 @@ import {
 import { degText, fixedText, mmFixed, pct } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import {
-  B_FIELD,
+  FIT_TINT,
   GREY,
   HEAT,
   HIGH_V,
@@ -296,7 +295,6 @@ export const designForPrintingOrientationAndStrength: Lesson = {
 
 // --- Tolerances and fits ---
 
-const FIT_TINT: Record<FitClass, string> = { stuck: HIGH_V, press: HEAT, snug: POWER, slide: B_FIELD, loose: RING }
 const fitParams = (p: Params) => ({ clear: n(p, 'clear'), shrink: n(p, 'shrink'), fix: pick(FOOT_FIXES, p.fix, 'none') as FootFix })
 const fitKey = (p: Params) => `${p.clear} ${p.shrink} ${p.fix}`
 const fitRun = memoBy(fitKey, (p: Params) => {

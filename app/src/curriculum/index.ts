@@ -236,6 +236,7 @@ import { usingAMultimeterContinuityTest, usingAMultimeterCurrentTest, usingAMult
 import { solderingDesoldering, solderingGoodVsColdJoints, solderingIronAndFlux } from '../lessons/workshop/soldering'
 import { breadboardingCommonMistakes, breadboardingRailsAndRows, breadboardingTidyWiring } from '../lessons/workshop/breadboarding'
 import { crimpingConnectorsChoosingConnectors, crimpingConnectorsCrimpingAPin } from '../lessons/workshop/crimping-connectors'
+import { measuringReadingACaliper, measuringTolerances } from '../lessons/workshop/measuring'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -924,6 +925,8 @@ const READY: Record<string, Lesson> = {
   'workshop/breadboarding/common-mistakes': breadboardingCommonMistakes,
   'workshop/crimping-connectors/crimping-a-pin': crimpingConnectorsCrimpingAPin,
   'workshop/crimping-connectors/choosing-connectors': crimpingConnectorsChoosingConnectors,
+  'workshop/measuring/reading-a-caliper': measuringReadingACaliper,
+  'workshop/measuring/tolerances': measuringTolerances,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
