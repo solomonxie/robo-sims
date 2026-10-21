@@ -233,6 +233,7 @@ import { busNotRespondingMissingPullUps, busNotRespondingWrongAddress } from './
 import { robotDriftsMotorMismatch, robotDriftsWheelSizeError } from './debugging/robot-drifts'
 import { usingAMultimeterContinuityTest, usingAMultimeterCurrentTest, usingAMultimeterVoltageTest } from './debugging/using-a-multimeter'
 import { solderingDesoldering, solderingGoodVsColdJoints, solderingIronAndFlux } from './workshop/soldering'
+import { breadboardingCommonMistakes, breadboardingRailsAndRows, breadboardingTidyWiring } from './workshop/breadboarding'
 import { Unit } from './types'
 
 export const UNITS: Unit[] = [
@@ -260,5 +261,5 @@ export const UNITS: Unit[] = [
   { title: 'Robot projects', lessons: [roboCarChassisPower, roboCarWireTheMotorDriver, roboCarDriveWithEsp32, roboCarPhoneRemote, obstacleAvoidingCarMountTheSensor, obstacleAvoidingCarReactiveLogic, obstacleAvoidingCarTuneAndTest, lineFollowingCarSensorArray, lineFollowingCarPdController, lineFollowingCarIntersections, selfBalancingRobotBuildTheBase, selfBalancingRobotReadTheTilt, selfBalancingRobotTuneTheLoop, robotArmAssemble, robotArmCalibrateServos, robotArmIkControl, quadrupedLegGeometry, quadrupedGaitGenerator, mazeSolverWallSensing, mazeSolverFloodFill, sumoRobotWedgeAndWheels, sumoRobotEdgeAndOpponentSensing, cameraTrackerPanTiltRig, cameraTrackerColourTrackingLoop, weatherStationWireTheSensors, weatherStationSendOverWiFi, smartPlantMonitorMoistureProbe, smartPlantMonitorPumpControl, deskLampTrackerLdrPair, deskLampTrackerServoFollow] },
   { title: 'Circuit challenges', lessons: [ledPuzzlesSafeLedCurrent, ledPuzzlesTwoLedsOneSupply, ledPuzzlesBrightnessTarget, dividerPuzzles3v3From5v, dividerPuzzlesAdcRangeMatching, motorDriverPuzzlesTruthTableChallenge, motorDriverPuzzlesPwmSpeedTarget, batteryPuzzlesRuntimeTarget, batteryPuzzlesSeriesCount, logicPuzzlesBuildXor, logicPuzzlesDesignA2BitCounter, timingPuzzlesBlinkAt1Hz, timingPuzzlesDebounceTime] },
   { title: 'Debug it', lessons: [wontPowerOnDeadBattery, wontPowerOnReversePolarity, wontPowerOnShortCircuit, motorDoesNothingMissingEnablePin, motorDoesNothingCommonGroundMissing, motorDoesNothingStalledGearbox, randomResetsMotorSpikeResets, randomResetsWeakRegulator, sensorNoiseFloatingInput, sensorNoiseMissingDecoupling, busNotRespondingWrongAddress, busNotRespondingMissingPullUps, robotDriftsMotorMismatch, robotDriftsWheelSizeError, usingAMultimeterContinuityTest, usingAMultimeterVoltageTest, usingAMultimeterCurrentTest] },
-  { title: 'Workshop skills', lessons: [solderingIronAndFlux, solderingGoodVsColdJoints, solderingDesoldering] },
+  { title: 'Workshop skills', lessons: [solderingIronAndFlux, solderingGoodVsColdJoints, solderingDesoldering, breadboardingRailsAndRows, breadboardingTidyWiring, breadboardingCommonMistakes] },
 ]

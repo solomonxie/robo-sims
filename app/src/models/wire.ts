@@ -11,9 +11,9 @@ function dupontEnd(g: THREE.Group, x: number, z: number) {
 
 type XZ = { x: number; z: number }
 
-/** Centerline of a jumper, housing top to housing top, arcing higher the further apart the holes are. */
-export function jumperPoints(a: XZ, b: XZ): V3[] {
-  const lift = HOUSING_TOP + 1.5 + Math.hypot(b.x - a.x, b.z - a.z) * 0.15
+/** Centerline of a jumper, housing top to housing top, arcing higher the further apart the holes are (+ `extra`). */
+export function jumperPoints(a: XZ, b: XZ, extra = 0): V3[] {
+  const lift = HOUSING_TOP + 1.5 + Math.hypot(b.x - a.x, b.z - a.z) * 0.15 + extra
   return [
     [a.x, HOUSING_TOP, a.z],
     [a.x, HOUSING_TOP + 1.2, a.z],
@@ -29,11 +29,11 @@ export function leadPoints(from: THREE.Vector3, hole: XZ): V3[] {
   return [from.toArray() as V3, mid, [hole.x, HOUSING_TOP + 1.5, hole.z], [hole.x, HOUSING_TOP, hole.z]]
 }
 
-export function buildJumper(a: XZ, b: XZ, color: string): THREE.Group {
+export function buildJumper(a: XZ, b: XZ, color: string, extra = 0): THREE.Group {
   const g = new THREE.Group()
   dupontEnd(g, a.x, a.z)
   dupontEnd(g, b.x, b.z)
-  tube(g, jumperPoints(a, b), 0.32, mat(color, { rough: 0.45 }))
+  tube(g, jumperPoints(a, b, extra), 0.32, mat(color, { rough: 0.45 }))
   return g
 }
 
