@@ -235,6 +235,7 @@ import { robotDriftsMotorMismatch, robotDriftsWheelSizeError } from '../lessons/
 import { usingAMultimeterContinuityTest, usingAMultimeterCurrentTest, usingAMultimeterVoltageTest } from '../lessons/debugging/using-a-multimeter'
 import { solderingDesoldering, solderingGoodVsColdJoints, solderingIronAndFlux } from '../lessons/workshop/soldering'
 import { breadboardingCommonMistakes, breadboardingRailsAndRows, breadboardingTidyWiring } from '../lessons/workshop/breadboarding'
+import { crimpingConnectorsChoosingConnectors, crimpingConnectorsCrimpingAPin } from '../lessons/workshop/crimping-connectors'
 import { closingTheLoop, deadReckoningDrift } from '../lessons/control/open-vs-closed-loop'
 import { physics } from './physics'
 import { practice } from './practice'
@@ -921,6 +922,8 @@ const READY: Record<string, Lesson> = {
   'workshop/breadboarding/rails-and-rows': breadboardingRailsAndRows,
   'workshop/breadboarding/tidy-wiring': breadboardingTidyWiring,
   'workshop/breadboarding/common-mistakes': breadboardingCommonMistakes,
+  'workshop/crimping-connectors/crimping-a-pin': crimpingConnectorsCrimpingAPin,
+  'workshop/crimping-connectors/choosing-connectors': crimpingConnectorsChoosingConnectors,
 }
 for (const e of CATEGORIES.flatMap((c) => c.topics.flatMap((t) => t.entries))) e.lesson = READY[e.id]
 
