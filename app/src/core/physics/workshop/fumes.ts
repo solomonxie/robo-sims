@@ -3,6 +3,7 @@
 // (Dalla Valle: v = Q / (10x² + A)), and the habits that protect eyes, hands and the bench.
 // Room, airflow and extractor numbers are illustrative; the limits are the UK HSE EH40 WELs for rosin-based solder flux fume.
 import { puzzleVerdict } from '../challenges/verdict'
+import { nearestStepAt } from '../common'
 import { INSULATION_MAX_C } from '../power/wiring'
 import { TIPS, steadyJointC } from './iron'
 import { ALLOYS, IDEAL_MM3, fluxBurnRate } from './soldering'
@@ -12,7 +13,7 @@ import { ALLOYS, IDEAL_MM3, fluxBurnRate } from './soldering'
 export const ROSIN_WEL = { stel: 0.15, twa: 0.05 }
 
 /** Rosin share of cored wire by mass (2.2 % is a common core), Sn63 density mg/mm³. */
-export const FLUX_CORE = { massFrac: 0.022, mgPerMm3: 8.4 }
+const FLUX_CORE = { massFrac: 0.022, mgPerMm3: 8.4 }
 /** Rosin in one joint's worth of wire, mg. */
 export const ROSIN_PER_JOINT_MG = IDEAL_MM3 * FLUX_CORE.mgPerMm3 * FLUX_CORE.massFrac
 
@@ -38,7 +39,7 @@ export const captureSpeed = (xM: number, e = EXTRACTOR) => e.m3PerMin / 60 / (10
 export const captureShare = (cm: number, e = EXTRACTOR) => (cm <= 0 ? 0 : Math.min(e.best, captureSpeed(cm / 100, e) / e.needMS))
 
 /** Joint temperature with a 1.6 mm chisel on a signal pad at tip `tipC`; share of the rosin burnt off into fume in a dwell. */
-export const fumeJointC = (tipC: number) => steadyJointC(tipC, 'chisel', 'signal', TIPS.chisel.wetWPerK)
+const fumeJointC = (tipC: number) => steadyJointC(tipC, 'chisel', 'signal', TIPS.chisel.wetWPerK)
 export const fumeShare = (tipC: number, dwellS = FUME_SESSION.dwellS) => 1 - Math.exp(-fluxBurnRate(fumeJointC(tipC)) * dwellS)
 /** Rosin fume released, mg/min. */
 export const fumeRate = (tipC: number) => FUME_SESSION.perMin * ROSIN_PER_JOINT_MG * fumeShare(tipC)
@@ -56,7 +57,7 @@ export interface FumeCfg {
   wash: boolean
 }
 
-export interface FumeFrame {
+interface FumeFrame {
   t: number
   /** Near field (breathing zone) and far field (room), mg/m³. */
   near: number
@@ -110,7 +111,7 @@ export function fumeRun(cfg: FumeCfg) {
   ])
   return { cfg, frames, G, eta, beta, q, jointC: fumeJointC(cfg.tipC), share: fumeShare(cfg.tipC), peak15, mean, clipped, pvcMelts: cfg.tipC > INSULATION_MAX_C.pvc, verdict }
 }
-export type FumeRun = ReturnType<typeof fumeRun>
+type FumeRun = ReturnType<typeof fumeRun>
 
 /** Frame at minute `t` (the last one past the end). */
-export const fumeAt = (r: FumeRun, t: number) => r.frames[Math.max(0, Math.min(r.frames.length - 1, Math.round((t * 60) / FUME_SESSION.dtS)))]
+export const fumeAt = (r: FumeRun, t: number) => nearestStepAt(r.frames, t * 60, FUME_SESSION.dtS)

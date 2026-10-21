@@ -19,7 +19,7 @@ export const fluxBurnRate = (c: number) => (c < FLUX.activeC ? 0 : doublingRate(
 
 /** Through-hole joint on a 1.6 mm board, mm: hole, lead, pad diameters, lead left above the pad. 0.8 mm wire. */
 export const JOINT = { boardMm: 1.6, holeMm: 1.0, leadMm: 0.6, padMm: 1.8, stubMm: 1.5, wireMm: 0.8 }
-const WIRE_MM2 = Math.PI * (JOINT.wireMm / 2) ** 2
+export const WIRE_MM2 = Math.PI * (JOINT.wireMm / 2) ** 2
 /** Barrel annulus volume (hole − lead), mm³. */
 export const BARREL_MM3 = (Math.PI / 4) * (JOINT.holeMm ** 2 - JOINT.leadMm ** 2) * JOINT.boardMm
 
@@ -164,7 +164,7 @@ export function solderRun(c: SolderCfg) {
   return { cfg: c, frames, dt: W.dt * W.keep, seconds: end, out, verdict: solderVerdict(c, out) }
 }
 
-export interface SolderOut {
+interface SolderOut {
   /** Tip oxide 0…1; joint / barrel peak and the tip's lowest °C while on. */
   oxide: number
   peakC: number
@@ -183,11 +183,11 @@ export interface SolderOut {
   fluxLeft: number
   ohms: number
 }
-export type SolderFail = 'nosolder' | 'tip' | 'flux' | 'cold' | 'lifted' | 'wet' | 'burnt' | 'little' | 'blob' | 'barrel'
+type SolderFail = 'nosolder' | 'tip' | 'flux' | 'cold' | 'lifted' | 'wet' | 'burnt' | 'little' | 'blob' | 'barrel'
 
 /** Joint verdict, worst first: no solder, oxidised tip, no flux, cold (pad never melted it), lifted pad, poor wetting,
  *  burnt flux, too little / too much, barrel under 75 % filled (IPC class 2). */
-export function solderVerdict(c: SolderCfg, o: SolderOut) {
+function solderVerdict(c: SolderCfg, o: SolderOut) {
   return puzzleVerdict<SolderFail>([
     { id: 'nosolder', ok: o.volMm3 > 0 },
     { id: 'tip', ok: o.oxide <= 0.25, near: o.oxide <= 0.5 },

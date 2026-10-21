@@ -25,7 +25,7 @@ import {
   solderRun,
   steadyJointC,
 } from '../../core/physics'
-import { celsiusText, fixedText, mmFixed, pct, secsText, si } from '../../core/units'
+import { celsiusText, fixedText, mmFixed, ohmsText, pct, secsText, si } from '../../core/units'
 import {
   B_FIELD,
   BENCH_VIEW,
@@ -35,6 +35,7 @@ import {
   LABEL,
   POWER,
   RING,
+  clamp01,
   columnGauge,
   lapseClock,
   liveLabel,
@@ -53,7 +54,8 @@ import { LegendItem, Lesson, Params, Readout, Stage, n, namesOf, opts, pick, ton
 const SLOW = 0.5
 const C = (c: number) => celsiusText(c)
 const wetC = (a: AlloyKey) => ALLOYS[a].liquidusC + WETTING.superC
-const mOhm = (r: number) => (Number.isFinite(r) ? si(r, 'Ω', 2) : 'open')
+const lapseText = (now: number, seconds: number) => `${fixedText(now, 1)} / ${fixedText(seconds, 0)} s · ½×`
+const benchTag = (scene: Parameters<typeof liveLabel>[0]) => liveLabel(scene, [-16.5, -11.2, 0.3], { size: 0.28, align: 'left' })
 const tipSlider = (initial: number) => ({ kind: 'slider' as const, key: 'tipC', label: 'Tip temperature', min: 220, max: 450, step: 5, initial, format: (v: number) => `${v} °C` })
 const PLOT_LEGEND: LegendItem[] = [
   { color: HEAT, label: 'Tip °C', shape: 'dot' },
@@ -103,7 +105,7 @@ function solderWhy(r: Run): string {
     case 'barrel':
       return `Barrel only ${pct(o.barrelFill)} full (IPC wants 75 %): the hole stayed under ${C(wetC(c.alloy))}. Hold a moment longer`
     default:
-      return `Shiny ${fixedText(o.angleDeg, 0)}° fillet, barrel ${pct(o.barrelFill)} full, ${mOhm(o.ohms)}: a joint that lasts`
+      return `Shiny ${fixedText(o.angleDeg, 0)}° fillet, barrel ${pct(o.barrelFill)} full, ${ohmsText(o.ohms)}: a joint that lasts`
   }
 }
 
@@ -119,7 +121,7 @@ function solderStage(p2cfg: (p: Params) => SolderCfg, goal: (c: SolderCfg) => st
     return gauges[a]
   }
   const g2 = row2(scene)
-  const tag = liveLabel(scene, [-16.5, -11.2, 0.3], { size: 0.28, align: 'left' })
+  const tag = benchTag(scene)
   return {
     scene,
     view: BENCH_VIEW,
@@ -134,7 +136,7 @@ function solderStage(p2cfg: (p: Params) => SolderCfg, goal: (c: SolderCfg) => st
       rig.pose(dt, f.on, feeding)
       rig.joint.set(solderLook(f))
       rig.plot.set(r.frames, r.dt, r.seconds, now, ALLOYS[c.alloy].liquidusC, wetC(c.alloy))
-      rig.plot.tag.set(`${fixedText(now, 1)} / ${fixedText(r.seconds, 0)} s · ½×`, LABEL)
+      rig.plot.tag.set(lapseText(now, r.seconds), LABEL)
       tag.set(f.on ? `iron on · tip ${C(f.tipC)} · joint ${C(f.jointC)}` : `iron off · joint ${C(f.jointC)}${f.jointC < ALLOYS[c.alloy].solidusC ? ' (solid)' : ''}`, f.on ? HEAT : GREY)
       peak(c.alloy).set(r.out.peakC, C(r.out.peakC), verdictTint(r.out.peakC >= wetC(c.alloy) && r.out.dose < 0.5, r.out.peakC >= ALLOYS[c.alloy].liquidusC && r.out.dose < 1))
       g2.set(r)
@@ -230,7 +232,7 @@ export const solderingGoodVsColdJoints: Lesson = {
   tagline: 'Pick the alloy, tip temperature, dwell and how much wire: get a shiny concave fillet, not a grey ball or a lifted pad',
   formula: (p) => {
     const r = solve(gcCfg(p))
-    return `R_joint = ρ·L / (A·wetted) = ${mOhm(r.out.ohms)} → at 2 A: ${si(2 * r.out.ohms, 'V', 2)} lost, ${si(4 * r.out.ohms, 'W', 2)} heat · solder ${fixedText(r.out.volMm3, 2)} of ${fixedText(BARREL_MM3 + FILLET_MM3, 2)} mm³ · angle ${fixedText(r.out.angleDeg, 0)}°`
+    return `R_joint = ρ·L / (A·wetted) = ${ohmsText(r.out.ohms)} → at 2 A: ${si(2 * r.out.ohms, 'V', 2)} lost, ${si(4 * r.out.ohms, 'W', 2)} heat · solder ${fixedText(r.out.volMm3, 2)} of ${fixedText(BARREL_MM3 + FILLET_MM3, 2)} mm³ · angle ${fixedText(r.out.angleDeg, 0)}°`
   },
   legend: PLOT_LEGEND,
   points: [
@@ -264,7 +266,7 @@ export const solderingGoodVsColdJoints: Lesson = {
       (r) => [
         { label: 'Joint peak', value: C(r.out.peakC), tone: toneOf(r.out.peakC >= wetC(r.cfg.alloy) && r.out.dose < 0.5, r.out.peakC >= ALLOYS[r.cfg.alloy].liquidusC && r.out.dose < 1) },
         { label: 'Contact angle', value: `${fixedText(contactAngle(r.out.wet), 0)}°`, tone: toneOf(r.out.wet >= 0.9, r.out.wet >= 0.5) },
-        { label: 'Joint R', value: mOhm(r.out.ohms), tone: toneOf(r.out.wet >= 0.9, r.out.wet >= 0.5) },
+        { label: 'Joint R', value: ohmsText(r.out.ohms), tone: toneOf(r.out.wet >= 0.9, r.out.wet >= 0.5) },
         verdictReadout(r.verdict),
       ],
     ),
@@ -312,9 +314,7 @@ export const solderingDesoldering: Lesson = {
     return `T_liquidus ≈ (1 − f)·220 + f·183 = ${C(r.out.liquidusC)} (f = fresh Sn63 share) · barrel left ${pct(r.out.barrelLeft)}, pad ${pct(Math.min(1, r.out.topLeft))} · pad dose ${pct(r.out.dose)}`
   },
   legend: [
-    { color: HEAT, label: 'Tip °C', shape: 'dot' },
-    { color: RING, label: 'Joint (pad + lead) °C', shape: 'dot' },
-    { color: LABEL, label: 'Barrel °C', shape: 'dot' },
+    ...PLOT_LEGEND.slice(0, 3),
     { color: POWER, label: 'Melts (mixed solder)', shape: 'dot' },
     { color: HIGH_V, label: 'Pad lifts at 100 %', shape: 'dot' },
   ],
@@ -352,7 +352,7 @@ export const solderingDesoldering: Lesson = {
       caption: 'Pad heat budget used',
       ticks: [[0, '0'], [0.5, '50 %'], [1, '100 %'], [1.5, '150 %']],
     })
-    const tag = liveLabel(scene, [-16.5, -11.2, 0.3], { size: 0.28, align: 'left' })
+    const tag = benchTag(scene)
     return {
       scene,
       view: BENCH_VIEW,
@@ -373,9 +373,9 @@ export const solderingDesoldering: Lesson = {
         braid.set(f.braidMm3 / 2.5)
         const wet = 0.6
         const prof = filletProfile(f.topMm3, contactAngle(wet), wet, f.topMm3 / FILLET_MM3)
-        rig.joint.set({ barrel: f.barrelMm3 / BARREL_MM3, fillet: f.topMm3 > 0.005 ? prof.points : [], wet: f.jointC >= f.liquidusC ? 0.9 : 0.35, flux: f.flux, char: 0, jointC: f.jointC, lift: Math.min(1, Math.max(0, (r.out.dose - 0.9) / 0.3)) * (f.on ? now / c.dwellS : 1) })
+        rig.joint.set({ barrel: f.barrelMm3 / BARREL_MM3, fillet: f.topMm3 > 0.005 ? prof.points : [], wet: f.jointC >= f.liquidusC ? 0.9 : 0.35, flux: f.flux, char: 0, jointC: f.jointC, lift: clamp01((r.out.dose - 0.9) / 0.3) * (f.on ? now / c.dwellS : 1) })
         rig.plot.set(r.frames, r.dt, r.seconds, now, f.liquidusC, f.liquidusC + WETTING.superC)
-        rig.plot.tag.set(`${fixedText(now, 1)} / ${fixedText(r.seconds, 0)} s · ½×`, LABEL)
+        rig.plot.tag.set(lapseText(now, r.seconds), LABEL)
         tag.set(f.on ? `heating · joint ${C(f.jointC)} · barrel ${C(f.barrelC)}` : isBraid ? 'braid lifted' : 'pump fired', f.on ? HEAT : GREY)
         barrelG.set(r.out.barrelLeft, pct(r.out.barrelLeft), verdictTint(r.out.barrelLeft <= 0.3, r.out.barrelLeft <= 0.5))
         doseG.set(Math.min(1.5, r.out.dose), pct(r.out.dose), verdictTint(r.out.dose < 0.5, r.out.dose < 1))

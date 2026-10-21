@@ -1,37 +1,15 @@
-// Workshop safety close-ups: a 2S LiPo pouch pack, hobby balance charger, LiPo bag, bench tops (tile / wood), a vent
-// fire; for soldering: a side-view head with optional safety glasses, an iron stand, a fume plume split between the
-// air you breathe and an extractor, and a flying clipped lead.
+// Workshop safety close-ups: a 2S LiPo pouch pack, hobby balance charger, LiPo bag, a vent fire; for soldering: a
+// side-view head with optional safety glasses, a fume plume split between the air you breathe and an extractor, a
+// flying clipped lead and the near-field dome.
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { GREY, HEAT, HIGH_V, LABEL, glowMat, setGlow } from './colors'
-import { coilSpring } from './forces'
 import { heatTint, smoke } from './heat'
 import { cableRun } from './layout'
 import { flatBox, shellMat } from './shapes'
 import { label, liveLabel } from './text'
 import { clamp01 } from './util'
-
-export const BENCH_TOP_Y = -6.6
-const WOOD = '#8a5a32'
-
-/** Bench top from x0 to x1 at `BENCH_TOP_Y`: `set('tile' | 'wood')` swaps ceramic tiles for bare wood. */
-export function benchTop(parent: THREE.Object3D, x0 = -17.5, x1 = 3) {
-  const g = add(parent, new THREE.Group())
-  const w = x1 - x0
-  const cx = (x0 + x1) / 2
-  box(g, [w, 0.6, 7], mat(WOOD, { rough: 0.8 }), [cx, BENCH_TOP_Y - 0.3, -1.5])
-  const tiles = add(g, new THREE.Group())
-  const tileMat = mat('#e4e2dc', { rough: 0.35 })
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) box(tiles, [3.9, 0.25, 2.9], tileMat, [-15.2 + i * 4, BENCH_TOP_Y + 0.12, -1.6 + j * 3])
-  return {
-    group: g,
-    set(kind: 'tile' | 'wood') {
-      tiles.visible = kind === 'tile'
-    },
-    /** Top surface y for the current kind. */
-    top: (kind: 'tile' | 'wood') => BENCH_TOP_Y + (kind === 'tile' ? 0.25 : 0),
-  }
-}
+import { lcdMat } from './workshop'
 
 /** 2S pouch pack lying on its face at `at` (bottom centre): two cells side by side under a blue wrap, label, main leads and
  *  balance lead leaving the +x end. `set(puff, heat)` swells it (0…1) and tints it hot; `cellTop(i)` = label point. */
@@ -64,7 +42,7 @@ export function lipoPack(parent: THREE.Object3D, at: V3, name = '2S 2200 mAh 7.4
 export function hobbyCharger(parent: THREE.Object3D, at: V3) {
   const g = add(parent, new THREE.Group(), at)
   box(g, [5.4, 3.2, 3.4], mat('#2a2c32', { rough: 0.5 }), [0, 1.6, 0])
-  flatBox(g, [4.6, 1.8, 0.06], mat('#0d1a14', { emissive: '#06120c', rough: 0.3 }), [0, 1.9, 1.72])
+  flatBox(g, [4.6, 1.8, 0.06], lcdMat(), [0, 1.9, 1.72])
   const l1 = liveLabel(g, [-2.1, 2.35, 1.8], { size: 0.3, align: 'left' })
   const l2 = liveLabel(g, [-2.1, 1.5, 1.8], { size: 0.3, align: 'left' })
   for (const [x, c] of [[-1.6, '#d8322c'], [-0.8, '#202226']] as const) cylinder(g, 0.22, 0.3, mat(c), [x, 0.5, 1.75], 'z', 12)
@@ -169,18 +147,6 @@ export function benchHead(parent: THREE.Object3D, at: V3, r = 1.8) {
       return [v.x, v.y, v.z]
     },
   }
-}
-
-/** Coil iron stand on a weighted base at `at` (base bottom), coil `len` long tilted up-left along an iron held `angle` rad
- *  from vertical (as `solderingIron`); `seat` = where its tip rests, deep in the coil. */
-export function ironStand(parent: THREE.Object3D, at: V3, angle = 1.1, len = 3.2) {
-  const g = add(parent, new THREE.Group(), at)
-  box(g, [3.2, 0.5, 2.4], mat('#2a2c32', { rough: 0.6 }), [0, 0.25, 0])
-  const coil = coilSpring(g, 0.55, 6, 0.07)
-  const a: V3 = [0.9, 0.7, 0]
-  const tilt = Math.PI / 2 - angle
-  coil(a, [a[0] - len * Math.cos(tilt), a[1] + len * Math.sin(tilt), 0])
-  return { group: g, seat: [at[0] + a[0], at[1] + a[1], at[2]] as V3 }
 }
 
 /** Fume plume from `at`: a share rising into the breathing zone (tilted `upTilt` rad toward −x) and a share bent toward an

@@ -6,14 +6,16 @@ import { TT_CRUISE_A } from '../power/budget'
 import { connectorPoint, ohmsPerMetre } from '../power/wiring'
 import { flatMutual } from '../materials/chassis'
 import { LEDS, LED_MAX_A } from '../semiconductors'
-import { BOARD_CLIP, BREADBOARDS, BoardPart, CLIP_WORN, USB_MODULE, busOf, parseHole, railColNear, solveBoard } from './breadboard'
+import { BOARD_CLIP, BREADBOARDS, BoardPart, BoardSolution, CLIP_WORN, USB_MODULE, busOf, parseHole, railColNear, solveBoard } from './breadboard'
 
 /** A 6 cm 22 AWG jumper. */
-export const JUMPER_OHMS = ohmsPerMetre(22) * 0.06
+const JUMPER_OHMS = ohmsPerMetre(22) * 0.06
 const wire = (a: string, b: string, ohms = JUMPER_OHMS): BoardPart => ({ kind: 'wire', a, b, ohms })
 const usb = (): BoardPart => ({ kind: 'V', a: 'top+1', b: 'top-1', ...USB_MODULE })
 /** Short jumpers across the mid-board rail break. */
 const railBridges = () => [wire('top+29', 'top+31'), wire('top-29', 'top-31')]
+/** Both right-half rail segments joined to the supply. */
+const rightLive = (sol: BoardSolution) => sol.live.has('top+:2') && sol.live.has('top-:2')
 
 // --- Rails and rows: feed a resistor + LED on the right half of a split-rail board from the top + rail. ---
 
@@ -27,7 +29,7 @@ export const RAILS_ROWS = {
   /** Lit enough to see. */
   minA: 0.002,
 }
-export type FeedHalf = 'top' | 'bottom'
+type FeedHalf = 'top' | 'bottom'
 export interface RailsRowsCfg {
   /** Column the + jumper lands in. */
   col: number
@@ -53,16 +55,15 @@ export function railsRowsRun(c: RailsRowsCfg) {
   const feedBus = busOf(R.board, feed[1])
   const target = busOf(R.board, R.resistor[0])
   const col = parseHole(R.resistor[0]).col
-  const rightLive = sol.live.has('top+:2') && sol.live.has('top-:2')
   const verdict = puzzleVerdict([
     { id: 'over', ok: ledA <= LED_MAX_A },
     { id: 'short', ok: supplyA <= BOARD_CLIP.ratedA },
     { id: 'strip', ok: c.col === col, near: Math.abs(c.col - col) <= 2 },
     { id: 'channel', ok: feedBus === target, near: true },
-    { id: 'break', ok: rightLive },
+    { id: 'break', ok: rightLive(sol) },
     { id: 'dim', ok: ledA >= R.minA },
   ])
-  return { cfg: c, parts, sol, feed, supplyA, ledA, feedBus, target, rightLive, verdict }
+  return { cfg: c, parts, sol, feed, supplyA, ledA, feedBus, target, rightLive: rightLive(sol), verdict }
 }
 
 // --- Tidy wiring: a load fed through rails and jumpers; a sensor wire beside its leads. ---
@@ -181,15 +182,14 @@ export function mistakesRun(c: MistakesCfg) {
   const supplyA = sol.partA[0]
   const ledA = sol.partA[3]
   const chipV = sol.busV[busOf(M.board, pins[7])] - sol.busV[busOf(M.board, pins[0])]
-  const rightLive = sol.live.has('top+:2') && sol.live.has('top-:2')
   const clip = connectorPoint(BOARD_CLIP, sol.maxClipA)
   const railV = sol.busV['top+:1'] - sol.busV['top-:1']
   const verdict = puzzleVerdict([
     { id: 'over', ok: ledA <= LED_MAX_A },
     { id: 'short', ok: supplyA <= BOARD_CLIP.ratedA },
     { id: 'chip', ok: chipV >= M.chipMinV },
-    { id: 'rail', ok: rightLive },
+    { id: 'rail', ok: rightLive(sol) },
     { id: 'dark', ok: ledA >= M.minA },
   ])
-  return { cfg: c, parts, pins, diode, sol, supplyA, ledA, chipV, railV, rightLive, clip, verdict }
+  return { cfg: c, parts, pins, diode, sol, supplyA, ledA, chipV, railV, rightLive: rightLive(sol), clip, verdict }
 }

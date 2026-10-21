@@ -15,7 +15,7 @@ export function yieldIn(lo: number, hi: number, mu: number, sigma: number) {
   return normalCdf((hi - mu) / sigma) - normalCdf((lo - mu) / sigma)
 }
 
-export type FitKind = 'clearance' | 'transition' | 'interference'
+type FitKind = 'clearance' | 'transition' | 'interference'
 
 /** Limits [lo, hi] of a hole and a shaft → smallest and largest clearance and the ISO fit kind. */
 export function limitFit(hole: readonly [number, number], shaft: readonly [number, number]) {
@@ -26,7 +26,7 @@ export function limitFit(hole: readonly [number, number], shaft: readonly [numbe
 }
 
 /** A size in a chain: mean, ± tolerance (taken as 3σ), +1 adds to the gap (hole, slot), −1 takes from it (shaft, part). */
-export interface StackDim {
+interface StackDim {
   name: string
   mean: number
   tol: number
@@ -134,4 +134,3 @@ export function tolRun(cfg: TolCfg) {
   ])
   return { cfg, J, dims, holeCad, ...s, limits, foot, mouth, rssRange: rss, wcRange: wc, wcInside: wc[0] >= lo && wc[1] <= hi, good, batch, verdict }
 }
-export type TolRun = ReturnType<typeof tolRun>

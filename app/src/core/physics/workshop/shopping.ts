@@ -14,7 +14,7 @@ import { Usd, usdMid, usdSum, usdTimes } from './toolkit'
 export type BuckKind = keyof typeof DCDC_MODULES
 
 /** Price per unit, USD (illustrative). */
-export const PART_USD = {
+const PART_USD = {
   esp32: [4, 10],
   motor: [2, 4],
   caster: [1, 3],
@@ -27,14 +27,14 @@ export const PART_USD = {
   header: [0.3, 1],
   shrink: [2, 4],
 } satisfies Record<string, Usd>
-export const CELL_USD: Record<CarPack, Usd> = { aa4: [0.5, 1], nimh4: [2, 3.5], li1: [4, 8], li2: [4, 8] }
-export const DRIVER_USD: Record<DriverChip, Usd> = { l298n: [2, 5], tb6612: [2, 5], drv8833: [1.5, 4] }
-export const BUCK_USD: Record<BuckKind, Usd> = { lm2596: [1.5, 3], mt3608: [1, 2], xl6009: [2, 4] }
+const CELL_USD: Record<CarPack, Usd> = { aa4: [0.5, 1], nimh4: [2, 3.5], li1: [4, 8], li2: [4, 8] }
+const DRIVER_USD: Record<DriverChip, Usd> = { l298n: [2, 5], tb6612: [2, 5], drv8833: [1.5, 4] }
+const BUCK_USD: Record<BuckKind, Usd> = { lm2596: [1.5, 3], mt3608: [1, 2], xl6009: [2, 4] }
 /** One mated pair (housings, contacts or solder cups). */
-export const PLUG_USD: Record<ConnectorId, Usd> = { dupont: [0.1, 0.3], jstph: [0.2, 0.5], jstxh: [0.2, 0.5], xt30: [0.5, 1], xt60: [0.8, 1.5] }
+const PLUG_USD: Record<ConnectorId, Usd> = { dupont: [0.1, 0.3], jstph: [0.2, 0.5], jstxh: [0.2, 0.5], xt30: [0.5, 1], xt60: [0.8, 1.5] }
 
 /** Solder-cup connectors take any wire up to this thick (AWG); the rest take crimp terminals (`TERMINALS`). */
-export const CUP_MAX_AWG: Partial<Record<ConnectorId, number>> = { xt30: 16, xt60: 12 }
+const CUP_MAX_AWG: Partial<Record<ConnectorId, number>> = { xt30: 16, xt60: 12 }
 /** Does wire `awg` fit the connector's terminal (crimp barrel range or solder cup)? */
 export function plugTakes(conn: ConnectorId, awg: number) {
   const cup = CUP_MAX_AWG[conn]
@@ -42,7 +42,7 @@ export function plugTakes(conn: ConnectorId, awg: number) {
   const [thick, thin] = TERMINALS[conn as keyof typeof TERMINALS].awg
   return awg >= thick && awg <= thin
 }
-export const isCrimped = (conn: ConnectorId) => CUP_MAX_AWG[conn] === undefined
+const isCrimped = (conn: ConnectorId) => CUP_MAX_AWG[conn] === undefined
 
 /** The car: target budget, power wire run (red + black), spare consumables you should add (rule of thumb: first crimps
  *  and headers get wasted), drop a driver may cost (share of the pack). */
@@ -67,7 +67,7 @@ export interface BomCfg {
   spares: SpareLevel
 }
 
-export interface BomLine {
+interface BomLine {
   key: string
   name: string
   qty: number

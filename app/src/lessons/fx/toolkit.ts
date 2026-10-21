@@ -1,7 +1,8 @@
-// Tool kit bench: a pegboard with hand tools (flush cutters, strippers, ratchet crimper, safety glasses), an iron station,
-// bench PSU, bench fume extractor, helping hands, and a glowing slot pad per tool (in use / missing). Face-on (xy plane).
+// Tool kit bench: a pegboard with hand tools (flush cutters, strippers, ratchet crimper, safety glasses), bench PSU,
+// bench fume extractor, helping hands, and a glowing slot pad per tool (in use / missing). Face-on (xy plane).
 import * as THREE from 'three/webgpu'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
+import { WIRE_COLORS } from './breadboard'
 import { GREY, LABEL, glowMat, setGlow } from './colors'
 import { boxFan } from './heat'
 import { flatBox, shellMat } from './shapes'
@@ -20,7 +21,7 @@ export function pegboard(parent: THREE.Object3D, x0: number, x1: number, y0: num
   return g
 }
 
-export type HandToolKind = 'cutters' | 'strippers' | 'crimper'
+type HandToolKind = 'cutters' | 'strippers' | 'crimper'
 const GRIP: Record<HandToolKind, string> = { cutters: '#d4282b', strippers: '#2a55c9', crimper: '#e8b021' }
 
 /** Pliers-type hand tool hanging jaws up, face-on, pivot at `at`: two handles in a V, jaws by kind (flush blades, notched
@@ -85,22 +86,6 @@ export function safetyGlasses(parent: THREE.Object3D, at: V3, s = 1) {
   return g
 }
 
-/** Soldering station base at `at` (bottom centre): case, LCD with a live temperature line, knob. `screen(text, colour)`. */
-export function ironStation(parent: THREE.Object3D, at: V3, s = 1) {
-  const g = add(parent, new THREE.Group(), at)
-  g.scale.setScalar(s)
-  box(g, [3.2, 2.2, 2.4], mat('#2a2c32', { rough: 0.5 }), [0, 1.1, 0])
-  flatBox(g, [2.4, 0.9, 0.06], mat('#0d1a14', { emissive: '#06120c', rough: 0.3 }), [0, 1.5, 1.22])
-  const lcd = liveLabel(g, [0, 1.5, 1.3], { size: 0.42 })
-  cylinder(g, 0.35, 0.3, mat('#c9ced6', { metal: 0.4 }), [0, 0.55, 1.3], 'z', 18)
-  return {
-    group: g,
-    screen(text: string, color: string) {
-      lcd.set(text, color)
-    },
-  }
-}
-
 /** Bench power supply at `at` (bottom centre): two LCDs (volts, amps), knobs, red/black posts, CC lamp.
  *  `set(volts, amps, cc)`. */
 export function benchSupply(parent: THREE.Object3D, at: V3, s = 1) {
@@ -114,7 +99,7 @@ export function benchSupply(parent: THREE.Object3D, at: V3, s = 1) {
   const vText = screen(2.2)
   const aText = screen(1.3)
   for (const y of [2.2, 1.3]) cylinder(g, 0.28, 0.3, mat('#1c1c1f'), [1.1, y, 1.6], 'z', 16)
-  for (const [x, c] of [[-1, '#d4282b'], [0, '#202226']] as const) cylinder(g, 0.18, 0.4, mat(c), [x, 0.45, 1.6], 'z', 12)
+  for (const [x, c] of [[-1, WIRE_COLORS.plus], [0, WIRE_COLORS.minus]] as const) cylinder(g, 0.18, 0.4, mat(c), [x, 0.45, 1.6], 'z', 12)
   const ccMat = glowMat(GREY, 0.3)
   add(g, mesh(new THREE.SphereGeometry(0.12, 10, 8), ccMat), [1.1, 0.45, 1.55])
   add(g, label('CC', { size: 0.2, color: GREY, glow: 0.3 }), [1.1, 0.75, 1.55])

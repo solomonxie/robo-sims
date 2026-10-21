@@ -5,7 +5,7 @@ import { TT_CRUISE_A } from '../power/budget'
 import { stallAmps } from '../actuators/dcmotor'
 import { puzzleVerdict } from '../challenges/verdict'
 
-export interface ConnectorSpec {
+interface ConnectorSpec {
   /** Most contacts a housing comes with. */
   pins: number
   /** Housing only fits one way round. */
@@ -30,7 +30,7 @@ export const CONNECTOR_SPECS: Record<ConnectorId, ConnectorSpec> = {
 }
 
 /** What a swapped plug does: nothing much, runs backwards, or kills something. */
-export type SwapHarm = 'harmless' | 'backwards' | 'damage'
+type SwapHarm = 'harmless' | 'backwards' | 'damage'
 
 export interface ConnectorJob {
   name: string
@@ -99,4 +99,3 @@ export function plugRun<K extends JobKey | ConnectorJob>(job: K, conn: Connector
   ])
   return { job, conn, J, C, S, steady, peakC, drop, dropFrac, holdN, swapped, verdict }
 }
-export type PlugRun = ReturnType<typeof plugRun>

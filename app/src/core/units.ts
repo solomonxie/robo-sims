@@ -102,6 +102,13 @@ export const degWhole = (d: number) => `${Math.round(d)}°`
 export const radText = (rad: number, digits = 0) => degText(Math.abs(rad) < 0.5 * 10 ** -digits * DEG ? 0 : toDeg(rad), digits)
 /** Fixed digits with a true minus, values that round to zero unsigned. */
 export const fixedText = (v: number, digits = 2) => (Math.abs(v) < 0.5 * 10 ** -digits ? (0).toFixed(digits) : v.toFixed(digits).replace('-', '−'))
+/** Volts / amps to fixed `digits`: 7.4 → "7.40 V". */
+export const voltText = (v: number, digits = 2) => `${fixedText(v, digits)} V`
+export const ampText = (a: number, digits = 2) => `${fixedText(a, digits)} A`
+/** Contact or joint resistance, 2 digits; Infinity → "open". */
+export const ohmsText = (r: number) => (Number.isFinite(r) ? si(r, 'Ω', 2) : 'open')
+/** Lower-cases a leading capital word ("TT motor" stays): for names inside a sentence. */
+export const lowerFirst = (s: string) => s.replace(/^[A-Z](?=[a-z])/, (ch) => ch.toLowerCase())
 /** Torque: 0.25 → "0.25 N·m". */
 export const nmText = (t: number, digits = 2) => `${fixedText(t, digits)} N·m`
 /** Millimetres to `digits`: 0.22 → "0.2 mm", (0.22, 2) → "0.22 mm". */

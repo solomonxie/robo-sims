@@ -18,7 +18,7 @@ import {
   motorMismatch,
   wheelSizeError,
 } from '../../core/physics'
-import { fixedText, mmText, mpsText, pct, rpmText, si } from '../../core/units'
+import { fixedText, mmText, mpsText, pct, rpmText, si, voltText as V } from '../../core/units'
 import { CASE_LOG, DriftPart, DriftTp, HIGH_V, HUNT_HOWTO, HUNT_LEGEND, POWER, PlotView, ProbeCase, RING, driftBench, huntKit, huntRig, huntStage, serialPlot } from '../fx'
 import { Lesson, Stage } from '../types'
 
@@ -79,7 +79,6 @@ function driftBuild<F extends string, P extends string>(s: DriftSpec<F, P>, colW
   })
 }
 
-const V = (v: number) => `${fixedText(v, 2)} V`
 const A = (a: number) => si(a, 'A', 2)
 
 // --- Motor mismatch ---

@@ -28,7 +28,7 @@ import {
   minInputVolts,
   robocarParts,
 } from '../../core/physics'
-import { fixedText, hoursText, mpsText, msText, pct } from '../../core/units'
+import { ampText as A, fixedText, hoursText, mpsText, msText, pct, voltText as V } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 
 import {
@@ -80,8 +80,6 @@ import {
 } from '../fx'
 import { Lesson, Params, Stage, n, namesOf, opts, pick, toneOf } from '../types'
 
-const V = (v: number) => `${fixedText(v, 2)} V`
-const A = (a: number) => `${fixedText(a, 2)} A`
 const grams = (g: number) => `${Math.round(g)} g`
 const mmFixedM = (m: number) => (Math.abs(m) < 1 ? `${Math.round(m * 1000)} mm` : `${fixedText(m, 2)} m`)
 

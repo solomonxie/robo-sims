@@ -183,7 +183,7 @@ export function dialFace(parent: THREE.Object3D, at: V3, r: number) {
   }
 }
 
-export type FitItem = 'bearing' | 'screw' | 'pin'
+type FitItem = 'bearing' | 'screw' | 'pin'
 
 /**
  * Section through a printed block with a vertical hole (bed face up, so the elephant-foot lips sit at the mouth) and

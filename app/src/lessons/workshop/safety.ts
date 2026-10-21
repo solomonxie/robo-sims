@@ -9,6 +9,7 @@ import {
   FumeVent,
   INSULATION_MAX_C,
   LIPO_CHEM,
+  LIPO_DT,
   LIPO_FLAT_V,
   LIPO_HEAT,
   LIPO_PACK,
@@ -24,8 +25,9 @@ import {
   lipoAt,
   lipoChargeRun,
 } from '../../core/physics'
-import { celsiusText, fixedText, pct, si } from '../../core/units'
+import { celsiusText, fixedText, pct, si, voltText as V } from '../../core/units'
 import {
+  BENCH_PLOT,
   BENCH_TOP_Y,
   BENCH_VIEW,
   GREY,
@@ -37,7 +39,7 @@ import {
   benchHead,
   benchTop,
   benchExtractor,
-  boxScope,
+  benchPlot,
   chargeLeads,
   columnGauge,
   fumePlume,
@@ -50,8 +52,10 @@ import {
   liveLabel,
   memoBy,
   nearDome,
+  plotY,
   puzzleStage,
   solderingIron,
+  textRows,
   ventFire,
   verdictTint,
 } from '../fx'
@@ -60,7 +64,6 @@ import { LegendItem, Lesson, Params, Stage, n, namesOf, opts, pick, toneOf, verd
 import * as THREE from 'three/webgpu'
 
 const C = (c: number) => celsiusText(c)
-const V = (v: number) => `${fixedText(v, 2)} V`
 const mins = (s: number) => `${fixedText(s / 60, 0)} min`
 
 // --- LiPo safety: charger program, rate, balance lead, pack state and where it charges; a charge time-lapse. ---
@@ -130,7 +133,6 @@ const LIPO_LEGEND: LegendItem[] = [
 ]
 const V_LO = 2.5
 const V_HI = 5.2
-const LP_PLOT = { x: 8, y: 1.9, w: 7.6, h: 3.2 }
 const LP_LAPSE = 14
 
 export const safetyLipoSafety: Lesson = {
@@ -168,10 +170,10 @@ export const safetyLipoSafety: Lesson = {
     const cellTags = [0, 1].map(() => liveLabel(scene, [0, 0, 0], { size: 0.3 }))
     const who = liveLabel(scene, [-17, 1.6, 0.3], { size: 0.32, align: 'left' })
     const clockTag = liveLabel(scene, [-17, 0.4, 0.3], { size: 0.3, align: 'left' })
-    const rows = [0, 1].map((i) => liveLabel(scene, [-17, -8.9 - i * 1.1, 0.3], { size: 0.28, align: 'left' }))
-    const { s, tag } = boxScope(scene, LP_PLOT, 'Cell volts vs time', [8, 3], { axis: [`${V_HI}`, `${V_LO}`] })
-    const traces = [s.trace(POWER, { samples: 120, radius: 0.07 }), s.trace(RING, { samples: 120, radius: 0.07 })]
-    const yV = (v: number) => ((Math.min(V_HI, Math.max(V_LO, v)) - V_LO) / (V_HI - V_LO)) * LP_PLOT.h - LP_PLOT.h / 2
+    const rows = textRows(scene, 2, -17, -8.9, 0.28, 1.1, 0.3)
+    const { s, tag, draw } = benchPlot(scene, 'Cell volts vs time', [8, 3], [`${V_HI}`, `${V_LO}`], [[POWER, 0.07], [RING, 0.07]])
+    const toPlot = plotY(V_LO, V_HI, BENCH_PLOT.h)
+    const yV = (v: number) => toPlot(Math.min(V_HI, Math.max(V_LO, v)))
     s.level(HIGH_V).set(yV(LIPO_CHEM.full))
     s.level(GREY, 0.3).set(yV(LIPO_STORAGE_V))
     const vG = columnGauge(scene, 1, {
@@ -230,17 +232,8 @@ export const safetyLipoSafety: Lesson = {
         clockTag.set(`${mins(simT)} of ${mins(r.seconds)} · 1 s ≈ ${fixedText(r.seconds / LP_LAPSE / 60, 1)} min`, LABEL)
         rows[0].set(`${S.name} · ${CHARGE_SPOTS[c.spot].bag ? 'in a bag' : 'bare'} on ${surface === 'tile' ? 'ceramic' : 'wood'}`, GREY)
         rows[1].set(`if the bare leads touched: ${si(r.short.amps, 'A', 3)}, ${si(r.short.packW, 'W', 1)} inside the pack`, HIGH_V)
-        const k = Math.min(r.frames.length, Math.max(2, Math.floor(simT / 10) + 1))
-        const step = Math.max(1, Math.ceil(k / 120))
-        traces.forEach((tr, i) => {
-          const us: number[] = []
-          const ys: number[] = []
-          for (let j = 0; j < k; j += step) {
-            us.push(r.seconds > 0 ? r.frames[j].t / r.seconds : 0)
-            ys.push(yV(r.frames[j].volts[i]))
-          }
-          tr.points(us, ys)
-        })
+        const cellY = (i: number) => (j: number) => yV(r.frames[j].volts[i])
+        draw(r.frames.length, Math.floor(simT / LIPO_DT) + 1, (j) => (r.seconds > 0 ? r.frames[j].t / r.seconds : 0), [cellY(0), cellY(1)])
         tag.set(mins(r.seconds), LABEL)
         const top = Math.max(...f.volts)
         vG.set(Math.min(V_HI, top), V(top), verdictTint(top <= LIPO_CHEM.full + 0.01 && top >= LIPO_FLAT_V, top <= 4.3))
@@ -304,7 +297,6 @@ const FUME_LEGEND: LegendItem[] = [
   { color: HIGH_V, label: 'EH40 15-min limit 0.15 mg/m³', shape: 'dot' },
   { color: RING, label: 'EH40 8-h limit 0.05 mg/m³', shape: 'dot' },
 ]
-const FM_PLOT = { x: 8, y: 1.9, w: 7.6, h: 3.2 }
 const C_LO = 0.005
 const C_HI = 3
 const FM_LAPSE = 15
@@ -355,11 +347,9 @@ export const safetyFumeAndEyeProtection: Lesson = {
     box(windowG, [3, 3.8, 0.24], mat('#8fd0ff', { emissive: '#2a5070', rough: 0.2 }), [0, 0, 0.02])
     const windowTag = liveLabel(scene, [-15.5, 2.2, 0.3], { size: 0.28 })
     const snippet = leadSnippet(scene)
-    const rows = [0, 1, 2].map((i) => liveLabel(scene, [-17, -8.7 - i * 1.05, 0.3], { size: 0.28, align: 'left' }))
-    const { s, tag } = boxScope(scene, FM_PLOT, 'Rosin fume (log)', [6, 4], { axis: [`${C_HI}`, `${C_LO}`] })
-    const nearT = s.trace(HEAT, { samples: 120, radius: 0.08 })
-    const farT = s.trace(LABEL, { samples: 120, radius: 0.05 })
-    const yC = (c: number) => (Math.log(Math.min(C_HI, Math.max(C_LO, c)) / C_LO) / Math.log(C_HI / C_LO)) * FM_PLOT.h - FM_PLOT.h / 2
+    const rows = textRows(scene, 3, -17, -8.7, 0.28, 1.05, 0.3)
+    const { s, tag, draw } = benchPlot(scene, 'Rosin fume (log)', [6, 4], [`${C_HI}`, `${C_LO}`], [[HEAT, 0.08], [LABEL, 0.05]])
+    const yC = (c: number) => (Math.log(Math.min(C_HI, Math.max(C_LO, c)) / C_LO) / Math.log(C_HI / C_LO)) * BENCH_PLOT.h - BENCH_PLOT.h / 2
     s.level(HIGH_V).set(yC(ROSIN_WEL.stel))
     s.level(RING, 0.3).set(yC(ROSIN_WEL.twa))
     const peakG = columnGauge(scene, 1, {
@@ -415,18 +405,7 @@ export const safetyFumeAndEyeProtection: Lesson = {
         head.hit(!c.glasses && u > 0.65 && u < 1.4 ? 1 - Math.abs(u - 1) * 2 : 0)
         const ratio = f.near / ROSIN_WEL.stel
         dome.set(ratio <= 1 ? POWER : ratio <= 2 ? RING : HIGH_V, 0.05 + 0.13 * Math.min(1, Math.log10(1 + ratio)), `breathing zone ${mg(f.near)}`)
-        const k = Math.min(r.frames.length, Math.max(2, Math.floor((simMin * 60) / FUME_SESSION.dtS) + 1))
-        const step = Math.max(1, Math.ceil(k / 120))
-        const us: number[] = []
-        const ns: number[] = []
-        const fs: number[] = []
-        for (let j = 0; j < k; j += step) {
-          us.push(r.frames[j].t / FUME_SESSION.minutes)
-          ns.push(yC(r.frames[j].near))
-          fs.push(yC(r.frames[j].far))
-        }
-        nearT.points(us, ns)
-        farT.points(us, fs)
+        draw(r.frames.length, Math.floor((simMin * 60) / FUME_SESSION.dtS) + 1, (j) => r.frames[j].t / FUME_SESSION.minutes, [(j) => yC(r.frames[j].near), (j) => yC(r.frames[j].far)])
         tag.set(`${fixedText(simMin, 0)} / ${FUME_SESSION.minutes} min`, LABEL)
         rows[0].set(`joint ${C(r.jointC)}: ${pct(r.share)} of each joint’s rosin burns off · ${fixedText(r.G, 2)} mg/min`, r.verdict.fail === 'hot' ? RING : GREY)
         rows[1].set(`glasses ${c.glasses ? 'on' : 'off'} · iron ${c.stand ? 'in the stand' : 'on the bench'}`, verdictTint(c.glasses && c.stand, false))

@@ -38,7 +38,7 @@ import {
   plugTempAt,
   robocarParts,
 } from '../../core/physics'
-import { celsiusText, fixedText } from '../../core/units'
+import { ampText as A, celsiusText, fixedText, voltText as V } from '../../core/units'
 import { V3, add } from '../../models/kit'
 import {
   BENCH_TOP_Y,
@@ -67,6 +67,7 @@ import {
   i2cBreakout,
   ironStand,
   ironStation,
+  LEAD_TINT,
   lapseClock,
   lipoBag,
   lipoPack,
@@ -83,6 +84,8 @@ import {
   solderPump,
   solderWire,
   solderingIron,
+  textRows,
+  verdictLegend,
   verdictTint,
 } from '../fx'
 import { LegendItem, Lesson, Params, Stage, n, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
@@ -90,7 +93,8 @@ import { LegendItem, Lesson, Params, Stage, n, namesOf, opts, pick, toneOf, verd
 const C = (c: number) => celsiusText(c)
 const usd = (v: number) => `$${fixedText(v, 2)}`
 const usdWhole = (v: number) => `$${Math.round(v)}`
-const usdRange = (r: Usd) => (r[1] < 20 ? `$${fixedText(r[0], 2)}–${fixedText(r[1], 2)}` : `$${Math.round(r[0])}–${Math.round(r[1])}`)
+const wholeRange = (r: Usd) => `$${Math.round(r[0])}–${Math.round(r[1])}`
+const usdRange = (r: Usd) => (r[1] < 20 ? `$${fixedText(r[0], 2)}–${fixedText(r[1], 2)}` : wholeRange(r))
 const PRICE_NOTE = 'prices: rough illustrative ranges, not quotes'
 const linkText = (s: string) => s.replace(' › ', ': ')
 
@@ -126,7 +130,6 @@ const SHORT: Record<ToolId, string> = {
   hands: 'helping hands',
 }
 const toolList = (ts: readonly ToolId[]) => ts.map((t) => SHORT[t]).join(', ')
-const wholeRange = (r: Usd) => `$${Math.round(r[0])}–${Math.round(r[1])}`
 const toolPrice = (t: ToolId) => wholeRange(TOOLS[t].usd)
 
 function benchWhy(r: BenchRun): string {
@@ -266,8 +269,8 @@ export const toolKitStarterBench: Lesson = {
         return [k, { name: liveLabel(scene, [x, y, z], { size: 0.21 * big }), price: liveLabel(scene, [x, y - 0.3 * big, z], { size: 0.19 * big }) }]
       }),
     ) as Record<string, { name: ReturnType<typeof liveLabel>; price: ReturnType<typeof liveLabel> }>
-    const rows = [0, 1, 2].map((i) => liveLabel(scene, [-17, -9.3 - i * 0.8, 0.3], { size: 0.27, align: 'left' }))
-    const list = Array.from({ length: 8 }, (_, i) => liveLabel(scene, [4.3, -5.3 - i * 0.62, 0.3], { size: 0.25, align: 'left' }))
+    const rows = textRows(scene, 3, -17, -9.3, 0.27, 0.8, 0.3)
+    const list = textRows(scene, 8, 4.3, -5.3, 0.25, 0.62, 0.3)
     const costG = columnGauge(scene, 0, {
       min: 0,
       max: 400,
@@ -372,8 +375,6 @@ const plCfg = (p: Params): BomCfg => ({
 })
 const plKey = (c: BomCfg) => `${c.pack}|${c.driver}|${c.buck}|${c.mainPlug}|${c.motorPlug}|${c.awg}|${c.spares}`
 const plSolve = memoBy(plKey, bomRun)
-const V = (v: number) => `${fixedText(v, 2)} V`
-const A = (a: number) => `${fixedText(a, 2)} A`
 
 const PLUG_FAIL: Record<string, string> = {
   pins: 'too few pins',
@@ -438,9 +439,7 @@ const FAIL_LINES: Record<string, string[]> = {
 const FAIL_PART: Record<string, string> = { rail: 'buck', resets: 'battery', mainPlug: 'battery', motorPlug: 'motorL', fit: 'motorL', wire: 'battery', driver: 'driver', drop: 'driver', slow: 'battery' }
 
 const PL_LEGEND: LegendItem[] = [
-  { color: POWER, label: 'Part checks out', shape: 'dot' },
-  { color: RING, label: 'Close miss / consumable (buy spares)', shape: 'dot' },
-  { color: HIGH_V, label: 'Part that fails a check', shape: 'dot' },
+  ...verdictLegend('Part that fails a check', 'Part checks out', 'Close miss / consumable (buy spares)'),
   { color: GREY, label: 'Prices: rough ranges, not quotes', shape: 'dot' },
 ]
 const CAR_K = 46
@@ -545,7 +544,7 @@ export const toolKitPartsShoppingList: Lesson = {
           const rr = Math.max(0.05, awgDiameter(c.awg) * 1000 * 0.12)
           const from = new THREE.Vector3(bp.x * CAR_K, bp.y * CAR_K, bp.z * CAR_K)
           top.localToWorld(from)
-          for (const [dy, col] of [[0.25, '#d4282b'], [-0.25, '#26282d']] as const) {
+          for (const [dy, col] of [[0.25, LEAD_TINT.red], [-0.25, LEAD_TINT.black]] as const) {
             cableRun(leadG, [[from.x + 2, from.y + dy, 1], [-5, 0.6 + dy, 0.6], [-3.4, 0.6 + dy, 0.2]], col, rr)
             cableRun(leadG, [[CAR_AT[0] + 1, -3.4 + dy, 1.2], [-5, -3.4 + dy, 0.6], [-3.4, -3.4 + dy, 0.2]], col, rr)
           }

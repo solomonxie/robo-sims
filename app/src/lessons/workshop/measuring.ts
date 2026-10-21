@@ -24,7 +24,7 @@ import {
   caliperRun,
   tolRun,
 } from '../../core/physics'
-import { degText, fixedText, mmFixed, pct, signed } from '../../core/units'
+import { degText, fixedText, lowerFirst, mmFixed, pct, signed } from '../../core/units'
 import { V3, add, box, cylinder, mat } from '../../models/kit'
 import { buildWheel } from '../../models/motion'
 import {
@@ -52,6 +52,7 @@ import {
   scaleZoom,
   screwModel,
   stackSection,
+  textRows,
   verdictLegend,
   verdictTint,
   vernierCaliper,
@@ -99,7 +100,7 @@ function calWhy(r: CalRun): string {
     case 'tilt':
       return `Jaws ${degText(r.cfg.tiltDeg)} off square: ${pm(e.tilt)} mm (${P.mode === 'inside' ? 'a chord, short' : 'a slant, long'}); keep under ${degText(r.tiltMax)} here`
     case 'squeeze':
-      return `${fixedText(r.cfg.forceN, 1)} N squeezes the ${what.replace(/^[A-Z](?=[a-z])/, (ch) => ch.toLowerCase())} ${pm(e.squeeze)} mm: light touch, under ${fixedText(r.forceMax, 1)} N`
+      return `${fixedText(r.cfg.forceN, 1)} N squeezes the ${lowerFirst(what)} ${pm(e.squeeze)} mm: light touch, under ${fixedText(r.forceMax, 1)} N`
     case 'parallax':
       return `Eye ${degText(r.cfg.eyeDeg, 0)} off square: the line reads ${pm(e.parallax)} mm off. Look straight on`
     case 'total':
@@ -196,7 +197,7 @@ export const measuringReadingACaliper: Lesson = {
     const zoomB = scaleZoom(scene, [8, -7.6, 0], 7.6, 1.1)
     const dial = dialFace(scene, [8, -7.6, 0.1], 1.8)
     const lcd = liveLabel(scene, [8, -7.6, 0.3], { size: 1.1 })
-    const rows = [0, 1, 2].map((i) => liveLabel(scene, [4.2, -10 - i * 0.75, 0.3], { size: 0.24, align: 'left' }))
+    const rows = textRows(scene, 3, 4.2, -10, 0.24, 0.75, 0.3)
     const clock = lapseClock(CALIPER_LAPSE_S, 0.6, 1.2)
     let built = ''
     return {
@@ -259,7 +260,7 @@ export const measuringReadingACaliper: Lesson = {
         rows[0].set(`zero ${pm(e.zero)} · heat ${pm(e.hot)} · tilt ${pm(e.tilt)}`, GREY)
         rows[1].set(`squeeze ${pm(e.squeeze)} · parallax ${pm(e.parallax)} mm`, GREY)
         rows[2].set(`this part: tilt ≤ ${degText(r.tiltMax)}, ${r.forceMax > 20 ? 'any light force' : `force ≤ ${fixedText(r.forceMax, 1)} N`}`, LABEL)
-        header.set(`read the ${P.name.split(',')[0].replace(/^[A-Z](?=[a-z])/, (ch) => ch.toLowerCase())} within ±${fixedText(MEASURE_TOL, 2)} mm`, r.verdict, calWhy(r), 'Hint: zero it, square on, light touch, eye straight, part at room temperature')
+        header.set(`read the ${lowerFirst(P.name.split(',')[0])} within ±${fixedText(MEASURE_TOL, 2)} mm`, r.verdict, calWhy(r), 'Hint: zero it, square on, light touch, eye straight, part at room temperature')
       },
       readouts: (p) => {
         const r = calSolve(calCfg(p))
@@ -348,7 +349,7 @@ export const measuringTolerances: Lesson = {
     const bedTag = liveLabel(scene, [-2.6, -3.3, 0.3], { size: 0.26, align: 'left' })
     const batch = batchStrip(scene, [-16.6, -8.3, 0], TOL_BATCH.n, 20, 0.62)
     const batchTag = liveLabel(scene, [-16.8, -7.5, 0.3], { size: 0.28, align: 'left' })
-    const rows = [0, 1].map((i) => liveLabel(scene, [-16.8, -10.3 - i * 0.8, 0.3], { size: 0.26, align: 'left' }))
+    const rows = textRows(scene, 2, -16.8, -10.3, 0.26, 0.8, 0.3)
     const gapG = columnGauge(scene, 0, { min: -0.4, max: 1, window: [0.1, 0.3], caption: 'Gap: batch average, ±3σ bar (RSS)', ticks: [[-0.4, '−0.4'], [0, '0'], [0.4, '0.4'], [1, '1 mm']] })
     const wcG = columnGauge(scene, 1, { min: -0.4, max: 1, window: [0.1, 0.3], caption: 'Worst case: every part at its limit', ticks: [[-0.4, '−0.4'], [0, '0'], [0.4, '0.4'], [1, '1 mm']] })
     const yieldG = columnGauge(scene, 2, { min: 0, max: 1, window: [TOL_BATCH.yieldGoal, 1], caption: 'Share of the batch that fits', ticks: [[0, '0'], [0.5, '50'], [1, '100 %']] })

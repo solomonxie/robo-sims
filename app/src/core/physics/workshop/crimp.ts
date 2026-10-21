@@ -48,7 +48,7 @@ export const CRIMP = {
 }
 
 /** Die slot vs the wire: the matching slot, one slot (2 AWG) bigger or smaller. */
-export const DIE_SLOTS = { match: 0, big: -2, small: 2 }
+const DIE_SLOTS = { match: 0, big: -2, small: 2 }
 export type DieSlot = keyof typeof DIE_SLOTS
 
 /** Conductor area, mm². */
@@ -145,7 +145,7 @@ export function crimpRun(c: CrimpCfg) {
   ])
   return { cfg: c, terminal: T, conn, fill, cut, cover, ohms, goodOhms, holdN, specN, breakN: wireBreakN(c.awg), odMm, testA, heat, window: stripWindow(T), verdict }
 }
-export type CrimpRun = ReturnType<typeof crimpRun>
+type CrimpRun = ReturnType<typeof crimpRun>
 
 /** Time-lapse: the die closes, a pause, then a tug ramps to 1.3 × spec; the wire lets go at its pull-out force. */
 export const CRIMP_LAPSE = { closeS: 1.5, pauseS: 0.5, tugS: 3, over: 1.3 }

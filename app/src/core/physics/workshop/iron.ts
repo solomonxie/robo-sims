@@ -40,7 +40,7 @@ export function ironIdle(setC: number, tip: TipKey): IronNodes {
 }
 
 /** Heater power the station asks for: P-control on its sensor, clipped to 0…watts. */
-export const heaterWatts = (setC: number, heaterC: number) => Math.min(STATION.watts, Math.max(0, STATION.gainWPerK * (setC - heaterC)))
+const heaterWatts = (setC: number, heaterC: number) => Math.min(STATION.watts, Math.max(0, STATION.gainWPerK * (setC - heaterC)))
 
 /** One explicit Euler step; `contactWPerK` = tip ↔ joint conductance (0 with the iron lifted); `extraJPerK` adds to the
  *  joint (braid, fresh solder). */
@@ -79,5 +79,5 @@ export const OXIDE = { fullS: 30, refC: 350, doubleC: 40 }
 export const tipOxide = (tipC: number, idleS: number) => Math.min(1, Math.sqrt(idleS * doublingRate(tipC, OXIDE.refC, OXIDE.fullS, OXIDE.doubleC)))
 
 /** Copper pad bond to FR4: damage dose per second, 1 = lifted (30 s at 300 °C, twice as fast every 20 °C hotter). */
-export const PAD_LIFT = { refC: 300, refS: 30, doubleC: 20 }
+const PAD_LIFT = { refC: 300, refS: 30, doubleC: 20 }
 export const padDoseRate = (jointC: number) => doublingRate(jointC, PAD_LIFT.refC, PAD_LIFT.refS, PAD_LIFT.doubleC)

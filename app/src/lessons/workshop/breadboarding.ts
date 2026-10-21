@@ -79,6 +79,13 @@ const supplyGauge = (scene: Parameters<typeof windowGauge>[0], i: number) =>
   })
 const setLed = (g: { set: (v: number, t: string, c: string) => void }, a: number) => g.set(Math.max(1e-4, a), A(a), verdictTint(a >= 0.005 && a <= LED_RATED_A, a > 0.002 && a <= LED_MAX_A))
 const setSupply = (g: { set: (v: number, t: string, c: string) => void }, a: number) => g.set(Math.max(1e-3, a), A(a), verdictTint(a <= 0.1, a <= BOARD_CLIP.ratedA))
+/** USB power module on the left end, feeding the top rails. */
+const usbFeed = (bb: ReturnType<typeof breadboardModel>) => usbModule(bb, 'top+1', 'top-1', [-36.5, 0, -9])
+/** Jumpers across the mid-board rail break. */
+function bridgeRails(bb: ReturnType<typeof breadboardModel>) {
+  bb.jumper('top+29', 'top+31', WIRE_COLORS.plus)
+  bb.jumper('top-29', 'top-31', WIRE_COLORS.minus)
+}
 const glowLed = (o: { userData: Record<string, unknown> }, a: number, t: number) => {
   const burning = a > LED_MAX_A
   ;(o.userData.setGlow as (l: number) => void)(burning ? 0.6 + 0.4 * Math.abs(Math.sin(t * 9)) : ledGlow(a))
@@ -155,15 +162,12 @@ export const breadboardingRailsAndRows: Lesson = {
         if (built !== rrKey(c)) {
           built = rrKey(c)
           bb.clear()
-          usbModule(bb, 'top+1', 'top-1', [-36.5, 0, -9])
+          usbFeed(bb)
           bb.resistor(R.resistor[0], R.resistor[1], R.ohms)
           led = bb.led(R.diode[0], R.diode[1], R.led.color)
           bb.jumper(R.ground[0], R.ground[1], WIRE_COLORS.minus)
           bb.jumper(r.feed[0], r.feed[1], WIRE_COLORS.plus)
-          if (c.bridge) {
-            bb.jumper('top+29', 'top+31', WIRE_COLORS.plus)
-            bb.jumper('top-29', 'top-31', WIRE_COLORS.minus)
-          }
+          if (c.bridge) bridgeRails(bb)
           bb.bars(netTints(R.board, r.parts, r.sol))
         }
         if (led) glowLed(led, r.ledA, t)
@@ -261,7 +265,7 @@ export const breadboardingTidyWiring: Lesson = {
     const { scene, header } = puzzleStage()
     const H = TIDY_HOLES
     const bb = breadboardModel(scene, { name: 'half', columns: 30, railBreak: null }, HALF_AT, HALF_K)
-    const vG = windowGauge(scene, [GAUGE_X[0], 0.9, 0], 7.6, {
+    const vG = gauge(scene, 0, {
       min: 3,
       max: 5,
       window: [TIDY.volts * (1 - TIDY.dropOk), 5],
@@ -454,7 +458,7 @@ export const breadboardingCommonMistakes: Lesson = {
         if (built !== cmKey(c)) {
           built = cmKey(c)
           bb.clear()
-          usbModule(bb, 'top+1', 'top-1', [-36.5, 0, -9])
+          usbFeed(bb)
           chip = bb.dip(r.pins, 'NE555')
           bb.resistor(M.resistor[0], M.resistor[1], M.ohms)
           led = bb.led(r.diode[0], r.diode[1], M.led.color)
@@ -463,10 +467,7 @@ export const breadboardingCommonMistakes: Lesson = {
           bb.jumper('top+40', c.feedOk ? 'a40' : 'a44', WIRE_COLORS.plus)
           bb.jumper(M.ground[0], M.ground[1], WIRE_COLORS.minus)
           if (c.linked) bb.jumper('top-2', 'bottom-2', WIRE_COLORS.minus, 2)
-          if (c.bridge) {
-            bb.jumper('top+29', 'top+31', WIRE_COLORS.plus)
-            bb.jumper('top-29', 'top-31', WIRE_COLORS.minus)
-          }
+          if (c.bridge) bridgeRails(bb)
         }
         const tints = netTints(M.board, r.parts, r.sol)
         const hot = Object.values(tints).includes(HEAT)

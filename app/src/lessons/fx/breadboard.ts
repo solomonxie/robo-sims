@@ -14,7 +14,7 @@ import { emptyGroup } from './util'
 export const WIRE_COLORS = { plus: '#d4282b', minus: '#202226', signal: '#e8b021', blue: '#2a55c9', green: '#2f9e4f', white: '#e6e6e6', orange: '#f07a1a' }
 
 /** Strip colour for a bus at `v` volts of `full`; null (floating) → grey. */
-export const busTint = (v: number | null, full = 5) => (v === null ? GREY : `#${potentialColor(v / full).getHexString()}`)
+const busTint = (v: number | null, full = 5) => (v === null ? GREY : `#${potentialColor(v / full).getHexString()}`)
 
 /** Legend rows for strip tints. */
 export const BUS_LEGEND = [
@@ -38,10 +38,10 @@ export function netTints(spec: BreadboardSpec, parts: BoardPart[], sol: BoardSol
 }
 
 const RAIL_LINE: [string, number, string][] = [
-  ['top-', -10.3, '#2a55c9'],
-  ['top+', -7.7, '#d4282b'],
-  ['bottom+', 7.7, '#d4282b'],
-  ['bottom-', 10.3, '#2a55c9'],
+  ['top-', -10.3, WIRE_COLORS.blue],
+  ['top+', -7.7, WIRE_COLORS.plus],
+  ['bottom+', 7.7, WIRE_COLORS.plus],
+  ['bottom-', 10.3, WIRE_COLORS.blue],
 ]
 
 /** Flat label lying on the board (reads from +z, top up the board). */
@@ -169,7 +169,7 @@ export function breadboardModel(parent: THREE.Object3D, spec: BreadboardSpec, at
     lead: (from: V3, hole: string, color: string) => add(parts, buildLead(new THREE.Vector3(...from), xz(hole), color)),
   }
 }
-export type BreadboardModel = ReturnType<typeof breadboardModel>
+type BreadboardModel = ReturnType<typeof breadboardModel>
 
 /** Power module off the left end (USB by default): a box with a socket and red/black leads to `plus`/`minus`. */
 export function usbModule(bb: BreadboardModel, plus: string, minus: string, at: V3, text = '5V USB') {

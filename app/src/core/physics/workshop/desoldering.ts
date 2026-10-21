@@ -2,8 +2,7 @@
 // leaded solder (flux + a heat bridge + a lower melting point). Same heat circuit as soldering.
 import { puzzleVerdict } from '../challenges/verdict'
 import { PadKey, ironIdle, ironStep, padDoseRate, TIPS } from './iron'
-import { ALLOYS, AlloyKey, BARREL_MM3, FILLET_MM3, FLUX, JOINT, WETTING, fluxBurnRate } from './soldering'
-import { PAD_LIFT_NEAR } from './soldering'
+import { ALLOYS, AlloyKey, BARREL_MM3, FILLET_MM3, FLUX, PAD_LIFT_NEAR, WETTING, WIRE_MM2, fluxBurnRate } from './soldering'
 
 /** Mixed solder by volume: solidus and liquidus by the linear rule of mixtures (a rough guide; Pb pulls SAC down fast). */
 export function mixAlloy(a: AlloyKey, va: number, b: AlloyKey, vb: number) {
@@ -15,11 +14,11 @@ export function mixAlloy(a: AlloyKey, va: number, b: AlloyKey, vb: number) {
 
 /** Fluxed 2.5 mm copper braid: extra heat capacity on the joint, series factor on the tip contact, flux it brings,
  *  solder it can hold (mm³), wick rates of the top and (slowly, against the hole's own capillary) the barrel, 1/s. */
-export const BRAID = { heatJPerK: 0.08, contact: 0.6, flux: 0.6, capMm3: 2.5, topPerS: 2.5, barrelPerS: 0.65 }
+const BRAID = { heatJPerK: 0.08, contact: 0.6, flux: 0.6, capMm3: 2.5, topPerS: 2.5, barrelPerS: 0.65 }
 /** Spring pump fired as the iron lifts: share of molten solder it leaves on top / in the barrel. */
 export const PUMP = { topLeft: 0.08, barrelLeft: 0.15 }
 /** Fresh Sn63 core wire added first: from `atS`, mm. */
-export const FRESH = { atS: 0.3, mm: 1 }
+const FRESH = { atS: 0.3, mm: 1 }
 export const DESOLDER_METHODS = { braid: 'Desoldering braid', pump: 'Solder pump' }
 export type DesolderMethod = keyof typeof DESOLDER_METHODS
 
@@ -31,7 +30,7 @@ export interface DesolderCfg {
   pad?: PadKey
 }
 
-export interface DesolderFrame {
+interface DesolderFrame {
   t: number
   on: boolean
   jointC: number
@@ -45,7 +44,6 @@ export interface DesolderFrame {
 }
 
 const TIP = 'chisel'
-const WIRE_MM2 = Math.PI * (JOINT.wireMm / 2) ** 2
 
 /** Time-lapse: iron (on braid, or beside the pump nozzle) for `dwellS`, pump fired as it lifts, 2 s cooling. */
 export function desolderRun(c: DesolderCfg) {
@@ -121,7 +119,7 @@ export function desolderRun(c: DesolderCfg) {
   return { cfg: c, frames, dt: W.dt * W.keep, seconds: end, out, verdict: desolderVerdict(out) }
 }
 
-export interface DesolderOut {
+interface DesolderOut {
   /** Liquidus of the (mixed) solder, joint / barrel peak °C. */
   liquidusC: number
   peakC: number
@@ -133,10 +131,10 @@ export interface DesolderOut {
   addedMm3: number
   dose: number
 }
-export type DesolderFail = 'cold' | 'lifted' | 'stuck' | 'pad'
+type DesolderFail = 'cold' | 'lifted' | 'stuck' | 'pad'
 
 /** Desolder verdict: never melted, lifted pad, lead still held by the barrel (> 30 %), solder left on the pad. */
-export function desolderVerdict(o: DesolderOut) {
+function desolderVerdict(o: DesolderOut) {
   return puzzleVerdict<DesolderFail>([
     { id: 'cold', ok: o.peakC >= o.liquidusC },
     { id: 'lifted', ok: o.dose < PAD_LIFT_NEAR, near: o.dose < 1 },

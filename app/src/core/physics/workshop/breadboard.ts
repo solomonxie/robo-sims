@@ -19,7 +19,6 @@ export const BREADBOARDS = {
   full: { name: 'Full, 830 points', columns: 63, railBreak: null },
   split: { name: 'Full, rails split mid-way', columns: 63, railBreak: 30 },
 } satisfies Record<string, BreadboardSpec>
-export type BreadboardKey = keyof typeof BREADBOARDS
 
 /** One spring clip: ~20 mΩ new and rated ~1 A (30 K rise); bent, oxidised clips are ~25× worse. */
 export const BOARD_CLIP: Connector = { name: 'Breadboard clip', ratedA: 1, contactOhms: 0.02, maxC: 80 }

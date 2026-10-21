@@ -54,7 +54,7 @@ export const BUILD_STEPS = {
   charge: { name: 'Balance-charge the pack', needs: [['charger']] },
   fit: { name: 'Measure the printed fits', needs: [['caliper']] },
 } satisfies Record<string, { name: string; needs: ToolId[][] }>
-export type BuildStepId = keyof typeof BUILD_STEPS
+type BuildStepId = keyof typeof BUILD_STEPS
 const ALL_STEPS = Object.keys(BUILD_STEPS) as BuildStepId[]
 
 /** Budget tiers: what you plan to get done and what you can spend. */
@@ -117,7 +117,7 @@ export const STATION_SET_C = 330
 /** Seconds for an untinned tip at `tipC` to oxidise right over (`tipOxide` reaches 1). */
 export const oxideFullS = (tipC: number) => 1 / doublingRate(tipC, OXIDE.refC, OXIDE.fullS, OXIDE.doubleC)
 
-export interface StepCheck {
+interface StepCheck {
   id: BuildStepId
   name: string
   ok: boolean

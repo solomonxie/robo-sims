@@ -6,6 +6,7 @@ import { cellVolts } from '../power/packs'
 import { cellTemp, liionCharger } from '../power/charging'
 import { loopOhms } from '../power/wiring'
 import { puzzleVerdict } from '../challenges/verdict'
+import { clamp01, nearestStepAt } from '../common'
 import { BENCH_C, doublingRate } from './technique'
 
 /** 2S 2200 mAh pouch pack: per cell DC resistance, charge resistance (DC + polarisation), heat capacity (J/K) and
@@ -58,7 +59,7 @@ export interface LipoCfg {
 }
 
 export type LipoPhase = 'refused' | 'pre' | 'cc' | 'cv' | 'done' | 'timer' | 'vent'
-export interface LipoFrame {
+interface LipoFrame {
   t: number
   socs: number[]
   rest: number[]
@@ -69,7 +70,7 @@ export interface LipoFrame {
 }
 
 /** Share of the charge current that goes into side reactions at rest voltage `v` (0 up to full). */
-export const sideShare = (v: number, full = LIPO_CHEM.full) => Math.min(1, Math.max(0, (v - full) / LIPO_HEAT.overV)) ** 2
+export const sideShare = (v: number, full = LIPO_CHEM.full) => clamp01((v - full) / LIPO_HEAT.overV) ** 2
 /** Self-heating per cell, W (0 under the onset). */
 export const selfHeatW = (c: number) => (c < LIPO_HEAT.onsetC ? 0 : doublingRate(c, LIPO_HEAT.refC, 1 / LIPO_HEAT.selfW, LIPO_HEAT.doubleC))
 
@@ -84,7 +85,7 @@ export function lipoShort(state: PackState) {
 
 export const LIPO_DT = 10
 /** Charger safety timer (illustrative; most hobby chargers stop somewhere round 2–4 h). */
-export const LIPO_TIMER_S = 3 * 3600
+const LIPO_TIMER_S = 3 * 3600
 
 /** Charge `cfg` from its pack state, LIPO_DT steps until done, the timer, a refusal or venting. */
 export function lipoChargeRun(cfg: LipoCfg) {
@@ -145,7 +146,7 @@ export function lipoChargeRun(cfg: LipoCfg) {
   ])
   return { cfg, frames, seconds: last.t, last, peakC, maxV, setA, refused, vented, short: lipoShort(cfg.state), verdict }
 }
-export type LipoRun = ReturnType<typeof lipoChargeRun>
+type LipoRun = ReturnType<typeof lipoChargeRun>
 
 /** Frame at `t` s (the last one past the end). */
-export const lipoAt = (r: LipoRun, t: number) => r.frames[Math.max(0, Math.min(r.frames.length - 1, Math.round(t / LIPO_DT)))]
+export const lipoAt = (r: LipoRun, t: number) => nearestStepAt(r.frames, t, LIPO_DT)

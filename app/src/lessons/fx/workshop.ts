@@ -1,18 +1,70 @@
-// Workshop close-ups: a cut-away through-hole joint on the bench (mm × k), soldering iron, solder wire + spool, brass-wool
-// tip cleaner, solder pump and braid, and a tip / joint temperature plot. The cut faces the camera (z = 0), the rest is behind.
+// Workshop bench shared by the Workshop skills lessons: camera, the right column's time-lapse plot, bench top (tile /
+// wood); soldering kit: iron, stand, station, solder wire + spool, brass-wool tip cleaner, pump and braid; and a cut-away
+// through-hole joint (mm × k) with its temperature plot. The cut faces the camera (z = 0), the rest is behind.
 import * as THREE from 'three/webgpu'
 import { BARREL_MM3, BENCH_C, IDEAL_MM3, JOINT, SolderFrame, TIPS, TipKey, contactAngle, filletProfile } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { GREY, HEAT, LABEL, RING, ironbow } from './colors'
-import { boxScope } from './rigs'
-import { addLabel } from './text'
+import { coilSpring } from './forces'
+import { boxScope, plotY } from './rigs'
+import { flatBox } from './shapes'
+import { addLabel, liveLabel } from './text'
 import { clamp01, lerp } from './util'
 
 /** Slightly-from-above camera on the bench; the header, gauges and plot stay readable on the z ≈ 0 plane. */
 export const BENCH_VIEW = { center: [-2.4, -0.8, 0] as V3, radius: 50, polar: 1.38, azimuth: 0 }
 /** Close-up scale (scene units per mm) and the joint origin: hole axis, board top. */
-export const BENCH_K = 2.4
-export const BENCH_AT: V3 = [-7, -2.4, 0]
+const BENCH_K = 2.4
+const BENCH_AT: V3 = [-7, -2.4, 0]
+/** The right column's top box, above its three gauges. */
+export const BENCH_PLOT = { x: 8, y: 1.9, w: 7.6, h: 3.2 }
+
+/** Time-lapse plot in `BENCH_PLOT`: `boxScope` (title, live `tag`, [hi, lo] axis labels), one trace per [colour, radius].
+ *  `draw(n, upTo, u, ys)` plots samples 0…upTo − 1 of n (at least 2, at most 120 drawn) at u(i) 0…1, trace j at ys[j](i). */
+export function benchPlot(scene: THREE.Object3D, title: string, divs: [number, number], axis: [string, string], traces: [string, number][]) {
+  const { s, tag } = boxScope(scene, BENCH_PLOT, title, divs, { axis })
+  const lines = traces.map(([c, radius]) => s.trace(c, { samples: 120, radius }))
+  return {
+    s,
+    tag,
+    draw(n: number, upTo: number, u: (i: number) => number, ys: ((i: number) => number)[]) {
+      const k = Math.min(n, Math.max(2, upTo))
+      const step = Math.max(1, Math.ceil(k / 120))
+      const us: number[] = []
+      const vs = ys.map(() => [] as number[])
+      for (let i = 0; i < k; i += step) {
+        us.push(u(i))
+        ys.forEach((f, j) => vs[j].push(f(i)))
+      }
+      lines.forEach((l, j) => l.points(us, vs[j]))
+    },
+  }
+}
+
+export const BENCH_TOP_Y = -6.6
+const WOOD = '#8a5a32'
+
+/** Bench top from x0 to x1 at `BENCH_TOP_Y`: `set('tile' | 'wood')` swaps ceramic tiles for bare wood. */
+export function benchTop(parent: THREE.Object3D, x0 = -17.5, x1 = 3) {
+  const g = add(parent, new THREE.Group())
+  const w = x1 - x0
+  const cx = (x0 + x1) / 2
+  box(g, [w, 0.6, 7], mat(WOOD, { rough: 0.8 }), [cx, BENCH_TOP_Y - 0.3, -1.5])
+  const tiles = add(g, new THREE.Group())
+  const tileMat = mat('#e4e2dc', { rough: 0.35 })
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) box(tiles, [3.9, 0.25, 2.9], tileMat, [-15.2 + i * 4, BENCH_TOP_Y + 0.12, -1.6 + j * 3])
+  return {
+    group: g,
+    set(kind: 'tile' | 'wood') {
+      tiles.visible = kind === 'tile'
+    },
+    /** Top surface y for the current kind. */
+    top: (kind: 'tile' | 'wood') => BENCH_TOP_Y + (kind === 'tile' ? 0.25 : 0),
+  }
+}
+
+/** Dark green LCD glass (station, charger). */
+export const lcdMat = () => mat('#0d1a14', { emissive: '#06120c', rough: 0.3 })
 
 const FR4 = '#c8b878'
 const MASK = '#2f6b3a'
@@ -36,7 +88,7 @@ function cutFace(parent: THREE.Object3D, pts: [number, number][], material: THRE
 /** Fillet section (right half): the pad from r_l out, back along h(r) to the lead. */
 const filletCut = (points: [number, number][]): [number, number][] => [[points[0][0], 0], ...points.slice().reverse()]
 
-export interface JointLook {
+interface JointLook {
   /** Barrel filled from the top, 0…1. */
   barrel: number
   /** Fillet [r, h] mm from the lead out (filletProfile points); empty = none. */
@@ -56,7 +108,7 @@ export interface JointLook {
 
 /** Cut-away through-hole joint, board top at `at`, solder side up: FR4 with mask, plated barrel, pads, lead through it,
  *  solder in the barrel and a fillet; flux puddle; `set(JointLook)`. `point(r, y)` = scene point at radius r mm (−x side), y mm. */
-export function jointSection(parent: THREE.Object3D, at: V3 = BENCH_AT, k = BENCH_K, halfW = 4, depth = 3) {
+function jointSection(parent: THREE.Object3D, at: V3 = BENCH_AT, k = BENCH_K, halfW = 4, depth = 3) {
   const g = add(parent, new THREE.Group(), at)
   g.scale.setScalar(k)
   const J = JOINT
@@ -149,7 +201,7 @@ export function jointSection(parent: THREE.Object3D, at: V3 = BENCH_AT, k = BENC
 }
 
 /** Labels pointing at the section's parts: pad, lead, barrel, FR4. */
-export function sectionLabels(parent: THREE.Object3D, at: V3 = BENCH_AT, k = BENCH_K) {
+function sectionLabels(parent: THREE.Object3D, at: V3 = BENCH_AT, k = BENCH_K) {
   const x = at[0] + 4.3 * k
   addLabel(parent, 'FR4 board', [x, at[1] - 0.8 * k, 0.3], GREY, 0.28, 'right')
   addLabel(parent, 'lead', [at[0] + 0.5 * k, at[1] + 1.9 * k, 0.3], GREY, 0.26, 'left')
@@ -189,6 +241,34 @@ export function solderingIron(parent: THREE.Object3D, tip: TipKey, k = BENCH_K, 
   }
 }
 
+/** Coil iron stand on a weighted base at `at` (base bottom), coil `len` long tilted up-left along an iron held `angle` rad
+ *  from vertical (as `solderingIron`); `seat` = where its tip rests, deep in the coil. */
+export function ironStand(parent: THREE.Object3D, at: V3, angle = 1.1, len = 3.2) {
+  const g = add(parent, new THREE.Group(), at)
+  box(g, [3.2, 0.5, 2.4], mat('#2a2c32', { rough: 0.6 }), [0, 0.25, 0])
+  const coil = coilSpring(g, 0.55, 6, 0.07)
+  const a: V3 = [0.9, 0.7, 0]
+  const tilt = Math.PI / 2 - angle
+  coil(a, [a[0] - len * Math.cos(tilt), a[1] + len * Math.sin(tilt), 0])
+  return { group: g, seat: [at[0] + a[0], at[1] + a[1], at[2]] as V3 }
+}
+
+/** Soldering station base at `at` (bottom centre): case, LCD with a live temperature line, knob. `screen(text, colour)`. */
+export function ironStation(parent: THREE.Object3D, at: V3, s = 1) {
+  const g = add(parent, new THREE.Group(), at)
+  g.scale.setScalar(s)
+  box(g, [3.2, 2.2, 2.4], mat('#2a2c32', { rough: 0.5 }), [0, 1.1, 0])
+  flatBox(g, [2.4, 0.9, 0.06], lcdMat(), [0, 1.5, 1.22])
+  const lcd = liveLabel(g, [0, 1.5, 1.3], { size: 0.42 })
+  cylinder(g, 0.35, 0.3, mat('#c9ced6', { metal: 0.4 }), [0, 0.55, 1.3], 'z', 18)
+  return {
+    group: g,
+    screen(text: string, color: string) {
+      lcd.set(text, color)
+    },
+  }
+}
+
 /** 0.8 mm solder wire from a small spool at `spoolAt` down to the joint along `dir`; `set(end, shown)` moves its end. */
 export function solderWire(parent: THREE.Object3D, spoolAt: V3, k = BENCH_K) {
   const g = add(parent, new THREE.Group())
@@ -214,7 +294,7 @@ export function solderWire(parent: THREE.Object3D, spoolAt: V3, k = BENCH_K) {
 }
 
 /** Brass-wool tip cleaner in a cup at `at`. */
-export function tipCleaner(parent: THREE.Object3D, at: V3) {
+function tipCleaner(parent: THREE.Object3D, at: V3) {
   const g = add(parent, new THREE.Group(), at)
   cylinder(g, 1.7, 1.2, mat('#3a3d44', { rough: 0.6 }), [0, 0, 0])
   const brass = mat('#c9a24a', { metal: 0.6, rough: 0.45 })
@@ -266,35 +346,17 @@ export function solderBraid(parent: THREE.Object3D, at: V3, w: number, len = 9) 
   }
 }
 
-/** Tip / joint / barrel °C against time (0…run length) in the right column's top box, with the alloy's liquidus and wetting lines. */
-export function jointPlot(scene: THREE.Object3D, maxC = 450) {
-  const P = { x: 8, y: 1.9, w: 7.6, h: 3.2 }
-  const { s, tag } = boxScope(scene, P, '°C vs time', [8, 3], { axis: [`${maxC}`, `${BENCH_C}`] })
-  const tipT = s.trace(HEAT, { samples: 120, radius: 0.08 })
-  const jointT = s.trace(RING, { samples: 120, radius: 0.08 })
-  const barrelT = s.trace(LABEL, { samples: 120, radius: 0.05 })
+/** Tip / joint / barrel °C against time (0…run length) in `BENCH_PLOT`, with the alloy's liquidus and wetting lines. */
+function jointPlot(scene: THREE.Object3D, maxC = 450) {
+  const { s, tag, draw } = benchPlot(scene, '°C vs time', [8, 3], [`${maxC}`, `${BENCH_C}`], [[HEAT, 0.08], [RING, 0.08], [LABEL, 0.05]])
   const melt = s.level('#5ce1a0')
   const wetL = s.level('#5ad8e6', 0.3)
-  const y = (c: number) => ((c - BENCH_C) / (maxC - BENCH_C)) * P.h - P.h / 2
+  const y = plotY(BENCH_C, maxC, BENCH_PLOT.h)
   return {
     tag,
     /** Frames every `dt`, total `seconds`, drawn up to `now`; lines at `meltC` and `wetC`. */
     set<F extends { tipC: number; jointC: number; barrelC: number }>(frames: readonly F[], dt: number, seconds: number, now: number, meltC: number, wetC: number) {
-      const k = Math.min(frames.length, Math.max(2, Math.floor(now / dt) + 1))
-      const step = Math.max(1, Math.ceil(k / 120))
-      const us: number[] = []
-      const ts: number[] = []
-      const js: number[] = []
-      const bs: number[] = []
-      for (let i = 0; i < k; i += step) {
-        us.push((i * dt) / seconds)
-        ts.push(y(frames[i].tipC))
-        js.push(y(frames[i].jointC))
-        bs.push(y(frames[i].barrelC))
-      }
-      tipT.points(us, ts)
-      jointT.points(us, js)
-      barrelT.points(us, bs)
+      draw(frames.length, Math.floor(now / dt) + 1, (i) => (i * dt) / seconds, [(i) => y(frames[i].tipC), (i) => y(frames[i].jointC), (i) => y(frames[i].barrelC)])
       melt.set(y(meltC))
       wetL.set(y(wetC))
     },
@@ -302,7 +364,7 @@ export function jointPlot(scene: THREE.Object3D, maxC = 450) {
 }
 
 /** The three tips' irons, one shown at a time: `show(tip)`, `set(tipC, oxide)`, `place(at)`. */
-export function ironSet(parent: THREE.Object3D, k = BENCH_K, angle = 1.1) {
+function ironSet(parent: THREE.Object3D, k = BENCH_K, angle = 1.1) {
   const irons = (Object.keys(TIPS) as TipKey[]).map((t) => [t, solderingIron(parent, t, k, angle)] as const)
   let shown: TipKey = 'chisel'
   const pick = () => irons.find(([t]) => t === shown)![1]
@@ -326,7 +388,7 @@ export function solderLook(f: SolderFrame): JointLook {
 }
 
 /** Contact points in scene units: where the iron (left) and the wire or pump (right) touch, `lift` = units up. */
-export function benchPoints(at: V3 = BENCH_AT, k = BENCH_K) {
+function benchPoints(at: V3 = BENCH_AT, k = BENCH_K) {
   const r = (JOINT.leadMm / 2 + 0.35) * k
   return {
     iron: (lift = 0): V3 => [at[0] - r - lift * 0.89, at[1] + 0.35 * k + lift * 0.45, 0.4],

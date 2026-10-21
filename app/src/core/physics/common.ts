@@ -47,6 +47,8 @@ export function bisectRoot(f: (x: number) => number, lo: number, hi: number, n =
 
 /** Sample of a fixed-step run (`dt` apart) at time `t`, held at the ends. */
 export const fixedStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.floor(t / dt), 0, run.length - 1)]
+/** Nearest sample of a fixed-step run at time `t`, held at the ends. */
+export const nearestStepAt = <T>(run: readonly T[], t: number, dt: number) => run[clamp(Math.round(t / dt), 0, run.length - 1)]
 
 /** Computes `f` on first call, then returns the cached value. */
 export const once = <T>(f: () => T) => {

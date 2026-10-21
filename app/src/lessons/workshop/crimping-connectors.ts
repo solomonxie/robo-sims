@@ -20,7 +20,7 @@ import {
   plugTempAt,
   PLUG_LAPSE,
 } from '../../core/physics'
-import { celsiusText, fixedText, mmFixed, pct, si } from '../../core/units'
+import { celsiusText, fixedText, lowerFirst, mmFixed, ohmsText, pct, si } from '../../core/units'
 import { V3, add, box, mat } from '../../models/kit'
 import { buildTtMotor } from '../../models/motion'
 import {
@@ -33,6 +33,7 @@ import {
   POWER,
   RING,
   cableRun,
+  clamp01,
   columnGauge,
   crimpSection,
   crimpTerminal,
@@ -45,12 +46,13 @@ import {
   puzzleStage,
   sg90Servo,
   stretchArrow,
+  textRows,
+  verdictLegend,
   verdictTint,
 } from '../fx'
 import { LegendItem, Lesson, Params, Stage, n, namesOf, opts, pick, toneOf, verdictReadout } from '../types'
 
 const N = (f: number) => `${fixedText(f, f < 10 ? 1 : 0)} N`
-const mOhm = (r: number) => (Number.isFinite(r) ? si(r, 'Ω', 2) : 'open')
 const A = (a: number) => si(a, 'A', 2)
 const C = (c: number) => celsiusText(c)
 /** Copper fill; past 100 % the die asks for more room than the copper has: it crushes. */
@@ -93,9 +95,9 @@ function crimpWhy(r: CpRun): string {
     case 'insul':
       return `${fixedText(r.odMm, 2)} mm insulation, the wings close on ${T.od[0]}–${T.od[1]} mm: ${r.odMm > T.od[1] ? 'they can’t wrap it' : 'they grip it loosely'}`
     case 'hot':
-      return `${mOhm(r.ohms)} crimp at ${A(r.testA)}: the contact reaches ${C(r.heat?.tempC ?? 0)}`
+      return `${ohmsText(r.ohms)} crimp at ${A(r.testA)}: the contact reaches ${C(r.heat?.tempC ?? 0)}`
     default:
-      return `Gas-tight ${pct(r.fill)} fill, ${mOhm(r.ohms)}, holds ${N(r.holdN)} (spec ${N(r.specN)}): the wire gives first`
+      return `Gas-tight ${pct(r.fill)} fill, ${ohmsText(r.ohms)}, holds ${N(r.holdN)} (spec ${N(r.specN)}): the wire gives first`
   }
 }
 
@@ -142,7 +144,7 @@ export const crimpingConnectorsCrimpingAPin: Lesson = {
     const tugTag = liveLabel(scene, [-8.4, -4.4, 0.3], { size: 0.3, align: 'left' })
     const names = ['contact', 'conductor wings', 'insulation wings'].map(() => liveLabel(scene, [0, -1.7, 0.3], { size: 0.26 }))
     const secTag = liveLabel(scene, [SECTION_AT[0], -11.4, 0.3], { size: 0.28 })
-    const rows = [0, 1, 2].map((i) => liveLabel(scene, [-8.4, -5.6 - i * 1.1, 0.3], { size: 0.3, align: 'left' }))
+    const rows = textRows(scene, 3, -8.4, -5.6, 0.3, 1.1, 0.3)
     const fillG = columnGauge(scene, 0, {
       min: 0.5,
       max: 1.1,
@@ -177,7 +179,7 @@ export const crimpingConnectorsCrimpingAPin: Lesson = {
         const now = clock(dt, cpKey(c))
         const f = crimpAt(r, now)
         const wireMm = awgDiameter(c.awg) * 1e3
-        const lift = Math.min(1, Math.max(0, (now - CRIMP_LAPSE.closeS) / CRIMP_LAPSE.pauseS)) * 1.5
+        const lift = clamp01((now - CRIMP_LAPSE.closeS) / CRIMP_LAPSE.pauseS) * 1.5
         side.set({ terminal: T, wireMm, odMm: r.odMm, stripMm: c.stripMm, closed: f.closed, lift, fill: r.fill, cut: r.cut, slideMm: f.slideMm, insulation: LEAD_TINT.red })
         const x = (mm: number) => SIDE_AT[0] + mm * SIDE_K
         names[0].group.position.x = x(-3)
@@ -196,7 +198,7 @@ export const crimpingConnectorsCrimpingAPin: Lesson = {
         secTag.set('barrel cross-section, enlarged', GREY)
         const gas = r.fill >= CRIMP.gasLo && r.fill <= CRIMP.gasHi
         rows[0].set(`${c.awg} AWG, 7 strands · fill ${fillText(r.fill)}${gas ? ' · gas-tight' : r.fill > CRIMP.gasHi ? ' · crushed' : ' · voids'}`, verdictTint(gas, r.fill > CRIMP.looseFill))
-        rows[1].set(`crimp ${mOhm(r.ohms)} (good: ${mOhm(r.goodOhms)})`, Number.isFinite(r.ohms) ? LABEL : HIGH_V)
+        rows[1].set(`crimp ${ohmsText(r.ohms)} (good: ${ohmsText(r.goodOhms)})`, Number.isFinite(r.ohms) ? LABEL : HIGH_V)
         rows[2].set(`strip ${mmFixed(c.stripMm)} · aim ${fixedText(r.window[0], 1)}–${fixedText(r.window[1], 1)} mm`, verdictTint(r.cover.cond >= 1 - 1e-9 && r.cover.insul >= 1 - 1e-9, r.cover.cond >= 0.75))
         fillG.set(Math.min(1.1, Math.max(0.5, r.fill)), fillText(r.fill), verdictTint(gas, r.fill >= CRIMP.gasLo * 0.92 && r.fill <= CRIMP.cutAt + 0.02))
         const ratio = r.holdN / r.specN
@@ -210,7 +212,7 @@ export const crimpingConnectorsCrimpingAPin: Lesson = {
         return [
           { label: 'Fill', value: fillText(r.fill), tone: toneOf(r.fill >= CRIMP.gasLo && r.fill <= CRIMP.gasHi, r.fill > CRIMP.looseFill && r.fill < CRIMP.cutAt) },
           { label: 'Pull-out', value: `${N(r.holdN)} / ${N(r.specN)}`, tone: toneOf(r.holdN >= r.specN, r.holdN >= 0.8 * r.specN) },
-          { label: 'Crimp R', value: mOhm(r.ohms), tone: toneOf(Number.isFinite(r.ohms) && r.ohms < 2 * r.goodOhms, Number.isFinite(r.ohms)) },
+          { label: 'Crimp R', value: ohmsText(r.ohms), tone: toneOf(Number.isFinite(r.ohms) && r.ohms < 2 * r.goodOhms, Number.isFinite(r.ohms)) },
           verdictReadout(r.verdict),
         ]
       },
@@ -225,7 +227,7 @@ const CONN_NAMES = namesOf(CONNECTORS)
 const FLIP_OPTS = { right: 'Plugged in the right way', flipped: 'Plugged in flipped' }
 /** Lead colours per job, pin 1 first. */
 const JOB_LEADS: Record<JobKey, string[]> = {
-  servo: ['#6b3a1e', LEAD_TINT.red, '#f07a1a'],
+  servo: [LEAD_TINT.brown, LEAD_TINT.red, LEAD_TINT.orange],
   battery: [LEAD_TINT.red, LEAD_TINT.black],
   i2c: [LEAD_TINT.red, LEAD_TINT.black, LEAD_TINT.yellow, LEAD_TINT.blue],
   motor: [LEAD_TINT.red, LEAD_TINT.black],
@@ -299,9 +301,7 @@ export const crimpingConnectorsChoosingConnectors: Lesson = {
   },
   legend: [
     { color: HEAT, label: 'Contact heat (thermal tint)', shape: 'dot' },
-    { color: POWER, label: 'Within the job’s limits', shape: 'dot' },
-    { color: RING, label: 'Works, but a close miss', shape: 'dot' },
-    { color: HIGH_V, label: 'Fails the job', shape: 'dot' },
+    ...verdictLegend('Fails the job', 'Within the job’s limits', 'Works, but a close miss'),
   ],
   points: [
     'Current rating first. Every contact is a small resistor; I²R heat at the running current, plus bursts (a 2S drive pulling 40 A to accelerate), must stay under the housing’s limit. A Dupont pin is fine for a servo and melts on a battery lead (Power › Wiring & gauge › Connector ratings).',
@@ -326,7 +326,7 @@ export const crimpingConnectorsChoosingConnectors: Lesson = {
     const itemTag = liveLabel(scene, [-15, 1.4, 0.3], { size: 0.28 })
     const flipTag = liveLabel(scene, [-7.5, -6.2, 0.3], { size: 0.3 })
     const timeTag = liveLabel(scene, [-7.5, 2.6, 0.3], { size: 0.3 })
-    const rows = [0, 1].map((i) => liveLabel(scene, [-17, -8.6 - i * 1.1, 0.3], { size: 0.28, align: 'left' }))
+    const rows = textRows(scene, 2, -17, -8.6, 0.28, 1.1, 0.3)
     const tempG = columnGauge(scene, 0, {
       min: 20,
       max: 150,
@@ -415,7 +415,7 @@ export const crimpingConnectorsChoosingConnectors: Lesson = {
         tempG.set(Math.min(150, tC), hot ? `melts (> ${C(K.maxC)})` : C(tC), verdictTint(tC <= 60, !hot))
         dropG.set(Math.min(0.1, r.dropFrac), pct(r.dropFrac), verdictTint(r.dropFrac <= J.dropFrac, r.dropFrac <= 2 * J.dropFrac))
         holdG.set(Math.min(100, r.holdN), N(r.holdN), verdictTint(r.holdN >= J.tugN, r.holdN >= 0.5 * J.tugN))
-        header.set(`a connector for the ${J.name.replace(/ \(.*\)/, '').replace(/^[A-Z](?=[a-z])/, (ch) => ch.toLowerCase())}`, r.verdict, plugWhy(r), 'Hint: amps first, then keying, then how it holds and how often it’s plugged')
+        header.set(`a connector for the ${lowerFirst(J.name.replace(/ \(.*\)/, ''))}`, r.verdict, plugWhy(r), 'Hint: amps first, then keying, then how it holds and how often it’s plugged')
       },
       readouts: (p) => {
         const r = plSolve(plCfg(p))

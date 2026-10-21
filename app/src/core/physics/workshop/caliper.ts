@@ -1,6 +1,6 @@
 // Reading a caliper: vernier / dial / digital scales, and the technique errors (zero, heat, tilt, squeeze, parallax)
 // that matter more than the resolution.
-import { DEG } from '../common'
+import { DEG, clamp01 } from '../common'
 import { puzzleVerdict } from '../challenges/verdict'
 import { BALL_BEARINGS } from '../materials/bearings'
 import { caliperReading } from '../materials/fasteners'
@@ -23,7 +23,7 @@ export const CALIPERS = {
 } as const
 export type CaliperKind = keyof typeof CALIPERS
 
-export type MeasureMode = 'outside' | 'inside' | 'depth'
+type MeasureMode = 'outside' | 'inside' | 'depth'
 
 /** Parts on the bench: true size at 25 °C, how far it gives per newton of jaw force (both contacts), expansion /K,
  *  temperature straight off the printer bed (printed parts only). */
@@ -60,7 +60,7 @@ export function tiltError(mode: MeasureMode, trueMm: number, tiltDeg: number) {
 }
 
 /** Jaw force squeezes the part: outside reads small, inside and depth read large. */
-export const squeezeError = (p: MeasurePart, forceN: number) => (p.mode === 'outside' ? -1 : 1) * p.mmPerN * forceN
+const squeezeError = (p: MeasurePart, forceN: number) => (p.mode === 'outside' ? -1 : 1) * p.mmPerN * forceN
 
 /** Pointer height over the scale seen `eyeDeg` off square, in mm of jaw travel. */
 export const parallaxError = (kind: CaliperKind, eyeDeg: number) => (CALIPERS[kind].eyeGapMm * Math.tan(eyeDeg * DEG)) / CALIPERS[kind].gain
@@ -125,7 +125,7 @@ export function caliperRun(cfg: CaliperCfg) {
     verdict,
   }
 }
-export type CaliperRun = ReturnType<typeof caliperRun>
+type CaliperRun = ReturnType<typeof caliperRun>
 
 /** Measuring time-lapse: jaws travel to the part, then the squeeze ramps up and holds. */
 export const CALIPER_LAPSE = { closeS: 1.2, squeezeS: 0.6, holdS: 2.2 }
@@ -136,9 +136,9 @@ export function caliperAt(r: CaliperRun, t: number, openMm = 6) {
   const { closeS, squeezeS } = CALIPER_LAPSE
   const touch = r.part.trueMm + r.errs.hot + r.errs.tilt
   const away = r.part.mode === 'outside' ? openMm : -Math.min(openMm, touch * 0.6)
-  const u = Math.min(1, Math.max(0, t / closeS))
+  const u = clamp01(t / closeS)
   const ease = 1 - (1 - u) ** 3
-  const s = Math.min(1, Math.max(0, (t - closeS) / squeezeS))
+  const s = clamp01((t - closeS) / squeezeS)
   const gapMm = t < closeS ? touch + away * (1 - ease) : touch + r.errs.squeeze * s
   const shown = roundToStep(gapMm + r.errs.zero + r.errs.parallax, CALIPERS[r.cfg.kind].res)
   return { gapMm, shown, forceN: r.cfg.forceN * s, touching: t >= closeS, settled: s >= 1 }
