@@ -76,8 +76,9 @@ export function plugTempAt(c: Connector, tauS: number, j: ConnectorJob, t: numbe
 /** Hold-in force of a housing with `pins` contacts. */
 export const retentionN = (s: ConnectorSpec, pins: number) => (s.perPin ? s.retainN * pins : s.retainN)
 
-export function plugRun(job: JobKey, conn: ConnectorId) {
-  const J: ConnectorJob = CONNECTOR_JOBS[job]
+/** Verdict for a job (a `CONNECTOR_JOBS` key or any `ConnectorJob`) on connector `conn`. */
+export function plugRun<K extends JobKey | ConnectorJob>(job: K, conn: ConnectorId) {
+  const J: ConnectorJob = typeof job === 'string' ? CONNECTOR_JOBS[job as JobKey] : (job as ConnectorJob)
   const C = CONNECTORS[conn]
   const S = CONNECTOR_SPECS[conn]
   const steady = connectorPoint(C, J.amps)

@@ -36,10 +36,9 @@ import {
   RING,
   benchHead,
   benchTop,
-  boxFan,
+  benchExtractor,
   boxScope,
   chargeLeads,
-  label,
   columnGauge,
   fumePlume,
   hobbyCharger,
@@ -350,11 +349,7 @@ export const safetyFumeAndEyeProtection: Lesson = {
     const scorch = add(scene, new THREE.Mesh(new THREE.CircleGeometry(0.7, 20), mat('#2a1a10', { rough: 1 })), [-12.2, BENCH_TOP_Y + 0.02, 0.8])
     scorch.rotation.x = -Math.PI / 2
     const plume = fumePlume(scene, JOINT_AT)
-    const fan = boxFan(scene, [0, 0, 0], 3)
-    fan.group.rotation.y = -Math.PI / 2
-    const filter = add(scene, new THREE.Group())
-    box(filter, [1.6, 3.4, 3.4], mat('#3a3d44', { rough: 0.7 }), [0, 0, 0])
-    add(filter, label('extractor', { size: 0.28, color: LABEL, glow: 0.5 }), [-0.6, 2.3, 1.8])
+    const fan = benchExtractor(scene, [0, 0, 0])
     const windowG = add(scene, new THREE.Group(), [-15.5, -0.6, -3])
     box(windowG, [3.6, 4.4, 0.2], mat('#c9ced8', { rough: 0.5 }), [0, 0, 0])
     box(windowG, [3, 3.8, 0.24], mat('#8fd0ff', { emissive: '#2a5070', rough: 0.2 }), [0, 0, 0.02])
@@ -397,8 +392,7 @@ export const safetyFumeAndEyeProtection: Lesson = {
           built = c.vent
           const fx = JOINT_AT[0] + 1.2 + Vt.extractCm * UNITS_PER_CM
           fan.group.position.set(fx, BENCH_TOP_Y + 1.9, 0.4)
-          filter.position.set(fx + 1.1, BENCH_TOP_Y + 1.9, 0.4)
-          fan.group.visible = filter.visible = Vt.extractCm > 0
+          fan.group.visible = Vt.extractCm > 0
           plume.reach(Math.max(1, Vt.extractCm * UNITS_PER_CM + 0.8))
           windowG.visible = c.vent === 'window'
           windowTag.set(c.vent === 'window' ? 'window open' : '', LABEL)

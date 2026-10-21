@@ -246,7 +246,7 @@ const plCfg = (p: Params) => ({
 type PlCfg = ReturnType<typeof plCfg>
 const plKey = (c: PlCfg) => `${c.job}|${c.conn}`
 const plSolve = memoBy(plKey, (c: PlCfg) => plugRun(c.job, c.conn))
-type PlRun = ReturnType<typeof plugRun>
+type PlRun = ReturnType<typeof plugRun<JobKey>>
 
 function plugWhy(r: PlRun): string {
   const { J, C: K, S } = r

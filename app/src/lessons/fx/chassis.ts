@@ -1,7 +1,7 @@
 // Robot chassis seen from above: a see-through plate, two TT motors + wheels, ball caster, 2 × 18650 holder, motor driver,
 // ESP32 and IMU from a `ChassisPart[]` layout (metres, x forward, y left, z up), `k` scene units per metre.
 import * as THREE from 'three/webgpu'
-import { CHASSIS, ChassisPart } from '../../core/physics'
+import { CAR_PACKS, CHASSIS, CarPack, ChassisPart } from '../../core/physics'
 import { V3, add, box, cylinder, mat, mesh } from '../../models/kit'
 import { cell18650 } from './cells'
 import { esp32Board, i2cBreakout } from './modules'
@@ -74,5 +74,30 @@ export function chassisModel(parent: THREE.Object3D, parts: readonly ChassisPart
       const p = P(key)
       return [p.x * k, p.y * k, p.z * k]
     },
+  }
+}
+
+/** Battery holder under the plate: n cells side by side along y (18650 or AA). */
+export function packHolder(parent: THREE.Object3D, at: V3, k: number) {
+  const g = add(parent, new THREE.Group(), at)
+  let built = ''
+  return (pack: CarPack) => {
+    if (built === pack) return
+    built = pack
+    g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
+    g.clear()
+    const P = CAR_PACKS[pack]
+    const li = P.chem === 'liion'
+    const r = (li ? 0.009 : 0.007) * k
+    const pitch = 2.1 * r
+    box(g, [(li ? 0.077 : 0.058) * k, P.series * pitch + 0.004 * k, 0.004 * k], mat('#1c1c1f', { rough: 0.7 }), [0, 0, -r - 0.002 * k])
+    for (let i = 0; i < P.series; i++) {
+      const y = (i - (P.series - 1) / 2) * pitch
+      if (li) cell18650(g, [0, y, 0], r).rotation.z = -Math.PI / 2
+      else {
+        cylinder(g, r, 0.05 * k, mat(P.chem === 'nimh' ? '#2c7a4b' : '#c2552a', { rough: 0.45 }), [0, y, 0], 'x', 20)
+        cylinder(g, r * 0.35, 0.053 * k, mat('#d6d8dc', { metal: 0.6, rough: 0.3 }), [0, y, 0], 'x', 12)
+      }
+    }
   }
 }

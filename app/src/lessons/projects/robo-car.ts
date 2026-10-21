@@ -46,7 +46,6 @@ import {
   addRod,
   arcAt,
   cableRun,
-  cell18650,
   chassisModel,
   codeListing,
   countBars,
@@ -68,6 +67,7 @@ import {
   liveLabel,
   memoBy,
   moduleBlock,
+  packHolder,
   packetPool,
   setGlow,
   sketchTint,
@@ -96,31 +96,6 @@ function carStage() {
   model.part('imu').visible = false
   top.position.x = CAR.at[0] + ((ROBOCAR.wheelbase - CHASSIS.front) / 2) * CAR.k
   return { scene, head, top, parts, model }
-}
-
-/** Battery holder under the plate: n cells side by side along y (18650 or AA). */
-function packHolder(parent: THREE.Object3D, at: V3, k: number) {
-  const g = add(parent, new THREE.Group(), at)
-  let built = ''
-  return (pack: CarPack) => {
-    if (built === pack) return
-    built = pack
-    g.traverse((o) => (o as THREE.Mesh).geometry?.dispose())
-    g.clear()
-    const P = CAR_PACKS[pack]
-    const li = P.chem === 'liion'
-    const r = (li ? 0.009 : 0.007) * k
-    const pitch = 2.1 * r
-    box(g, [(li ? 0.077 : 0.058) * k, P.series * pitch + 0.004 * k, 0.004 * k], mat('#1c1c1f', { rough: 0.7 }), [0, 0, -r - 0.002 * k])
-    for (let i = 0; i < P.series; i++) {
-      const y = (i - (P.series - 1) / 2) * pitch
-      if (li) cell18650(g, [0, y, 0], r).rotation.z = -Math.PI / 2
-      else {
-        cylinder(g, r, 0.05 * k, mat(P.chem === 'nimh' ? '#2c7a4b' : '#c2552a', { rough: 0.45 }), [0, y, 0], 'x', 20)
-        cylinder(g, r * 0.35, 0.053 * k, mat('#d6d8dc', { metal: 0.6, rough: 0.3 }), [0, y, 0], 'x', 12)
-      }
-    }
-  }
 }
 
 // --- Chassis & power: build the Chassis design car part by part, then the power tree from pack to 3.3 V, cruising or at a hard start. ---

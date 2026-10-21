@@ -4,7 +4,7 @@ import { clamp } from '../common'
 import { Pose } from '../room'
 import { CHEMISTRIES, ChemistryId, openCircuitVolts } from '../power/batteries'
 import { WIFI_PEAK_A, packRuntime, sagged } from '../power/budget'
-import { LM2596, dcdcPoint } from '../power/converters'
+import { DcdcModule, LM2596, dcdcPoint } from '../power/converters'
 import { ESP32_BOD } from '../power/brownout'
 import { AMS1117_33, dropoutVolts } from '../regulators'
 import { driverLoss } from '../actuators/hbridge'
@@ -40,9 +40,9 @@ function cruiseMotor(vpack: number) {
 /** One stalled TT motor behind the DRV8833 (e.g. the first instant of a start). */
 const stallMotorAmps = (vpack: number) => vpack / (5 + 0.36)
 
-/** 5 V rail from the buck and the ESP32's 3.3 V after its AMS1117 at `logicA`. */
-function logicRail(vpack: number, logicA: number) {
-  const buck = dcdcPoint(LM2596, vpack, ROBOCAR.rail, logicA)
+/** 5 V rail from the converter `m` and the ESP32's 3.3 V after its AMS1117 at `logicA`. */
+function logicRail(vpack: number, logicA: number, m: DcdcModule) {
+  const buck = dcdcPoint(m, vpack, ROBOCAR.rail, logicA)
   const railV = buck.limit === 'off' ? 0 : buck.vout
   const mcuV = Math.max(0, Math.min(AMS1117_33.vout, railV - dropoutVolts(AMS1117_33, logicA)))
   return { buck, railV, mcuV, iin: buck.iin }
@@ -50,18 +50,19 @@ function logicRail(vpack: number, logicA: number) {
 
 type PowerVerdict = 'ok' | 'noLogic' | 'resets' | 'dips' | 'slow'
 
-/** The whole power tree for a pack at state of charge `soc`: cruising (Wi-Fi average) and a hard start (both motors stalled, Wi-Fi burst). */
-export function carPower(pack: CarPack, soc = ROBOCAR.soc) {
+/** The whole power tree for a pack at state of charge `soc`: cruising (Wi-Fi average) and a hard start (both motors stalled, Wi-Fi burst).
+ *  `buck` = the 5 V converter (the build uses an LM2596 buck). */
+export function carPower(pack: CarPack, soc = ROBOCAR.soc, buck: DcdcModule = LM2596) {
   const P = CAR_PACKS[pack]
   const c = CHEMISTRIES[P.chem]
   const ocv = P.series * openCircuitVolts(c, soc)
   const ohms = P.series * c.cell.ohms + ROBOCAR.wiringOhms
-  const cruiseV = sagged(ocv, ohms, (v) => 2 * cruiseMotor(v).amps + logicRail(v, ROBOCAR.logicA).iin)
+  const cruiseV = sagged(ocv, ohms, (v) => 2 * cruiseMotor(v).amps + logicRail(v, ROBOCAR.logicA, buck).iin)
   const m = cruiseMotor(cruiseV)
-  const lc = logicRail(cruiseV, ROBOCAR.logicA)
+  const lc = logicRail(cruiseV, ROBOCAR.logicA, buck)
   const cruise = { packV: cruiseV, ...m, railV: lc.railV, mcuV: lc.mcuV, packA: 2 * m.amps + lc.iin, watts: cruiseV * (2 * m.amps + lc.iin) }
-  const stallV = sagged(ocv, ohms, (v) => 2 * stallMotorAmps(v) + logicRail(v, WIFI_PEAK_A).iin)
-  const ls = logicRail(stallV, WIFI_PEAK_A)
+  const stallV = sagged(ocv, ohms, (v) => 2 * stallMotorAmps(v) + logicRail(v, WIFI_PEAK_A, buck).iin)
+  const ls = logicRail(stallV, WIFI_PEAK_A, buck)
   const stall = { packV: stallV, motorA: stallMotorAmps(stallV), railV: ls.railV, mcuV: ls.mcuV, resets: ls.mcuV < ESP32_BOD[0] }
   const hours = packRuntime(c, P.series, 1, cruise.watts).hours
   const verdict: PowerVerdict = lc.mcuV < AMS1117_33.vout - 0.05 ? 'noLogic' : stall.resets ? 'resets' : stall.mcuV < AMS1117_33.vout - 0.05 ? 'dips' : m.speed < 0.3 ? 'slow' : 'ok'
