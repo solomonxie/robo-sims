@@ -1,8 +1,7 @@
 // A silicon crystal drawn flat: atoms, two shared electrons per bond, dopants, free electrons and hopping holes.
 import * as THREE from 'three/webgpu'
-import { add, box, mesh } from '../../models/kit'
+import { add, mesh } from '../../models/kit'
 import { ELECTRON, HIGH_V, HOLE, LOW_V, RING, glowMat } from './colors'
-import { partLetter } from './parts'
 import { plusGeometry } from './shapes'
 import { UP, clamp01, rand, rand01 } from './util'
 
@@ -528,48 +527,4 @@ export function siliconCrystal(
       return h ? holeAt(h, out) : null
     },
   }
-}
-
-// --- PN junction helpers ---
-
-/** P-side sites (col, row) on a 4-row crystal, spread so every column gets one early; the n side is the mirror image. */
-const P_SPOTS: [number, number][] = [[3, 1], [1, 2], [2, 0], [0, 3], [3, 3], [1, 0], [2, 2], [0, 1], [3, 2], [1, 1]]
-
-/** Acceptors on the left half, donors on the right, interleaved so both sides ionize together. */
-export function junctionDopants(cols: number, p: number, nd: number, rows = 4) {
-  const half = cols / 2
-  const map = new Map<number, Dopant>()
-  for (let i = 0; i < Math.max(p, nd); i++) {
-    const [c, r] = P_SPOTS[i]
-    const col = c + half - 4
-    if (i < p && col >= 0) map.set(r * cols + col, 'acceptor')
-    if (i < nd && col >= 0) map.set((rows - 1 - r) * cols + (cols - 1 - col), 'donor')
-  }
-  return map
-}
-
-/** Tinted backing behind each half and a pale slab marking the depletion zone; `zone(from, to)` moves it. */
-export function junctionBacking(parent: THREE.Object3D, width: number, height: number) {
-  const glass = (color: string, opacity: number) =>
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity, roughness: 0.6, depthWrite: false })
-  for (const [s, color] of [[-1, ACCEPTOR], [1, DONOR]] as const) box(parent, [width / 2, height, 0.2], glass(color, 0.16), [(s * width) / 4, 0, -1.4]).castShadow = false
-  const slab = box(parent, [1, height + 0.6, 0.2], glass('#ffffff', 0.22), [0, 0, -1.2])
-  slab.castShadow = false
-  const letter = (text: string, x: number, color: string) => {
-    partLetter(parent, text, [x, -height / 2 - 1.4, 0], 1.4, color)
-  }
-  letter('P', -width / 2 + 1, ACCEPTOR)
-  letter('N', width / 2 - 1, DONOR)
-  return (from: number, to: number) => {
-    slab.visible = to - from > 0.05
-    slab.scale.x = Math.max(0.01, to - from)
-    slab.position.x = (from + to) / 2
-  }
-}
-
-/** Zone edges in scene units: total width on a √ scale (`k` at 1 µm), split like xp : xn. */
-export function zoneEdges(d: { w: number; xp: number }, k: number, half: number, min = 0.5) {
-  const w = Math.max(min, k * Math.sqrt(d.w / 1e-6))
-  const f = d.w > 0 ? d.xp / d.w : 0.5
-  return { from: -Math.min(half - 1, w * f), to: Math.min(half - 1, w * (1 - f)) }
 }

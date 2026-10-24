@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { DIODES, depletion, diodeAmps, diodeNode, junctionPotential, thermalVoltage } from '../../core/physics'
 import { fitDigits, sci, si, volts } from '../../core/units'
-import { V3, add, box } from '../../models/kit'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   ACCEPTOR,
@@ -22,7 +22,7 @@ import {
   ivScreen,
   junctionBacking,
   junctionDopants,
-  potentialColor,
+  junctionSlab,
   pulseLabel,
   resistorAlong,
   scope,
@@ -152,17 +152,8 @@ const S2: V3 = [10, 0.2, 0]
 /** Crystal between two plates wired to a cell above (+ on the left when `flip(false)`), optional resistor on the left run. */
 function biasRig(scene: THREE.Object3D, at: V3, cols: number, pitch: number, dopants: Map<number, Dopant>, resistor?: number) {
   const rig = add(scene, new THREE.Group(), at)
-  const width = cols * pitch
-  const height = ROWS * pitch
-  const zone = junctionBacking(rig, width, height)
-  const crystal = siliconCrystal(rig, { cols, rows: ROWS, pitch, dopants, wrap: false, ionizeAfter: 0.2 })
-  const plateX = width / 2 + 0.7
-  const plateH = height + 0.6
-  const plates = [-1, 1].map((s) => {
-    const material = new THREE.MeshStandardMaterial({ roughness: 0.4 })
-    box(rig, [0.7, plateH, 2.4], material, [s * plateX, 0, 0])
-    return material
-  })
+  const slab = junctionSlab(rig, cols, pitch, dopants, ROWS)
+  const { plateX, plateH } = slab
   const topY = plateH / 2 + 3.6
   const cellL = -CELL_H / 2 - 0.4
   wire(rig, [[-plateX, plateH / 2, 0], [-plateX, topY, 0], [cellL, topY, 0]])
@@ -171,19 +162,15 @@ function biasRig(scene: THREE.Object3D, at: V3, cols: number, pitch: number, dop
   if (resistor) resistorAlong(rig, resistor, [-plateX / 2 - 1.4, topY, 0], [-plateX / 2 + 1.4, topY, 0], R_SCALE)
   const field = arrow(rig, [0, topY - 2.4, 0.4], [-1, 0, 0], RING, 0.7)
   const amps = pulseLabel(rig, 3, CONVENTIONAL, [-plateX / 2, topY + 1.7, 0], 1)
-  const c = new THREE.Color()
   return {
-    crystal,
-    width,
-    zone,
+    crystal: slab.crystal,
+    width: slab.width,
+    zone: slab.zone,
     field,
     amps,
     /** Plate potentials as fractions of full scale, left then right. */
     paint(left: number, right: number) {
-      for (const [m, f] of [[plates[0], left], [plates[1], right]] as const) {
-        m.color.copy(potentialColor(f, c))
-        m.emissive.copy(c).multiplyScalar(0.4)
-      }
+      slab.paint(left, right)
       battery.rotation.z = left >= right ? Math.PI / 2 : -Math.PI / 2
     },
   }

@@ -10,8 +10,8 @@ import {
   tia,
 } from '../../core/physics'
 import { nearestE12 } from '../../core/resistorColors'
-import { amps, fitDigits, ohms, si, volts, watts } from '../../core/units'
-import { V3, add, box } from '../../models/kit'
+import { amps, fitDigits, hertz, ohms, si, volts, watts } from '../../core/units'
+import { V3, add } from '../../models/kit'
 import { createStage } from '../../scene/stage'
 import {
   CONVENTIONAL,
@@ -28,24 +28,22 @@ import {
   glowDot,
   groundAt,
   junction,
-  junctionBacking,
   junctionDopants,
+  junctionSlab,
   lane,
   lightRay,
   liveLabel,
   opAmpSymbol,
   plusFlow,
-  potentialColor,
   pulseLabel,
   resistorSlot,
   scope,
-  siliconCrystal,
   terminal,
   ticks,
   wire,
   zoneEdges,
 } from '../fx'
-import { Lesson, Params, Stage, n, opts, pick } from '../types'
+import { Lesson, Params, Stage, e12, n, opts, pick } from '../types'
 
 const LOAD_LINE = '#e8e8e8'
 const lightText = (w: number) => `${Math.round(w)} W/m²`
@@ -68,24 +66,15 @@ const H1 = 9
 
 const cell1 = (p: Params) => {
   const light = n(p, 'light')
-  const load = nearestE12(n(p, 'load'))
+  const load = e12(p, 'load')
   return { light, load, ...cellOnLoad(light, load), mpp: cellMpp(light), isc: cellPhotoA(light), voc: cellVoc(light) }
 }
 
 /** Crystal between two plates; the plates' leads drop to a load resistor under it. */
 function cellRig(scene: THREE.Object3D, ohmsNow: number) {
   const rig = add(scene, new THREE.Group(), [CX, CY, 0])
-  const width = COLS * PITCH
-  const height = ROWS * PITCH
-  const zone = junctionBacking(rig, width, height)
-  const crystal = siliconCrystal(rig, { cols: COLS, rows: ROWS, pitch: PITCH, dopants: junctionDopants(COLS, 5, 5), wrap: false, ionizeAfter: 0.2 })
-  const plateX = width / 2 + 0.7
-  const plateH = height + 0.6
-  const plates = [-1, 1].map((s) => {
-    const material = new THREE.MeshStandardMaterial({ roughness: 0.4 })
-    box(rig, [0.7, plateH, 2.4], material, [s * plateX, 0, 0])
-    return material
-  })
+  const slab = junctionSlab(rig, COLS, PITCH, junctionDopants(COLS, 5, 5), ROWS)
+  const { width, height, plateX, plateH } = slab
   const botY = -plateH / 2 - 3.2
   const loop: V3[] = [[-plateX, -plateH / 2, 0], [-plateX, botY, 0], [plateX, botY, 0], [plateX, -plateH / 2, 0]]
   wire(rig, loop)
@@ -100,11 +89,10 @@ function cellRig(scene: THREE.Object3D, ohmsNow: number) {
   const sun = glowDot(rig, 1.1, SUN_TINT, 1.4)
   sun.position.set(...sunAt)
   const rays = Array.from({ length: 5 }, () => lightRay(rig, 10, 0.16, 0.7))
-  const c = new THREE.Color()
   return {
-    crystal,
+    crystal: slab.crystal,
     width,
-    zone,
+    zone: slab.zone,
     load,
     flow,
     current,
@@ -116,10 +104,7 @@ function cellRig(scene: THREE.Object3D, ohmsNow: number) {
       }),
     paint(vf: number, sunF: number) {
       live.v = vf
-      plates[0].color.copy(potentialColor(vf, c))
-      plates[0].emissive.copy(c).multiplyScalar(0.4)
-      plates[1].color.copy(potentialColor(0, c))
-      plates[1].emissive.copy(c).multiplyScalar(0.4)
+      slab.paint(vf, 0)
       sun.scale.setScalar(0.3 + 0.7 * sunF)
       sun.visible = sunF > 0.01
     },
@@ -175,7 +160,7 @@ export const photovoltaicEffect: Lesson = {
       view: { center: [-1.4, 2.6, 0], radius: 67, polar: 1.42, azimuth: 0.1 },
       frame(dt, p) {
         state.t += dt
-        const load = nearestE12(n(p, 'load'))
+        const load = e12(p, 'load')
         state.light += (n(p, 'light') - state.light) * ease(dt, 5)
         state.load = load
         rig.load(load)
@@ -243,11 +228,10 @@ const H2 = 8
 const sense2 = (p: Params) => {
   const mode = pick(MODES, p.mode, 'pc')
   const lux = n(p, 'lux')
-  const rf = nearestE12(n(p, 'rf'))
+  const rf = e12(p, 'rf')
   return { mode, lux, rf, vr: BIAS[mode], ...tia(lux, rf, BIAS[mode], TL072, RAILS) }
 }
 
-const hzText = (hz: number) => si(hz, 'Hz', 3)
 const luxText = (lux: number) => (lux >= 1000 ? `${+(lux / 1000).toPrecision(3)} klx` : `${+lux.toPrecision(3)} lx`)
 
 export const lightSensing: Lesson = {
@@ -257,7 +241,7 @@ export const lightSensing: Lesson = {
   formula: (p) => {
     const s = sense2(p)
     const tail = s.clipped ? ' → clipped at 3.5 V' : ''
-    return `Iph = E·A·R = ${luxText(s.lux)} ÷ 110 lm/W × 7.5 mm² × 0.6 A/W = ${amps(s.photoA)} · Vout = (Iph + Idark)·Rf = ${volts(s.ideal)}${tail} · f ≈ √(GBW / 2π·Rf·C), C = ${si(s.capF, 'F', 2)} → ${hzText(s.hz)}`
+    return `Iph = E·A·R = ${luxText(s.lux)} ÷ 110 lm/W × 7.5 mm² × 0.6 A/W = ${amps(s.photoA)} · Vout = (Iph + Idark)·Rf = ${volts(s.ideal)}${tail} · f ≈ √(GBW / 2π·Rf·C), C = ${si(s.capF, 'F', 2)} → ${hertz(s.hz)}`
   },
   legend: (p) => [
     { color: SUN_TINT, label: 'Light on a BPW34 photodiode', shape: 'dot' },
@@ -359,7 +343,7 @@ export const lightSensing: Lesson = {
           { label: 'Photocurrent', value: amps(s.photoA) },
           { label: 'Vout', value: volts(s.vout), tone: s.clipped ? 'bad' : s.vout < 0.01 ? 'warn' : 'ok' },
           { label: 'Dark current', value: s.darkA > 0 ? amps(s.darkA) : 'none', tone: s.darkA > s.photoA / 10 ? 'warn' : undefined },
-          { label: 'Bandwidth', value: hzText(s.hz) },
+          { label: 'Bandwidth', value: hertz(s.hz) },
         ]
       },
     }

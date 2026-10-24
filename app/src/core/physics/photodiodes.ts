@@ -13,8 +13,8 @@ export const responsivity = (nm: number, qe = 0.8) => (nm < SI_CUTOFF_NM ? (qe *
 export const photocurrent = (wPerM2: number, areaM2: number, aPerW: number) => Math.max(0, wPerM2) * areaM2 * aPerW
 
 /** Sunlight ≈ 110 lm per W. */
-export const SUN_LUX_PER_W = 110
-export const luxToIrradiance = (lux: number) => lux / SUN_LUX_PER_W
+const SUN_LUX_PER_W = 110
+const luxToIrradiance = (lux: number) => lux / SUN_LUX_PER_W
 
 export interface SolarCell {
   areaM2: number
@@ -86,8 +86,8 @@ export const pdDarkA = (vr: number, d: Photodiode = BPW34) =>
 export const pdPhotoA = (lux: number, d: Photodiode = BPW34) => photocurrent(luxToIrradiance(lux), d.areaM2, d.aPerW)
 
 /** TL072 gain–bandwidth, Hz; plus ~5 pF of op-amp input capacitance. */
-export const TIA_GBW = 3e6
-export const TIA_CIN = 5e-12
+const TIA_GBW = 3e6
+const TIA_CIN = 5e-12
 
 /** Transimpedance amp, photodiode into V− (virtual ground), anode at −Vr: Vout = (Iph + Idark)·Rf, clipped at the rails.
  *  Bandwidth of the uncompensated loop ≈ √(GBW / (2π·Rf·C)); rise time 10–90 % ≈ 0.35 / f. */

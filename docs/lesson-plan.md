@@ -1,12 +1,12 @@
 # Lesson rollout plan
 
-Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each a `Lesson` with an animated 3D `build()`, like `app/src/lessons/electricity/current.ts`.
+Rulebook + code maps for lessons: each curriculum entry (`app/src/curriculum/`) is a `Lesson` with an animated 3D `build()`, like `app/src/lessons/electricity/current.ts`.
 
 ## Unit of work
 
 - One agent = one **topic** → `lessons/<category>/<topic>.ts`, one `Lesson` per entry; register in `UNITS` (`lessons/index.ts`) and `READY` (`curriculum/index.ts`). Id = entry id minus category, `/` → `-`.
 - Numbers only from tested pure fns in `core/` (+ test); speed tests assert `medianMs` (`core/stopwatch.ts`) under a generous limit, never one timed run; `core/physics` is one flat namespace (unique names); inside it import files, not folder `index`es (cycles). Circuits: `Element[]` → `core/nodal.ts` (`solveNodal`, `relaxSweep`, `theveninAt`), diodes via `diodeNode`/`ledStringAmps`. Formatters: `core/units.ts` (`secs`, `secsText`, `msText`, `mmText`/`mmTenths`/`mmFixed`, `umText`, `nmText`, `cmText`/`cmWhole`, `lengthText`, `wavelengthText`, `degText`, `radText`, `fixedText`, `tupleText`, `factorText`, `mat2Text`, `kpText`/`kiText`/`kdText`, `pct`, `mpsText`/`accelText`/`newtonsText`/`kgText`/`energyText`, `bytesText`, `countText` (47k, 1.2M), `signed`, `signText`, `voltText`/`ampText` (fixed 2), `ohmsText` (Infinity → open), `lowerFirst`, `velocityText`, `celsiusText`, `hoursText`/`durationText` (s), `timeText` (2 digits, 'never'), `rpmText`, `dayClock` (day 2, 07:30), `degWhole`, `thetaText`, `paText`/`hpaText`, …), `core/numbers.ts`. Controls: `lessons/types.ts` (`n`, `pick`, `opts`, `namesOf`, `toneOf`, `verdictReadout`, `e12`, `angleSlider`, `resistorSlider`, `seriesSlider`/`seriesOhms` (snap to any E-series: `E6` caps/`E12`/`E24`/`E96` in `core/resistorColors`; `fmt` for non-Ω, e.g. farads), `bitChoice`).
-- Reuse `archive/lesson-drafts/`. Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
+- Shared visuals in `lessons/fx/` (map below); grep before writing a helper.
 - Framing: legend top ~30 % (right), chips bottom ~25 %, scene in the middle band, wide over tall.
 - Visuals: `potentialColor` for levels; 3D text = `label()`/`partLetter` (stroke font, Q̄ = `'Q\u0304'`); 7-seg = `segmentDisplay`/`pulseLabel`; charges on `lane()`, speed ∝ current; `ease`/`glide` toward targets, `presence` to morph. Per-rebuild materials: `glowMat`/`new` (`emptyGroup` keeps cached `mat()`s; `clearMeshes` keeps all materials). Heavy time-lapse solves: `memoBy(key, compute)`.
 - Robot frames: body X forward, Y left, Z up; pitch > 0 = nose up; heading clockwise from north (`tiltAccel`, `bodyAccel`, `toBody`).
@@ -85,7 +85,7 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `measuring` — `vernierCaliper` (vernier / dial / LCD, mm × k; `setKind`, `set(gap, text, needle, rod)`, `tint`), `scaleZoom`, `dialFace`, `fitSection`, `stackSection`, `batchStrip`, `FIT_TINT`, `PLA_TINT`, `PART_STEEL` [`physics/workshop/caliper`, `tolerance`].
 - `safety` — `lipoPack` (2S pouch, `set(puff, heat)`), `hobbyCharger` (`screen`), `chargeLeads`, `lipoBag`, `ventFire`, `benchHead` (`glasses`, `hit`), `fumePlume`, `leadSnippet`, `nearDome` [`physics/workshop/batterysafety`, `fumes`].
 - `toolkit` — face-on tool bench: `pegboard`, `handTool`, `helpingHands`, `safetyGlasses`, `benchSupply`, `benchExtractor`, `slotPad`.
-- `crystal` (`siliconCrystal`; PN junction: `junctionDopants`, `junctionBacking`, `zoneEdges`), `dies`, `plots`, `story` (stepped lessons).
+- `crystal` (`siliconCrystal`), `pnjunction` (`junctionDopants`, `junctionBacking`, `zoneEdges`, `junctionSlab` = backed crystal + end plates, `paint(left, right)`), `dies`, `plots`, `story` (stepped lessons).
 
 `core/physics/` (flat files: dc, ac, circuits, semiconductors, photodiodes (`responsivity`, `photocurrent`, `SOLAR_CELL`, `litDiodeAmps`, `cellVoc`, `cellMpp`, `cellOnLoad`, `BPW34`, `pdCapacitance`, `pdDarkA`, `pdPhotoA`, `tia`), electromechanical (relays, switches, pots), … timing (`HC_TIMING` 74HC), levels (`LOGIC_INPUTS` incl. `i2c` 0.3/0.7 VDD)) + subfolders:
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
@@ -114,38 +114,11 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 
 ## Pacing
 
-- Serial: one agent at a time; next starts only after the last finishes.
-- Gate before each spawn: memory pressure = 1, free disk > 20 GB, loadavg(1m) < 25 for one agent (< 10 for two). Else wait for the hourly check.
-- After each section (category) is done: one cleanup agent before the next topic — split/dedupe shared code (`lessons/fx/`, `core/`), drop dead code, compact this file and `DESIGN.md`. No behaviour change.
-- Hourly check: read git log + this file, check load; speed up (2 agents in parallel, on different categories) only if the Mac is idle and the last runs were clean; pause on red tests or overload.
+- One agent per topic, serially; spawn only if memory pressure = 1, free disk > 20 GB, loadavg(1m) < 25 (< 10 for two agents on different categories).
+- After each category: one cleanup agent — split/dedupe `lessons/fx/` and `core/`, drop dead code, compact this file and `DESIGN.md`. No behaviour change.
 - Builds/tests run with `nice -n 10`.
-- Install on the iPhone only once the whole queue is done (not per topic), from the clean worktree `/tmp/robo-sims-install` (`git checkout --detach <hash>`, then `nice -n 10 make ios-build ios-run`), so agents' uncommitted edits never get bundled. Its `node_modules` is an APFS clone (`/bin/cp -cR`); a symlink breaks Metro.
+- iPhone install from the clean worktree `/tmp/robo-sims-install` (`git checkout --detach <hash>`, then `nice -n 10 make ios-build ios-run`), so uncommitted edits never get bundled. Its `node_modules` is an APFS clone (`/bin/cp -cR`); a symlink breaks Metro.
 
 ## Queue
 
-Order follows the drafts backlog, then the home sections. Tick when committed.
-
-- Wave 1 Electricity ✓ 12/12
-- Wave 2 Components & semiconductors ✓ 20/20
-- Wave 3 Digital, Power, Signals ✓ 24/24
-- Wave 4 Microcontrollers, Sensors, Software ✓ 38/38
-
-
-### Wave 5 — Actuators, Mobility, Control, Kinematics, Perception, Navigation, AI
-- Actuators ✓ 11/11
-- Mobility ✓ 9/9
-- Control ✓ 10/10
-- Kinematics ✓ 9/9
-- Perception ✓ 9/9
-- Navigation ✓ 9/9
-- AI ✓ 16/16
-
-### Wave 6 — Mechanics, Waves, Math, Materials, Printing
-Much of this is taught elsewhere already (Kinematics, Signals, Perception, Actuators): link there, build only what's new.
-- Mechanics ✓ 10/10
-- Waves, light & heat ✓ 7/7
-- Maths for robots ✓ 9/9
-- Materials & mechanical design ✓ 8/8
-- 3D printing ✓ 17/17
-
-### Wave 7 — Practice (projects, challenges, debugging, workshop) ✓ 31/31
+Done: every curriculum entry has a lesson (25 categories, 241 topics, 675 lessons; waves 1–7 plus Photodiodes & solar cells). New entries follow the unit of work above.
