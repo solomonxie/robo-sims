@@ -85,9 +85,9 @@ Goal: turn curriculum entries (`app/src/curriculum/`) into real lessons — each
 - `measuring` — `vernierCaliper` (vernier / dial / LCD, mm × k; `setKind`, `set(gap, text, needle, rod)`, `tint`), `scaleZoom`, `dialFace`, `fitSection`, `stackSection`, `batchStrip`, `FIT_TINT`, `PLA_TINT`, `PART_STEEL` [`physics/workshop/caliper`, `tolerance`].
 - `safety` — `lipoPack` (2S pouch, `set(puff, heat)`), `hobbyCharger` (`screen`), `chargeLeads`, `lipoBag`, `ventFire`, `benchHead` (`glasses`, `hit`), `fumePlume`, `leadSnippet`, `nearDome` [`physics/workshop/batterysafety`, `fumes`].
 - `toolkit` — face-on tool bench: `pegboard`, `handTool`, `helpingHands`, `safetyGlasses`, `benchSupply`, `benchExtractor`, `slotPad`.
-- `crystal`, `dies`, `plots`, `story` (stepped lessons).
+- `crystal` (`siliconCrystal`; PN junction: `junctionDopants`, `junctionBacking`, `zoneEdges`), `dies`, `plots`, `story` (stepped lessons).
 
-`core/physics/` (flat files: dc, ac, circuits, semiconductors, electromechanical (relays, switches, pots), … timing (`HC_TIMING` 74HC), levels (`LOGIC_INPUTS` incl. `i2c` 0.3/0.7 VDD)) + subfolders:
+`core/physics/` (flat files: dc, ac, circuits, semiconductors, photodiodes (`responsivity`, `photocurrent`, `SOLAR_CELL`, `litDiodeAmps`, `cellVoc`, `cellMpp`, `cellOnLoad`, `BPW34`, `pdCapacitance`, `pdDarkA`, `pdPhotoA`, `tia`), electromechanical (relays, switches, pots), … timing (`HC_TIMING` 74HC), levels (`LOGIC_INPUTS` incl. `i2c` 0.3/0.7 VDD)) + subfolders:
 - `power/` — batteries, packs, charging, converters, budget, wiring, noise, brownout.
 - `signals/` — filters, fourier, scope, buses (I²C/SPI/register frames), transmission, radio, interference, pcb.
 - `mcu/` (ESP32) — gpio, pwm, adc, dac, timers, uart, i2c, spi, can, wireless, sleep, memory, rtos, boot, firmware (super-loop vs tasks, driver layers, fixed-rate loop).

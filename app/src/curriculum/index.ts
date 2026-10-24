@@ -25,6 +25,7 @@ import { dividerFormula, dividerSensor, loadingDivider } from '../lessons/electr
 import { maximumPowerTransfer, theveninEquivalent } from '../lessons/electricity/thevenin-norton'
 import { groundAndReference, measuringWithMultimeter, potentialDifference } from '../lessons/electricity/voltage'
 import { lithographyMachine, waferToChip, what3nmMeans } from '../lessons/semiconductors/chip-making'
+import { lightSensing, photovoltaicEffect } from '../lessons/semiconductors/photodiodes-solar-cells'
 import { channelFormation, cmosInverterLesson, switchingEnergyLesson } from '../lessons/semiconductors/mosfet-physics'
 import { adders, nandFromTransistors, truthTables } from '../lessons/semiconductors/logic-gates'
 import { dramCapacitor, flashFloatingGate, sramLatch } from '../lessons/semiconductors/memory-cell'
@@ -386,6 +387,8 @@ const READY: Record<string, Lesson> = {
   'semiconductors/chip-making/lithography-machine': lithographyMachine,
   'semiconductors/chip-making/wafer-to-chip': waferToChip,
   'semiconductors/chip-making/what-3-nm-means': what3nmMeans,
+  'semiconductors/photodiodes-solar-cells/photovoltaic-effect': photovoltaicEffect,
+  'semiconductors/photodiodes-solar-cells/light-sensing': lightSensing,
   'power/battery-chemistry/cell-voltage-curve': cellVoltageCurve,
   'power/battery-chemistry/capacity-and-c-rate': capacityAndCRate,
   'power/battery-chemistry/internal-resistance': internalResistance,
